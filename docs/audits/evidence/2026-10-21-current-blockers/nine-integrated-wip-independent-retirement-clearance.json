@@ -1,0 +1,224 @@
+{
+  "schema": "termrock.integrated-wip-retirement-independent-review.v2",
+  "reviewed_at_utc": "2026-10-21T05:31:51Z",
+  "reviewer": "/root/nine_integrated_wip_retirement_review",
+  "scope": "Read-only remote-ref retirement assessment. No fetch, push, deletion, branch mutation, source edit, worktree mutation, or Rust test run.",
+  "repository": "tailrocks/terminal-components-claude",
+  "pr38_branch": "parity/termrock-visual-baseline",
+  "pr38_tip": "c07978771bc3f4e50c6e859a04bcb5cfae34309d",
+  "remote_inventory": {
+    "command": "gh api repos/tailrocks/terminal-components-claude/branches --paginate --jq .[].name | wc -l",
+    "count": 122
+  },
+  "shared_remote_checks": {
+    "exact_tips_command": "git ls-remote --heads origin 'wip/select-composition-adapter-20261021' 'wip/editor-backtab-dedent-20261021' 'wip/button-pressed-profile-20261021' 'wip/parent-showcase-editor-validation-20261021' 'wip/showcase-editor-live-20261021' 'wip/tabs-semantic-layout-20261021' 'wip/shared-column-spec-20261021' 'wip/canonical-verify-owned-20261021' 'wip/canonical-verify-owned-corrected-20261021' 'parity/termrock-visual-baseline'",
+    "all_exact_remote_oids_match_expected": true,
+    "ancestry_command": "git merge-base --is-ancestor <tip> refs/remotes/origin/parity/termrock-visual-baseline",
+    "all_nine_tips_are_ancestors": true,
+    "per_tip_unique_commit_count_command": "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..<tip>",
+    "all_nine_unique_commit_counts": 0,
+    "open_pull_request_command": "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+    "open_pr_for_any_target": false,
+    "classic_protection_command": "gh api repos/tailrocks/terminal-components-claude/branches/<name>/protection",
+    "classic_protection_result": "404 Branch not protected for all nine targets",
+    "rulesets_command": "gh api repos/tailrocks/terminal-components-claude/rulesets/<id>",
+    "branch_ruleset": "protect-main includes ~DEFAULT_BRANCH only; no WIP target matched",
+    "tag_ruleset": "protect-tags includes ~ALL; no branch target matched",
+    "active_agent_check": "collaboration.list_agents; no active author owned any of these nine WIP refs at review time"
+  },
+  "required_final_coordinator_check": "Before any deletion, repeat ls-remote, PR/protection/ruleset/active-owner checks, confirm exact PR38 ancestry, acquire shared push lock, and use an exact-old-OID lease. Preserve every local ref/worktree and evidence artifact.",
+  "refs": [
+    {
+      "ref": "wip/select-composition-adapter-20261021",
+      "expected_old_oid": "215c71df6caf22c2d28032b1f3c588fbfc780168",
+      "observed_remote_oid": "215c71df6caf22c2d28032b1f3c588fbfc780168",
+      "pr38_ancestor": true,
+      "unique_commits_not_in_pr38": 0,
+      "verdict": "GO_REMOTE_ONLY",
+      "reason": "Independent exact-commit clearance: select-composition-215-independent-clearance.json, SHA256 9a57fbc9284af3703d3d7ffffe2b400fb58c5c649775abe45c0e6bdcb894826d. Attached local worktree clean and preserved. Bounded adapter review only; no app parity/full acceptance claim.",
+      "exact_deletion_lease": "--force-with-lease=refs/heads/wip/select-composition-adapter-20261021:215c71df6caf22c2d28032b1f3c588fbfc780168",
+      "attached_task_worktree": "clean and preserved",
+      "open_pr": false,
+      "protected": false,
+      "commands": [
+        "git ls-remote --heads origin wip/select-composition-adapter-20261021",
+        "git merge-base --is-ancestor 215c71df6caf22c2d28032b1f3c588fbfc780168 refs/remotes/origin/parity/termrock-visual-baseline",
+        "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..215c71df6caf22c2d28032b1f3c588fbfc780168",
+        "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+        "gh api repos/tailrocks/terminal-components-claude/branches/wip/select-composition-adapter-20261021/protection"
+      ]
+    },
+    {
+      "ref": "wip/editor-backtab-dedent-20261021",
+      "expected_old_oid": "b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049",
+      "observed_remote_oid": "b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049",
+      "pr38_ancestor": true,
+      "unique_commits_not_in_pr38": 0,
+      "verdict": "GO_REMOTE_ONLY",
+      "reason": "Independent exact-commit clearance: editor-backtab-b82-independent-clearance.json, SHA256 e8646d964244f2028eea08c06e663a9e5dcb3e0b6b41313c89f880a9ab361898. Attached local worktree clean and preserved. Component-only clearance.",
+      "exact_deletion_lease": "--force-with-lease=refs/heads/wip/editor-backtab-dedent-20261021:b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049",
+      "attached_task_worktree": "clean and preserved",
+      "open_pr": false,
+      "protected": false,
+      "commands": [
+        "git ls-remote --heads origin wip/editor-backtab-dedent-20261021",
+        "git merge-base --is-ancestor b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049 refs/remotes/origin/parity/termrock-visual-baseline",
+        "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049",
+        "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+        "gh api repos/tailrocks/terminal-components-claude/branches/wip/editor-backtab-dedent-20261021/protection"
+      ]
+    },
+    {
+      "ref": "wip/button-pressed-profile-20261021",
+      "expected_old_oid": "165ef0ef132527ac78897fb2cec57e8f9865abc4",
+      "observed_remote_oid": "165ef0ef132527ac78897fb2cec57e8f9865abc4",
+      "pr38_ancestor": true,
+      "unique_commits_not_in_pr38": 0,
+      "verdict": "GO_REMOTE_ONLY",
+      "reason": "Integrated tip is audit-only successor of independently cleared source commit 97e339521322d1e85756e09327d2285469051eed. Code clearance packet SHA256 8578a92ded28b63e5156f5e42a85e28cc35bbe8f3e9e5fe346dded55b49d8569; audit correction is retained in PR38. Attached local worktree clean. Existing full Showcase failures remain outside this bounded change and do not count as passing.",
+      "exact_deletion_lease": "--force-with-lease=refs/heads/wip/button-pressed-profile-20261021:165ef0ef132527ac78897fb2cec57e8f9865abc4",
+      "attached_task_worktree": "clean and preserved",
+      "open_pr": false,
+      "protected": false,
+      "commands": [
+        "git ls-remote --heads origin wip/button-pressed-profile-20261021",
+        "git merge-base --is-ancestor 165ef0ef132527ac78897fb2cec57e8f9865abc4 refs/remotes/origin/parity/termrock-visual-baseline",
+        "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..165ef0ef132527ac78897fb2cec57e8f9865abc4",
+        "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+        "gh api repos/tailrocks/terminal-components-claude/branches/wip/button-pressed-profile-20261021/protection"
+      ]
+    },
+    {
+      "ref": "wip/parent-showcase-editor-validation-20261021",
+      "expected_old_oid": "d1acbfc35b1f9aa4d609fb0d5f7ea6dcebb7141f",
+      "observed_remote_oid": "d1acbfc35b1f9aa4d609fb0d5f7ea6dcebb7141f",
+      "pr38_ancestor": true,
+      "unique_commits_not_in_pr38": 0,
+      "verdict": "GO_REMOTE_ONLY",
+      "reason": "Evidence-archive successor of editor source validation; exact tip is in PR38 and has zero unique commits. The archived stage-two evidence has its own independent admission record; local WIP branch absent, evidence retained in PR38. This retires an evidence-only ref, not the known incomplete Showcase gate.",
+      "exact_deletion_lease": "--force-with-lease=refs/heads/wip/parent-showcase-editor-validation-20261021:d1acbfc35b1f9aa4d609fb0d5f7ea6dcebb7141f",
+      "attached_task_worktree": "no attached worktree; committed PR38 history/evidence preserved",
+      "open_pr": false,
+      "protected": false,
+      "commands": [
+        "git ls-remote --heads origin wip/parent-showcase-editor-validation-20261021",
+        "git merge-base --is-ancestor d1acbfc35b1f9aa4d609fb0d5f7ea6dcebb7141f refs/remotes/origin/parity/termrock-visual-baseline",
+        "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..d1acbfc35b1f9aa4d609fb0d5f7ea6dcebb7141f",
+        "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+        "gh api repos/tailrocks/terminal-components-claude/branches/wip/parent-showcase-editor-validation-20261021/protection"
+      ]
+    },
+    {
+      "ref": "wip/showcase-editor-live-20261021",
+      "expected_old_oid": "59a4eae3bfc4b3a420f3999864efb763a7523573",
+      "observed_remote_oid": "59a4eae3bfc4b3a420f3999864efb763a7523573",
+      "pr38_ancestor": true,
+      "unique_commits_not_in_pr38": 0,
+      "verdict": "GO_REMOTE_ONLY",
+      "reason": "Integrated tip is audit-only successor of independently cleared source commit de754a4a16997eb18d96a6bea5cf672d41a4b830. Clearance packet SHA256 8fa9cb9b47fe1d9f3a47245fd7feac52faca34a2e9ae229d6b34843cc6521f8d. Attached local worktree clean. Full page/app product and architecture acceptance explicitly remain HOLD.",
+      "exact_deletion_lease": "--force-with-lease=refs/heads/wip/showcase-editor-live-20261021:59a4eae3bfc4b3a420f3999864efb763a7523573",
+      "attached_task_worktree": "clean and preserved",
+      "open_pr": false,
+      "protected": false,
+      "commands": [
+        "git ls-remote --heads origin wip/showcase-editor-live-20261021",
+        "git merge-base --is-ancestor 59a4eae3bfc4b3a420f3999864efb763a7523573 refs/remotes/origin/parity/termrock-visual-baseline",
+        "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..59a4eae3bfc4b3a420f3999864efb763a7523573",
+        "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+        "gh api repos/tailrocks/terminal-components-claude/branches/wip/showcase-editor-live-20261021/protection"
+      ]
+    },
+    {
+      "ref": "wip/tabs-semantic-layout-20261021",
+      "expected_old_oid": "c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8",
+      "observed_remote_oid": "c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8",
+      "pr38_ancestor": true,
+      "unique_commits_not_in_pr38": 0,
+      "verdict": "GO_REMOTE_ONLY",
+      "reason": "Independent bounded semantic Tabs clearance: semantic-tabs-c4b5-independent-clearance.json, SHA256 1be1d313c53022fcda05f8e74e64c91b22c9973ca543ba2633f63bb4fddda494. Later failed d403 attempt is not this target tip. Attached local worktree clean; review expressly excludes unrelated inherited commits and app adoption.",
+      "exact_deletion_lease": "--force-with-lease=refs/heads/wip/tabs-semantic-layout-20261021:c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8",
+      "attached_task_worktree": "clean and preserved",
+      "open_pr": false,
+      "protected": false,
+      "commands": [
+        "git ls-remote --heads origin wip/tabs-semantic-layout-20261021",
+        "git merge-base --is-ancestor c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8 refs/remotes/origin/parity/termrock-visual-baseline",
+        "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8",
+        "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+        "gh api repos/tailrocks/terminal-components-claude/branches/wip/tabs-semantic-layout-20261021/protection"
+      ]
+    },
+    {
+      "ref": "wip/shared-column-spec-20261021",
+      "expected_old_oid": "ee669114e8ade4ba1ad7f882085741eeaa259f5f",
+      "observed_remote_oid": "ee669114e8ade4ba1ad7f882085741eeaa259f5f",
+      "pr38_ancestor": true,
+      "unique_commits_not_in_pr38": 0,
+      "verdict": "GO_REMOTE_ONLY",
+      "reason": "Original SharedColumnSpec commit 2ec603902db0666eb6cb16d0055ff9222335d8d4 independently cleared (packet SHA256 87ad288d881dbe051a71a6105876fc0100241f4193e31efeeda7f843da1729fb). Later NavList header/marker-gap/ScrollbarGutter and RuntimeScrollRegion follow-up is independently cleared for exact WIP tip ee669114e8ade4ba1ad7f882085741eeaa259f5f; packet /Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/nav-header-gutter-independent-review-ee669114-20261021/review.json SHA256 ce46955cc6a3002aeb00a024aabcec2815ae045da3464ae964d8c3fd352d3ea8, no findings. Attached local worktree clean and preserved. Bounded library review only; no application migration or product parity approval.",
+      "exact_deletion_lease": "--force-with-lease=refs/heads/wip/shared-column-spec-20261021:ee669114e8ade4ba1ad7f882085741eeaa259f5f",
+      "attached_task_worktree": "clean and preserved",
+      "open_pr": false,
+      "protected": false,
+      "commands": [
+        "git ls-remote --heads origin wip/shared-column-spec-20261021",
+        "git merge-base --is-ancestor ee669114e8ade4ba1ad7f882085741eeaa259f5f refs/remotes/origin/parity/termrock-visual-baseline",
+        "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..ee669114e8ade4ba1ad7f882085741eeaa259f5f",
+        "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+        "gh api repos/tailrocks/terminal-components-claude/branches/wip/shared-column-spec-20261021/protection"
+      ],
+      "independent_clearance": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/nav-header-gutter-independent-review-ee669114-20261021/review.json",
+        "sha256": "ce46955cc6a3002aeb00a024aabcec2815ae045da3464ae964d8c3fd352d3ea8",
+        "reviewed_tip": "ee669114e8ade4ba1ad7f882085741eeaa259f5f",
+        "decision": "CLEAR exact WIP tip; no findings"
+      }
+    },
+    {
+      "ref": "wip/canonical-verify-owned-20261021",
+      "expected_old_oid": "14bee2db097876479f005a82b04cafe4b09c7eeb",
+      "observed_remote_oid": "14bee2db097876479f005a82b04cafe4b09c7eeb",
+      "pr38_ancestor": true,
+      "unique_commits_not_in_pr38": 0,
+      "verdict": "GO_REMOTE_ONLY",
+      "reason": "This exact old attempt has explicit independent HOLD packet (SHA256 2a810a71777d1b2f5ffcf986d6946d1a9daba2186dabef6ca7779abcea64d267) with required P1/P2 fixes. It is superseded by corrected f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4, which is already in PR38. The corrected commit and old history remain in PR38; local same-named branch/worktree is preserved at f82, not at remote 14bee. Remote stale failed-attempt pointer is safe to retire, but this does not clear the runner or authorize stage3 execution.",
+      "exact_deletion_lease": "--force-with-lease=refs/heads/wip/canonical-verify-owned-20261021:14bee2db097876479f005a82b04cafe4b09c7eeb",
+      "attached_task_worktree": "local same-named branch points to corrected f82 and is preserved; remote tip is older 14bee",
+      "open_pr": false,
+      "protected": false,
+      "commands": [
+        "git ls-remote --heads origin wip/canonical-verify-owned-20261021",
+        "git merge-base --is-ancestor 14bee2db097876479f005a82b04cafe4b09c7eeb refs/remotes/origin/parity/termrock-visual-baseline",
+        "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..14bee2db097876479f005a82b04cafe4b09c7eeb",
+        "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+        "gh api repos/tailrocks/terminal-components-claude/branches/wip/canonical-verify-owned-20261021/protection"
+      ]
+    },
+    {
+      "ref": "wip/canonical-verify-owned-corrected-20261021",
+      "expected_old_oid": "f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4",
+      "observed_remote_oid": "f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4",
+      "pr38_ancestor": true,
+      "unique_commits_not_in_pr38": 0,
+      "verdict": "GO_REMOTE_ONLY",
+      "reason": "Executable canonical source e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257 was independently cleared by packet 21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20. The exact f82 audit closure is independently verified by V13 packet /Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-independent-review-20261021.json SHA256 e8a00010bb24e66a2f1b64ff965b8316206c73fca3853ac8b49ee7c27aa13618: stale stage2 limitation removed, stage3-only gate named, admitted V12 stage2 retained; executable bytes unchanged. Actual stage3-only supervisor is separately cleared; this is not full runner/product acceptance. No attached worktree; PR38 history/evidence retained.",
+      "exact_deletion_lease": "--force-with-lease=refs/heads/wip/canonical-verify-owned-corrected-20261021:f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4",
+      "attached_task_worktree": "no attached worktree; committed PR38 history/evidence preserved",
+      "open_pr": false,
+      "protected": false,
+      "commands": [
+        "git ls-remote --heads origin wip/canonical-verify-owned-corrected-20261021",
+        "git merge-base --is-ancestor f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4 refs/remotes/origin/parity/termrock-visual-baseline",
+        "git rev-list --count refs/remotes/origin/parity/termrock-visual-baseline..f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4",
+        "gh pr list --repo tailrocks/terminal-components-claude --state all --json number,headRefName,state,title,url --limit 100",
+        "gh api repos/tailrocks/terminal-components-claude/branches/wip/canonical-verify-owned-corrected-20261021/protection"
+      ],
+      "independent_clearance": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-independent-review-20261021.json",
+        "sha256": "e8a00010bb24e66a2f1b64ff965b8316206c73fca3853ac8b49ee7c27aa13618",
+        "reviewed_commit": "f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4",
+        "decision": "CLEAR exact documentation closure; executable source unchanged"
+      }
+    }
+  ]
+}

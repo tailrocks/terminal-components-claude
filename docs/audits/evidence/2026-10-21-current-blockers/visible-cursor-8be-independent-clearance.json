@@ -1,0 +1,119 @@
+{
+  "reviewer": "/root/visible_terminal_cursor_reviewer",
+  "exact_commit": "8be128f073c19076a2977e349e8732cd74f08821",
+  "source_commit": "df88318019021c272385f47634c0165e0d0ef8ec",
+  "before_commit": "4f40bb294da89bbfcb2a6716c88a3158427aa0b2",
+  "verdict": "The bounded cursor implementation is independently cleared for integration. No actionable Rust correctness, API compatibility, ownership, concurrency or unsafe-code defect was found. This does not clear application parity or complete acceptance. Formatting evidence and Showcase coverage require follow-up.",
+  "reviewed_contracts": [
+    "All three new builders/adapters default off and use the existing FrameState cursor request machinery.",
+    "Cursor publication is clipped in the existing viewport projection and Ui path; retention takes an existing current-frame non-typing cursor from the registered immediate parent.",
+    "Top popover must be drawn, noninert and nonmodal; frame reset and final resolution reject stale, unregistered and moved-out-of-bounds owners. Layer identity is immutable within this paint, so no opening token is persisted.",
+    "Two different requested owners poison retention with a diagnostic; no last-writer-wins cursor selection.",
+    "An editable top-layer typing owner suppresses retained cursors even with no caret request. Ordinary focused top-layer cursors take precedence.",
+    "No new invisible production control, cursor stack, application painter or raw application cursor coordinate path was introduced. Existing strict retain_owner_cursor remains focus-dependent."
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-runtime -p termrock-viewport -p termrock-overlays --no-fail-fast",
+      "exit": 0,
+      "result": "563 passed, 3 pre-existing skips; skipped cases are not accepted coverage."
+    },
+    {
+      "command": "cargo clippy -p termrock-runtime -p termrock-viewport -p termrock-overlays --all-targets --no-deps -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt -p termrock-runtime -p termrock-viewport -p termrock-overlays --check",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt --check",
+      "exit": 1,
+      "result": "The same pre-existing extra blank line in crates/jackin-preview-app/src/app.rs:261 fails on unchanged parent and reviewed tip."
+    },
+    {
+      "command": "cargo nextest run --manifest-path consumer/Cargo.toml --no-fail-fast",
+      "exit": 0,
+      "result": "9 external consumer tests passed, 0 skipped. All source imports are public Termrock APIs with unrelated log-console data. Harness is a dev-dependency only."
+    },
+    {
+      "command": "cargo check --manifest-path consumer/Cargo.toml --lib",
+      "exit": 0,
+      "result": "Normal library consumer compiles all three new APIs without testing features."
+    },
+    {
+      "command": "cargo tree --manifest-path consumer/Cargo.toml -e normal,build,features",
+      "exit": 0,
+      "result": "No testing feature in normal/build dependency tree."
+    },
+    {
+      "command": "Before consumer: positive retention plus default frame export",
+      "exit": 100,
+      "result": "Expected RED in real_terminal_caret_survives_menu_focus_transfer: None versus Some(Position { x: 8, y: 2 }). The test source is byte-identical on both revisions. Extension traits implement no-op compatibility adapters only where the old API does not exist; inherent methods take precedence on the candidate. Default export passes on both."
+    }
+  ],
+  "default_frame_comparison": {
+    "checkpoints": 72,
+    "dimensions": "2 themes \u00d7 4 color profiles \u00d7 3 terminal sizes \u00d7 initial/open/closed",
+    "compared": "Complete Buffer Debug representation including cell text/styles/attributes, focus owner, cursor position and bar/block shape flag.",
+    "identical": true,
+    "sha256": "50d4a393f654bd7e2d84449a66f964cf4cd4c18e3ceecfd250b8e4aeefad013d",
+    "bytes": 151760
+  },
+  "additional_independent_probes": [
+    "wrong owner that is actually registered but has no cursor",
+    "modal and inert popover rejection",
+    "nested popover cannot retain page ancestor cursor",
+    "owner movement and caret clearing/replacement across frames",
+    "zero width, omitted owner, selection and follow suppression",
+    "10 resize widths including wrap boundaries, compared with the same real focused viewport projection",
+    "two real viewport owners reject ambiguity",
+    "actual TextInput cursor wins through normal typing and runtime dispatch",
+    "menu navigation, action activation, close/reopen and normal focus restoration"
+  ],
+  "findings": [
+    {
+      "id": "CURSOR-EVIDENCE-1",
+      "priority": "P2",
+      "path": "docs/audits/visible-terminal-cursor-retention-20261021.md:46",
+      "finding": "The audit states full cargo fmt --check passed, but the exact reviewed tip fails at the unchanged Jackin extra blank line. Both before and after fail identically; scoped changed crates pass.",
+      "required_action": "Correct the evidence statement to record the pre-existing failure separately, or fix the unrelated formatting through the owning writer and rerun the exact integrated gate."
+    },
+    {
+      "id": "CURSOR-COVERAGE-2",
+      "priority": "P2",
+      "path": "crates/termrock-viewport/src/viewport.rs:855; crates/termrock-overlays/src/menu.rs:415; crates/termrock-runtime/src/ui/mod.rs:1066",
+      "finding": "The three additive APIs have a compiled public consumer but no Showcase demonstration or executable catalog/allowlist declaration in this revision. The audit explicitly leaves Showcase coverage unproved.",
+      "required_action": "Keep the project acceptance item open until an actual Showcase demonstration or an applicable executable coverage declaration is provided. The missing legacy catalog framework does not establish coverage."
+    }
+  ],
+  "limitations": [
+    "No real CLI, Tuiscotti capture, frozen baseline comparison, application adoption, all-app double run or full workspace Nextest/Clippy gate was performed.",
+    "Author hidden-editor regression was rerun in the native suite and its genuine Ui declaration inspected. The reviewer did not edit product source or independently execute the author-reported source mutation.",
+    "Negative scope probes passed and validation was inspected, but independent deliberate source mutants for each negative were not run.",
+    "No new keys, baseline plans or capture steps were created or advanced."
+  ],
+  "files": {
+    "normal-check.log": "8ed4980cca0c6cef6dbc8bcde06581f34244415cb96402a9f07aa01d16ab894d",
+    "fmt.log": "105e49a0c20c417c59ed2563070cc8574b338282957fbbb449afb3a3a8a5223f",
+    "clippy.log": "8b730af2ac3c2f2dee664d123a5b9d48ca3f4eb211fca18ea2e557f3b3eadef4",
+    "consumer-before-run.log": "51ee0b17bc362831fa7faa86832236fa7b37085b748d0754f68db25df0e67f79",
+    "normal-tree.log": "1890ea9294c2277a66f016bdeb7a3d5f799720ad6c400f5292fdcaf7dc00dbf8",
+    "consumer-final.log": "fbbee97ec46a84bb8c22d5a1ad769071d46a04bbbb64ddedc5a1c4e40de78c2d",
+    "native.log": "6eb35e86a30835f45efcbc9c7f68e88151f5da56df9fa07838b9e8ab44611757",
+    "consumer-default-frames.txt": "50d4a393f654bd7e2d84449a66f964cf4cd4c18e3ceecfd250b8e4aeefad013d",
+    "fmt-scoped.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "normal-check-final.log": "7e39542415ddf54783acfeee251c2bb51f524acc2600f84f07be77b247f94bfb",
+    "consumer-before-default-frames.txt": "50d4a393f654bd7e2d84449a66f964cf4cd4c18e3ceecfd250b8e4aeefad013d",
+    "consumer-run.log": "2bb999006025d4b4a8d01140505149f7f07ced867b74e681fb95947084793bf6",
+    "fmt-before.log": "d67918b59881e86c61db82ca8b6bef85f70dfd5279379fd2d8a8fea667c1def1",
+    "consumer-before/Cargo.toml": "0c0588f4fea241222510dd7684271ac418035d036f4f9efd4b3c91f4495c15e9",
+    "consumer-before/Cargo.lock": "d0c88f0cfbc12f3a3ede927ccd1202348e242a9a9b9f356c3a413db07548dc05",
+    "consumer/Cargo.toml": "f868b58f8073160c451c06f9cc4d35cec9a9050912e223c940c8d4a34ab7bfd1",
+    "consumer/Cargo.lock": "d5d5ad8ad04064845523b12e93b4433f60c25379bf5ce02154d9ba6964983012",
+    "consumer/tests/consumer.rs": "8cadfeff3ba78e0fed23d3d0e11ba04ba25ebfb32222dfdbf9fdcccb200fe4a8",
+    "consumer/src/lib.rs": "f3789657943177134bf797b7bbc46aa7cc52e0bc0b1f399d322b9483e8a20533",
+    "consumer-before/tests/consumer.rs": "8cadfeff3ba78e0fed23d3d0e11ba04ba25ebfb32222dfdbf9fdcccb200fe4a8",
+    "consumer-before/src/lib.rs": "7cae2916d81b93112bffa373578e03c096bde2242a3a8e52104cb9a74ab91ee3"
+  }
+}

@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 ebc8fb7be716ced621788a270eac310e728089ce Alexey Zhokhov <alexey@zhokhov.com> 1792745260 +0700	branch: Created from HEAD
+ebc8fb7be716ced621788a270eac310e728089ce a3c4313b9e2f04d80e30d1a7c3a7d26c32600fa5 Alexey Zhokhov <alexey@zhokhov.com> 1792745917 +0700	commit: fix(navigation): preserve opted close reset at rest
+a3c4313b9e2f04d80e30d1a7c3a7d26c32600fa5 39ae7cf762bf0b440403a4742677040d3a9f0fbe Alexey Zhokhov <alexey@zhokhov.com> 1792745939 +0700	rebase (finish): refs/heads/wip/tabs-close-target-danger-rest-20261023 onto 5ec532e053ba0f35ae1161eab7c4bffe27a9d21e
+39ae7cf762bf0b440403a4742677040d3a9f0fbe 959b667f4709288f757d02f56df668801bf5ca26 Alexey Zhokhov <alexey@zhokhov.com> 1792746449 +0700	rebase (finish): refs/heads/wip/tabs-close-target-danger-rest-20261023 onto 101f8a6ddf0abdac362d6a66cb891b72b7406812

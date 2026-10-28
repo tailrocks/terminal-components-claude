@@ -1,0 +1,14 @@
+0000000000000000000000000000000000000000 e57fe76e8ba45aa8bfd4320edef9c91ef6a73f84 Alexey Zhokhov <alexey@zhokhov.com> 1792185731 +0700	branch: Created from HEAD
+e57fe76e8ba45aa8bfd4320edef9c91ef6a73f84 028d64d0c8e25479d18344b6d2ef027869dd5b0c Alexey Zhokhov <alexey@zhokhov.com> 1792186577 +0700	commit: build(deps): tuiscotti 3382e57 (PR 11)
+028d64d0c8e25479d18344b6d2ef027869dd5b0c ccfac7676199c7102fa569b4b9e3b93a8e69f7f4 Alexey Zhokhov <alexey@zhokhov.com> 1792186587 +0700	rebase (finish): refs/heads/tuiscotti-adopt onto e9d2406b7337118dfba7fd3252bad3811f9d753f
+ccfac7676199c7102fa569b4b9e3b93a8e69f7f4 2926ac67f8926fd2ca5e2696a3c3cbb59b9d94ad Alexey Zhokhov <alexey@zhokhov.com> 1792187975 +0700	commit: build(deps): cargo update held crates
+2926ac67f8926fd2ca5e2696a3c3cbb59b9d94ad 2afe6504b6a8c25bd06f456d15b1a074e83b04ca Alexey Zhokhov <alexey@zhokhov.com> 1792188261 +0700	commit: WIP step3
+2afe6504b6a8c25bd06f456d15b1a074e83b04ca a5c3c11a04ced69a181b591dd3a67eefa0695b71 Alexey Zhokhov <alexey@zhokhov.com> 1792188264 +0700	rebase (finish): refs/heads/tuiscotti-adopt onto 5e4728c8bd644f5cb3f3abdc30b4851cb2687538
+a5c3c11a04ced69a181b591dd3a67eefa0695b71 37221b014094541735a3cd1ba7084eaecd9742f0 Alexey Zhokhov <alexey@zhokhov.com> 1792188899 +0700	reset: moving to HEAD~1
+37221b014094541735a3cd1ba7084eaecd9742f0 e11ef273dfa4c33c44f440bb019aeb33f1e2800a Alexey Zhokhov <alexey@zhokhov.com> 1792189153 +0700	commit: refactor(visual): use tuiscotti's gate and store
+e11ef273dfa4c33c44f440bb019aeb33f1e2800a 02449e6257bea14b4fa69772dde0f8874c59fa8e Alexey Zhokhov <alexey@zhokhov.com> 1792189285 +0700	commit: refactor(visual): boot waits via locators
+02449e6257bea14b4fa69772dde0f8874c59fa8e 98df7bb1ef2ee2a4f0ff8c897e5bcf0f1b9e7ec3 Alexey Zhokhov <alexey@zhokhov.com> 1792189332 +0700	commit: fixup! refactor(visual): use tuiscotti's gate and store
+98df7bb1ef2ee2a4f0ff8c897e5bcf0f1b9e7ec3 ba367a7768451a9c2ad0f6a29c57124ce73db37a Alexey Zhokhov <alexey@zhokhov.com> 1792189332 +0700	rebase (finish): refs/heads/tuiscotti-adopt onto 37221b014094541735a3cd1ba7084eaecd9742f0
+ba367a7768451a9c2ad0f6a29c57124ce73db37a e6b461146104ede562346e5a29b4f6200f1436e1 Alexey Zhokhov <alexey@zhokhov.com> 1792189496 +0700	commit: build: dev opt-level overrides
+e6b461146104ede562346e5a29b4f6200f1436e1 2c690d88868ad85049be650343f5704b65752486 Alexey Zhokhov <alexey@zhokhov.com> 1792189521 +0700	commit: docs(upstream): tuiscotti PR 11 merged and adopted
+2c690d88868ad85049be650343f5704b65752486 05f4f28b1c375191615654d5a7eb5fb6926997ce Alexey Zhokhov <alexey@zhokhov.com> 1792190021 +0700	rebase (finish): refs/heads/tuiscotti-adopt onto 639f351caf0630f3226586e1fc48cbcdc6bca746

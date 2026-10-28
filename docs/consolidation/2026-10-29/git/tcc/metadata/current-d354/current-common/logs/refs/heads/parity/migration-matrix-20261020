@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 0b8f4e32b24a137987307600b10d892bec0619c3 Alexey Zhokhov <alexey@zhokhov.com> 1792493562 +0700	branch: Created from origin/parity/termrock-visual-baseline
+0b8f4e32b24a137987307600b10d892bec0619c3 11ca7e37586546c68864b132915b43ecd6a3af8d Alexey Zhokhov <alexey@zhokhov.com> 1792493689 +0700	commit: docs: track termrock migration acceptance
+11ca7e37586546c68864b132915b43ecd6a3af8d ea9f6f4400af7ad57a9af9a7c1387eb00c6133ff Alexey Zhokhov <alexey@zhokhov.com> 1792493732 +0700	commit (amend): docs: track termrock migration acceptance

@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 42fb861c07228db39f40228b5ecaa2e3521d6239 Alexey Zhokhov <alexey@zhokhov.com> 1792533802 +0700	branch: Created from origin/parity/termrock-visual-baseline
+42fb861c07228db39f40228b5ecaa2e3521d6239 71124871981c1138002b05bb9e7c2083cdd03836 Alexey Zhokhov <alexey@zhokhov.com> 1792533945 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+71124871981c1138002b05bb9e7c2083cdd03836 47656aecc19b77a02b56c46ccb40e704e5f020c9 Alexey Zhokhov <alexey@zhokhov.com> 1792533947 +0700	merge origin/wip/nextest-doc-inventory-guard-20261021: Merge made by the 'ort' strategy.
+47656aecc19b77a02b56c46ccb40e704e5f020c9 dbd20b694d31d3ec974534ec5326cb9fb52c65f8 Alexey Zhokhov <alexey@zhokhov.com> 1792534468 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+dbd20b694d31d3ec974534ec5326cb9fb52c65f8 82c89cab4ffe1de7d8cd396255e2e8ae2ba5b05d Alexey Zhokhov <alexey@zhokhov.com> 1792534927 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+82c89cab4ffe1de7d8cd396255e2e8ae2ba5b05d 69c1ed6aa2f18255dd92167d30f8534ad316bcd3 Alexey Zhokhov <alexey@zhokhov.com> 1792535069 +0700	commit: ci: omit empty Rust doctest jobs
+69c1ed6aa2f18255dd92167d30f8534ad316bcd3 46d200c00709ab729313d49110ef804debcce527 Alexey Zhokhov <alexey@zhokhov.com> 1792536306 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+46d200c00709ab729313d49110ef804debcce527 dce6910c49378aa297f2943fa852b3ebcfb32e33 Alexey Zhokhov <alexey@zhokhov.com> 1792536311 +0700	merge 310a56de62e0d2e87a647ffd58b9b5cec9c0a744: Merge made by the 'ort' strategy.
+dce6910c49378aa297f2943fa852b3ebcfb32e33 ca4aff6fb5c0dc22416e88e6a1d6d90abea34375 Alexey Zhokhov <alexey@zhokhov.com> 1792536835 +0700	commit: test: preserve failed fresh-run chunks

@@ -1,0 +1,42 @@
+{
+  "created_utc": "2026-10-28T21:39:06.451992+00:00",
+  "downloads_tcc_inputs": {
+    "canonical_physical_oid_manifest_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "closure_v1_seal_sha256": "1fc1db8a58c232f2dc88b216647a7ba81a55b5ac736e33132167bec4d0eae099",
+    "full_local_typed_oid_sha256": "2ec3f541a3f3bde8d8036dbc24b7abad0acf51dadfe376475fd26d2e9e85f4bf",
+    "new_typed_oid_sha256": "f5a14569fc77f90ef13ce15a608a06f98417f447aeec9910b15285fe536d9ef2"
+  },
+  "input_manifest": {
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/global-addendum-20261029-r17/empty-ref-only-store-full-oids.jsonl",
+    "rows": 46,
+    "sha256": "7be627f66c0053ec4ba3bf7e78f61e1e5f6212fb56d76bcff9aa9268493e95d1"
+  },
+  "object_map_sha256": "ebd00392ba25e9840af69a7312126832e83aff9370ac0bc93baaf3429c6c3628",
+  "physical_closure": "No unresolved OIDs: every unique ref tip and HEAD object is present either in canonical TCC typed set or Downloads local loose ODB; the 30 OIDs absent canonical are all physical Downloads new delta OIDs.",
+  "ref_results": {
+    "all_unique_ref_oids_present_in_downloads_refs_or_reflogs_metadata": true,
+    "canonical_oids_counted_in_r17": 14,
+    "downloads_new_oids_counted_in_r17": 30,
+    "exact_refs": 46,
+    "r17_claimed_30_unique_absent_canonical_oids_present_downloads": true,
+    "refnames_absent_downloads_exact_name": 39,
+    "refnames_same_name_conflict_downloads": 3,
+    "refnames_same_name_match_downloads": 4,
+    "unique_oids": 44,
+    "unique_oids_missing_from_both": 0,
+    "unique_oids_present_in_canonical": 14,
+    "unique_oids_present_only_in_downloads_local": 30,
+    "unique_ref_oids_coverage": {
+      "canonical": 14,
+      "downloads-new": 30
+    }
+  },
+  "schema": "pr38-empty-ref-only-tcc-store-physical-closure-v1",
+  "source_store": {
+    "HEAD": "cc9e629b60015752ddab0a2f1c1af7eefbf7ee12",
+    "HEAD_physical_source": "canonical TCC ODB",
+    "local_object_count": 0,
+    "path": "/Users/donbeave/Downloads/termrock-live-results-20261027/streams/suite-export-validation/mutations/365d3539/unlisted-pr38-source-cc9e/.git",
+    "ref_count": 46
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "command": [
+    "git",
+    "-C",
+    "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+    "verify-pack",
+    "-v",
+    "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/objects/pack/pack-76a683e5830832b1d0a1235d39bf632f823d4289.idx"
+  ],
+  "cwd": "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+  "started_at_utc": "2026-10-28T19:47:54Z",
+  "ended_at_utc": "2026-10-28T19:48:45Z",
+  "exit_code": 0,
+  "alternates": "disabled",
+  "verify_pack_stdout_sha256": "f79324e4c57ab08e27e7a31d6f615799623bb3c9c738fb83a1518c2d3319e2e2",
+  "verify_pack_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "expected_list_sha256": "42680f1f94d19a88a11a2e004893f7a4c2fd754bc0b92d7aaa9560af7580250d",
+  "expected_count": 152827,
+  "packed_unique_count": 152827,
+  "missing_count": 0,
+  "missing_first": [],
+  "extra_count": 0,
+  "extra_first": [],
+  "type_size_mismatch_count": 80799,
+  "type_size_mismatch_first": [
+    [
+      "ba8548533d252d3c3d5838f5dc4614ef7658d3a6",
+      [
+        "blob",
+        388
+      ],
+      [
+        "blob",
+        12104
+      ]
+    ],
+    [
+      "0000b1ff7540370ccb521de8d15ed4af6a3578ce",
+      [
+        "blob",
+        2321
+      ],
+      [
+        "blob",
+        12103
+      ]
+    ],
+    [
+      "0fb57041b12f8e4c681fe22d13840424e003b0eb",
+      [
+        "blob",
+        6495
+      ],
+      [
+        "blob",
+        446145
+      ]
+    ],
+    [
+      "0005badc9faac8a66fd01167f7f343287af1222e",
+      [
+        "blob",
+        6103
+      ],
+      [
+        "blob",
+        446017
+      ]
+    ],
+    [
+      "0005ed361aaf8b68a665459479b2e868e5d473de",
+      [
+        "blob",
+        5967
+      ],
+      [
+        "blob",
+        25877
+      ]
+    ],
+    [
+      "773d55866afcbbf6e8fb60301cc71061837cc472",
+      [
+        "blob",
+        278195
+      ],
+      [
+        "blob",
+        568530
+      ]
+    ],
+    [
+      "3206b48e88114a1734fc54fe2919a9cfc0b52422",
+      [
+        "blob",
+        270426
+      ],
+      [
+        "blob",
+        568302
+      ]
+    ],
+    [
+      "37ccaebd38bbd09505eb9946604a8f0ff073500b",
+      [
+        "blob",
+        198979
+      ],
+      [
+        "blob",
+        567993
+      ]
+    ],
+    [
+      "35f9539b6f81d4d33b23e4a1a8fb77848d01f126",
+      [
+        "blob",
+        199182
+      ],
+      [
+        "blob",
+        567677
+      ]
+    ],
+    [
+      "000633b495da2932a762a49a80f1e064a8e5b4c6",
+      [
+        "blob",
+        212072
+      ],
+      [
+        "blob",
+        567669
+      ]
+    ]
+  ],
+  "duplicate_or_malformed_count": 0,
+  "summary_lines": [
+    "chain length = 45: 20 objects",
+    "chain length = 46: 22 objects",
+    "chain length = 47: 2 objects",
+    "chain length = 48: 1 object",
+    "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/objects/pack/pack-76a683e5830832b1d0a1235d39bf632f823d4289.pack: ok"
+  ],
+  "integrity_match": false
+}

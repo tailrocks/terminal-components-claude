@@ -1,0 +1,14 @@
+{
+  "attempt": "preflight-01",
+  "corrected_command": "git for-each-ref --format=%(refname)%00%(objectname)%00%(objecttype)%00%(symref)%00%(upstream)",
+  "corrected_compare": false,
+  "external_final_output_created": false,
+  "initial_command": "git for-each-ref --format=%(refname)%00%(objectname)%00%(objecttype)%00%(symref)",
+  "inventory_refmap_sha256": "0042debff66b9d4fc6b6ffadbc66b6aeb98789d6b70b5d7c6c12742943a044ff",
+  "no_source_mutation": true,
+  "reason": "ref comparison command omitted %(upstream) field from sealed five-field map",
+  "recorded_utc": "2026-10-28T20:28:30Z",
+  "result": "failed-before-output-creation",
+  "source_head": "5af24dcb49a7983eb504ff7db647e099fb491b3a",
+  "source_status_bytes": 0
+}

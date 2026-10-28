@@ -1,0 +1,108 @@
+{
+  "schema": "termrock.stage3d.stage2-admission-mismatch.independent-diagnosis.v1",
+  "decision": "Wrapper schema-mapping defect; no frozen reference conflict established. Hold V11 operational use pending a source correction and exact-evidence regression.",
+  "source": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v11-stage2-20261021.py",
+    "sha256": "a28fe81fc0214c230f3ec147ee546f4a57c3c9bb12d0f963cea7e5fa938765d3"
+  },
+  "finding": {
+    "id": "V11-ADMISSION-1",
+    "severity": "P1",
+    "location": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v11-stage2-20261021.py:187",
+    "actual_schema": "termrock.stage3d.stage1-result.independent-evidence.v1",
+    "incorrect_expected_schema": "termrock.stage3d.stage1-operational-result.independent-evidence.v1",
+    "problem": "The wrapper requires an invented evidence schema containing operational-result. The pinned actual immutable evidence uses stage1-result. The admission review schema legitimately contains stage1-operational-result; these two distinct document schemas were conflated.",
+    "effect": "Exact valid pinned stage1 evidence is rejected before stage2 launch. No baseline/reference bytes or hash pin need to change.",
+    "test_gap": "The synthetic test constructs the same incorrect schema as the wrapper and overrides its evidence hash. It therefore passes while the real pinned evidence is rejected.",
+    "required_fix": "Correct only the wrapper evidence-schema comparison to termrock.stage3d.stage1-result.independent-evidence.v1. Preserve all immutable evidence/admission files and hash constants. Add a regression based on the exact pinned evidence bytes/schema, with deliberate mismatched-schema rejection. Independently re-review the successor before operations."
+  },
+  "predicate_diagnosis": {
+    "schema_matches_expected": false,
+    "source_digest_matches": true,
+    "snapshot_digest_matches": true,
+    "old_plan_run_unchanged": true,
+    "no_key_read": true,
+    "no_operational_commands": true
+  },
+  "hash_checks": [
+    {
+      "label": "canonical_runner",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07/tools/frozen_baseline.py",
+      "expected": "e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80",
+      "actual": "e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80",
+      "matches": true
+    },
+    {
+      "label": "canonical_review",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07-20261021.json",
+      "expected": "15feeaf89d5b07cbf6b9204299b6f9170a2552fd8070e33ad901a20367da5090",
+      "actual": "15feeaf89d5b07cbf6b9204299b6f9170a2552fd8070e33ad901a20367da5090",
+      "matches": true
+    },
+    {
+      "label": "readiness",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-atomic-readiness-independent-243af5-20261021.json",
+      "expected": "47e7c04615b69d552b55396eff0d41c0e34801cf118513c0ed5406edfafa5577",
+      "actual": "47e7c04615b69d552b55396eff0d41c0e34801cf118513c0ed5406edfafa5577",
+      "matches": true
+    },
+    {
+      "label": "old_plan",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-capture-plan.json",
+      "expected": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+      "actual": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+      "matches": true
+    },
+    {
+      "label": "environment_packet",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-exact-env-verification-packet.json",
+      "expected": "e0def641b251b52091844e9c9c6481e3e01643f7222e6fc82fe1480397f42f78",
+      "actual": "e0def641b251b52091844e9c9c6481e3e01643f7222e6fc82fe1480397f42f78",
+      "matches": true
+    },
+    {
+      "label": "stage1_admission",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage1-result-independent-review-20261021.json",
+      "expected": "ae23cdeb2a7cf4b1e7db63b975d919a5fa6668700e9245362f4053c00d623ce0",
+      "actual": "ae23cdeb2a7cf4b1e7db63b975d919a5fa6668700e9245362f4053c00d623ce0",
+      "matches": true
+    },
+    {
+      "label": "stage1_evidence",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage1-result-independent-evidence-20261021.json",
+      "expected": "c0410c096b9d44aa61af3e3373a9251a9efecd10cbf6392629b7f50929e77dea",
+      "actual": "c0410c096b9d44aa61af3e3373a9251a9efecd10cbf6392629b7f50929e77dea",
+      "matches": true
+    },
+    {
+      "label": "stage1_event",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v6-parent-v7-stage1-20261021-1003-stage-01-event.json",
+      "expected": "66a27d3c9d6d84827d4e8e65ebf502d6847f0e4c46fb0dd3d3f1b788fc0ffdc7",
+      "actual": "66a27d3c9d6d84827d4e8e65ebf502d6847f0e4c46fb0dd3d3f1b788fc0ffdc7",
+      "matches": true
+    },
+    {
+      "label": "stage1_log",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v6-parent-v7-stage1-20261021-1003-stage-01.log",
+      "expected": "b417a232d9f865e0dda578e92ccbe512abcdab3f1b9adde8c5a583807d907f65",
+      "actual": "b417a232d9f865e0dda578e92ccbe512abcdab3f1b9adde8c5a583807d907f65",
+      "matches": true
+    },
+    {
+      "label": "stage1_provenance",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/provenance.json",
+      "expected": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+      "actual": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+      "matches": true
+    }
+  ],
+  "semantic_crosscheck": {
+    "source_digest_agrees_with_admission": true,
+    "snapshot_digest_agrees_with_admission": true,
+    "fixed_reference_tuple_agrees_with_admission": true,
+    "matches_new_manifest": true,
+    "matches_old_plan": true
+  },
+  "prior_review_correction": "The V11 source clearance missed this real immutable-document schema mismatch. Its synthetic-only deadline findings and before/after proofs remain valid, but the prior clearance is insufficient for operational admission and is superseded by this hold on V11.",
+  "scope": "Read-only source and JSON/hash comparison only. No supervisor validation/preflight function, prepare-live operation, key read, application, capture, replay, or source edit was executed. No actual stage2 launch or root mutation was attempted by this reviewer."
+}

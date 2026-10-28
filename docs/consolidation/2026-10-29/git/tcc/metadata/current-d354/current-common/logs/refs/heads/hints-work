@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 e2afaae4a3484b9a6a1a018d869209ada22c4222 Alexey Zhokhov <alexey@zhokhov.com> 1792131718 +0700	branch: Created from origin/design/interaction-polish
+e2afaae4a3484b9a6a1a018d869209ada22c4222 a6b5746f906925950bd2850faba329c04c6fc8f7 Alexey Zhokhov <alexey@zhokhov.com> 1792132296 +0700	commit: fix(hintbar): pin the way out and help; status leaves them room; centre on text
+a6b5746f906925950bd2850faba329c04c6fc8f7 210134067f6becac0b9063532e90a4c584b6e3f5 Alexey Zhokhov <alexey@zhokhov.com> 1792132348 +0700	rebase (finish): refs/heads/hints-work onto 133434765fc53141f1a52d01dd6837a75143836e
+210134067f6becac0b9063532e90a4c584b6e3f5 8fe6b5c2477c4da32df371e96cdc496fa21328f8 Alexey Zhokhov <alexey@zhokhov.com> 1792132438 +0700	rebase (finish): refs/heads/hints-work onto b5a9b29929ffb102a82b7a3df322e10cf2c9fb33
+8fe6b5c2477c4da32df371e96cdc496fa21328f8 60fa45bf669a434c256b7b1b3a5904c2a521657d Alexey Zhokhov <alexey@zhokhov.com> 1792132557 +0700	rebase (finish): refs/heads/hints-work onto d11ab0792b44ad1af9824c87853cabd1dfe05152
+60fa45bf669a434c256b7b1b3a5904c2a521657d 98e260125da8281c36b21b95707c64db37cae876 Alexey Zhokhov <alexey@zhokhov.com> 1792132673 +0700	rebase (finish): refs/heads/hints-work onto 7d3bb70e06ca86995fba5d39c46acf2d31d773fa
+98e260125da8281c36b21b95707c64db37cae876 b9e226341cb301016989d3cff6c59dd5aad050a1 Alexey Zhokhov <alexey@zhokhov.com> 1792132783 +0700	rebase (finish): refs/heads/hints-work onto 6612b444384d7d59f27f9271fbd9737bb880505e
+b9e226341cb301016989d3cff6c59dd5aad050a1 6ec1844cc49701d4b2c658edf785fd986305940c Alexey Zhokhov <alexey@zhokhov.com> 1792132926 +0700	rebase (finish): refs/heads/hints-work onto f2c4e04cb60e5878fa0709adef6c78a8f6d481bd
+6ec1844cc49701d4b2c658edf785fd986305940c dd1b060a808d062dbbad9b5850087b70af0dd2c3 Alexey Zhokhov <alexey@zhokhov.com> 1792133055 +0700	rebase (finish): refs/heads/hints-work onto 72a319a98d9354131562e20115e656ef3145da00
+dd1b060a808d062dbbad9b5850087b70af0dd2c3 f0cb83a02f9bcebe3dcb00da87cd111ddb937825 Alexey Zhokhov <alexey@zhokhov.com> 1792133153 +0700	rebase (finish): refs/heads/hints-work onto 4efbcf819e3187dd146f6818b0ab15f00c9d1bc9

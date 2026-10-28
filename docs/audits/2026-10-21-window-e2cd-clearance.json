@@ -1,0 +1,25 @@
+{
+  "reviewed_commit": "e2cdce0affc4370dea73b9f67d187e8deb193c3a",
+  "disposition": "Cleared for bounded runtime stage1 integration. This supersedes the empty-width finding in vertical-window-stage1-review-c79dc.json; no TextArea or Form acceptance is implied.",
+  "source_review": "All three mapping helpers now reject width-zero OR height-zero visible geometry. New regression separately covers both dimensions. The optional None LayoutFacts default, private checked constructor fields, source/physical overflow guards and existing layout/input/scope behavior remain unchanged.",
+  "independent_tests": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/vertical-window-e2cd-independent-review/Cargo.toml",
+      "result": "3 passed, zero skipped. Original two public test bodies unchanged; added round-trip tests near u16 and usize limits.",
+      "log": "/tmp/vertical-window-e2cd-independent-owned.log",
+      "nextest_run": "f7051dd7-91a6-4571-86ff-c3520c7982a2"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock-runtime --lib author::window",
+      "result": "4 passed; 222 other tests excluded by the explicit filter, not executed or waived.",
+      "log": "/tmp/vertical-window-e2cd-native.log"
+    },
+    {
+      "command": "cargo clippy --locked -p termrock-runtime --all-targets -- -D warnings",
+      "result": "Exit0",
+      "log": "/tmp/vertical-window-e2cd-clippy.log"
+    }
+  ],
+  "probe_ownership_note": "The original external manifest had been redirected to the author worktree by the author. That source also resolved exact e2cd. Final independent verification copied unchanged test bodies into a separate reviewer-owned consumer and points only at the reviewer-owned exact-e2cd read-only copy. No author or product files were edited.",
+  "remaining_scope": "ScrollRegion window painting/input, TextArea parent clipping/selection/cursor/menu, Form integration and application comparison are not implemented by stage1 and remain required."
+}

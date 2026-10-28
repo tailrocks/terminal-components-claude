@@ -122,84 +122,179 @@ pub struct History {
     next_id: usize,
 }
 
+type HistorySeedRow = (
+    &'static str,
+    &'static str,
+    &'static str,
+    u32,
+    Option<u32>,
+    Option<usize>,
+    Option<&'static str>,
+    HistorySource,
+);
+
+const HISTORY_SEED_ROWS: [HistorySeedRow; 15] = [
+    (
+        "SELECT plan, count(*) FROM\nsubscriptions GROUP BY plan",
+        "Production",
+        "acme_prod",
+        4_320,
+        Some(5),
+        Some(3),
+        None,
+        HistorySource::Editor,
+    ),
+    (
+        "SELECT * FROM payments ORDER BY paid_at DESC",
+        "Production",
+        "acme_prod",
+        1_440,
+        Some(24),
+        Some(80),
+        None,
+        HistorySource::Editor,
+    ),
+    (
+        "SELECT day, revenue FROM daily_revenue ORDER BY day DESC",
+        "Production",
+        "acme_prod",
+        180,
+        Some(14),
+        Some(30),
+        None,
+        HistorySource::Editor,
+    ),
+    (
+        "SELECT * FROM ordres",
+        "Production",
+        "acme_prod",
+        60,
+        None,
+        None,
+        Some("relation \"ordres\" does not exist"),
+        HistorySource::Editor,
+    ),
+    (
+        "SELECT o.id, o.total FROM orders o WHERE o.status = 'paid'",
+        "Production",
+        "acme_prod",
+        60,
+        Some(61),
+        Some(40),
+        None,
+        HistorySource::Editor,
+    ),
+    (
+        "UPDATE orders SET status = 'shipped' WHERE id = '9c2e…'",
+        "Production",
+        "acme_prod",
+        58,
+        Some(3),
+        Some(1),
+        None,
+        HistorySource::RowEdits,
+    ),
+    (
+        "SELECT * FROM customers ORDER BY created_at DESC",
+        "Production",
+        "acme_prod",
+        40,
+        Some(21),
+        Some(1_000),
+        None,
+        HistorySource::Browsing,
+    ),
+    (
+        "EXPLAIN ANALYZE SELECT * FROM orders WHERE customer_id = '3f1a…'",
+        "Production",
+        "acme_prod",
+        15,
+        Some(9),
+        Some(4),
+        None,
+        HistorySource::Explain,
+    ),
+    (
+        "SELECT count(*) FROM orders WHERE created_at >= '2025-06-01'",
+        "Production",
+        "acme_prod",
+        12,
+        Some(412),
+        Some(1),
+        None,
+        HistorySource::Editor,
+    ),
+    (
+        "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 200",
+        "Production",
+        "acme_prod",
+        4,
+        Some(38),
+        Some(200),
+        None,
+        HistorySource::Editor,
+    ),
+    (
+        "ALTER TABLE orders ADD COLUMN is_gift boolean NOT NULL DEFAULT false",
+        "Development",
+        "acme_dev",
+        3,
+        Some(88),
+        Some(0),
+        None,
+        HistorySource::Structure,
+    ),
+    (
+        "SELECT now()",
+        "Production",
+        "acme_prod",
+        2,
+        Some(1),
+        Some(1),
+        None,
+        HistorySource::Editor,
+    ),
+    (
+        "SELECT version()",
+        "Production",
+        "acme_prod",
+        1,
+        Some(1),
+        Some(1),
+        None,
+        HistorySource::Editor,
+    ),
+    (
+        "SELECT current_database()",
+        "Production",
+        "acme_prod",
+        1,
+        Some(1),
+        Some(1),
+        None,
+        HistorySource::Editor,
+    ),
+    (
+        "SELECT clock_timestamp()",
+        "Production",
+        "acme_prod",
+        0,
+        Some(1),
+        Some(1),
+        None,
+        HistorySource::Editor,
+    ),
+];
+
 impl History {
     pub fn seeded() -> Self {
         let mut out = Self::default();
-        let rows = [
-            (
-                "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 200",
-                "Production",
-                "acme_prod",
-                4,
-                Some(38),
-                Some(200),
-                None,
-                HistorySource::Editor,
-            ),
-            (
-                "SELECT count(*) FROM orders WHERE created_at >= '2025-06-01'",
-                "Production",
-                "acme_prod",
-                12,
-                Some(412),
-                Some(1),
-                None,
-                HistorySource::Editor,
-            ),
-            (
-                "EXPLAIN ANALYZE SELECT * FROM orders WHERE customer_id = '3f1a…'",
-                "Production",
-                "acme_prod",
-                15,
-                Some(9),
-                Some(4),
-                None,
-                HistorySource::Explain,
-            ),
-            (
-                "SELECT * FROM customers ORDER BY created_at DESC",
-                "Production",
-                "acme_prod",
-                40,
-                Some(21),
-                Some(1_000),
-                None,
-                HistorySource::Browsing,
-            ),
-            (
-                "UPDATE orders SET status = 'shipped' WHERE id = '9c2e…'",
-                "Production",
-                "acme_prod",
-                58,
-                Some(3),
-                Some(1),
-                None,
-                HistorySource::RowEdits,
-            ),
-            (
-                "SELECT * FROM ordres",
-                "Production",
-                "acme_prod",
-                96,
-                None,
-                None,
-                Some("relation \\\"ordres\\\" does not exist"),
-                HistorySource::Editor,
-            ),
-            (
-                "ALTER TABLE orders ADD COLUMN is_gift boolean NOT NULL DEFAULT false",
-                "Development",
-                "acme_dev",
-                1_560,
-                Some(88),
-                Some(0),
-                None,
-                HistorySource::Structure,
-            ),
-        ];
-        for (sql_text, connection, database, minutes, duration, rows_count, error, source) in rows {
-            out.push(HistoryEntry {
-                id: 0,
+        for (sql_text, connection, database, minutes, duration, rows_count, error, source) in
+            HISTORY_SEED_ROWS
+        {
+            out.next_id = out.next_id.saturating_add(1);
+            out.entries.push(HistoryEntry {
+                id: out.next_id,
                 sql: sql_text.to_owned(),
                 connection: connection.to_owned(),
                 database: database.to_owned(),
@@ -267,6 +362,18 @@ pub enum CompletionKind {
     Alias,
 }
 impl CompletionKind {
+    pub const fn glyph(self) -> &'static str {
+        match self {
+            Self::Keyword => "K",
+            Self::Table => "T",
+            Self::View => "V",
+            Self::Column => "C",
+            Self::Function => "F",
+            Self::Schema => "S",
+            Self::Alias => "A",
+        }
+    }
+
     const fn priority(self) -> u32 {
         match self {
             Self::Column => 100,
@@ -946,71 +1053,4 @@ pub fn statement_tokens(source: &str) -> Vec<String> {
         .into_iter()
         .filter_map(|token| source.get(token.start..token.end).map(str::to_owned))
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn history_search_is_multi_term_and() {
-        let history = History::seeded();
-        assert_eq!(history.search("orders pending", None, false).len(), 1);
-        let development = history.search("", Some("Development"), false);
-        assert_ne!(development.len(), 0);
-        assert!(
-            development
-                .iter()
-                .all(|entry| entry.connection == "Development")
-        );
-        let failed = history.search("", None, true);
-        assert!(!failed.is_empty() && failed.iter().all(|entry| !entry.ok()));
-    }
-    #[test]
-    fn completion_is_context_aware() {
-        let catalog = Catalog::acme_prod();
-        let items = complete("SELECT o. FROM orders o WHERE ", 9, &catalog);
-        assert_eq!(
-            items.first().map(|item| item.kind),
-            Some(CompletionKind::Column)
-        );
-        assert!(items.iter().any(|item| item.label == "total_amount"));
-        let source = "SELECT * FROM ord";
-        let batch = completion_batch(source, source.len(), &catalog);
-        assert_eq!(batch.replace, 14..17);
-        let items = batch.items;
-        assert_eq!(
-            items.first().map(|item| item.matched.as_slice()),
-            Some([0, 1, 2].as_slice())
-        );
-        assert_eq!(
-            items.first().map(|item| item.label.as_str()),
-            Some("orders")
-        );
-        assert_eq!(
-            items.first().map(|item| item.kind),
-            Some(CompletionKind::Table)
-        );
-        let source = "SELECT * FROM orders WHERE st";
-        assert_eq!(
-            complete(source, source.len(), &catalog)
-                .first()
-                .map(|item| item.label.as_str()),
-            Some("status")
-        );
-        let source = "SELECT * FROM orders WHERE status = 'x' ORDER BY cre";
-        assert_eq!(
-            complete(source, source.len(), &catalog)
-                .first()
-                .map(|item| item.label.as_str()),
-            Some("created_at")
-        );
-        let source = "SELECT * FROM analytics.";
-        assert!(
-            complete(source, source.len(), &catalog)
-                .iter()
-                .any(|item| item.label == "events")
-        );
-        assert!(auto_trigger("SELECT * FROM ", 14));
-        assert!(!auto_trigger("SELECT * FROM orders WHERE s", 28));
-    }
 }

@@ -24,9 +24,9 @@ sha2 = "0.11"
 tempfile = "3"
 tuisnap = { package = "tuiscotti", git = "https://github.com/tailrocks/tuiscotti", rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad", default-features = false }
 
-[dev-dependencies]
-libc = "0.2"
-tempfile = "3"
-
 [lints]
 workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

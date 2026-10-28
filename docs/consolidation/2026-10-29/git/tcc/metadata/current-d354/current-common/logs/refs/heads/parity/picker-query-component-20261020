@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 6b182464858660dd703d2d61cb80aafd93da32d6 Alexey Zhokhov <alexey@zhokhov.com> 1792503526 +0700	branch: Created from 6b182464858660dd703d2d61cb80aafd93da32d6
+6b182464858660dd703d2d61cb80aafd93da32d6 dcba7c21435cea535bc791b61f1ba408d9a0fe7a Alexey Zhokhov <alexey@zhokhov.com> 1792504534 +0700	cherry-pick: feat(runtime): compose same-owner bindings explicitly
+dcba7c21435cea535bc791b61f1ba408d9a0fe7a ab3d22e8e6474e29817db4e4382d422f6dcff450 Alexey Zhokhov <alexey@zhokhov.com> 1792504897 +0700	commit: refactor(picker): delegate query editing to TextInput
+ab3d22e8e6474e29817db4e4382d422f6dcff450 81d08acfbf76e51609f5b9eb8c19d42992590db2 Alexey Zhokhov <alexey@zhokhov.com> 1792505581 +0700	commit: fix(picker): preserve query owner interactions
+81d08acfbf76e51609f5b9eb8c19d42992590db2 f793ecfa51f738b1fa2ad43d98bf82dcc3b500b4 Alexey Zhokhov <alexey@zhokhov.com> 1792505649 +0700	commit: docs: record picker follow-up validation
+f793ecfa51f738b1fa2ad43d98bf82dcc3b500b4 49afe709a6706d6ce46fc2b771c94b032c268eaa Alexey Zhokhov <alexey@zhokhov.com> 1792506561 +0700	commit: fix(picker): preserve hosted query ownership
+49afe709a6706d6ce46fc2b771c94b032c268eaa 335f8584d22fd0ab39a4c5ac1369e5b44747d820 Alexey Zhokhov <alexey@zhokhov.com> 1792506650 +0700	commit: test(picker): cover resize and reopen lifecycle
+335f8584d22fd0ab39a4c5ac1369e5b44747d820 fe158fb56be6bffb30309521b5b71f778f26f39f Alexey Zhokhov <alexey@zhokhov.com> 1792507026 +0700	commit: fix(fields): preserve hosted owner bounds

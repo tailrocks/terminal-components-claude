@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 f5858b184954b0153f24dd9e97cdde5ab908c792 Alexey Zhokhov <alexey@zhokhov.com> 1792529480 +0700	branch: Created from f5858b184954b0153f24dd9e97cdde5ab908c792
+f5858b184954b0153f24dd9e97cdde5ab908c792 f761e8092cbfcaa9b4b2a2987bdde4d889d0bdb9 Alexey Zhokhov <alexey@zhokhov.com> 1792529804 +0700	commit: feat(runtime): expose prepared vertical window facts
+f761e8092cbfcaa9b4b2a2987bdde4d889d0bdb9 f5858b184954b0153f24dd9e97cdde5ab908c792 Alexey Zhokhov <alexey@zhokhov.com> 1792529852 +0700	reset: moving to HEAD^
+f5858b184954b0153f24dd9e97cdde5ab908c792 88d2334fe4636186bb7dd9e73d1cb64cb3956ef1 Alexey Zhokhov <alexey@zhokhov.com> 1792529875 +0700	commit: feat(runtime): expose prepared vertical window facts
+88d2334fe4636186bb7dd9e73d1cb64cb3956ef1 cf78967c3d59905677e0020e87484ba75a0b924f Alexey Zhokhov <alexey@zhokhov.com> 1792529912 +0700	rebase (finish): refs/heads/wip/textarea-parent-window-stage1 onto bb52a5995a7d3c2a0e87e07c18bc37f793d430c4
+cf78967c3d59905677e0020e87484ba75a0b924f c79dc196378d4eabf1549bc3c334d8507c97fade Alexey Zhokhov <alexey@zhokhov.com> 1792529953 +0700	commit: docs: record sparse worktree recovery
+c79dc196378d4eabf1549bc3c334d8507c97fade e2cdce0affc4370dea73b9f67d187e8deb193c3a Alexey Zhokhov <alexey@zhokhov.com> 1792530228 +0700	commit: fix(runtime): keep empty vertical windows unmapped
+e2cdce0affc4370dea73b9f67d187e8deb193c3a 59e691334559b62f4c9c6a7b3d80cb3ecf416e69 Alexey Zhokhov <alexey@zhokhov.com> 1792531313 +0700	commit: feat(runtime): support clipped scroll region windows
+59e691334559b62f4c9c6a7b3d80cb3ecf416e69 67377aad3c3ab9b36acac47cb48f6c594172907a Alexey Zhokhov <alexey@zhokhov.com> 1792531832 +0700	commit: fix(runtime): preserve logical scroll track length

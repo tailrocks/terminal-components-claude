@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 ae32d3ff812aa436eb5d6c15eb155d9b8d59502a Alexey Zhokhov <alexey@zhokhov.com> 1792536507 +0700	branch: Created from HEAD
+ae32d3ff812aa436eb5d6c15eb155d9b8d59502a cca155c1353df3441be288a9d60ac3fbbe6c91c9 Alexey Zhokhov <alexey@zhokhov.com> 1792536507 +0700	merge 7b073316c089c494e84db801d6bfb861db75224c: Merge made by the 'ort' strategy.
+cca155c1353df3441be288a9d60ac3fbbe6c91c9 984c484c4786800d2661f26810b6d03ff0ff6b37 Alexey Zhokhov <alexey@zhokhov.com> 1792536522 +0700	merge 91f280307e8f84caa79d30ce3f126e2fd4a8340d: Merge made by the 'ort' strategy.
+984c484c4786800d2661f26810b6d03ff0ff6b37 071a97d784899df8d0ceaf5de2ece2df5bf8d770 Alexey Zhokhov <alexey@zhokhov.com> 1792536918 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+071a97d784899df8d0ceaf5de2ece2df5bf8d770 64eb78c7bfbefbb7b0cd7b0c23405ce0fd56d2f3 Alexey Zhokhov <alexey@zhokhov.com> 1792536955 +0700	commit: fix(runtime): apply shared modal backdrop theme
+64eb78c7bfbefbb7b0cd7b0c23405ce0fd56d2f3 d08849f8acf40b6dc9f4f13633451967ed1ce429 Alexey Zhokhov <alexey@zhokhov.com> 1792536992 +0700	commit: docs(audit): record modal backdrop verification
+d08849f8acf40b6dc9f4f13633451967ed1ce429 95d21da73f0a826e31114cffd2c5b4131de6d0e2 Alexey Zhokhov <alexey@zhokhov.com> 1792536999 +0700	commit: docs(audit): flag backdrop API coverage follow-up
+95d21da73f0a826e31114cffd2c5b4131de6d0e2 e3b2940444672cf4b51bc1fe18e2e3cbe07a7ad7 Alexey Zhokhov <alexey@zhokhov.com> 1792537506 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+e3b2940444672cf4b51bc1fe18e2e3cbe07a7ad7 65092d97e6443019aa9ade83d064c134985bd4a0 Alexey Zhokhov <alexey@zhokhov.com> 1792537572 +0700	commit: fix(theme): preserve modal backdrop dim collisions
+65092d97e6443019aa9ade83d064c134985bd4a0 d0b40c173a2e9f662a2aca62b904625a8f5583d0 Alexey Zhokhov <alexey@zhokhov.com> 1792538105 +0700	commit: fix(theme): preserve reset backdrop style semantics
+d0b40c173a2e9f662a2aca62b904625a8f5583d0 524aba2cc45ee8c04cd78278a280741da27424bc Alexey Zhokhov <alexey@zhokhov.com> 1792538223 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+524aba2cc45ee8c04cd78278a280741da27424bc 02742e48d58ce319ce98e64095ad86cb1709f5a3 Alexey Zhokhov <alexey@zhokhov.com> 1792538351 +0700	commit: docs(audit): record modal backdrop R3 verification

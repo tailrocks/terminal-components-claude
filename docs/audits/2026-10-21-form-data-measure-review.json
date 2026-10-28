@@ -1,0 +1,80 @@
+{
+  "commit": "eca0aee9f119be3ac238dbdc0d6f6a75594c5e35",
+  "reviewer": "/root/form_data_measure_review",
+  "status": "No actionable finding; ready for the bounded additive measurement increment",
+  "source_scope": [
+    "crates/termrock-forms/src/form.rs:1530-1569",
+    "crates/termrock-forms/tests/form_measurement.rs"
+  ],
+  "implementation_evidence": [
+    "measure_with_data reuses existing Placements and content_rows, matching draw/update field planning; no new state, mandatory fields, or input changes",
+    "Only data.visible and radio data.options are called by measurement; independent panic guards confirm no value, value_mut, disabled, error, or validation calls",
+    "Uses existing Constraints/Size fitting and saturating content height; legacy measure implementation unchanged"
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --locked -p termrock-forms --all-targets --no-fail-fast",
+      "exit": 0,
+      "passed": 52,
+      "skipped": 0
+    },
+    {
+      "command": "cargo nextest run --all-targets --no-fail-fast (external public-only consumer)",
+      "exit": 0,
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "command": "cargo clippy --locked -p termrock-forms --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt -p termrock-forms --check",
+      "exit": 0
+    },
+    {
+      "command": "git diff eca0aee9^ eca0aee9 --check",
+      "exit": 0
+    }
+  ],
+  "independent_probes": [
+    "Different domain data with paired half-width rows, excluded group and enabled footer action",
+    "Real label/action bounds on nonzero root origin and validation-error draw",
+    "Tight constraints, zero constraints and empty form",
+    "100000 radio options measured 1000 times; saturated u16 result, exactly one options read per measurement, no value/error/disabled/validation/mutable-state calls"
+  ],
+  "coverage_limits": [
+    "Does not supply intrinsic-width measurement; the method preserves the existing fill-width sizing contract",
+    "Does not introduce wrapping, new layout breakpoints or form interaction behavior; existing clipped label/help rules remain",
+    "No independent timing benchmark or complete application/PTY parity gate was run",
+    "Does not prove application migration to this API or restored Showcase capability coverage",
+    "Build used the configured mbx compiler cache; this is not a clean-room reproducibility claim"
+  ],
+  "toolchain": "Homebrew cargo/rustc 1.99.1, rustc 58cf8f9c35b355199727627d07ae34a4e2846d67, LLVM 23.1.3",
+  "artifacts": [
+    {
+      "path": "/private/tmp/termrock-form-measure-review-nextest.log",
+      "sha256": "cafe90a0962630e573b827a21d7e342cdfce9dc285256afb8721b3e8b6efc652"
+    },
+    {
+      "path": "/private/tmp/termrock-form-measure-independent-probes.log",
+      "sha256": "e717962af091a5a891f5a59230be6cda25924b12a6a39c8e9bbb42ac4a5d3116"
+    },
+    {
+      "path": "/private/tmp/termrock-form-measure-review-clippy.log",
+      "sha256": "63f46841eecac784722d5e37b7a7074970e8a2390faa9166e9fd0299983ff097"
+    },
+    {
+      "path": "/private/tmp/termrock-form-measure-review-probes-eca0/src/lib.rs",
+      "sha256": "8b20407395a5f6ba322f20f1861dad2887943ee8b80f5ecb96c87678acfbf24c"
+    },
+    {
+      "path": "/private/tmp/termrock-form-measure-review-probes-eca0/Cargo.toml",
+      "sha256": "834233002a4b8ab37a2aa811c3260268e9e88f14768e8c8ef49fab18e030899a"
+    },
+    {
+      "path": "/private/tmp/termrock-form-measure-review-probes-eca0/Cargo.lock",
+      "sha256": "8e1c004c9aed5b20119bc60cf6423b55e3a4e486c4a2183c99ec754ca10f2c7a"
+    }
+  ]
+}

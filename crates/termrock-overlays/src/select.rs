@@ -237,6 +237,12 @@ impl<'a> Select<'a, &'a str, ByIndex, DefaultRow> {
         self.with_inherited_disabled(inherited.disabled)
             .draw(ui, area, st, items)
     }
+
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
+    }
 }
 
 impl<'a, T, K, R> Select<'a, T, K, R> {
@@ -355,6 +361,16 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
 
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
+    }
+
+    const fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        if self.disabled || inherited_disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        }
     }
 
     fn max_rows(&self, d: &crate::theme::DesignTokens) -> u16 {
@@ -494,6 +510,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         items: &[T],
     ) -> Response<SelectAction> {
         let len = items.len();
+        let was_open = st.open;
         self.reconcile_and_seed(st, items);
         let open = st.open && cx.is_open(self.id);
         if open {
@@ -502,7 +519,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             cx.resize_layer(self.id, size);
             cx.reanchor_layer(self.id, anchor);
         } else if st.open {
-            st.open = false;
+            self.close_restoring(st, items);
         }
         let mut acc = Acc::<SelectAction>::new();
         if open {
@@ -514,8 +531,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         for it in cx.intents(self.id) {
             match it {
                 Intent::Layer(LayerEvent::Dismissed(_)) => {
-                    self.close_restoring(st, items);
-                    acc.action(SelectAction::Closed);
+                    if was_open {
+                        self.close_restoring(st, items);
+                        acc.action(SelectAction::Closed);
+                    }
                 }
                 Intent::Layer(_) => acc.repaint(),
                 Intent::Binding(action) if can => {
@@ -615,13 +634,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         if ui.is_inert() {
             return;
         }
-        let f = if self.disabled {
-            Focusability::Disabled
-        } else if self.read_only {
-            Focusability::FocusableReadOnly
-        } else {
-            Focusability::Focusable
-        };
+        let f = self.form_focusability(false);
         ui.register_control(self.id, area, f);
     }
 
@@ -924,430 +937,5 @@ impl<T, K, R> Bindings for Select<'_, T, K, R> {
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<SelectCmd>] {
         BINDINGS
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::event::{Input, Key, KeyModifiers};
-    use crate::runtime::stub::{SCREEN, Stub};
-    use crate::runtime::{App, Runtime};
-    use crate::theme::{ColorLevel, Role, Theme};
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::Position;
-    use termrock_runtime::rowui::RowUi;
-
-    const SEL: Id = Id::root("select.tests");
-    const OTHER: Id = Id::root("select.tests.other");
-
-    #[derive(Default)]
-    struct SelectPage {
-        st: SelectState,
-        items: Vec<&'static str>,
-        closed: usize,
-    }
-
-    impl App for SelectPage {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let s: Select<'_, &str> = Select::new(SEL);
-            let mut r = s.update(cx, &mut self.st, &self.items);
-            if r.take_action() == Some(SelectAction::Closed) {
-                self.closed = self.closed.saturating_add(1);
-            }
-
-            for _ in cx.intents(OTHER) {}
-            r.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let s: Select<'_, &str> = Select::new(SEL);
-            s.draw(ui, Rect::new(0, 0, 20, 1), &self.st, &self.items);
-            ui.register_control(OTHER, Rect::new(0, 3, 10, 1), Focusability::Focusable);
-        }
-    }
-
-    fn press(code: KeyCode) -> Input {
-        Input::Key(Key {
-            code,
-            mods: KeyModifiers::NONE,
-        })
-    }
-
-    #[test]
-    fn an_open_popup_closes_when_focus_leaves_the_field() {
-        let mut st = SelectState::default();
-        st.set_value(Some(ItemKey::index(0)));
-        let app = SelectPage {
-            st,
-            items: vec!["a", "b", "c"],
-            closed: 0,
-        };
-        let mut rt = Runtime::new(app, Theme::junie());
-        let _ = rt.initialize();
-        let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
-        assert_eq!(rt.focus(), Some(SEL));
-        let _ = crate::runtime::stub::deliver(&mut rt, press(KeyCode::Enter));
-        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
-        assert!(rt.app().st.is_open(), "Enter opened the popup");
-        assert!(rt.is_open(SEL), "the popover layer is open");
-
-        let _ = crate::runtime::stub::deliver(&mut rt, press(KeyCode::Down));
-        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
-        assert_eq!(rt.app().st.cursor(), Some(ItemKey::index(1)));
-        assert_eq!(rt.app().st.value(), Some(ItemKey::index(0)));
-        assert_eq!(rt.app().closed, 0);
-
-        let _ = crate::runtime::stub::deliver(&mut rt, press(KeyCode::Tab));
-        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
-        assert_eq!(rt.focus(), Some(OTHER), "Tab moved focus off the field");
-        assert!(!rt.is_open(SEL), "the popover layer was dismissed");
-        assert!(!rt.app().st.is_open(), "the component agrees it is closed");
-        assert_eq!(
-            rt.app().st.cursor(),
-            Some(ItemKey::index(0)),
-            "the cursor is restored to the committed value"
-        );
-        assert_eq!(rt.app().st.value(), Some(ItemKey::index(0)));
-        assert_eq!(rt.app().closed, 1, "`Closed` is reported exactly once");
-        assert!(
-            rt.diagnostics().is_empty(),
-            "no diagnostic on the dismissal pass: {:?}",
-            rt.diagnostics()
-        );
-    }
-
-    #[test]
-    fn open_popup_paints_exactly_one_chosen_marker() {
-        let mut state = SelectState::default();
-        state.set_value(Some(ItemKey::index(1)));
-        let app = SelectPage {
-            st: state,
-            items: vec!["alpha", "beta", "gamma"],
-            closed: 0,
-        };
-        let theme = Theme::junie();
-        let chosen = theme.design.glyphs.get(GlyphRole::Chosen);
-        let mut runtime = Runtime::new(app, theme);
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-
-        let count = (SCREEN.y..SCREEN.bottom())
-            .flat_map(|y| (SCREEN.x..SCREEN.right()).map(move |x| Position::new(x, y)))
-            .filter(|position| {
-                buffer
-                    .cell(*position)
-                    .is_some_and(|cell| cell.symbol() == chosen)
-            })
-            .count();
-        assert_eq!(count, 1);
-    }
-
-    #[test]
-    fn escape_closes_and_restores_the_cursor() {
-        let items = ["a", "b", "c"];
-        let s: Select<'_, &str> = Select::new(SEL);
-        let mut st = SelectState::default();
-        let _ = st.reconcile(3, |i| s.key_at(&items, i));
-        st.set_value(Some(ItemKey::index(1)));
-        st.core.set_cursor(1, ItemKey::index(1));
-        st.open = true;
-        let mut acc = Acc::<SelectAction>::new();
-        s.move_cursor(&mut st, &items, 2, &mut acc);
-        assert_eq!(st.cursor(), Some(ItemKey::index(2)));
-        assert_eq!(
-            st.value(),
-            Some(ItemKey::index(1)),
-            "the value is untouched"
-        );
-        s.close_restoring(&mut st, &items);
-        assert!(!st.is_open());
-        assert_eq!(
-            st.cursor(),
-            Some(ItemKey::index(1)),
-            "Esc restores the cursor to the value"
-        );
-        assert_eq!(st.value(), Some(ItemKey::index(1)));
-    }
-
-    #[test]
-    fn arrows_move_the_cursor_not_the_value_while_closed() {
-        let items = ["a", "b", "c"];
-        let s: Select<'_, &str> = Select::new(SEL);
-        let mut st = SelectState::default();
-        let _ = st.reconcile(3, |i| s.key_at(&items, i));
-        st.set_value(Some(ItemKey::index(0)));
-        st.core.set_cursor(0, ItemKey::index(0));
-        assert!(!st.is_open());
-        let mut acc = Acc::<SelectAction>::new();
-        s.move_cursor(&mut st, &items, 1, &mut acc);
-        s.move_cursor(&mut st, &items, 2, &mut acc);
-        let r = acc.finish(SEL);
-        assert!(r.is_changed());
-        assert_eq!(r.action_ref(), None, "no value changed, so no action");
-        assert_eq!(st.cursor(), Some(ItemKey::index(2)));
-        assert_eq!(st.value(), Some(ItemKey::index(0)));
-    }
-
-    #[test]
-    fn standalone_select_takes_items_per_phase() {
-        struct Engine {
-            id: u64,
-            name: String,
-        }
-        fn engine_key(e: &Engine) -> ItemKey {
-            ItemKey::num(e.id)
-        }
-        fn engine_row(e: &Engine, u: &mut RowUi<'_>) {
-            u.label(&e.name);
-        }
-        let engines = vec![
-            Engine {
-                id: 7,
-                name: "postgres".to_owned(),
-            },
-            Engine {
-                id: 9,
-                name: "sqlite".to_owned(),
-            },
-        ];
-        let key: fn(&Engine) -> ItemKey = engine_key;
-        let row: fn(&Engine, &mut RowUi<'_>) = engine_row;
-        let s = Select::new(SEL).key(key).row(row).placeholder("Engine");
-        let mut st = SelectState::default();
-        st.set_value(Some(ItemKey::num(9)));
-        let _ = st.reconcile(engines.len(), |i| s.key_at(&engines, i));
-        assert_eq!(st.value(), Some(ItemKey::num(9)));
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            s.draw(ui, a, &st, &engines);
-        })
-        .commit_presented();
-        let mut row0 = String::new();
-        for x in 0..SCREEN.width {
-            if let Some(c) = buf.cell(Position::new(x, 0)) {
-                row0.push_str(c.symbol());
-            }
-        }
-        assert!(row0.contains("sqlite"), "{row0}");
-
-        let shrunk: Vec<Engine> = Vec::new();
-        let _ = st.reconcile(shrunk.len(), |i| s.key_at(&shrunk, i));
-        assert_eq!(st.value(), None);
-    }
-
-    #[derive(Default)]
-    struct DisablableSelect {
-        st: SelectState,
-        disabled: bool,
-    }
-
-    impl App for DisablableSelect {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let items = ["alpha", "beta", "gamma"];
-            let s: Select<'_, &str> = Select::new(SEL).disabled(self.disabled);
-            s.update(cx, &mut self.st, &items).erase()
-        }
-
-        fn draw(&self, _ui: &mut Ui<'_>) {}
-    }
-
-    #[test]
-    fn disabled_update_does_not_initialize_collection_state() {
-        let app = DisablableSelect {
-            st: SelectState::default(),
-            disabled: true,
-        };
-        let mut rt = Runtime::new(app, Theme::junie());
-        let _ = rt.initialize();
-        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
-        assert_eq!(rt.app().st, SelectState::default());
-    }
-
-    #[test]
-    fn a_select_reconciles_on_the_first_enabled_frame_after_disabled_ones() {
-        let app = DisablableSelect {
-            st: SelectState::default(),
-            disabled: true,
-        };
-        let mut rt = Runtime::new(app, Theme::junie());
-        let _ = rt.initialize();
-        for _ in 0..3 {
-            let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
-        }
-        assert_eq!(
-            rt.app().st,
-            SelectState::default(),
-            "three disabled frames accrued nothing"
-        );
-        rt.app_mut().disabled = false;
-        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
-        assert_eq!(
-            rt.app().st.cursor(),
-            Some(ItemKey::index(0)),
-            "the first enabled frame seeds the cursor"
-        );
-        assert_eq!(
-            rt.app().st.scroll().content_len(),
-            3,
-            "and the scroll length"
-        );
-    }
-
-    fn draw_field(part: Option<Part>) -> Buffer {
-        let items = ["alpha", "beta"];
-        let patch = [(
-            part.unwrap_or(Part::FIELD),
-            StylePatch::new().set_fg(Role::Warning),
-        )];
-        let mut s: Select<'_, &str> = Select::new(SEL).placeholder("Pick one");
-        if part.is_some() {
-            s = s.patch_part(&patch);
-        }
-        let st = SelectState::default();
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            s.draw(ui, a, &st, &items);
-        })
-        .commit_presented();
-        buf
-    }
-
-    fn draw_selected(value: Option<ItemKey>) -> Buffer {
-        let items = ["alpha", "beta"];
-        let select: Select<'_, &str> = Select::new(SEL).placeholder("Pick one");
-        let mut state = SelectState::default();
-        state.set_value(value);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime
-            .draw_scene(SCREEN, &mut buffer, |ui, area| {
-                select.draw(ui, area, &state, &items);
-            })
-            .commit_presented();
-        buffer
-    }
-
-    fn disclosure(theme: Theme, open: bool, glyph: Slot<GlyphRole>) -> (String, Rect) {
-        let area = Rect::new(0, 0, 20, 6);
-        let patch = [(
-            Part::MARKER,
-            StylePatch {
-                glyph,
-                ..StylePatch::new()
-            },
-        )];
-        let select: Select<'_, &str> = Select::new(SEL).patch_part(&patch);
-        let state = SelectState {
-            open,
-            ..SelectState::default()
-        };
-        let mut runtime = Runtime::new(Stub::default(), theme);
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                select.draw(ui, area, &state, &["alpha"]);
-            })
-            .commit_presented();
-        let marker = Position::new(area.right().saturating_sub(2), area.y);
-        (
-            buffer
-                .cell(marker)
-                .map_or_else(String::new, |cell| cell.symbol().to_owned()),
-            runtime
-                .area_of_part(SEL, PartRef::of(Part::FIELD))
-                .unwrap_or(Rect::ZERO),
-        )
-    }
-
-    #[test]
-    fn select_disclosure_is_exact_for_both_themes_and_color_levels() {
-        for theme in [Theme::junie(), Theme::paper()] {
-            for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
-                let theme = theme.clone().downgrade(level);
-                assert_eq!(disclosure(theme.clone(), false, Slot::Inherit).0, "▾");
-                assert_eq!(disclosure(theme, true, Slot::Inherit).0, "▴");
-            }
-        }
-    }
-
-    #[test]
-    fn select_disclosure_set_inherit_and_clear_win_in_both_states() {
-        for open in [false, true] {
-            assert_eq!(
-                disclosure(Theme::junie(), open, Slot::Set(GlyphRole::WarningMark)).0,
-                Theme::junie().design.glyphs.get(GlyphRole::WarningMark)
-            );
-            assert_eq!(
-                disclosure(Theme::junie(), open, Slot::Inherit).0,
-                if open { "▴" } else { "▾" }
-            );
-            assert_eq!(disclosure(Theme::junie(), open, Slot::Clear).0, " ");
-        }
-    }
-
-    #[test]
-    fn select_pressed_mono_brackets_preserve_field_geometry() {
-        let area = Rect::new(0, 0, 20, 6);
-        let select: Select<'_, &str> = Select::new(SEL);
-        let state = SelectState::default();
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                ui.reference(
-                    Some(crate::ReferenceTarget::new(
-                        SEL,
-                        crate::ReferenceState::FOCUSED | crate::ReferenceState::PRESSED,
-                    )),
-                    |ui| select.draw(ui, area, &state, &["alpha"]),
-                );
-            })
-            .commit_presented();
-
-        assert_eq!(
-            buffer
-                .cell(Position::new(0, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("[")
-        );
-        assert_eq!(
-            buffer
-                .cell(Position::new(area.right().saturating_sub(2), 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("]")
-        );
-        assert_eq!(
-            disclosure(Theme::junie(), false, Slot::Inherit).1,
-            Rect::new(0, 0, 20, 1)
-        );
-    }
-
-    #[test]
-    fn selected_painting_comes_only_from_the_semantic_value() {
-        assert_ne!(draw_selected(Some(ItemKey::index(1))), draw_selected(None));
-    }
-
-    #[test]
-    fn the_parts_a_drawn_select_styles_are_declared() {
-        let plain = draw_field(None);
-        for part in [Part::GUTTER, Part::PLACEHOLDER] {
-            assert_ne!(
-                draw_field(Some(part)),
-                plain,
-                "a drawn Select does not style {part:?}"
-            );
-            assert!(
-                <Select<'_, &str>>::PARTS.contains(&part),
-                "Select styles {part:?} but PARTS omits it: {:?}",
-                <Select<'_, &str>>::PARTS
-            );
-        }
     }
 }

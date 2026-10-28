@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 5478ecfc93e294ccd9ebd75058de7be09e2a389f Alexey Zhokhov <alexey@zhokhov.com> 1792595861 +0700	branch: Created from origin/parity/termrock-visual-baseline
+5478ecfc93e294ccd9ebd75058de7be09e2a389f b1d767972b1b4064f999eaa2ae89d2cc564b98ee Alexey Zhokhov <alexey@zhokhov.com> 1792596860 +0700	commit: feat(fields): configure initial text selection on focus
+b1d767972b1b4064f999eaa2ae89d2cc564b98ee 27f65eaef5be18313c6527c5ba5f9e32062d70d4 Alexey Zhokhov <alexey@zhokhov.com> 1792596872 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

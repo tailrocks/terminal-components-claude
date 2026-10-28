@@ -48,6 +48,7 @@ impl CapabilityPalettes {
 pub(crate) fn junie() -> CapabilityPalettes {
     CapabilityPalettes::new(super::builtin::junie::tokens())
         .with(ColorLevel::Ansi256, junie_256())
+        .with(ColorLevel::Ansi16, junie_16())
         .with(ColorLevel::Mono, junie_mono())
 }
 
@@ -61,19 +62,19 @@ const fn junie_256() -> ColorTokens {
             Color::Indexed(237),
         ],
         field: Color::Indexed(234),
-        field_hover: Color::Indexed(234),
+        field_hover: Color::Indexed(237),
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
-            Color::Indexed(244),
+            Color::Indexed(245),
+            Color::Indexed(242),
             Color::Indexed(238),
-            Color::Indexed(235),
         ],
-        on_accent: Color::Indexed(233),
+        on_accent: Color::Indexed(232),
         on_danger: Color::Indexed(231),
         on_surface_inverse: Color::Indexed(16),
-        border_subtle: Color::Indexed(235),
-        border_strong: Color::Indexed(238),
+        border_subtle: Color::Indexed(238),
+        border_strong: Color::Indexed(242),
         accent: Color::Indexed(78),
         accent_hover: Color::Indexed(77),
         accent_pressed: Color::Indexed(238),
@@ -82,62 +83,92 @@ const fn junie_256() -> ColorTokens {
         focus_ring: Color::Indexed(238),
         selection_bg: Color::Indexed(237),
         selection_fg: Color::Indexed(231),
-        highlight_bg: Color::Indexed(67),
+        highlight_bg: Color::Indexed(25),
         highlight_fg: Color::Indexed(231),
-        highlight_danger_bg: Color::Indexed(238),
+
+        highlight_danger_bg: Color::Indexed(88),
         highlight_danger_fg: Color::Indexed(231),
-        backdrop_fg: Color::Indexed(235),
+        backdrop_fg: Color::Indexed(238),
         backdrop_bg: Color::Indexed(16),
-        danger: Color::Indexed(167),
-        danger_soft: Color::Indexed(181),
-        danger_tint: Color::Indexed(233),
+
+        danger: Color::Indexed(203),
+
+        danger_soft: Color::Indexed(174),
+        danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
-        success: Color::Indexed(78),
+
+        success: Color::Indexed(71),
         info: Color::Indexed(147),
-        disabled_fg: Color::Indexed(238),
+        disabled_fg: Color::Indexed(239),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
 
+        status_bar_bg: Color::Indexed(232),
+        status_bar_fg: Color::Indexed(231),
+        status_accent: Color::Indexed(71),
+        chrome_rule: Color::Indexed(238),
+        scroll_track: Color::Indexed(239),
+        scroll_thumb: Color::Indexed(245),
+        tag_ink: Color::Indexed(245),
+
         syntax: SyntaxTokens {
-            keyword: Color::Indexed(231),
+            keyword: Color::Indexed(111),
             ident: Color::Indexed(231),
-            string: Color::Indexed(249),
-            number: Color::Indexed(249),
-            operator: Color::Indexed(244),
-            punct: Color::Indexed(244),
-            comment: Color::Indexed(238),
+            string: Color::Indexed(116),
+            number: Color::Indexed(183),
+            operator: Color::Indexed(245),
+            punct: Color::Indexed(245),
+            comment: Color::Indexed(242),
             plain: Color::Indexed(231),
             type_name: Color::Indexed(231),
             function: Color::Indexed(231),
             constant: Color::Indexed(249),
-            invalid: Color::Indexed(167),
+            invalid: Color::Indexed(203),
             deprecated: Color::Indexed(244),
             match_bg: Color::Indexed(233),
-            match_current_bg: Color::Indexed(67),
+            match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
-            diagnostic_error: Color::Indexed(167),
+
+            diagnostic_error: Color::Indexed(203),
             diagnostic_warning: Color::Indexed(214),
             diagnostic_info: Color::Indexed(147),
         },
         meter: MeterTokens {
             low: Color::Indexed(249),
             medium: Color::Indexed(214),
-            high: Color::Indexed(167),
+            high: Color::Indexed(203),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::Indexed(238),
-            unknown: Color::Indexed(238),
+            stale: Color::Indexed(242),
+            unknown: Color::Indexed(242),
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
-                Color::Indexed(167),
+                Color::Indexed(203),
                 Color::Indexed(147),
                 Color::Indexed(249),
                 Color::Indexed(244),
             ],
         },
     }
+}
+
+fn junie_16() -> ColorTokens {
+    let mut tokens = super::Theme::from_tokens(super::builtin::junie::tokens())
+        .downgrade(ColorLevel::Ansi16)
+        .color;
+    tokens.field_hover = Color::DarkGray;
+
+    tokens.fg[3] = Color::Gray;
+
+    tokens.border_strong = Color::Gray;
+
+    tokens.success = Color::Green;
+    tokens.danger_soft = Color::LightRed;
+    tokens.meter.stale = Color::Gray;
+    tokens.meter.unknown = Color::Gray;
+    tokens
 }
 
 const fn junie_mono() -> ColorTokens {
@@ -155,14 +186,15 @@ const fn junie_mono() -> ColorTokens {
             Color::White,
             Color::Gray,
             Color::Gray,
-            Color::DarkGray,
+            Color::Gray,
             Color::Black,
         ],
         on_accent: Color::Black,
         on_danger: Color::White,
         on_surface_inverse: Color::Black,
         border_subtle: Color::Black,
-        border_strong: Color::DarkGray,
+
+        border_strong: Color::Gray,
         accent: Color::Gray,
         accent_hover: Color::DarkGray,
         accent_pressed: Color::DarkGray,
@@ -178,21 +210,29 @@ const fn junie_mono() -> ColorTokens {
         backdrop_fg: Color::Black,
         backdrop_bg: Color::Black,
         danger: Color::Gray,
-        danger_soft: Color::Gray,
+        danger_soft: Color::White,
         danger_tint: Color::Black,
         warning: Color::Gray,
         warning_tint: Color::Black,
-        success: Color::Gray,
+
+        success: Color::White,
         info: Color::Gray,
         disabled_fg: Color::DarkGray,
         disabled_bg: Color::Black,
         read_only_fg: Color::Gray,
+        status_bar_bg: Color::Black,
+        status_bar_fg: Color::White,
+        status_accent: Color::White,
+        chrome_rule: Color::DarkGray,
+        scroll_track: Color::DarkGray,
+        scroll_thumb: Color::Gray,
+        tag_ink: Color::Gray,
 
         syntax: SyntaxTokens {
-            keyword: Color::White,
+            keyword: Color::Gray,
             ident: Color::White,
             string: Color::Gray,
-            number: Color::Gray,
+            number: Color::White,
             operator: Color::Gray,
             punct: Color::Gray,
             comment: Color::DarkGray,
@@ -215,8 +255,8 @@ const fn junie_mono() -> ColorTokens {
             high: Color::Gray,
             track: Color::Black,
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::DarkGray,
-            unknown: Color::DarkGray,
+            stale: Color::Gray,
+            unknown: Color::Gray,
             series: [
                 Color::Gray,
                 Color::Gray,
@@ -226,5 +266,21 @@ const fn junie_mono() -> ColorTokens {
                 Color::Gray,
             ],
         },
+    }
+}
+
+pub fn baseline_muted(level: crate::ColorLevel) -> Color {
+    match level {
+        crate::ColorLevel::TrueColor => Color::from_u32(0x0080_8080),
+        crate::ColorLevel::Ansi256 => Color::Indexed(244),
+        crate::ColorLevel::Ansi16 | crate::ColorLevel::Mono => Color::Gray,
+    }
+}
+
+pub fn baseline_faint(level: crate::ColorLevel) -> Color {
+    match level {
+        crate::ColorLevel::TrueColor => Color::from_u32(0x004d_4d4d),
+        crate::ColorLevel::Ansi256 => Color::Indexed(238),
+        crate::ColorLevel::Ansi16 | crate::ColorLevel::Mono => Color::DarkGray,
     }
 }

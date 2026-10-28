@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 7c94b00331413350f37365c7a3a34151dc952e38 Alexey Zhokhov <alexey@zhokhov.com> 1792544467 +0700	branch: Created from origin/parity/termrock-visual-baseline
+7c94b00331413350f37365c7a3a34151dc952e38 6b73822c361e3a253709ad71fe6c885693fd1135 Alexey Zhokhov <alexey@zhokhov.com> 1792544981 +0700	commit: fix(shell): unify resolved chrome geometry
+6b73822c361e3a253709ad71fe6c885693fd1135 5f559939f10b6fc3be79c56ae0ff8c1203346cef Alexey Zhokhov <alexey@zhokhov.com> 1792545029 +0700	commit: docs: record shell geometry handoff
+5f559939f10b6fc3be79c56ae0ff8c1203346cef e6a4829a5dcd0f0a1bad03467713c3f5a4858aca Alexey Zhokhov <alexey@zhokhov.com> 1792545715 +0700	commit: fix(shell): reserve chrome in measured minimum
+e6a4829a5dcd0f0a1bad03467713c3f5a4858aca 8e2761d096e3f92a7b9003d7918a5ce3236cf4f5 Alexey Zhokhov <alexey@zhokhov.com> 1792546447 +0700	commit: fix(composition): preserve owned shell slot interop

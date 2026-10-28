@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 efda9593a905e3d462a62852748cf43254276dca Alexey Zhokhov <alexey@zhokhov.com> 1792537676 +0700	branch: Created from origin/parity/termrock-visual-baseline
+efda9593a905e3d462a62852748cf43254276dca 83e2e96c4fe6e5a4f6db061a90d0a7f18bf09acd Alexey Zhokhov <alexey@zhokhov.com> 1792538221 +0700	commit: feat: compose dialog and props list slots
+83e2e96c4fe6e5a4f6db061a90d0a7f18bf09acd 8425da28aa06a613bf08117178fd515b22fe83b9 Alexey Zhokhov <alexey@zhokhov.com> 1792538248 +0700	commit (amend): feat: compose dialog and props list slots
+8425da28aa06a613bf08117178fd515b22fe83b9 a0c620e5806c2b1aa92ac6dbdfc11aa62fc22ce9 Alexey Zhokhov <alexey@zhokhov.com> 1792538291 +0700	commit (amend): feat: compose dialog and props list slots
+a0c620e5806c2b1aa92ac6dbdfc11aa62fc22ce9 acb750e71986658dac43d2a156e751a305782c29 Alexey Zhokhov <alexey@zhokhov.com> 1792538948 +0700	commit: fix: preserve dialog body geometry through clipped slots
+acb750e71986658dac43d2a156e751a305782c29 a1903462d2abf972741f15d4b5873a953e5df471 Alexey Zhokhov <alexey@zhokhov.com> 1792539368 +0700	commit: test: make clipped dialog regression sensitive
+a1903462d2abf972741f15d4b5873a953e5df471 bfbb72516af743602d0a2ee320805714f5073072 Alexey Zhokhov <alexey@zhokhov.com> 1792540156 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+bfbb72516af743602d0a2ee320805714f5073072 92a438867abbd23c4c2c78574070a13114b816e5 Alexey Zhokhov <alexey@zhokhov.com> 1792540542 +0700	commit: feat: add public command scope adapter
+92a438867abbd23c4c2c78574070a13114b816e5 6cc98ab0fbd2f5dc404115d8470a868a8d981665 Alexey Zhokhov <alexey@zhokhov.com> 1792540554 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

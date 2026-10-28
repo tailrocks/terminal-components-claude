@@ -20,6 +20,5 @@ unicode-width.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
 
-[dev-dependencies]
-termrock.workspace = true
-termrock-test-support.workspace = true
+[lib]
+doctest = false

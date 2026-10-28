@@ -1,0 +1,20 @@
+0000000000000000000000000000000000000000 56a137c78907204f6086dff7436e7e5a63c2c04f Alexey Zhokhov <alexey@zhokhov.com> 1792158245 +0700	branch: Created from HEAD
+56a137c78907204f6086dff7436e7e5a63c2c04f 226ce5f990a0ca8fcb6f6ceb5f9c491755bc9c43 Alexey Zhokhov <alexey@zhokhov.com> 1792158441 +0700	rebase (finish): refs/heads/scroll-track onto 226ce5f990a0ca8fcb6f6ceb5f9c491755bc9c43
+226ce5f990a0ca8fcb6f6ceb5f9c491755bc9c43 6454ead7b32657de318e6fa6baeb774ed976d4be Alexey Zhokhov <alexey@zhokhov.com> 1792159251 +0700	commit: feat(scrollbar): dotted track on both axes
+6454ead7b32657de318e6fa6baeb774ed976d4be df41a6cc1183b0825a72f850fe99b530fe074331 Alexey Zhokhov <alexey@zhokhov.com> 1792159261 +0700	commit: test(visual): dotted scrollbar track re-approval (showcase pages)
+df41a6cc1183b0825a72f850fe99b530fe074331 609cfa832fa4bf24a3ec3329aecd50e3507771a8 Alexey Zhokhov <alexey@zhokhov.com> 1792159267 +0700	commit: test(visual): dotted scrollbar track re-approval (showcase flows)
+609cfa832fa4bf24a3ec3329aecd50e3507771a8 57cf66b23fa8ebd40ced580c714df2152781f07b Alexey Zhokhov <alexey@zhokhov.com> 1792159286 +0700	rebase (finish): refs/heads/scroll-track onto 4b62e40e7d1e142535d20ee8b80a69c58d71bf2a
+57cf66b23fa8ebd40ced580c714df2152781f07b 8a3f39494528bb0d88adf2e0a967c5f7f116527e Alexey Zhokhov <alexey@zhokhov.com> 1792159354 +0700	commit: fixup catalog
+8a3f39494528bb0d88adf2e0a967c5f7f116527e 03a43195dc338880fc1743dd74a18f9a3b03c7de Alexey Zhokhov <alexey@zhokhov.com> 1792159356 +0700	branch: Reset to HEAD
+03a43195dc338880fc1743dd74a18f9a3b03c7de 7b786617d80fde7006c1175fd076648a5ed88b99 Alexey Zhokhov <alexey@zhokhov.com> 1792159364 +0700	branch: Reset to HEAD
+7b786617d80fde7006c1175fd076648a5ed88b99 e951738b6ec3a4750225698bab80966a6390e216 Alexey Zhokhov <alexey@zhokhov.com> 1792159547 +0700	rebase (finish): refs/heads/scroll-track onto 262b70d6037b346075692f75470540f6c265f64f
+e951738b6ec3a4750225698bab80966a6390e216 baebb9d03c690e60c64f9532acf66e1a2f3b8fef Alexey Zhokhov <alexey@zhokhov.com> 1792159566 +0700	branch: Reset to HEAD
+baebb9d03c690e60c64f9532acf66e1a2f3b8fef ef548e265e1ed54381e5fdd4e9fb4f5ad49f2a2a Alexey Zhokhov <alexey@zhokhov.com> 1792159776 +0700	rebase (finish): refs/heads/scroll-track onto 1fdf2e421111878d082a51d81b4afc95899a5d25
+ef548e265e1ed54381e5fdd4e9fb4f5ad49f2a2a 7f855db59726f3a60a427082ff1b0d0a38bb1a77 Alexey Zhokhov <alexey@zhokhov.com> 1792159779 +0700	reset: moving to HEAD~1
+7f855db59726f3a60a427082ff1b0d0a38bb1a77 67d9d46d24bc748bd07442a60a84019e4c767898 Alexey Zhokhov <alexey@zhokhov.com> 1792159788 +0700	commit (amend): feat(scrollbar): dotted track on both axes
+67d9d46d24bc748bd07442a60a84019e4c767898 1234b24f6392d78deb9e324f33a0d89b3bd09b2c Alexey Zhokhov <alexey@zhokhov.com> 1792160204 +0700	commit: test(visual): dotted scrollbar track re-approval (showcase pages)
+1234b24f6392d78deb9e324f33a0d89b3bd09b2c d9df0efe7e8c9ed9e84d44c5c42523eb9c97ba5c Alexey Zhokhov <alexey@zhokhov.com> 1792160207 +0700	commit: test(visual): dotted scrollbar track re-approval (showcase flows)
+d9df0efe7e8c9ed9e84d44c5c42523eb9c97ba5c a3616e7d733c607453b52c3e386723b0553b8892 Alexey Zhokhov <alexey@zhokhov.com> 1792160214 +0700	rebase (finish): refs/heads/scroll-track onto 8396c3d1197ee70d5c8f7816ca9eab4849d32c7d
+a3616e7d733c607453b52c3e386723b0553b8892 cf5ce54aba9be461ca6d46a0194e86ab7d8f7f89 Alexey Zhokhov <alexey@zhokhov.com> 1792160425 +0700	rebase (finish): refs/heads/scroll-track onto e10c753926c371b4b7718f460b4345ea5621b3ee
+cf5ce54aba9be461ca6d46a0194e86ab7d8f7f89 e3a9a655d30a7845620da04cc06a08bf785b9368 Alexey Zhokhov <alexey@zhokhov.com> 1792160635 +0700	rebase (finish): refs/heads/scroll-track onto 9c59a31bf5fcfa4bfcbaddd8533e9feaec19874e
+e3a9a655d30a7845620da04cc06a08bf785b9368 59ce59886bf07b5c6e38de4218a00f980ba16175 Alexey Zhokhov <alexey@zhokhov.com> 1792160847 +0700	rebase (finish): refs/heads/scroll-track onto ae4d7eb41b0a5d8e97a1406fbf4395d5153a8e33

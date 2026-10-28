@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 59af1c4f760387be455bc79d44be75f4416a63f3 Alexey Zhokhov <alexey@zhokhov.com> 1792505724 +0700	branch: Created from 59af1c4f760387be455bc79d44be75f4416a63f3
+59af1c4f760387be455bc79d44be75f4416a63f3 f2f6eb716c4a512be3dc9423742fa06e86879b32 Alexey Zhokhov <alexey@zhokhov.com> 1792505806 +0700	commit: ci: raise design Rust job timeout to 15 minutes

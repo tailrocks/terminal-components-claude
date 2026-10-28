@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 581d850df9665e141eea6b0f6e38e52a353ce376 Alexey Zhokhov <alexey@zhokhov.com> 1792591138 +0700	branch: Created from 581d850df9665e141eea6b0f6e38e52a353ce376
+581d850df9665e141eea6b0f6e38e52a353ce376 c9302327ef98a10ab80976debde00d3267d84328 Alexey Zhokhov <alexey@zhokhov.com> 1792592248 +0700	merge ec338bc13: Merge made by the 'ort' strategy.
+c9302327ef98a10ab80976debde00d3267d84328 581d850df9665e141eea6b0f6e38e52a353ce376 Alexey Zhokhov <alexey@zhokhov.com> 1792592266 +0700	reset: moving to 581d850df9665e141eea6b0f6e38e52a353ce376
+581d850df9665e141eea6b0f6e38e52a353ce376 052b2f933fd8e06766d0d91907712b0bc1a37f2c Alexey Zhokhov <alexey@zhokhov.com> 1792592267 +0700	cherry-pick: fix(theme): align the syntax inks with the frozen reference tables
+052b2f933fd8e06766d0d91907712b0bc1a37f2c 0f773d8eea51ccc35c0a2034b8156d40d3c5174f Alexey Zhokhov <alexey@zhokhov.com> 1792594761 +0700	commit: test(theme): follow the reference tables for the syntax inks
+0f773d8eea51ccc35c0a2034b8156d40d3c5174f af1280f7647fac9aaf8189bb95bf304d6ac2f394 Alexey Zhokhov <alexey@zhokhov.com> 1792594770 +0700	commit: fix(theme): keep the fingerprint on the recipe content
+af1280f7647fac9aaf8189bb95bf304d6ac2f394 2e8f4b19e5865b663f7f5bdedcd40ecef3f65478 Alexey Zhokhov <alexey@zhokhov.com> 1792594780 +0700	commit: fix(overlays): make the help overlay focusable, scrollable and patchable

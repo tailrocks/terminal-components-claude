@@ -1,0 +1,74 @@
+{
+  "chunks": [
+    {
+      "index": 1,
+      "path": "chunks/000001-21d8ed5641b6b9be72a0a11a7019182bdd1261342214abdc308e33f4a8caaa4e.chunk",
+      "sha256": "21d8ed5641b6b9be72a0a11a7019182bdd1261342214abdc308e33f4a8caaa4e",
+      "size_bytes": 50331648
+    },
+    {
+      "index": 2,
+      "path": "chunks/000002-ddd0724fbd71ef32eea45183684e0f37d763e72bd3e1b0733620e0f7437dcdf3.chunk",
+      "sha256": "ddd0724fbd71ef32eea45183684e0f37d763e72bd3e1b0733620e0f7437dcdf3",
+      "size_bytes": 50331648
+    },
+    {
+      "index": 3,
+      "path": "chunks/000003-bffd76219d23e7910a8e20be04dc8fac754e85727dfd1f1aef004d672f8325ae.chunk",
+      "sha256": "bffd76219d23e7910a8e20be04dc8fac754e85727dfd1f1aef004d672f8325ae",
+      "size_bytes": 50331648
+    },
+    {
+      "index": 4,
+      "path": "chunks/000004-08ccdfa99f2b8391b86d0118f2b9130a87f8477e9e9cece7da7b4b5252dc88d0.chunk",
+      "sha256": "08ccdfa99f2b8391b86d0118f2b9130a87f8477e9e9cece7da7b4b5252dc88d0",
+      "size_bytes": 50331648
+    },
+    {
+      "index": 5,
+      "path": "chunks/000005-4792be8deb44da6a87d6d9f6d197beed95a0fd64e96e5bccc23bc5f8c1777523.chunk",
+      "sha256": "4792be8deb44da6a87d6d9f6d197beed95a0fd64e96e5bccc23bc5f8c1777523",
+      "size_bytes": 50331648
+    },
+    {
+      "index": 6,
+      "path": "chunks/000006-83546f8523993dd3fd5e1f881e567f5d04cf62bbf6b58786ff0565c207b75177.chunk",
+      "sha256": "83546f8523993dd3fd5e1f881e567f5d04cf62bbf6b58786ff0565c207b75177",
+      "size_bytes": 27451391
+    }
+  ],
+  "independent_publication_review": {
+    "path": "opaque-pack-publication-review.json",
+    "sha256": "bcf9109a9c70a91df486bf849cbccd3067424fe574273735b597fc0abfe67c01"
+  },
+  "kind": "opaque raw file custody; not an indexed Git pack archive",
+  "known_pack_diagnostics": {
+    "computed_sha1_over_pre_trailer_bytes": "8847a92fbe258f3640ecc41171349471d4ae2cec",
+    "format_version": 2,
+    "header_declared_object_count": 67662,
+    "indexed": false,
+    "stored_trailer_sha1": "688e51ef3edcf38ed429be933e59cac8ab2b597d",
+    "trailer_matches": false,
+    "usable_objects_claimed": false
+  },
+  "notes": [
+    "Preserve exact source bytes only. Do not repair, index, import, or claim the header count as verified object identity.",
+    "Source origin was independently screened and confirmed as the TCC repository by the bound review."
+  ],
+  "reconstruction": {
+    "matches_source": true,
+    "ordered_sha256": "425547877ef8944d9d93e1cc62b1e350f8b7b1b03fcd85c8c2f281c3cedb140c",
+    "ordered_size_bytes": 279109631
+  },
+  "schema_version": 1,
+  "source": {
+    "absolute_alias": "/private/tmp/tc-claude/.git/objects/pack/tmp_pack_1quA7Q",
+    "gid": 0,
+    "mode_octal": "0o444",
+    "mtime_ns": 1792911878921483479,
+    "pre_post_source_identity_match": true,
+    "sha256": "425547877ef8944d9d93e1cc62b1e350f8b7b1b03fcd85c8c2f281c3cedb140c",
+    "size_bytes": 279109631,
+    "uid": 501
+  }
+}

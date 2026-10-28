@@ -1,0 +1,81 @@
+{
+  "fsck_stdout_sha256": "463e51f1f4c1288797f3f6b7ac1d512d42a3a52421681517b6221a0686a3b411",
+  "dangling_line_count": 14,
+  "classification_counts": {
+    "potential_orphan": 14
+  },
+  "all_lines_are_dangling_blob": true,
+  "missing_or_broken_link_lines": 0,
+  "dangling_objects": [
+    {
+      "kind": "blob",
+      "oid": "dcdd38685d5a13470d855304ebe4ef5336634964",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "04d019d32fc7bc6b3a772d7e3e3123c4de6e621e",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "243b1a7f8061f2f1296546d45cb4e57ced2e4adb",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "6c9f4b310e2e8b9f815ac4136c2dea6d55431824",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "d6848c5d413bb7e1cfb3299a77f8490b7d14a4e8",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "c0bfb457338ed1e7d00028e985f68fdc77d01967",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "abc45503c132558a02d24fedf07193ca43ae5593",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "4f061674657a111d53d7972fc1abce4ce90c0d1e",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "f4b6266d661ade23dff130dacde51e2fa1f8e4b7",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "46c826a49c5d002d5b6a3608c032cbbf93cf34e6",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "1c4a67cf189a6b7425579404ab2bafe7ba33a2a9",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "0e5f0ff41aeb895b770447e1f68f3a2d2affca29",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "c1db5f72fb5a7ff845005083121802535384f15e",
+      "membership": "potential_orphan"
+    },
+    {
+      "kind": "blob",
+      "oid": "54f2ff414eb51b618cbc5e8862b9aea961d30887",
+      "membership": "potential_orphan"
+    }
+  ]
+}

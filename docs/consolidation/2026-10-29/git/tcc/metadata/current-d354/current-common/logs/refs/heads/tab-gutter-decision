@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 56a137c78907204f6086dff7436e7e5a63c2c04f Alexey Zhokhov <alexey@zhokhov.com> 1792157895 +0700	branch: Created from HEAD
+56a137c78907204f6086dff7436e7e5a63c2c04f 571dbfa56b44f5c082260326e90895d639c2bd21 Alexey Zhokhov <alexey@zhokhov.com> 1792158047 +0700	commit: docs(focus): focused tab strips keep the gutter
+571dbfa56b44f5c082260326e90895d639c2bd21 9fe0d2d2e003f449e55d01cb3015811419555c1a Alexey Zhokhov <alexey@zhokhov.com> 1792158047 +0700	commit: test(tabs): gutter only on the focused strip
+9fe0d2d2e003f449e55d01cb3015811419555c1a a6015a06e3261d5da0eeebc8183ec62a257a6d79 Alexey Zhokhov <alexey@zhokhov.com> 1792158269 +0700	rebase (finish): refs/heads/tab-gutter-decision onto 67ddac8a818dd183c169878e2654065dda7162ea

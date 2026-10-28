@@ -1,11 +1,26 @@
-min_version = "2026.10.13"
+min_version = "2026.10.17"
 
 [tools]
-"aqua:nextest-rs/nextest/cargo-nextest" = "0.9.148"
+"aqua:nextest-rs/nextest/cargo-nextest" = "0.9.149"
 actionlint = "1.7.12"
 shellcheck = "0.11.0"
 zizmor = "1.31.1"
-gh = "2.102.0"
-"github:tailrocks/velnor-new" = { version = "0.1.16", bin = "velnor-actions" }
-mr-boxington = "1.24.1"
-rust = { version = "1.99.1", components = "clippy,rustfmt", mr_boxington = false }
+gh = "2.103.3"
+"github:tailrocks/velnor-new" = { version = "0.1.67", bin = "velnor-actions" }
+mr-boxington = "1.28.0"
+rust = { version = "1.99.1", profile = "minimal", components = ["clippy", "rustfmt"], targets = ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"], mr_boxington = true }
+
+[settings]
+cargo.binstall = true
+idiomatic_version_file_enable_tools = ["rust"]
+lockfile = true
+
+[tasks.functional-suite-ci]
+description = "Run the functional suite against PR26 and candidate"
+run = "bash tools/functional-suite/scripts/run-ci.sh"
+tools = { "aqua:nextest-rs/nextest/cargo-nextest" = "0.9.149", "mr-boxington" = "1.28.0", "rust" = "1.99.1" }
+
+[tasks.functional-suite-ci-native]
+description = "Run the functional suite in the Velnor native task"
+run = "bash tools/functional-suite/scripts/run-ci.sh --native-ci"
+tools = { "aqua:nextest-rs/nextest/cargo-nextest" = "0.9.149", "mr-boxington" = "1.28.0", "rust" = "1.99.1" }

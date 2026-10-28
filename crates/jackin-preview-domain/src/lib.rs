@@ -7,15 +7,6 @@
     clippy::arithmetic_side_effects,
     reason = "all arithmetic is over bounded deterministic fixture values"
 )]
-#![cfg_attr(
-    test,
-    allow(
-        clippy::expect_used,
-        clippy::indexing_slicing,
-        clippy::panic,
-        clippy::unwrap_used
-    )
-)]
 
 pub mod account;
 pub mod agent;

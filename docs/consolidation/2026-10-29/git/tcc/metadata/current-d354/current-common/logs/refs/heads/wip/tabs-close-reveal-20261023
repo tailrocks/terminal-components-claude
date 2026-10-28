@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 b3691cd99f8eb95d9685abc9df5ee3d806eb58fb Alexey Zhokhov <alexey@zhokhov.com> 1792733438 +0700	branch: Created from origin/parity/termrock-visual-baseline
+b3691cd99f8eb95d9685abc9df5ee3d806eb58fb 1d6c3cb49bad4fb2c6cebbeb924996a156c8c24c Alexey Zhokhov <alexey@zhokhov.com> 1792734069 +0700	commit: feat(navigation): add hover-revealed tab close controls
+1d6c3cb49bad4fb2c6cebbeb924996a156c8c24c e95d513e32d129750f91832e076b405cb8d83916 Alexey Zhokhov <alexey@zhokhov.com> 1792734967 +0700	commit: fix(tabs): preserve hidden-close press target
+e95d513e32d129750f91832e076b405cb8d83916 e462e98c3266865969910a00dfb707fa4e65cee8 Alexey Zhokhov <alexey@zhokhov.com> 1792735741 +0700	commit: fix(tabs): separate close paint from hit deferral
+e462e98c3266865969910a00dfb707fa4e65cee8 ea6f11852dd0bccb741463a85738a3f95d25a46a Alexey Zhokhov <alexey@zhokhov.com> 1792736148 +0700	rebase (finish): refs/heads/wip/tabs-close-reveal-20261023 onto 8bb0ebb3085fdeff85d158bf0e1a519c959051b5
+ea6f11852dd0bccb741463a85738a3f95d25a46a 1b25a540764662457e553bbc478e98288b588930 Alexey Zhokhov <alexey@zhokhov.com> 1792736280 +0700	commit: style: format merged navigation exports

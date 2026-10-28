@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 a7c5b49bb77cc75ec7d5e38d7115bee57d42dddc Alexey Zhokhov <alexey@zhokhov.com> 1792447452 +0700	branch: Created from main
+a7c5b49bb77cc75ec7d5e38d7115bee57d42dddc d81b9e9696fe806cd11502eb78649959787e5421 Alexey Zhokhov <alexey@zhokhov.com> 1792447958 +0700	commit: fix(showcase): restore baseline header crumb and collapsed nav

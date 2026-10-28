@@ -1,0 +1,41 @@
+{
+  "TCC_baseline_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+  "archive_group": "T01-bare-fixtures",
+  "bare_root_count": 38,
+  "classification": "raw custody only; incomplete target fixture and separate plan/decoy fixtures; no complete source or remote-closure claim",
+  "created_utc": "2026-10-28T20:35:55Z",
+  "excluded_config_or_hook_aliases": 38,
+  "no_unpack_or_fsck_by_archiver": true,
+  "owner_inventory_root_count": 33,
+  "plan_pack_aliases": 21,
+  "plan_raw_pack_bytes": 78860,
+  "plan_raw_pack_sha256": "17c003f0d8553f478939c9f9ee314e00b48a9e24a0c5f1bc0c3062cba3f4d224",
+  "plan_typed_object_count": 7,
+  "raw_pack_handling": "hash and copy only; no unpacking or strict object-closure claim",
+  "root_file_alias_count": 167,
+  "source_mutation": "none",
+  "synthetic_decoy_loose_objects": 7,
+  "target_large_blob_metadata": [
+    {
+      "group_id": "ODB-GROUP-009",
+      "oid": "1bb1e8064477adb490c004e7b961e9118ca9d1ad",
+      "size_bytes": 147835803
+    },
+    {
+      "group_id": "ODB-GROUP-009",
+      "oid": "d66a0b86342b07cfdbc03891a579cd12bbba8bb2",
+      "size_bytes": 1116543618
+    },
+    {
+      "group_id": "ODB-GROUP-009",
+      "oid": "edf4d9cc55ce48084df2098e4f123fa3a2cab69e",
+      "size_bytes": 140287482
+    }
+  ],
+  "target_missing_references": 136,
+  "target_pack_aliases": 16,
+  "target_raw_pack_bytes": 48188099,
+  "target_raw_pack_sha256": "63d633bee273b229ce686ef24502e39bf29678404e0accdc79892c322f342c45",
+  "target_typed_object_count": 121,
+  "unique_content_addressed_files": 26
+}

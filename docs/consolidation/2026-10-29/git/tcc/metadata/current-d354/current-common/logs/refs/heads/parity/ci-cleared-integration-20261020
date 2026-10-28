@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 b0504717c280a4bb141cc6043b35fce6664f8a6a Alexey Zhokhov <alexey@zhokhov.com> 1792495489 +0700	branch: Created from origin/parity/termrock-visual-baseline
+b0504717c280a4bb141cc6043b35fce6664f8a6a 7b9c7a03e1c40af0f7fb8ff3a017fec4bf2ebf77 Alexey Zhokhov <alexey@zhokhov.com> 1792495490 +0700	cherry-pick: ci: exclude standalone frozen CLI helper from discovery
+7b9c7a03e1c40af0f7fb8ff3a017fec4bf2ebf77 546722e15fb3ccb09367478e4e39f5470898c8e6 Alexey Zhokhov <alexey@zhokhov.com> 1792495534 +0700	cherry-pick: docs: track termrock migration acceptance
+546722e15fb3ccb09367478e4e39f5470898c8e6 a92810ad77ccb577010bdda180c7dd97d0259e00 Alexey Zhokhov <alexey@zhokhov.com> 1792495534 +0700	commit: docs: record current migration and reference obligations
+a92810ad77ccb577010bdda180c7dd97d0259e00 69e58bd7545387e3c95bd66f2febcafd70dea86d Alexey Zhokhov <alexey@zhokhov.com> 1792495873 +0700	cherry-pick: ci: generate GitHub Claude instructions as symlink
+69e58bd7545387e3c95bd66f2febcafd70dea86d 2de0d01255390d2a02b7775ee452268782802a38 Alexey Zhokhov <alexey@zhokhov.com> 1792495953 +0700	commit: docs: record generated symlink correction and CI gaps

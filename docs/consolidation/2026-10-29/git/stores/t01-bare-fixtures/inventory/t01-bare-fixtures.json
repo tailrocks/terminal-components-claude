@@ -1,0 +1,171 @@
+{
+  "archive_group": "T01-bare-fixtures",
+  "classification": "raw custody only; incomplete target fixture and separate plan/decoy fixtures; no complete source or remote-closure claim",
+  "full_git_file_manifest": {
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/global/temp-bare-repo-files.jsonl",
+    "sha256": "bae950a5e9eb8321c3aac7bbf4118063250e6c5ee7fb06f038a8ea7c1bf613e4"
+  },
+  "no_mutation": true,
+  "pack_file_alias_manifest": {
+    "additional_aliases_verified_by_direct_sha256": {
+      "plan": 2,
+      "target": 3,
+      "verification_path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v6/t01-extra-pack-verification.jsonl",
+      "verification_sha256": "10af26e7dc30f9c2b004e402bdebb24ec3ed7e6b0bf3d1a85a433cabccb462df"
+    },
+    "distinct_absolute_pack_paths": 37,
+    "entry_count": 37,
+    "original_file_manifest_pack_aliases": {
+      "plan": 19,
+      "target": 13
+    },
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v6/t01-fixture-all-pack-path-aliases.jsonl",
+    "sha256": "6a2bd4df677d1406e9eed02510f63278a8d3b6424b6d8f8d0e3d2209b0bb759b",
+    "unique_content_sha256_groups": 2
+  },
+  "pack_object_inventory": {
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/global/temp-fixture-pack-objects.jsonl",
+    "sha256": "4c5f9f309f77c21d00dabc04d521ff75e16803eac6000caf0b5ce251487560c5"
+  },
+  "plan_fixture": {
+    "additional_v4_root_alias_count": 2,
+    "all_seven_oids_already_in_PLAN_ROOT": "ODB-GROUP-001",
+    "exact_pack_alias_count": 21,
+    "exact_pack_path_alias_map": {
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v6/t01-fixture-all-pack-path-aliases.jsonl",
+      "row_count": 21,
+      "sha256": "6a2bd4df677d1406e9eed02510f63278a8d3b6424b6d8f8d0e3d2209b0bb759b"
+    },
+    "exact_pack_paths": [
+      "/private/tmp/termrock-t01-v4-verify-a9646-plan.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/tmp/termrock-t01-v4-verify-c9646-plan.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/independent68-portable-z5eqcb9f/main-replay-343a-0g03kduh/plan.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/independent68-portable-z5eqcb9f/plan.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/cases/hostile-git-environment/intended-plan.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/cases/parent-edge-array-emptied-refreshed-pins/.t01-custody-ae0e11d56b4240b5bd55ec4051347429/repository/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/cases/tree-entry-array-emptied-refreshed-pins/.t01-custody-5b3975fa64864eea8844668f03c213d2/repository/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/correction-03d2-_wumcpjt/verified-plan.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/independent-03-review-8co_k69v/.t01-custody-6b25bfd3f7ea4e03b164bed403df4ae0/repository/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/independent-03-review-8co_k69v/.t01-custody-b127555b2a0b49d2939abdf3525736fb/repository-original/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/independent-03-review-8co_k69v/native-eexist.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/independent-03-review-8co_k69v/outer-replaced.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/post-import-retry-qthksb1a/.t01-custody-ad11b23d558149058e21cced98f8e697/repository/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/post-import-retry-qthksb1a/final.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/post-import-retry-v2-mtb38irx/.t01-custody-1bc8e5dff00d46a7a2300571f897a643/repository/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/post-import-retry-v2-mtb38irx/final.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/publication-v2-qezp2abc/resource-closure/final.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/publication-v2-qezp2abc/retry-preserves-failure/final.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/retry-preserves-failure/.t01-custody-99f2f6a17b1542b3b33e4a028018451a/repository/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/success-plan.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/termrock-t01-amended-publish-v2-cpbdpwxo/plan.git/objects/pack/pack-3f39b350645cbb1050075738b0816cce4c8d67c6.pack"
+    ],
+    "intersection_sha256": "bb23acd5cf141a33bd22b52856d5ccf30dd20053a03a997ec265704d8737d7e0",
+    "original_root_inventory_count": 19,
+    "pack_bytes": 78860,
+    "pack_sha256": "17c003f0d8553f478939c9f9ee314e00b48a9e24a0c5f1bc0c3062cba3f4d224",
+    "preserve_raw_fixture_pack_separately": true,
+    "typed_list": {
+      "count": 7,
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/objects/ODB-GROUP-010.typed-oid-type-size.tsv",
+      "sha256": "b0431748ab0340de171c0cada5889246233c74c8946da4347aadfc4a054d72c7"
+    }
+  },
+  "revision": "git-store-groups-addendum-v4",
+  "root_inventory": {
+    "bare_repo_count": 33,
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/global/temp-bare-repositories.jsonl",
+    "sha256": "0d8f250415ec040911fb9289c038c43e1519a29a62081a7cc34e061946b8e8b7"
+  },
+  "synthetic_decoy": {
+    "object_file_manifest": {
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/metadata/loose-object-files.jsonl",
+      "selector": "ODB-GROUP-011",
+      "sha256": "9d726658e72efcb537e89c4b9e382a87aba3a94e07e2771aab2966315dde6580"
+    },
+    "typed_list": {
+      "count": 7,
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/objects/ODB-GROUP-011.typed-oid-type-size.tsv",
+      "sha256": "383450c6a3e6bd57f09d5c8500d920fb713ef64284d0c05d60327b5b5dc601c0"
+    }
+  },
+  "target_fixture": {
+    "HEAD_commit": "d200455b9cc90c28f1b29363ea3fa4011ee79a48",
+    "TCC_missing_object_list": {
+      "count": 121,
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/objects/non-tcc-inputs/odb-group-009-missing-from-tcc.tsv",
+      "sha256": "a1f309688631ee6d51626dd5e19167de97cee74d0d1709237b6ea43179312a03"
+    },
+    "additional_v4_root_alias_count": 3,
+    "exact_pack_alias_count": 16,
+    "exact_pack_path_alias_map": {
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v6/t01-fixture-all-pack-path-aliases.jsonl",
+      "row_count": 16,
+      "sha256": "6a2bd4df677d1406e9eed02510f63278a8d3b6424b6d8f8d0e3d2209b0bb759b"
+    },
+    "exact_pack_paths": [
+      "/private/tmp/termrock-t01-v4-verify-a9646-target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/tmp/termrock-t01-v4-verify-b9646-target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/tmp/termrock-t01-v4-verify-c9646-target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/independent68-portable-z5eqcb9f/main-replay-343a-0g03kduh/target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/independent68-portable-z5eqcb9f/target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/correction-03d2-_wumcpjt/verified-target-replay.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/correction-03d2-_wumcpjt/verified-target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/interruptions-current-4lm6av4q/postcommit/target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/publication-v2-qezp2abc/outer-container-substitution/output/.t01-custody-4289a1623fe94d618deaa4615adf58f3.preserved/repository/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/publication-v2-qezp2abc/parent-substitution/parent-preserved/.t01-custody-208878b4c17a4f0fac975d85d45e1d0a/repository/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/publication-v2-qezp2abc/publication-competition/.t01-custody-88200e4980854a9fa2472be0174f7279/repository/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/publication-v2-qezp2abc/publication-competition/target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/publication-v2-qezp2abc/source-substitution/output/.t01-custody-c063fcb6ad7c4c10b6d0079fdb94bebc/repository/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/t01-final-helper-95df-hl_15623/success-target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/termrock-t01-amended-publication-l9j5sdsv/target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack",
+      "/private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/termrock-t01-amended-publish-v2-cpbdpwxo/target.git/objects/pack/pack-5ac31aa56ebb63e21435ac64ff0637594fd9350d.pack"
+    ],
+    "fsck_errors": {
+      "manifest": "/private/tmp/pr38-consolidation-inventory-20261029/global/temp-target-fixture-fsck-errors.jsonl",
+      "missing_references": 136,
+      "sha256": "dbbf560c0d625d41fde6806479df09d087429ad82f15a66b6076a141388b82a6"
+    },
+    "large_blobs_over_100MiB": [
+      {
+        "group_id": "ODB-GROUP-009",
+        "oid": "1bb1e8064477adb490c004e7b961e9118ca9d1ad",
+        "size_bytes": 147835803
+      },
+      {
+        "group_id": "ODB-GROUP-009",
+        "oid": "d66a0b86342b07cfdbc03891a579cd12bbba8bb2",
+        "size_bytes": 1116543618
+      },
+      {
+        "group_id": "ODB-GROUP-009",
+        "oid": "edf4d9cc55ce48084df2098e4f123fa3a2cab69e",
+        "size_bytes": 140287482
+      }
+    ],
+    "original_root_inventory_count": 13,
+    "pack_bytes": 48188099,
+    "pack_sha256": "63d633bee273b229ce686ef24502e39bf29678404e0accdc79892c322f342c45",
+    "parent_commit": "067ef3e4597332fdc6407217667fce489b1a45fd",
+    "queried_store_presence_only": {
+      "absent_from_four_queried_stores": 106,
+      "manifest": "/private/tmp/pr38-consolidation-inventory-20261029/global/temp-target-missing-object-presence.jsonl",
+      "not_global_absence_proof": true,
+      "present": 30,
+      "sha256": "25fa04810bca3aecb3ffbfd71d9036ec73c05a3645a7ba0017e90c62ea065fd5"
+    },
+    "raw_pack_under_100MiB_can_be_stored_as_single_file": true,
+    "recursive_tree_failure": {
+      "exit": 1,
+      "listed_paths": 0,
+      "manifest": "/private/tmp/pr38-consolidation-inventory-20261029/global/temp-target-fixture-integrity.jsonl",
+      "missing_tree": "de2d4cb15c6efaa27555d90db8e5017d164cd9cc",
+      "sha256": "b91c8655f4680f79ea09a173922e4797b835c5502daef86323daf75a3bed7925"
+    },
+    "target_root_tree": "1171a6207d941f621738d3ee67bb04afc900dc20",
+    "typed_object_list": {
+      "count": 121,
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/objects/ODB-GROUP-009.typed-oid-type-size.tsv",
+      "sha256": "7cd21bcc7ce4f01fd2084fe3138c96d9e41d64ac87449d153b350126927c590b"
+    }
+  }
+}

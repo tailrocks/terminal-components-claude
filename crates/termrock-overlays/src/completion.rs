@@ -16,7 +16,8 @@ use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_collections::collection::{CollectionCore, Reconcile};
 use termrock_runtime::empty::EmptyState;
-use termrock_runtime::rowui::{RowFn, RowUi};
+use termrock_runtime::layer::{LayerOpening, UpdateToken};
+use termrock_runtime::rowui::RowFn;
 use termrock_runtime::scroll_region::ScrollRegion;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -34,6 +35,152 @@ pub enum CompletionCmd {
     PageDown,
     Accept,
     Dismiss,
+}
+
+const COMPLETION_TEXT_INSET: u16 = 4;
+
+pub const COMPLETION_DETAILS_CHORD: Chord = Chord::with(
+    KeyCode::Char('d'),
+    KeyModifiers::from_bits_retain(KeyModifiers::CONTROL.bits() | KeyModifiers::SHIFT.bits()),
+);
+
+const DETAILS_ACTION: ActionKey = ActionKey::custom("completion.details");
+
+fn popup_anchor(anchor: Rect, replace_len: usize) -> Rect {
+    let replace = u16::try_from(replace_len).unwrap_or(u16::MAX);
+    Rect {
+        x: anchor
+            .x
+            .saturating_sub(replace)
+            .saturating_sub(COMPLETION_TEXT_INSET),
+        ..anchor
+    }
+}
+
+fn paint_completion_row(
+    ui: &mut Ui<'_>,
+    row: Rect,
+    item: crate::picker::Item<'_>,
+    chosen: bool,
+    pressed: bool,
+) {
+    use crate::theme::{FgStep, Role};
+    use ratatui_core::style::Modifier;
+    let card = Role::Surface(crate::theme::Surface::Elevated);
+    let highlight = Role::HighlightBg;
+    let row_bg = if chosen { highlight } else { card };
+    let mut fill = StylePatch::new()
+        .set_bg(row_bg)
+        .set_fg(Role::Fg(FgStep::Primary));
+    if chosen {
+        fill = fill.add(Modifier::BOLD);
+    }
+    if pressed {
+        fill = fill.add(Modifier::REVERSED);
+    }
+    ui.fill(row, ui.paint_patch(&fill));
+    if row.width > 0 {
+        let mut pad = StylePatch::new().set_fg(row_bg).set_bg(row_bg);
+        if chosen {
+            pad = pad.add(Modifier::BOLD);
+        }
+        if pressed {
+            pad = pad.add(Modifier::REVERSED);
+        }
+        ui.paint_str(Rect { width: 1, ..row }, " ", ui.paint_patch(&pad));
+    }
+    let glyph_fg = if chosen {
+        Role::Fg(FgStep::Primary)
+    } else {
+        Role::Fg(FgStep::Muted)
+    };
+    if row.width > 1 {
+        let mut glyph_patch = StylePatch::new()
+            .set_fg(glyph_fg)
+            .set_bg(row_bg)
+            .remove(Modifier::BOLD);
+        if pressed {
+            glyph_patch = glyph_patch.add(Modifier::REVERSED);
+        }
+        ui.paint_str(
+            Rect {
+                x: row.x.saturating_add(1),
+                width: 1,
+                ..row
+            },
+            if item.glyph.is_empty() {
+                " "
+            } else {
+                item.glyph
+            },
+            ui.paint_patch(&glyph_patch),
+        );
+    }
+    let detail_w = crate::text::width(item.detail);
+    let show_detail = !item.detail.is_empty()
+        && usize::from(row.width.saturating_sub(3))
+            > crate::text::width(item.label) as usize + detail_w as usize + 2;
+    let label_x = row.x.saturating_add(3);
+    let mut x = label_x;
+    for (index, ch) in item.label.char_indices() {
+        if x >= row.right() {
+            break;
+        }
+        let mut patch = StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(row_bg);
+        patch = if item.matched.contains(&index) || chosen {
+            patch.add(Modifier::BOLD)
+        } else {
+            patch.remove(Modifier::BOLD)
+        };
+        if pressed {
+            patch = patch.add(Modifier::REVERSED);
+        }
+        let mut bytes = [0; 4];
+        let text = ch.encode_utf8(&mut bytes);
+        ui.paint_str(Rect { x, width: 1, ..row }, text, ui.paint_patch(&patch));
+        x = x.saturating_add(crate::text::width(text));
+    }
+    if show_detail {
+        let dx = row.right().saturating_sub(detail_w.saturating_add(1));
+        let detail_fg = if chosen {
+            Role::Fg(FgStep::Primary)
+        } else {
+            Role::Fg(FgStep::Muted)
+        };
+        let mut detail_patch = StylePatch::new()
+            .set_fg(detail_fg)
+            .set_bg(row_bg)
+            .remove(Modifier::BOLD);
+        if pressed {
+            detail_patch = detail_patch.add(Modifier::REVERSED);
+        }
+        ui.paint_str(
+            Rect {
+                x: dx,
+                width: detail_w,
+                ..row
+            },
+            item.detail,
+            ui.paint_patch(&detail_patch),
+        );
+    }
+}
+
+fn popup_width<T: AsItem>(cx: &Cx<'_>, items: &[T]) -> u16 {
+    let mut label_w = 0u16;
+    let mut detail_w = 0u16;
+    for item in items {
+        let item = item.as_item();
+        label_w = label_w.max(crate::text::width(item.label));
+        detail_w = detail_w.max(crate::text::width(item.detail));
+    }
+    label_w
+        .saturating_add(detail_w)
+        .saturating_add(8)
+        .clamp(24, 48)
+        .min(cx.design().size.popup_max_width)
 }
 
 const fn binding(
@@ -121,6 +268,16 @@ const BINDINGS: &[Binding<CompletionCmd>] = &[
     ),
 ];
 
+const DETAILS_BINDING: Binding<CompletionCmd> = Binding {
+    action: DETAILS_ACTION,
+    chord: Some(COMPLETION_DETAILS_CHORD),
+    cmd: CompletionCmd::Up,
+    label: "Details",
+    priority: 70,
+    visible: true,
+};
+const NO_ADDITIONAL_BINDINGS: &[Binding<CompletionCmd>] = &[];
+
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct CompletionState {
     core: CollectionCore,
@@ -128,6 +285,12 @@ pub struct CompletionState {
     owner: Option<Id>,
     anchor: Rect,
     replace_len: usize,
+    opening: Option<LayerOpening>,
+    programmatic_close: Option<(LayerOpening, UpdateToken)>,
+    details_open: bool,
+    details_key: Option<ItemKey>,
+    details_input_consumed: bool,
+    details_scroll: crate::scroll::ScrollState,
 }
 
 impl CompletionState {
@@ -139,6 +302,26 @@ impl CompletionState {
     }
     pub const fn replace_len(&self) -> usize {
         self.replace_len
+    }
+
+    pub const fn details_open(&self) -> bool {
+        self.details_open
+    }
+
+    pub const fn details_input_consumed(&self) -> bool {
+        self.details_input_consumed
+    }
+
+    fn reconcile_detail_selection(&mut self, cursor: Option<ItemKey>, has_detail: bool) {
+        if self.details_open && (!has_detail || self.details_key != cursor) {
+            self.leave_details();
+        }
+    }
+
+    fn leave_details(&mut self) {
+        self.details_open = false;
+        self.details_key = None;
+        self.details_scroll = crate::scroll::ScrollState::default();
     }
 }
 
@@ -164,13 +347,17 @@ impl CompletionController {
         replace_len: usize,
         items: &[T],
     ) {
+        state.leave_details();
+        state.details_input_consumed = false;
         state.open = !items.is_empty();
         state.owner = state.open.then_some(self.editor_id);
+        let anchor = popup_anchor(anchor, replace_len);
         state.anchor = anchor;
         state.replace_len = replace_len;
         state.core.invalidate();
         if state.open {
             let rows = items.len().clamp(1, 8) as u16;
+            let size = LayerSize::Fixed(popup_width(cx, items), rows.saturating_add(2));
             let anchor = Anchor::Rect {
                 rect: anchor,
                 side: Side::Below,
@@ -178,16 +365,22 @@ impl CompletionController {
             };
             if cx.is_open(self.popup_id) {
                 cx.reanchor_layer(self.popup_id, anchor);
-                cx.resize_layer(self.popup_id, LayerSize::Fixed(48, rows.saturating_add(2)));
+                cx.resize_layer(self.popup_id, size);
             } else {
-                cx.open_layer(
+                let _ = cx.open_layer_with_token(
                     self.popup_id,
                     LayerSpec::popover(self.popup_id, anchor)
+                        .restore_focus(false)
                         .dismiss(Dismiss::ESC_AND_OUTSIDE)
-                        .size(LayerSize::Fixed(48, rows.saturating_add(2))),
+                        .size(size),
                 );
             }
+            state.opening = cx.layer_opening(self.popup_id).or(state.opening);
         } else {
+            if let Some(opening) = cx.layer_opening(self.popup_id) {
+                state.opening = Some(opening);
+                state.programmatic_close = Some((opening, cx.update_token()));
+            }
             cx.close_layer(self.popup_id, None);
         }
     }
@@ -195,6 +388,12 @@ impl CompletionController {
     pub fn dismiss(&self, cx: &mut Cx<'_>, state: &mut CompletionState) {
         state.open = false;
         state.owner = None;
+        state.leave_details();
+        state.details_input_consumed = false;
+        if let Some(opening) = cx.layer_opening(self.popup_id) {
+            state.opening = Some(opening);
+            state.programmatic_close = Some((opening, cx.update_token()));
+        }
         cx.close_layer(self.popup_id, None);
     }
 
@@ -213,27 +412,41 @@ impl CompletionController {
         buffer: &mut TextBuffer,
         item: Item<'_>,
     ) -> bool {
-        let inserted = Self::splice(buffer, state.replace_len, item);
+        self.accept_with(cx, state, item, |replace_len, insertion| {
+            Self::splice(buffer, replace_len, insertion)
+        })
+    }
+
+    pub fn accept_with(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut CompletionState,
+        item: Item<'_>,
+        splice: impl FnOnce(usize, &str) -> bool,
+    ) -> bool {
+        let inserted = splice(state.replace_len, item.insertion());
         self.dismiss(cx, state);
         inserted
     }
 
-    fn splice(buffer: &mut TextBuffer, replace_len: usize, item: Item<'_>) -> bool {
+    fn splice(buffer: &mut TextBuffer, replace_len: usize, insertion: &str) -> bool {
         let end = buffer.cursor_offset();
         let start = end.saturating_sub(replace_len);
         buffer.select_range(start, end);
-        buffer.insert_str(item.insertion())
+        buffer.insert_str(insertion)
     }
 }
 
 pub struct Completion<'a, T, R = ItemRow> {
     id: Id,
+    #[allow(dead_code)]
     row: R,
     empty: Option<EmptyState<'a>>,
     max_rows: u16,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+    selected_detail: Option<&'a str>,
     _item: PhantomData<fn(&T)>,
 }
 
@@ -256,6 +469,7 @@ impl<T> Completion<'_, T, ItemRow> {
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
+            selected_detail: None,
             _item: PhantomData,
         }
     }
@@ -286,6 +500,7 @@ impl<'a, T, R> Completion<'a, T, R> {
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
+            selected_detail: self.selected_detail,
             _item: PhantomData,
         }
     }
@@ -316,6 +531,13 @@ impl<'a, T, R> Completion<'a, T, R> {
         self.ov = self.ov.slot(part, slot);
         self
     }
+
+    #[must_use]
+    pub const fn selected_detail(mut self, detail: Option<&'a str>) -> Self {
+        self.selected_detail = detail;
+        self
+    }
+
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut bar = ScrollRegion::new(self.id).patch_part(self.parts);
         if let Some(patch) = self.patch {
@@ -327,6 +549,13 @@ impl<'a, T, R> Completion<'a, T, R> {
             bar = bar.slot(Part::THUMB, slot);
         }
         bar
+    }
+
+    fn detail_scrollbar(&self) -> ScrollRegion<'a> {
+        ScrollRegion::new(self.id)
+            .scrollbar_visible(false)
+            .preserve_underlay(true)
+            .patch_part(self.parts)
     }
 }
 
@@ -366,19 +595,56 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         acc: &mut Acc<CompletionAction>,
     ) {
         match intent {
+            Intent::Binding(action) if action == DETAILS_ACTION => {
+                if !state.details_open
+                    && self
+                        .selected_detail
+                        .is_some_and(|detail| !detail.is_empty())
+                {
+                    state.details_open = true;
+                    state.details_key = state.core.cursor();
+                    state.details_scroll = crate::scroll::ScrollState::default();
+                    state.details_input_consumed = true;
+                    acc.consumed();
+                }
+            }
             Intent::Binding(action) => match Binding::command(BINDINGS, action) {
                 Some(cmd) => {
                     let cur = state.core.cursor_index();
-                    let page = state.core.scroll().viewport_len().max(1);
+                    let page = if state.details_open {
+                        state.details_scroll.viewport_len().max(1)
+                    } else {
+                        state.core.scroll().viewport_len().max(1)
+                    };
                     match cmd {
+                        CompletionCmd::Up if state.details_open => {
+                            state.details_scroll.scroll_by(-1);
+                            state.details_input_consumed = true;
+                            acc.consumed();
+                        }
                         CompletionCmd::Up => {
                             Self::move_to(state, items, cur.saturating_sub(1), acc);
+                        }
+                        CompletionCmd::Down if state.details_open => {
+                            state.details_scroll.scroll_by(1);
+                            state.details_input_consumed = true;
+                            acc.consumed();
                         }
                         CompletionCmd::Down => {
                             Self::move_to(state, items, cur.saturating_add(1), acc);
                         }
+                        CompletionCmd::PageUp if state.details_open => {
+                            state.details_scroll.page_up();
+                            state.details_input_consumed = true;
+                            acc.consumed();
+                        }
                         CompletionCmd::PageUp => {
                             Self::move_to(state, items, cur.saturating_sub(page), acc);
+                        }
+                        CompletionCmd::PageDown if state.details_open => {
+                            state.details_scroll.page_down();
+                            state.details_input_consumed = true;
+                            acc.consumed();
                         }
                         CompletionCmd::PageDown => {
                             Self::move_to(state, items, cur.saturating_add(page), acc);
@@ -389,9 +655,15 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                             }
                             _ => acc.consumed(),
                         },
+                        CompletionCmd::Dismiss if state.details_open => {
+                            state.leave_details();
+                            state.details_input_consumed = true;
+                            acc.consumed();
+                        }
                         CompletionCmd::Dismiss => {
                             state.open = false;
                             state.owner = None;
+                            state.leave_details();
                             cx.close_layer(self.id, None);
                             acc.action(CompletionAction::Dismissed);
                         }
@@ -403,6 +675,11 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                     }
                 }
             },
+            Intent::Cancel if state.details_open => {
+                state.leave_details();
+                state.details_input_consumed = true;
+                acc.consumed();
+            }
             Intent::FocusOut { .. } | Intent::Cancel
                 if controller.dismiss_on_editor_motion(cx, state) =>
             {
@@ -413,26 +690,8 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         }
     }
 
-    fn row_is_pressed(&self, ui: &Ui<'_>, key: ItemKey) -> bool {
-        Self::pressed_target(FrameRead::pressed_part(ui, self.id), key)
-    }
-
-    fn pressed_target(pressed_part: Option<PartRef>, key: ItemKey) -> bool {
-        pressed_part == Some(PartRef::item(Part::ROW, key))
-    }
-
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
-        let width = items
-            .iter()
-            .map(|item| {
-                crate::text::width(item.as_item().label)
-                    .saturating_add(crate::text::width(item.as_item().detail))
-                    .saturating_add(8)
-            })
-            .max()
-            .unwrap_or(24)
-            .clamp(24, 48)
-            .min(cx.design().size.popup_max_width);
+        let width = popup_width(cx, items);
         let rows = items
             .len()
             .min(usize::from(self.max_rows))
@@ -448,8 +707,43 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         state: &mut CompletionState,
         items: &[T],
     ) -> Response<CompletionAction> {
+        let mut events = Acc::<CompletionAction>::new();
+        state.details_input_consumed = false;
+        while let Some(receipt) = cx.take_layer_intent_receipt(self.id) {
+            let opening = receipt.opening();
+            let expected_close = state.programmatic_close.is_some_and(|(expected, update)| {
+                expected == opening && receipt.update() == Some(update)
+            });
+            if expected_close {
+                state.programmatic_close = None;
+                if state.opening == Some(opening) && !state.open {
+                    state.opening = None;
+                }
+                continue;
+            }
+            if state.opening != Some(opening)
+                || cx
+                    .layer_opening(self.id)
+                    .is_some_and(|live| live != opening)
+            {
+                continue;
+            }
+            match receipt.event() {
+                LayerEvent::Dismissed(_) => {
+                    let was_open = state.open;
+                    state.open = false;
+                    state.owner = None;
+                    state.opening = None;
+                    state.leave_details();
+                    if was_open {
+                        events.action(CompletionAction::Dismissed);
+                    }
+                }
+                LayerEvent::Opened | LayerEvent::Closed(_) => {}
+            }
+        }
         if !state.open {
-            return Response::ignored();
+            return events.finish(self.id);
         }
         state.owner = Some(owner);
         let _ = state
@@ -458,6 +752,11 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         if state.core.cursor().is_none() && !items.is_empty() {
             state.core.set_cursor(0, Self::key_at(items, 0));
         }
+        let selected_key = state.core.cursor();
+        let has_detail = self
+            .selected_detail
+            .is_some_and(|detail| !detail.is_empty());
+        state.reconcile_detail_selection(selected_key, has_detail);
         cx.resize_layer(self.id, self.measured_size(cx, items));
         cx.reanchor_layer(
             self.id,
@@ -467,9 +766,20 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                 align: CrossAlign::Start,
             },
         );
-        let bar = self
-            .scrollbar()
-            .update(cx, state.core.scroll_mut(), items.len());
+        let bar = if state.details_open {
+            let detail_width = cx.layout(self.id).map_or_else(
+                || popup_width(cx, items).saturating_sub(2),
+                |layout| layout.cols,
+            );
+            let detail_len = self.selected_detail.map_or(0, |detail| {
+                usize::from(crate::text::wrapped_rows(detail, detail_width))
+            });
+            self.detail_scrollbar()
+                .update(cx, &mut state.details_scroll, detail_len)
+        } else {
+            self.scrollbar()
+                .update(cx, state.core.scroll_mut(), items.len())
+        };
         let mut acc = Acc::new();
         acc.fold(&bar);
         let controller = CompletionController::new(owner, self.id);
@@ -478,11 +788,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         }
         for intent in cx.intents(self.id) {
             match intent {
-                Intent::Layer(LayerEvent::Dismissed(_)) => {
-                    state.open = false;
-                    state.owner = None;
-                    acc.action(CompletionAction::Dismissed);
-                }
                 Intent::Pointer {
                     phase: Phase::Click | Phase::DoubleClick,
                     part:
@@ -510,12 +815,25 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &CompletionState, items: &[T]) -> Rect {
-        ui.with_surface(crate::theme::Surface::Popover, |ui| {
+        ui.with_surface(crate::theme::Surface::Elevated, |ui| {
             if state.open
                 && let Some(owner) = state.owner
             {
                 let live = ui.state(owner);
                 ui.publish_bindings(owner, live, self.bindings(BindingState { flags: live }));
+                ui.publish_additional_bindings(
+                    owner,
+                    live,
+                    if !state.details_open
+                        && self
+                            .selected_detail
+                            .is_some_and(|detail| !detail.is_empty())
+                    {
+                        core::slice::from_ref(&DETAILS_BINDING)
+                    } else {
+                        NO_ADDITIONAL_BINDINGS
+                    },
+                );
             }
             let base = self.ov.style(
                 ui,
@@ -534,7 +852,10 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                 Part::BORDER,
                 StateFlags::empty(),
             );
-            let inner = ui.frame(area, border.style);
+            let border_style = border
+                .style
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(crate::theme::Role::BorderStrong)));
+            let inner = ui.frame(area, border_style);
             if items.is_empty() {
                 self.empty
                     .unwrap_or(EmptyState::Empty {
@@ -542,6 +863,39 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                         hint: None,
                     })
                     .draw(ui, inner, 0);
+                return area;
+            }
+            if state.details_open
+                && let Some(detail) = self.selected_detail.filter(|detail| !detail.is_empty())
+            {
+                let lines = crate::text::wrap(detail, inner.width);
+                let content =
+                    self.detail_scrollbar()
+                        .draw(ui, inner, &state.details_scroll, lines.len());
+                let view = ScrollRegion::view(&state.details_scroll, content, lines.len());
+                let text_style = ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(crate::theme::Role::Fg(crate::theme::FgStep::Primary))
+                        .set_bg(crate::theme::Role::Surface(crate::theme::Surface::Elevated)),
+                );
+                for (row, line_index) in view.visible_range().enumerate() {
+                    let Some(line) = lines.get(line_index) else {
+                        break;
+                    };
+                    ui.paint_str(
+                        Rect {
+                            x: content.x,
+                            y: content
+                                .y
+                                .saturating_add(row.min(usize::from(u16::MAX)) as u16),
+                            width: content.width,
+                            height: 1,
+                        },
+                        line,
+                        text_style,
+                    );
+                }
+                ui.scroll_edges(content, &view);
                 return area;
             }
             let content = self
@@ -553,15 +907,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                     break;
                 };
                 let semantic = item.as_item();
-                let mut flags = StateFlags::empty();
-                if state.core.cursor() == Some(semantic.key) {
-                    flags |= StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE;
-                }
-                if semantic.disabled {
-                    flags |= StateFlags::DISABLED;
-                } else if self.row_is_pressed(ui, semantic.key) {
-                    flags |= StateFlags::PRESSED;
-                }
                 let row = Rect {
                     x: content.x,
                     y: content
@@ -570,18 +915,16 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                     width: content.width,
                     height: 1,
                 };
-                let mut row_ui = RowUi::new(
-                    ui,
-                    self.id,
-                    Family::COMPLETION,
-                    Variant::DEFAULT,
-                    flags,
-                    semantic.key,
-                    row,
-                );
-                self.row.row(item, &mut row_ui);
-                ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
+                let row_part = PartRef::item(Part::ROW, semantic.key);
+                let chosen = state.core.cursor() == Some(semantic.key);
+                let pressed = FrameRead::pressed_part(ui, self.id) == Some(row_part);
+                paint_completion_row(ui, row, semantic, chosen, pressed);
+                ui.register_part(self.id, row_part, row);
             }
+
+            let mut faded = *state.core.scroll();
+            faded.apply_layout(usize::from(content.height), items.len());
+            ui.scroll_edges(content, &faded);
             area
         })
     }

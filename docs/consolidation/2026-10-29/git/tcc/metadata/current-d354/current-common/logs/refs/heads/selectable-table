@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 919cd85bb88dbc377e2aef823a4e9962f7797df2 Alexey Zhokhov <alexey@zhokhov.com> 1792136508 +0700	branch: Created from origin/design/interaction-polish
+919cd85bb88dbc377e2aef823a4e9962f7797df2 d1bf706543986f711d5f796143d4132326641c69 Alexey Zhokhov <alexey@zhokhov.com> 1792137175 +0700	commit: feat(table): multi-row selection with checkbox column and disabled rows
+d1bf706543986f711d5f796143d4132326641c69 919cd85bb88dbc377e2aef823a4e9962f7797df2 Alexey Zhokhov <alexey@zhokhov.com> 1792137186 +0700	reset: moving to HEAD~1
+919cd85bb88dbc377e2aef823a4e9962f7797df2 59ff50f070a8743461f5c697b36593542728c7b6 Alexey Zhokhov <alexey@zhokhov.com> 1792137199 +0700	commit: feat(table): multi-row selection with checkbox column and disabled rows
+59ff50f070a8743461f5c697b36593542728c7b6 967ecf3c0f32912bd04dd8450e31c9dedac3660f Alexey Zhokhov <alexey@zhokhov.com> 1792137226 +0700	rebase (finish): refs/heads/selectable-table onto b68c2210ef2e025e2faf9e1dcc2be578de5d4dd9
+967ecf3c0f32912bd04dd8450e31c9dedac3660f 6d4c1b549e3b88194b7810d3ce948b7dc09d53e8 Alexey Zhokhov <alexey@zhokhov.com> 1792137238 +0700	rebase (finish): refs/heads/selectable-table onto bffb93bdc8d76d1249aea1ec58c2ebb0a17d859a
+6d4c1b549e3b88194b7810d3ce948b7dc09d53e8 089c276ca85ed13773cb31a4f00af441df907d37 Alexey Zhokhov <alexey@zhokhov.com> 1792137303 +0700	rebase (finish): refs/heads/selectable-table onto 7338c7ecf84a31748614ee8108690ea1a2b64aa3
+089c276ca85ed13773cb31a4f00af441df907d37 dc053d20f06baf2a77e81c6ceab3370906b7dc91 Alexey Zhokhov <alexey@zhokhov.com> 1792137345 +0700	rebase (finish): refs/heads/selectable-table onto ca56bdc2ff3f380f6db828f50be687f0b01c2d2c
+dc053d20f06baf2a77e81c6ceab3370906b7dc91 bc3ffceeea3e858cf04e38e1a49bac7fd34d32ff Alexey Zhokhov <alexey@zhokhov.com> 1792137790 +0700	commit: feat(showcase): selectable table page drives a member editor
+bc3ffceeea3e858cf04e38e1a49bac7fd34d32ff 56c802ccac07a43f30d14e35c6ecdf3cc93d3b62 Alexey Zhokhov <alexey@zhokhov.com> 1792137868 +0700	rebase (finish): refs/heads/selectable-table onto ff608ddebdc5df03b4919af24eb0226c405050df

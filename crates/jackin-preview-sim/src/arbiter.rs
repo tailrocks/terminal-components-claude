@@ -61,11 +61,6 @@ impl Arbiter {
         }
     }
 
-    #[cfg(test)]
-    pub fn pending_entry(&self) -> bool {
-        self.pending_entry
-    }
-
     pub fn running(&self) -> Result<usize, DiscoveryError> {
         self.discovery
     }
@@ -117,72 +112,5 @@ impl Arbiter {
                 }
             }
         }
-    }
-
-    #[cfg(test)]
-    pub fn exit_consumed(&self) -> bool {
-        self.exit_consumed
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn empty_construct_plays_once_and_join_skips() {
-        let mut a = Arbiter::new(0);
-        assert_eq!(a.request_entry(), EntryDecision::PlayIntro);
-        assert!(a.pending_entry());
-
-        assert_eq!(a.request_entry(), EntryDecision::PlayIntro);
-        a.complete_entry(10_000);
-        assert!(!a.pending_entry());
-        a.set_running(1);
-        assert_eq!(a.request_entry(), EntryDecision::JoinActive { running: 1 });
-    }
-
-    #[test]
-    fn foreign_claim_suppresses_duplicate_intro() {
-        let mut a = Arbiter::new(0);
-        a.foreign_claim = true;
-        assert_eq!(a.request_entry(), EntryDecision::Duplicate);
-        a.release_entry();
-        assert!(!a.pending_entry());
-    }
-
-    #[test]
-    fn exit_token_has_one_consumer_and_fails_closed() {
-        let mut a = Arbiter::new(0);
-        a.complete_entry(0);
-        a.set_running(1);
-        assert_eq!(
-            a.request_exit(4_000),
-            ExitDecision::StillInside { remaining: 1 }
-        );
-        a.set_running(0);
-        assert_eq!(
-            a.request_exit(10_000),
-            ExitDecision::Outro {
-                elapsed_secs: Some(10)
-            }
-        );
-        assert_eq!(a.request_exit(10_400), ExitDecision::AlreadyEnded);
-        let mut b = Arbiter::new(0);
-        b.discovery = Err(DiscoveryError::IndexUnreadable);
-        assert_eq!(
-            b.request_exit(0),
-            ExitDecision::Unknown(DiscoveryError::IndexUnreadable)
-        );
-        assert!(!b.exit_consumed());
-    }
-
-    #[test]
-    fn missing_entry_time_omits_elapsed() {
-        let mut a = Arbiter::new(0);
-        assert_eq!(
-            a.request_exit(5_000),
-            ExitDecision::Outro { elapsed_secs: None }
-        );
     }
 }

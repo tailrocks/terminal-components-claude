@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 461c7d1e1a33ecbc6fad2ec143353bbd578e4aa0 Alexey Zhokhov <alexey@zhokhov.com> 1792496384 +0700	branch: Created from HEAD
+461c7d1e1a33ecbc6fad2ec143353bbd578e4aa0 2cc641fc39b991d194e5f2506173b907ab947dd5 Alexey Zhokhov <alexey@zhokhov.com> 1792496461 +0700	commit: fix: fail closed on pruned and missing sources
+2cc641fc39b991d194e5f2506173b907ab947dd5 2f9f72039b4d93f9ff4ec43bcc86c028974797ee Alexey Zhokhov <alexey@zhokhov.com> 1792496479 +0700	rebase (finish): refs/heads/parity/strict-accounting-fix-20261020 onto c6f1ee62465845459e815a228ee541571ae548c9
+2f9f72039b4d93f9ff4ec43bcc86c028974797ee 44f8cf2803e62c8f0c6852cf512cd7c1960f5f75 Alexey Zhokhov <alexey@zhokhov.com> 1792497146 +0700	commit: fix: account for aliased target modules
+44f8cf2803e62c8f0c6852cf512cd7c1960f5f75 d8d55599d73b958d25dcc14ab73ce59383c9b1f2 Alexey Zhokhov <alexey@zhokhov.com> 1792497353 +0700	commit: fix: scan Cargo target source aliases
+d8d55599d73b958d25dcc14ab73ce59383c9b1f2 a5113a6c6ea4a0e565ee77405dc8f5c1b6710c9c Alexey Zhokhov <alexey@zhokhov.com> 1792497542 +0700	commit: fix: fail closed on external crate roots
+a5113a6c6ea4a0e565ee77405dc8f5c1b6710c9c a3ab3277c32a3083575254bc6a3ef2747a4e8e2e Alexey Zhokhov <alexey@zhokhov.com> 1792497826 +0700	commit: fix: fail closed on external Rust references
+a3ab3277c32a3083575254bc6a3ef2747a4e8e2e a5c6ee2aa3c526ed63b39cc18890ce591ea276a9 Alexey Zhokhov <alexey@zhokhov.com> 1792498197 +0700	commit: fix: parse include macro forms fail closed
+a5c6ee2aa3c526ed63b39cc18890ce591ea276a9 9418404c20ed6452c2c169376df762b6a8cad4dc Alexey Zhokhov <alexey@zhokhov.com> 1792498635 +0700	commit: fix: preserve include scan across Rust literals
+9418404c20ed6452c2c169376df762b6a8cad4dc 70b7f9e6c196b57d1b13aee56ac6d6a17e6db388 Alexey Zhokhov <alexey@zhokhov.com> 1792498960 +0700	commit: fix(architecture): account for Rust path attributes

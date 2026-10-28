@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 0abfee9e6882bfad5ee2549e761f89ebb2e5225c Alexey Zhokhov <alexey@zhokhov.com> 1792597344 +0700	branch: Created from origin/parity/termrock-visual-baseline
+0abfee9e6882bfad5ee2549e761f89ebb2e5225c cfb70e8eb104d994e661245b487e914e166c47e1 Alexey Zhokhov <alexey@zhokhov.com> 1792598081 +0700	commit: feat(theme): retain typed declaration provenance
+cfb70e8eb104d994e661245b487e914e166c47e1 0bb5e7ada97a8293a59c6e08aee510e7917072d3 Alexey Zhokhov <alexey@zhokhov.com> 1792598129 +0700	commit (merge): Merge remote-tracking branch 'origin/parity/termrock-visual-baseline' into wip/theme-declaration-provenance-stage2a-20261021
+0bb5e7ada97a8293a59c6e08aee510e7917072d3 693474550367b8a0e3a7329cfa7a8e6aee9886b6 Alexey Zhokhov <alexey@zhokhov.com> 1792598284 +0700	commit: test(theme): cover declaration alignment and state provenance
+693474550367b8a0e3a7329cfa7a8e6aee9886b6 55418899efdad158fe0ad133d39ec6a4c61ab126 Alexey Zhokhov <alexey@zhokhov.com> 1792598308 +0700	commit (merge): Merge remote-tracking branch 'origin/parity/termrock-visual-baseline' into wip/theme-declaration-provenance-stage2a-20261021
+55418899efdad158fe0ad133d39ec6a4c61ab126 8f8042fd76b7b1dd9fdd34bd78430a3d2fa44c90 Alexey Zhokhov <alexey@zhokhov.com> 1792598339 +0700	commit: docs(theme): record final stage 2a gate receipt
+8f8042fd76b7b1dd9fdd34bd78430a3d2fa44c90 5b4d9665801160114865a9e522c72898198bc4c3 Alexey Zhokhov <alexey@zhokhov.com> 1792599047 +0700	commit: fix(theme): normalize empty state rules in recipe edits
+5b4d9665801160114865a9e522c72898198bc4c3 1fc4b34f4b0213628fa498cfa3d2d66b9b7d6269 Alexey Zhokhov <alexey@zhokhov.com> 1792599159 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+1fc4b34f4b0213628fa498cfa3d2d66b9b7d6269 a178975dbd9aa899ae32f3ea3c820a6fbfb25882 Alexey Zhokhov <alexey@zhokhov.com> 1792599240 +0700	commit: docs(theme): record normalization review fix evidence

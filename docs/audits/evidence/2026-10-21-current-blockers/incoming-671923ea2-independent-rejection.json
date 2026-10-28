@@ -1,0 +1,206 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "decision": "HOLD",
+  "reviewed_commit": "671923ea2fffd29433de99b0f4bcc8677c4460d9",
+  "before_commit": "c07978771bc3f4e50c6e859a04bcb5cfae34309d",
+  "already_synchronized_but_unapproved": "90ff4311a",
+  "frozen_reference": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "scope": "Read-only inspection and native/public-consumer tests in separate sparse worktrees, with distinct targets for each revision. Commands had 200-second work deadlines and 10-second TERM/4-second KILL cleanup. No source edits, pushes, or helpers.",
+  "native_checks": {
+    "command": [
+      "cargo",
+      "nextest",
+      "run",
+      "-p",
+      "jackin-preview-app",
+      "-p",
+      "termrock-feedback",
+      "--all-targets",
+      "--no-fail-fast"
+    ],
+    "before": "317 tests run: 305 passed, 12 failed, 0 skipped",
+    "after": "318 tests run: 306 passed, 12 failed, 0 skipped",
+    "failure_identity_sets": "Both revisions fail the same 12 test names. The added middle_ellipsis unit test passes. This does not prove absence of regressions: the visual aggregate fails earlier on Returning Mono after the change. The failure-name inventories are preserved in native-failure-identity.json."
+  },
+  "external_checks": {
+    "same_two_before_after_cases": "Before: 2 passed, 0 failed, 0 skipped. After: 1 passed, 1 failed, 0 skipped. One test records real application data, frames, and registered geometry at widths 119/120/121 under Junie and Paper; the other isolates the unchanged Returning Mono digest.",
+    "new_public_api_five_cases": "After: 2 passed, 3 failed, 0 skipped. Offset clipping, long-label border preservation, and monochrome output fail. Zero/narrow no-panic and interaction-inventory observations pass. The API does not exist before this commit; no artificial before-compile failure is claimed.",
+    "backend": "Public Runtime/Harness with TestBackend; no PTY or Tuiscotti capture.",
+    "real_app_data": "Renaming the workspace changes the new sidebar but leaves a fabricated payments-platform detail header and blank detail values. Registered Launch bounds do not match its visible button. Full frame text and geometry are preserved.",
+    "independent_api_data": "The separate consumer supplies Boreal, /srv/other, Project/Settings menus, empty instances/mounts/accounts, and different role/policy text. The painter still imposes Jackin/Construct wording and application action labels."
+  },
+  "findings": [
+    {
+      "id": "M1",
+      "priority": "P1",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          3,
+          51,
+          80,
+          86,
+          154,
+          269,
+          503,
+          548
+        ],
+        "crates/jackin-preview-app/src/app.rs": [
+          5985,
+          10109,
+          10120,
+          10137
+        ]
+      },
+      "title": "Historical application screen painting is relocated into Termrock instead of replaced with components",
+      "evidence": "The new 646-line ManagerSplit painter hardcodes Jackin's brand, Construct wording, domain action labels, selected current-directory/expanded-workspace modes, absolute 120-column geometry, and mode-specific hint positions. Its only shared control is Brand. It has no update or measure contract, selection state with stable keys, typed action output, or composition through real Tree, Button, Menu, or HintBar implementations. The app draws its existing controls and layers before overwriting the screen with paint_pinned_split. This relocates the prohibited correction mechanism into Termrock. The finding is based on implementation and behavior, not names.",
+      "repair": "Retain useful application-owned domain view-data conversion. Replace the painter with shared master-detail, shell, tree, action-bar, menu, and hint components configured through documented baseline policies. Pass labels and content through slots, and return typed actions. Do not restore historical painters or the old monolith."
+    },
+    {
+      "id": "M2",
+      "priority": "P1",
+      "paths": {
+        "crates/jackin-preview-app/src/app.rs": [
+          5986,
+          5990,
+          5994,
+          6117,
+          6120,
+          9923,
+          10081,
+          10109,
+          10120,
+          10125
+        ]
+      },
+      "title": "Fixture workspace, fabricated refresh age and exactscenario/viewport selectors still control production screens",
+      "evidence": "paint_pinned_split selects a workspace by the literal name payments-platform, then fabricates that name when no match exists. It fabricates a refresh age of three seconds when the actual age is zero. Call sites remain restricted to 120x40, specific scenarios, paused motion, selected rows, and state exclusions. The frozen manager selects its workspace through RowKey and CWD identity. In the changed-data probe, renaming the workspace to other-workspace changes the sidebar, but the new detail still claims payments-platform while its workdir, roles, and accounts become blank. Widths 119 and 121 use a different renderer.",
+      "repair": "Select the real CWD or selected workspace by stable identity in application domain code, preserve actual refresh time, and use shared cell-width wrapping. Use the same components across viewports. Remove test-state selectors when their shared replacement passes the affected flows."
+    },
+    {
+      "id": "M3",
+      "priority": "P1",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          503,
+          510,
+          515
+        ],
+        "crates/jackin-preview-app/src/app.rs": [
+          5946,
+          5971,
+          10109
+        ]
+      },
+      "title": "Painted actions and menu/tree content do not own their actual input regions",
+      "evidence": "The public ManagerSplit painter displays Launch at (42,36), registers zero focus entries, and exposes no action/update API. Real Jackin at 120x40 still registers LAUNCH at Rect { x: 4, y: 35, width: 16, height: 1 }. Clicking the visible button at (44,36) leaves the manager unchanged. The old historical painter also mismatched input geometry; this change preserves that prohibited mechanism rather than replacing it. Borrowed live data does not prove shared component ownership.",
+      "repair": "Render real shared buttons, menus, and trees with stable IDs and one resolved layout for painting, hit testing, focus, and cursor placement. Let application handlers consume typed domain actions. Remove invisible controls and correction painters."
+    },
+    {
+      "id": "M4",
+      "priority": "P2",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          80,
+          91,
+          144,
+          228,
+          239,
+          503
+        ]
+      },
+      "title": "Public painter writes outside the supplied area and ignores nonorigin/short layouts",
+      "evidence": "The public API probe passes Rect(10,5,120,40) inside a 150x50 terminal. The painter writes the corner glyph at (1,2), outside the supplied area's left and top bounds. Box and button code uses absolute coordinates, and put only checks the right and bottom edges. The entry guard accepts height 20 despite later painting at fixed rows 36 and 37.",
+      "repair": "Resolve geometry and clipping from the supplied area through shared layout tools. Support offset, zero-sized, narrow, and short regions without painting elsewhere. Do not add application coordinate corrections."
+    },
+    {
+      "id": "M5",
+      "priority": "P2",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          269,
+          289,
+          326,
+          376,
+          387
+        ],
+        "crates/jackin-preview-app/src/app.rs": [
+          9923
+        ]
+      },
+      "title": "Long and wide content can erase sidebar borders and fixed wrapping usescharactercounts",
+      "evidence": "A long workspace label supplied through the new public API overwrites the sidebar border at (37,4) with E. put clips to the whole frame rather than the row's content slot. Truncation and padding count characters rather than terminal cells or graphemes. Application account wrapping also fixes the width at 58 characters and two lines, regardless of allocated space. The ASCII border failure is reproduced; the Unicode-width issue is a source finding.",
+      "repair": "Compose shared rows and text slots, clip each slot to resolved bounds, and use shared grapheme/cell-width wrapping and truncation. Exercise changed labels, Unicode, empty and large lists, and resizing without private layout loops."
+    },
+    {
+      "id": "M6",
+      "priority": "P1",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          16,
+          135,
+          320,
+          503
+        ],
+        "crates/jackin-preview-app/src/app.rs": [
+          10109,
+          10120,
+          10137
+        ]
+      },
+      "title": "Hardcoded UI colors bypass supported profiles and introduce a monochrome frame regression",
+      "evidence": "Rendering ManagerSplit with a monochrome Junie theme emits the literal selection background Rgb(23,63,28). The isolated unchanged real Jackin Returning 120x40 Junie Mono digest passes the parent at 78a2b61980bc2587 and fails this commit at 61e65d72e68acdd7. Although the aggregate test has the same failure name on both revisions, the candidate fails earlier on Returning Mono; the parent first fails later on Capsule 100x30 truecolor. This native approval is supplementary regression evidence, not a replacement for the frozen CLI authority.",
+      "repair": "Resolve UI colors and state appearance through shared semantic theme recipes and capability rules. Preserve defaults across every supported profile. Do not change expected native output or select alternative painters by terminal capability."
+    }
+  ],
+  "frozen_source_crosscheck": {
+    "workspace_selection": "src/bin/jackin_preview/screens/manager.rs:370 selects a workspace by RowKey::Workspace(id) or CWD identity.",
+    "layout": "The same file at line 155 configures shared MasterDetail with a resizable Split(32,28,40), seam, and collapse threshold 100. Its render method at line 2443 uses the available area for real tree/detail/summary content.",
+    "actions": "At line 1591, real action buttons are measured, laid out in rows, and rendered through their component APIs.",
+    "qualification": "This is a source/contract comparison only. No new frozen-binary capture or reference-data approval occurred."
+  },
+  "retainable_parts": [
+    "Application-owned mount/account/instance conversion into borrowed view data is useful when selected by real identity, without fixture names or fabricated time.",
+    "Borrowed view data avoids passing a whole application object. No Jackin crate import was added to Termrock. These facts alone do not establish reusable component ownership.",
+    "Keep useful shared Brand usage and sound crate boundaries. Extract generic master-detail, tree, action, menu, and content-slot contracts with real consumers."
+  ],
+  "mechanism_classification": "This commit does not import expected screenshots, captured ANSI, or a literal RUNS cell table. Its prohibited mechanism is a correction screen selected by exact test conditions, with fixed geometry/palette and visible controls owned by another renderer. Moving it into Termrock and supplying some live data does not replace that mechanism.",
+  "repair_sequence": [
+    "Keep this commit unapproved and record both acceptance gates as incomplete. Preserve new and pre-existing failures.",
+    "Assign shared master-detail, tree, action-bar, menu, and theme contracts to one writer per family. Agree on generic data, action, state, and slot APIs before application migration.",
+    "Use actual selected-workspace/CWD IDs and clock data. Remove exact viewport, scenario, and fixture-name render selectors in the same component-adoption series.",
+    "Remove correction painters once real components own pixels, state, input, and layout and pass the affected frozen flows. Do not restore the historical implementation.",
+    "Verify changed data, Unicode, empty/large lists, offset/narrow/breakpoint regions, keyboard/pointer/focus/cursor behavior, and all profiles through real components and paired CLI tests."
+  ],
+  "limits": [
+    "No full paired frozen/candidate CLI or Tuiscotti run, whole-workspace gate, required CI, or final application acceptance was performed.",
+    "Strict Clippy and workspace formatting were not run because source and runtime blockers already establish HOLD. The actual native and consumer checks remain explicitly red.",
+    "The author matrix zero-cell claims lack independently admitted binary identities and ordered paired receipts in this review. They receive no acceptance credit.",
+    "Other incoming Viewport, Menu, and Terminal findings remain independent; this review neither reverts nor approves them."
+  ],
+  "evidence_files": {
+    "after-api-consumer-Cargo.toml": "69ff7da65a3559154425f8611b6c0cc64a1b67cd95eddf13c83cab02dff03709",
+    "after-api-consumer-api-facts.txt": "86d84e5083f3b24d2ae890736af92064bec9ba77822cb922e932629cfb22fa99",
+    "after-api-consumer-lib.rs": "ea53a3f610e7077e08fe674ce5f7fc80b6fb373aed5150a54d5e0fc8406f1790",
+    "after-api-consumer.log": "47b39f9cfaa58c10f4abab706b966a89f74d8bb3ed0ec26cafc71e1a99cdd895",
+    "after-api-four-consumer.log": "0154b4c009c706abf618089522b5abd854ccd3c935fbee636412bec7ad01bbb0",
+    "after-consumer-Cargo.toml": "69ff7da65a3559154425f8611b6c0cc64a1b67cd95eddf13c83cab02dff03709",
+    "after-consumer-app-facts.txt": "531c9f8e9cc5dfa1483f8a2623be8df68a59e0d3e4941504f0ecbf7678870455",
+    "after-consumer-lib.rs": "1aae505770b3c19980b36533254c0ebac112e38120d52d292e15aec2bae31753",
+    "after-consumer.log": "54108bc59d7493bdb56cd8348cdc7a82aa5ae1cd6668a5969459551935381d28",
+    "after-facts-consumer.log": "718319b6bf0aade9dade62ef7ed65ec8b0101e613c92c0c4853043b0b8517260",
+    "after-nextest.log": "bae95cd2e2962de085ac1892052add99ce43aac8f9073a5de251c8d732557f48",
+    "api-consumer-status.json": "5624247fa3e6219b40d9f72a2bfc231edaf97a1cf1f7e43bb5e32fcd126d5f45",
+    "api-run.py": "0a24ffe034ff33bcf180e95bbdb24eaf574bbd2c900e1ee70da793374428f395",
+    "before-consumer-Cargo.toml": "94ec35d64452ab1a7a8746f906ef9aed2e96074066eeae3a81cbf1b0a16a4d0d",
+    "before-consumer-app-facts.txt": "3993ebd5f705165ecd14f5784431710952e262ea5866c84c97e9a85ca78c7cfa",
+    "before-consumer-lib.rs": "1aae505770b3c19980b36533254c0ebac112e38120d52d292e15aec2bae31753",
+    "before-consumer.log": "b54a05beef783a4fa85823b1961bf5f8bf84534abeba424d66d652a848a41ffc",
+    "before-facts-consumer.log": "79eb33bb28408a525a473fe738968ae29a0028196a267cc67c913bf088a89e7c",
+    "before-nextest.log": "304ae61e08fd6e90b5732dfbc14117e094b4ad951c1cfed7065d75ace8fd487a",
+    "consumer-run.py": "d5855b3f3166862c697f71243f83aa0fe989c852147180339bcc820d7a11b04d",
+    "consumer-status.json": "6da0f2536c82337d182910ceaba0b4b3920933a252dedf759d16d2725a2d2839",
+    "native-failure-identity.json": "0f43cb7abcb8bcbb9875f67ea88d050afe7d1ecd63c6b68fecfd88086baea845",
+    "native-run.py": "177de8ed7069aa0ff9e0c31b3d9c51b2dc012a85a0929880eda57acbde86328f",
+    "native-status.json": "57ff962f30ebebf218a70191f0b63179ca0d196d9ba3fe0d812f33100c758a33"
+  }
+}

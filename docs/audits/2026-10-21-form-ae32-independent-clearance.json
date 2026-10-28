@@ -1,0 +1,105 @@
+{
+  "reviewer": "Independent Rust reviewer /root/button_theme_contract_review",
+  "reviewed_commit": "ae32d3ff812aa436eb5d6c15eb155d9b8d59502a",
+  "implementation_commit": "caf65990b008c4939db2cfe2560fe2b58bc6e6ac",
+  "comparison_commit": "9a7271bc480868687edcc991e5e7a4ce4dbf19f4",
+  "status": "Bounded Forms TextArea window Stage1 cleared. No new findings. No full Form or application acceptance.",
+  "findings": [],
+  "architecture": [
+    "resolve_field_window is a private pure placement/viewport intersection reused by both linear and lane drawing. It preserves source_first_row and full logical_height while clipping physical width/height.",
+    "textarea_window caps logical body rows to min(control.rows_in_form, full logical field height minus chrome2), intersects visible body source rows and delegates to existing TextArea draw_in_form_window/secret adapter. No duplicate TextArea renderer, sliced document, mutated child state or application object passed into a component.",
+    "Draw and measure use public shared Form/Fields/ScrollRegion state and existing registration. Empty TextArea body intersections publish no TEXT, track or cursor. Public signatures remain unchanged.",
+    "Actual child TEXT/track geometry uses the same prepared window as cursor/pointer mapping; original domain row insertion and read-only/secret behavior independently exercised."
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/form-stage1-9a72-probes/Cargo.toml --no-fail-fast --status-level fail",
+      "source": "9a7271bc480868687edcc991e5e7a4ce4dbf19f4",
+      "exit": 100,
+      "run_id": "c2d57b4e-47ca-40b7-a856-8e62a263b461",
+      "result": "Unchanged2realconsumer tests:1passed1failed0skip. Clipped source rows mismatch before actual implementation, not a temporarily edited candidate."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/form-stage1-ae32-probes/Cargo.toml --no-fail-fast --status-level fail",
+      "exit": 0,
+      "result": "8/8passed0skip:unchangedauthor2 plus6independent expanded tests. Original public source byte-identical between baseline,candidate andauthor."
+    },
+    {
+      "command": "cargo nextest run -p termrock-forms -p termrock-fields --all-targets --no-fail-fast --status-level fail",
+      "exit": 0,
+      "run_id": "26e04465-44a3-4800-8a39-55c54a2e9507",
+      "result": "149passed0skip."
+    },
+    {
+      "command": "cargo clippy -p termrock-forms -p termrock-fields --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt -p termrock-forms -p termrock-fields --check",
+      "exit": 0
+    }
+  ],
+  "expanded_public_coverage": [
+    "Linear and lane layouts: initial bottom-clipped source0, parent top clipping to source1..4, real pointer thenX/Esc commits to original row2.",
+    "Both-edge parent clipping at3rows shows original rows1..3; logical child viewport remains5; actual child track stays inside visible TEXT bounds.",
+    "Read-only plain and secret data under parent clipping; masks retain original row lengths with no plaintext, keys do not alter data and read-only cursor remains absent.",
+    "Requested2rows with design field_height9 retains logical2 and physicalTEXT2. Repeated real draw/measure leaves FormState, mutable-domain-call counter and validation-call counter unchanged.",
+    "Zero/empty/narrow root areas across widths0,1,3,7,20 and heights0,1,2,3,5 in both layouts; no unrendered caret or out-of-root TEXT. Zero-row and help-only intersections publish no TEXT/track/cursor."
+  ],
+  "probe_corrections": [
+    "Initial expanded fixture assumed default wheel step1; existing runtime intentionally multiplies by MotionTokens.wheel_rows(default3). Fixture now explicitly configures wheel_rows1 to reach source offset2 deterministically, retaining original row expectations. Original failed log preserved.",
+    "Prepared Cx layout is observed after a neutral real pointer event rather than incorrectly requiring it before the first update following frame publication.",
+    "Initial external fixture compile missed FrameRead import and used nonexistent Harness.theme; corrected external fixture only, preserved log."
+  ],
+  "limits": [
+    "Stage2 caret follow/reveal deduplication, Stage3 edit-menu behavior, TablePro/private-painter removal and all-four-app paired acceptance remain incomplete.",
+    "No full workspace/hosted CI or production replay-mechanism approval.",
+    "Readonly review copy contains1301 previously recorded tracked target-artifact deletions only; no tracked source file differs from exactHEAD. Reviewer made no product edits, implementation commits or push."
+  ],
+  "artifacts": [
+    {
+      "path": "/private/tmp/form-stage1-ae32-public.log",
+      "sha256": "555fa4231c393e2d1bfc65070e7abaffd15c3b357dd21e2d0e8574e433c1eaf6"
+    },
+    {
+      "path": "/private/tmp/form-stage1-9a72-public.log",
+      "sha256": "a18be23d4b5843a5f0156366c56c6b33c0ddd7d58d4bba9c88178f6cf05bec7b"
+    },
+    {
+      "path": "/private/tmp/form-stage1-ae32-all-public.log",
+      "sha256": "7286e86e47441a728dadc89b1817cdfcd3721e311a046f2c2a7c180cb29f5693"
+    },
+    {
+      "path": "/private/tmp/form-stage1-ae32-expanded-bounds.log",
+      "sha256": "f5f5e4d0a72c1cf2c2c123008d97abe0f059bea33abe40d2b03fe5017d1bfcfc"
+    },
+    {
+      "path": "/private/tmp/form-stage1-ae32-native.log",
+      "sha256": "452891bb645c3782c02ce066ac656352fb83050062f50dca37e0bac71693d947"
+    },
+    {
+      "path": "/private/tmp/form-stage1-ae32-clippy.log",
+      "sha256": "c1611c5460e2b97c2cf61b37033a2ad7b7a404afba92cb5887eb0438ccbe4ae0"
+    },
+    {
+      "path": "/private/tmp/form-stage1-ae32-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/form-stage1-ae32-probes/tests/public.rs",
+      "sha256": "c0da18c5d6c6abb1d38982a032c8c031ec7dcd27c76f13b1c7e188a9c8d6baba"
+    },
+    {
+      "path": "/private/tmp/form-stage1-ae32-probes/tests/expanded.rs",
+      "sha256": "ed9de3a022d1957d5c01c360d582855981a8b2d804e029213ad3676fe05dc51c"
+    },
+    {
+      "path": "/private/tmp/form-stage1-ae32-expanded-initial-compile-error.log",
+      "sha256": "570a33540916d2cfe3fcc53adcd2fefd24f4524ce524002a3e0ab51edae80a34"
+    },
+    {
+      "path": "/private/tmp/form-stage1-ae32-expanded-before-wheel-fixture-correction.log",
+      "sha256": "b513916a0283ceb7777d0eb07e0d11586844c6b2539e628cdd5155266fbb263b"
+    }
+  ]
+}

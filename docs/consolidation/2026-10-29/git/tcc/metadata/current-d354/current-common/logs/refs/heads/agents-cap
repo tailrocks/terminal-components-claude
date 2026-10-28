@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 ba55f25707ba2c7aac6ad7686b139738b371a205 Alexey Zhokhov <alexey@zhokhov.com> 1792209337 +0700	branch: Created from HEAD
+ba55f25707ba2c7aac6ad7686b139738b371a205 ddedeb443ecfe8a6eb4f46d6f2eeed7580bdeba7 Alexey Zhokhov <alexey@zhokhov.com> 1792209368 +0700	commit: docs(agents): hard 5-subagent ceiling, binding push lock and kill rules
+ddedeb443ecfe8a6eb4f46d6f2eeed7580bdeba7 ae7bc34b941f019c33c3a2af51eebeaee17c9de8 Alexey Zhokhov <alexey@zhokhov.com> 1792209437 +0700	commit: docs(plan): accurate step status for S8a-S22 and T; SVg6 partial, K1 default landed
+ae7bc34b941f019c33c3a2af51eebeaee17c9de8 a2d52e0dbabef2df2397ce00e922744bbca97ce1 Alexey Zhokhov <alexey@zhokhov.com> 1792209454 +0700	commit: docs(audits): SC15 2 fixed, Panels and Scrolling take NavKeys::ends_hint

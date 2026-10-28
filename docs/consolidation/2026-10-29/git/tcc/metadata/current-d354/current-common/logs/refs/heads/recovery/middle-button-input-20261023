@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 8bb0ebb3085fdeff85d158bf0e1a519c959051b5 Alexey Zhokhov <alexey@zhokhov.com> 1792735478 +0700	branch: Created from origin/parity/termrock-visual-baseline
+8bb0ebb3085fdeff85d158bf0e1a519c959051b5 ebb5879afa6d8868e301c2a36f9e94b60f3e77a8 Alexey Zhokhov <alexey@zhokhov.com> 1792736261 +0700	commit: feat(runtime): preserve middle-button input routing
+ebb5879afa6d8868e301c2a36f9e94b60f3e77a8 90402ef4f1a65f184bfbcef9e6e7aae7344e97fc Alexey Zhokhov <alexey@zhokhov.com> 1792736624 +0700	commit: fix(runtime): clear stale counts for middle input
+90402ef4f1a65f184bfbcef9e6e7aae7344e97fc dbc450bd8b13b6e1db1aa1796613834fff61f27a Alexey Zhokhov <alexey@zhokhov.com> 1792736818 +0700	rebase (finish): refs/heads/recovery/middle-button-input-20261023 onto 1b25a540764662457e553bbc478e98288b588930

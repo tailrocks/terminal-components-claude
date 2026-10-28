@@ -1,0 +1,14 @@
+0000000000000000000000000000000000000000 78ccc2cb5737ea7934ca90dca880b5a688bf070f Alexey Zhokhov <alexey@zhokhov.com> 1792498124 +0700	branch: Created from HEAD
+78ccc2cb5737ea7934ca90dca880b5a688bf070f 2fe34623115a3efc0a864c0de4f6d3df6bbf948c Alexey Zhokhov <alexey@zhokhov.com> 1792498125 +0700	cherry-pick: feat(text): add shared clipboard and pointer edit support
+2fe34623115a3efc0a864c0de4f6d3df6bbf948c 7747eb6a0d730ac0decf5140a6144d53dd9105b9 Alexey Zhokhov <alexey@zhokhov.com> 1792498125 +0700	cherry-pick: fix(runtime): retain captured click sequences
+7747eb6a0d730ac0decf5140a6144d53dd9105b9 d134e241eae592646772f514d32a6e53974618e1 Alexey Zhokhov <alexey@zhokhov.com> 1792498125 +0700	cherry-pick: fix(runtime): expire held double-clicks on release
+d134e241eae592646772f514d32a6e53974618e1 fbd7cd7a3f7cd8ef914ad409ed39152ddca81f5e Alexey Zhokhov <alexey@zhokhov.com> 1792498125 +0700	cherry-pick: fix(runtime): match baseline click release bounds
+fbd7cd7a3f7cd8ef914ad409ed39152ddca81f5e f3e06913376d3820acf5a9597597aec91f2a576b Alexey Zhokhov <alexey@zhokhov.com> 1792498308 +0700	commit: feat(runtime): constrain layers to viewport margins
+f3e06913376d3820acf5a9597597aec91f2a576b b090f17585f1be2cd231d11acceff1549ab1b80c Alexey Zhokhov <alexey@zhokhov.com> 1792500281 +0700	commit: chore(session): restore reviewed caret capability
+b090f17585f1be2cd231d11acceff1549ab1b80c 286ee126067296e2e2bea53830c5a21261bc894e Alexey Zhokhov <alexey@zhokhov.com> 1792500745 +0700	commit: feat(runtime): prepare settled frames before terminal output
+286ee126067296e2e2bea53830c5a21261bc894e 29d07015ae9a19bb282e30f48c1876ff15a8fc9e Alexey Zhokhov <alexey@zhokhov.com> 1792501380 +0700	commit: fix(runtime): settle prepared frames before output
+29d07015ae9a19bb282e30f48c1876ff15a8fc9e 9461aca2f1a5d9b8d34b0c33540d12ab6e157366 Alexey Zhokhov <alexey@zhokhov.com> 1792502222 +0700	commit: fix(runtime): validate focus continuation receipts
+9461aca2f1a5d9b8d34b0c33540d12ab6e157366 6be6d55ee57b8e6eba1ebb80690c9908b38dcecc Alexey Zhokhov <alexey@zhokhov.com> 1792502831 +0700	commit: fix(runtime): gate layer completion on focus restoration
+6be6d55ee57b8e6eba1ebb80690c9908b38dcecc d18a4c9c13f2d7214ed96ff76b161d2a00546ab4 Alexey Zhokhov <alexey@zhokhov.com> 1792503323 +0700	commit: fix(runtime): defer continuation receipts until focus settles
+d18a4c9c13f2d7214ed96ff76b161d2a00546ab4 d11713bc68642aaf7854393806ba789fa80dbb9c Alexey Zhokhov <alexey@zhokhov.com> 1792503503 +0700	commit: perf(runtime): reuse prepared frame buffers
+d11713bc68642aaf7854393806ba789fa80dbb9c 0cf26d54ecf53adec8a925050882d6a65d736f02 Alexey Zhokhov <alexey@zhokhov.com> 1792504489 +0700	commit: feat(runtime): compose same-owner bindings explicitly

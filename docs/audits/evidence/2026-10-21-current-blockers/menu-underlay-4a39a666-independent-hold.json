@@ -1,0 +1,245 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T06:11:43.940079+00:00",
+  "reviewer": "/root/menu_reason_independent_review",
+  "reviewed_commit": "4a39a666022e14ee8cd4233ffb2ccf21a653ae13",
+  "previous_commit": "7ab3d12e75341abaaae91d06861430608371fc9f",
+  "decision": "HOLD: normal hidden activation is fixed, but remapped physical Enter/Space can still bypass it; inherited Mono visual-state coverage and a reversed frozen-order audit claim also remain.",
+  "findings": [
+    {
+      "id": "MENU4A-R1",
+      "priority": "P2",
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "lines": [
+        733,
+        762,
+        768
+      ],
+      "title": "Remapped item bindings bypass the hidden physical Enter/Space guard",
+      "evidence": "Public real-runtime probe remaps RUN to physical Space and menu.context.activate.space toF8, then verifies hover/leave actually hides the row and presses Space. Chosen(RUN) is emitted. The Enter counterpart remaps RUN toEnter and menu.context.activate.enter toF9 and likewise emits Chosen(RUN). command() guards only MenuCmd::Activate; binding_response() still handles the item action in its separate dynamic branch without a hidden physical activation guard. Both probes are RED in the complete25-test independent run. Direct unremapped Space item chord and ordinary hidden Enter/Space probes are GREEN because the default built-in Activate binding wins routing.",
+      "frozen_contract": "Frozen416 menu.rs463\u2013465 consumes physical Enter/Space with no highlighted row BEFORE the item Char(c) accelerator lookup at468\u2013472. Ordinary non-Enter/Space item letters may still activate because they do not satisfy the guard condition.",
+      "required_fix": "Apply the hidden physical Enter/Space restriction before dispatching item binding actions as well as command activation, using the existing shared runtime input contract. Preserve ordinary letter accelerators, valid pointer activation and typed remapped activation commands; no second input system. Existing Cx::activation_key is available for physical unmodified Enter/Space.",
+      "artifacts": [
+        "activation_paths.rs",
+        "external-final-nextest.log"
+      ]
+    },
+    {
+      "id": "MENU4A-R2",
+      "priority": "P2",
+      "path": "crates/termrock-theme/src/builtin/mod.rs",
+      "lines": [
+        365,
+        375
+      ],
+      "title": "Default Mono menu highlight and hidden row produce identical visible cells",
+      "introduced_by_4a": false,
+      "evidence": "Theme::junie().downgrade(Mono), default non-danger Run row: complete interior row cells are identical after enabled hover and after pointer leaves with clear_on_leave(true): White foreground,DarkGray background,BOLD, unchanged underline and all other fields. Dedicated visual-admission probe fails on both exact7ab and4a. Separate4a Mono action probe confirms normal Enter is blocked after leave, so hiding mechanically occurs despite no visible transition. The extended all-profile activation/navigation test completes TrueColor,Ansi256,Ansi16 in both fill modes, then correctly fails Mono visual admission; it is not counted as an all-profile pass.",
+      "required_fix": "Resolve this inherited shared MENU DEFAULT Mono state distinction against the fixed visual/state contract at the theme/component layer. Preserve user overrides and disabled precedence; do not change global palette or baseline artifacts to silence the check. If outside this bounded source increment, record and retain the required all-profile gate as incomplete rather than claiming visual-state parity.",
+      "artifacts": [
+        "mono-before.log",
+        "mono-after.log",
+        "mono-hidden-action.log",
+        "profile-highlight-diagnosis.log",
+        "activation_paths.rs"
+      ]
+    },
+    {
+      "id": "MENU4A-R3",
+      "priority": "P3",
+      "path": "docs/audits/2026-10-21-menu-disabled-reason.md",
+      "lines": [
+        151,
+        153
+      ],
+      "title": "Audit reverses the frozen hidden guard and accelerator order",
+      "evidence": "Audit says explicit item accelerators are checked before the guard, but immutable416 source executes highlighted-none Enter/Space guard at463\u2013465 before Char(c) accelerator dispatch at468\u2013472. The coordinator independently acknowledged the same reversed statement in the assignment was wrong.",
+      "required_fix": "Correct the exact source ordering and explain that ordinary letters remain active because the guard only matches Enter/Space, not because item accelerators run first.",
+      "artifacts": [
+        "frozen-key-order.txt"
+      ]
+    }
+  ],
+  "previous_findings": {
+    "MENU7AB-R1": "Partially fixed: unchanged original public hover/leave Enter+Space regression now GREEN; Home then activation works in the author native test and independent first3profiles/both modes. Remapped item bypass remains MENU4A-R1.",
+    "MENU7AB-R2": "The earlier invalid nested-pass claim is explicitly rejected in the updated audit and Runtime860 nearest-lower/ForcedWidth HOLDs are linked. This document correction is accepted; new unrelated ordering error is MENU4A-R3."
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-overlays --all-targets --no-fail-fast",
+      "exit": 0,
+      "passed": 142,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native-nextest.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-unification-external-4a39-20261021/Cargo.toml --no-fail-fast",
+      "exit": 100,
+      "passed": 20,
+      "failed": 5,
+      "skipped": 0,
+      "log": "external-final-nextest.log",
+      "failures": [
+        "underlay_keeps_underline_ink (known Runtime exclusion)",
+        "remapped_enter_item_cannot_bypass_hidden_guard",
+        "remapped_space_item_cannot_bypass_hidden_guard",
+        "mono_pointer_leave_has_a_visible_highlight_transition",
+        "hidden_activation_navigation_letters_and_pointer_across_profiles (same Mono visual-admission gap)"
+      ],
+      "invalid_pass_excluded_from_contract_credit": "underlay_keeps_nearest_lower_layer_ink remains mechanically PASS but never opens UPPER in the old fixture; not evidence."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-unification-external-after-20261021/Cargo.toml --test activation_paths -E test(mono_pointer_leave_has_a_visible_highlight_transition)",
+      "revision": "7ab",
+      "exit": 100,
+      "passed": 0,
+      "failed": 1,
+      "filtered_or_skipped": 5,
+      "log": "mono-before.log",
+      "scope": "Focused inherited-gap attribution, not a complete-suite pass."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-unification-external-4a39-20261021/Cargo.toml --test activation_paths -E test(mono_pointer_leave_has_a_visible_highlight_transition)",
+      "revision": "4a",
+      "exit": 100,
+      "passed": 0,
+      "failed": 1,
+      "filtered_or_skipped": 5,
+      "log": "mono-after.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-unification-external-4a39-20261021/Cargo.toml --test activation_paths -E test(mono_hidden_state_blocks_normal_enter_despite_missing_visual_transition)",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "filtered_or_skipped": 6,
+      "log": "mono-hidden-action.log"
+    },
+    {
+      "command": "cargo clippy -p termrock-overlays --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "clippy-fmt.log"
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit": 0,
+      "log": "clippy-fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "log": "clippy-fmt.log"
+    }
+  ],
+  "verified_behavior": {
+    "normal_activation": "Unchanged7ab real-runtime visual-hover/leave regression now passes both Enter and Space. Physical-key activation guard is narrow, ordinary letter and pointer activation preserved in the independently completed TrueColor/Ansi256/Ansi16 modes.",
+    "restoration": "Home/navigation restores activation in the tested ordinary paths. Independent actual pointer-exit/unchanged-cursor Home probe confirms Runtime.needs_present is set; suspected scheduling bug was not reproduced.",
+    "shared_renderer": "The3 original e4 Menu chord/disabled/border probes, prior reason fallback/disabled pressed tests, scoped overrides, remappedF4/submenu,960paired RULE measurements/slot/clipping configurations and520 empty/all-disabled/tiny Unicode configurations remain green in the complete independent suite.",
+    "source_scope": "Functional Menu delta versus7ab is exactly one match arm in command(); no new Runtime, app, theme, unsafe, dependency or alternate renderer changes in4a. Public API unchanged."
+  },
+  "default_compatibility": {
+    "frames": 32,
+    "profiles": [
+      "TrueColor",
+      "Ansi256",
+      "Ansi16",
+      "Mono"
+    ],
+    "cell_observations": 7680,
+    "bytes": 1023736,
+    "sha256": "1bf37c86f96c7fe4bca64a9411db5425b66e2efbd21855dab72d93a0365e5167",
+    "result": "Recorded default non-underlay full Cell-field frames still match prior89/7ab comparison. This unchanged matrix does not prove Mono highlight distinction and does not excuse MENU4A-R2."
+  },
+  "runtime_exclusions": [
+    "Unchanged underline-color public probe still RED in reviewed Runtime source.",
+    "Old nested fixture PASS invalid; strengthened admitted nearest-lower fixture and ForcedWidth ordinary-space contract remain separate Runtime HOLDs.",
+    "No approval of newer Runtimebb deferred-composite/default-allocation source, which is outside this exact Menu source review."
+  ],
+  "coverage_limits": [
+    "No frozen application CLI/Tuiscotti captures, Capsule adoption, full workspace gate, hosted CI or application parity approval.",
+    "All-profile visual activation coverage is explicitly RED at Mono, not skipped or blessed.",
+    "Modal restoration/repeated opening complete application inventory is not independently exhausted by this bounded review; existing142 native checks do not replace that gate."
+  ],
+  "workspace_integrity": "Exact sparse detached review copy, separate revision-specific Cargo targets, no product edits/commits/pushes/baseline changes or edits to original immutable evidence. All owned subprocesses completed within explicit210-second bounds.",
+  "source_sha256": "414171578ffe2c6415cbe06f8cc91f3ad3d156d98160aaae2fccf6529def4e32",
+  "audit_sha256": "dff26e2514ffbb195d57016c7e7e8799474d9b882cea063dda1ec469afa9fb4e",
+  "artifacts": {
+    "activation-paths-initial.rs": {
+      "sha256": "3fa115f3f8958f636bae1be30de6a1e9c3bbd055ee1530ede7c8d32cb87e36ce",
+      "bytes": 4384
+    },
+    "activation_paths.rs": {
+      "sha256": "7cf2da7bee683b4911b7400a4d8f7531eead266b36adeae8c8cfd28ba8775538",
+      "bytes": 4961
+    },
+    "clippy-fmt.log": {
+      "sha256": "99f0d9b784a3f078a1843a5517aa1342d8328a124a5a4aef284d26d19169dca7",
+      "bytes": 4959
+    },
+    "default-after-full-cells.txt": {
+      "sha256": "1bf37c86f96c7fe4bca64a9411db5425b66e2efbd21855dab72d93a0365e5167",
+      "bytes": 1023736
+    },
+    "default.rs": {
+      "sha256": "93aadc1598f71790ae1a6c7be19504536475dca3b3bfdac0e0664d70e8475e0c",
+      "bytes": 2702
+    },
+    "e4.rs": {
+      "sha256": "02c5236dc53278a659311eac47eab3ad826113b29f32ba6ea67a1948e70b0c82",
+      "bytes": 4765
+    },
+    "edges.rs": {
+      "sha256": "d5efb65520c29983744d0a94a2a4d670c0aaf2a3f748b5d2a34c0a058d8e7b8c",
+      "bytes": 1993
+    },
+    "external-final-nextest.log": {
+      "sha256": "7c34424b1d05c91e75d9c7e948472ab57da479a3c02494f942e2993341917fe7",
+      "bytes": 27005
+    },
+    "external-nextest.log": {
+      "sha256": "4608ee9fa54e8cd6a0c9f9be797d71909b331edb8fab5febf1551c4cea37c9c5",
+      "bytes": 20982
+    },
+    "frozen-key-order.txt": {
+      "sha256": "cf7b5439409b143b92e7799b142ab1555413d4b65fc987c229156f6b8ae8754c",
+      "bytes": 658
+    },
+    "hidden.rs": {
+      "sha256": "e0c128c297bd583877130e8f69c897ca261d13393e1a990acbd96a2d4ab566fb",
+      "bytes": 2016
+    },
+    "mono-after.log": {
+      "sha256": "3cf54934d56a2203add33bbdbbfdbfff3e2336130500648e3c7ff0f3b6e8a321",
+      "bytes": 11293
+    },
+    "mono-before.log": {
+      "sha256": "2644d997c7ebe54937e8331c0fd69ae407015e23633c730ccd9e0d990e2b55c4",
+      "bytes": 11353
+    },
+    "mono-hidden-action.log": {
+      "sha256": "eb673f19cbba5ca6934e5a49ebbc952f7d1f229ae288342e4403495e1f3129f4",
+      "bytes": 794
+    },
+    "native-nextest.log": {
+      "sha256": "8289d29d2d832ff2c89cad33dfc3182b378ed34f8e6cc5fb511a7a6c76046303",
+      "bytes": 23026
+    },
+    "profile-highlight-diagnosis.log": {
+      "sha256": "3ef91e7ba2aa7ff74e3014f50f42038eed09efec91393330d3f5382cdd1a91c5",
+      "bytes": 11791
+    },
+    "reason.rs": {
+      "sha256": "0ebbcedf6e11fc52fac159eea2a3ae633eb8283e99f83443a34bf47a6987543f",
+      "bytes": 3574
+    },
+    "scoped.rs": {
+      "sha256": "837dc7d0e4f91caef0d2099898533f46899901d1262bf6e305045187ea3aa8d0",
+      "bytes": 1502
+    },
+    "unification.rs": {
+      "sha256": "d13539e9b6af692ae19a1992624cc3c611f15fa9e948e8a92206c77c310b263f",
+      "bytes": 3638
+    }
+  }
+}

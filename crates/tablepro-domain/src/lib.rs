@@ -15,3 +15,4 @@ pub use model::{
     Completion, CompletionBatch, CompletionKind, History, SwitchItem, SwitchTarget, SwitcherIndex,
     auto_trigger, complete, completion_batch,
 };
+pub use tabs::{highlight_sql, segment_sql};

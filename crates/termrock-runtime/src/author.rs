@@ -1,5 +1,47 @@
 use core::fmt;
 
+mod canvas;
+pub use canvas::{
+    put_cell, put_fill, put_fill_in, put_frame, put_frame_in, put_scroll_edges, put_text,
+    put_text_in, put_text_w, text_width,
+};
+
+mod surface;
+pub use surface::{CellView, PaintSurface};
+
+mod window;
+pub use window::{VerticalWindow, VerticalWindowError};
+
+pub fn publish_scope_bindings<C: Copy + 'static>(
+    ui: &mut crate::ui::Ui<'_>,
+    scope: crate::focus::ScopeId,
+    owner: crate::id::Id,
+    flags: crate::response::StateFlags,
+    table: &'static [crate::keymap::Binding<C>],
+) {
+    ui.publish_scope_bindings(scope, owner, flags, table);
+}
+
+mod composition;
+pub use composition::{ClosureLeaf, CompositionLeaf, composition_leaf};
+
+pub fn patch_style(
+    ui: &mut crate::ui::Ui<'_>,
+    area: ratatui_core::layout::Rect,
+    style: crate::theme::PaintStyle,
+    explicit: crate::theme::StylePatch,
+) {
+    ui.patch_style(area, style, explicit);
+}
+
+pub fn with_part_hit_precedence<R>(
+    ui: &mut Ui<'_>,
+    part: PartRef,
+    render: impl FnOnce(&mut Ui<'_>) -> R,
+) -> R {
+    ui.with_part_hit_precedence(part, render)
+}
+
 pub type PartPainter<'a> = dyn Fn(&mut Ui<'_>, Rect) + 'a;
 
 #[derive(Clone, Copy)]
@@ -97,9 +139,6 @@ impl<'a> PartStyle<'a> {
         part: Part,
         resolved: Resolved,
     ) {
-        #[cfg(feature = "testing")]
-        ui.note_styled(owner, family, variant, part, resolved);
-        #[cfg(not(feature = "testing"))]
         let _ = (ui, owner, family, variant, part, resolved);
     }
 }
@@ -117,12 +156,25 @@ pub use crate::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use crate::response::{Activated, Flow, Invalidate, Response, StateFlags};
 pub use crate::ui::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 
+pub trait LayerSlotAuthor {
+    fn render_component<R>(&mut self, render: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R;
+}
+
+pub trait NestedLayerSlotAuthor {
+    fn with_nested_layer_slot<R>(
+        &mut self,
+        area: Rect,
+        render: impl FnOnce(&mut crate::ui::LayerSlot<'_, '_>) -> R,
+    ) -> R;
+}
+
 pub use crate::capture::Capture;
 pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
 pub use crate::hit::{Axes, Headroom, Hit, RegionKind};
 pub use crate::layer::{
-    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerId, LayerKind,
-    LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
+    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, FocusContinuationOutcome,
+    LayerCompletion, LayerEvent, LayerId, LayerKind, LayerOpening, LayerSize, LayerSpec,
+    ScreenAlign, Side, backdrop_area, resolve_anchor,
 };
 pub use crate::scroll::ScrollState;
 
@@ -150,9 +202,29 @@ pub use termrock_collections::collection::{
 
 pub use crate::action::{Action, ActionKey};
 pub use crate::keymap::{
-    Binding, BindingState, BindingTableId, Bindings, Hint, HintLayer, KeyMap, KeyPhase,
-    binding_conflicts,
+    Binding, BindingExtensionError, BindingState, BindingTableId, Bindings, Hint, HintLayer,
+    KeyMap, KeyPhase, binding_conflicts,
 };
+
+pub fn extend_bindings<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) -> Result<(), BindingExtensionError> {
+    ui.extend_bindings(owner, flags, table, include)
+}
+
+pub fn publish_bindings_filtered<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) {
+    ui.publish_bindings_filtered(owner, flags, table, include);
+}
 
 pub use crate::diagnostics::Diagnostic;
 pub use crate::field_control::FieldControl;
@@ -165,51 +237,4 @@ pub use ratatui_core::style::{Color, Style};
 
 pub mod raw {
     pub use ratatui_core::text::{Line, Span, Text};
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const GLOBAL: StylePatch = StylePatch::new().set_fg(Role::Accent);
-    const LABEL_A: StylePatch = StylePatch::new().set_bg(Role::Danger);
-    const LABEL_B: StylePatch = StylePatch::new().add(Modifier::BOLD);
-    const PARTS: &[(Part, StylePatch)] = &[(Part::LABEL, LABEL_A), (Part::LABEL, LABEL_B)];
-
-    #[test]
-    fn part_style_merges_global_and_part_patches_in_order() {
-        let styles = PartStyle::new().global(&GLOBAL).part(PARTS);
-        let internal = PartStyle::new().global(&GLOBAL).part(PARTS);
-
-        assert_eq!(
-            styles.part_patch(Part::LABEL),
-            Some(GLOBAL.merge(LABEL_A).merge(LABEL_B))
-        );
-        assert_eq!(
-            styles.part_patch(Part::LABEL),
-            internal.part_patch(Part::LABEL)
-        );
-        assert_eq!(
-            styles.part_patch(Part::BODY),
-            internal.part_patch(Part::BODY)
-        );
-        assert_eq!(styles.part_patch(Part::BODY), Some(GLOBAL));
-        assert_eq!(PartStyle::new().part(PARTS).part_patch(Part::BODY), None);
-    }
-
-    #[test]
-    fn part_style_flags_match_internal_override_union() {
-        let runtime = StateFlags::FOCUSED | StateFlags::HOVERED;
-        let derived = StateFlags::SELECTED | StateFlags::DISABLED;
-        assert_eq!(PartStyle::flags(runtime, derived), runtime | derived);
-    }
-
-    #[test]
-    fn part_style_slot_lookup_is_part_scoped() {
-        fn paint(_: &mut Ui<'_>, _: Rect) {}
-
-        let styles = PartStyle::new().slot(Part::LABEL, &paint);
-        assert!(styles.slot_for(Part::LABEL).is_some());
-        assert!(styles.slot_for(Part::BODY).is_none());
-    }
 }

@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 b0504717c280a4bb141cc6043b35fce6664f8a6a Alexey Zhokhov <alexey@zhokhov.com> 1792493807 +0700	branch: Created from origin/parity/termrock-visual-baseline
+b0504717c280a4bb141cc6043b35fce6664f8a6a d4832fe73fd0d88b315c3b4f22bb087e0ff1b9e1 Alexey Zhokhov <alexey@zhokhov.com> 1792494684 +0700	commit: feat(picker): reuse shared query editing contracts
+d4832fe73fd0d88b315c3b4f22bb087e0ff1b9e1 c1335e19cb5ed97a69bc82f51974e6a762182fda Alexey Zhokhov <alexey@zhokhov.com> 1792494986 +0700	commit: fix(filter-list): propagate query editor repaint
+c1335e19cb5ed97a69bc82f51974e6a762182fda f8e08fc29edc1841bbbd0a70ab4388c5e6ba6f23 Alexey Zhokhov <alexey@zhokhov.com> 1792495687 +0700	commit: fix(picker): preserve query theme and editor repaint
+f8e08fc29edc1841bbbd0a70ab4388c5e6ba6f23 5ec2944babd53ad54cf58c91f69b30bf4c88acc9 Alexey Zhokhov <alexey@zhokhov.com> 1792495815 +0700	cherry-pick: feat(text): add shared clipboard and pointer edit support
+5ec2944babd53ad54cf58c91f69b30bf4c88acc9 da214379724a37ba6aa81f200adecb8475476aa4 Alexey Zhokhov <alexey@zhokhov.com> 1792495817 +0700	cherry-pick: fix(runtime): retain captured click sequences
+da214379724a37ba6aa81f200adecb8475476aa4 bba273296a300c839c5c741aa160250e297f4f1b Alexey Zhokhov <alexey@zhokhov.com> 1792496037 +0700	cherry-pick: fix(runtime): expire held double-clicks on release
+bba273296a300c839c5c741aa160250e297f4f1b f89a735a79eaf4cbe9dc14f0844a734aa53d4eee Alexey Zhokhov <alexey@zhokhov.com> 1792496155 +0700	cherry-pick: fix(runtime): match baseline click release bounds
+f89a735a79eaf4cbe9dc14f0844a734aa53d4eee dd9836a2158494d05a7267c7a9a58de09daf2b5c Alexey Zhokhov <alexey@zhokhov.com> 1792496241 +0700	commit: feat(fields): expose shared text edit commands
+dd9836a2158494d05a7267c7a9a58de09daf2b5c 9506cddaf41ea9ad0a04f338a6d98e239fee2bad Alexey Zhokhov <alexey@zhokhov.com> 1792496693 +0700	commit: fix(fields): preserve shared editor command state
+9506cddaf41ea9ad0a04f338a6d98e239fee2bad 0416a30146fc39b73ec320935620a692c4d88814 Alexey Zhokhov <alexey@zhokhov.com> 1792497028 +0700	commit: fix(fields): prepare contextual edits from pointer target

@@ -2,9 +2,9 @@ use std::{cmp::Ordering, time::Duration};
 use termrock::author::PaintStyle;
 
 use termrock::{
-    ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, Modifier,
-    Rect, Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Surface, Track,
-    Ui, Variant, layout, width,
+    ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, ProgressBar,
+    Rect, Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Ui, Variant,
+    layout, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -14,6 +14,12 @@ const CANCEL: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunne
 const STEPS: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.steps");
 const CANCEL_DIALOG: Id =
     termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.cancel.dialog");
+const TARGETS_PANEL: Id =
+    termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.targets.panel");
+const PIPELINE_PANEL: Id =
+    termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.pipeline.panel");
+const PIPELINE_PROGRESS: Id =
+    termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.pipeline.progress");
 pub const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
 
 #[derive(Clone, Debug)]
@@ -23,13 +29,117 @@ struct RunStep {
     state: StepState,
 }
 
-const NAMES: &[&str] = &[
-    "compile started",
-    "unit tests",
-    "integration tests",
-    "package artifact",
-    "publish report",
+#[derive(Clone, Copy)]
+struct Target {
+    label: &'static str,
+    depth: u16,
+    fold: bool,
+    env: Option<(&'static str, u32, u32)>,
+}
+
+const TARGET_ROWS: &[Target] = &[
+    Target {
+        label: "payments-gateway",
+        depth: 0,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "build",
+        depth: 1,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "compile",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "lint",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "typecheck",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "test",
+        depth: 1,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "unit",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "integration",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "e2e",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "deploy",
+        depth: 1,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "staging",
+        depth: 2,
+        fold: false,
+        env: Some(("◇", 0xf5_9e_09, 0xff_ff_ff)),
+    },
+    Target {
+        label: "production",
+        depth: 2,
+        fold: false,
+        env: Some(("◆", 0xff_6b_6b, 0xff_6b_6b)),
+    },
+    Target {
+        label: "shared-libs",
+        depth: 0,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "compile",
+        depth: 1,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "publish",
+        depth: 1,
+        fold: false,
+        env: None,
+    },
 ];
+
+const NAMES: &[&str] = &["compile", "lint", "typecheck", "unit", "integration", "e2e"];
+
+const TARGETS_W: u16 = 30;
+const PANEL_GAP: u16 = 2;
+
+fn panel_height() -> u16 {
+    u16::try_from(TARGET_ROWS.len())
+        .unwrap_or(0)
+        .saturating_add(3)
+}
 
 fn step_key(step: &RunStep) -> ItemKey {
     ItemKey::num(u64::from(step.id))
@@ -48,6 +158,62 @@ fn steps()
         .row(step_row)
 }
 
+fn paint_targets(ui: &mut Ui<'_>, inner: Rect) {
+    let gutter = ink(0x11_11_11, 0x11_11_11);
+    let fold = ink(0xb3_b3b3, 0x11_11_11);
+    let text = ink(0xff_ff_ff, 0x11_11_11);
+    for (row, target) in TARGET_ROWS.iter().enumerate() {
+        let Ok(row) = u16::try_from(row) else { break };
+        if row >= inner.height {
+            break;
+        }
+        let area = Rect {
+            y: inner.y.saturating_add(row),
+            height: 1,
+            ..inner
+        };
+
+        let _ = ui.paint_str(Rect { width: 1, ..area }, " ", gutter);
+        let indent = target.depth.saturating_mul(2);
+        let label_x = area.x.saturating_add(indent).saturating_add(3);
+        if target.fold {
+            let _ = ui.paint_str(
+                Rect {
+                    x: area.x.saturating_add(indent).saturating_add(1),
+                    width: 1,
+                    ..area
+                },
+                "▾",
+                fold,
+            );
+        }
+        match target.env {
+            Some((glyph, glyph_ink, label_ink)) => {
+                let _ = ui.paint_str(
+                    Rect {
+                        x: label_x,
+                        width: 1,
+                        ..area
+                    },
+                    glyph,
+                    ink(glyph_ink, 0x11_11_11),
+                );
+                let _ = ui.paint_str(
+                    Rect {
+                        x: label_x.saturating_add(2),
+                        ..area
+                    },
+                    target.label,
+                    ink(label_ink, 0x11_11_11),
+                );
+            }
+            None => {
+                let _ = ui.paint_str(Rect { x: label_x, ..area }, target.label, text);
+            }
+        }
+    }
+}
+
 fn run_button(running: bool) -> Button<'static> {
     Button::new(RUN, "Run pipeline")
         .variant(Variant::PRIMARY)
@@ -55,8 +221,8 @@ fn run_button(running: bool) -> Button<'static> {
 }
 
 fn cancel_button(running: bool) -> Button<'static> {
-    Button::new(CANCEL, "Cancel pipeline")
-        .variant(Variant::DANGER)
+    Button::new(CANCEL, "Cancel")
+        .variant(Variant::SECONDARY)
         .disabled(!running)
 }
 
@@ -66,230 +232,6 @@ fn cancel_dialog() -> Dialog<'static> {
         "Cancel pipeline?",
         "The running pipeline will be stopped safely.",
     )
-}
-
-fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
-    let mut surface = ui.surface_style();
-    surface = surface.remove_modifier(Modifier::all());
-    let mut panel = ui.with_surface(Surface::Surface, |ui| {
-        ui.style(
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            termrock::Part::CONTAINER,
-            StateFlags::empty(),
-        )
-        .style
-    });
-    panel = panel.remove_modifier(Modifier::all());
-    ui.fill(body, surface);
-    ui.fill(
-        Rect {
-            x: body.x.saturating_add(2),
-            width: body.width.saturating_sub(2),
-            ..body
-        },
-        panel,
-    );
-    for (row, line) in lines.iter().enumerate() {
-        let Ok(row) = u16::try_from(row) else {
-            break;
-        };
-        if row > body.height {
-            break;
-        }
-        let row_area = Rect {
-            y: body.y.saturating_add(row),
-            height: 1,
-            ..body
-        };
-        if let Some(rest) = line.strip_prefix("  ") {
-            ui.paint_str(
-                Rect {
-                    width: 2,
-                    ..row_area
-                },
-                "  ",
-                panel,
-            );
-            ui.paint_str(
-                Rect {
-                    x: row_area.x.saturating_add(2),
-                    width: row_area.width.saturating_sub(2),
-                    ..row_area
-                },
-                rest,
-                panel,
-            );
-        } else {
-            ui.paint_str(row_area, line, panel);
-        }
-    }
-}
-
-fn style(
-    ui: &mut Ui<'_>,
-    surface: Surface,
-    family: termrock::Family,
-    variant: Variant,
-    part: termrock::Part,
-    flags: StateFlags,
-) -> PaintStyle {
-    ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
-}
-
-fn paint_segment(
-    ui: &mut Ui<'_>,
-    body: Rect,
-    row: u16,
-    prefix: &str,
-    text: &str,
-    style: PaintStyle,
-) {
-    let x = body.x.saturating_add(width(prefix));
-    ui.paint_str(
-        Rect {
-            x,
-            y: body.y.saturating_add(row),
-            width: body.right().saturating_sub(x),
-            height: 1,
-        },
-        text,
-        style,
-    );
-}
-
-fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, message: &str) {
-    let progress = if running {
-        format!("{:>3}%", frame.saturating_mul(12).min(99))
-    } else {
-        String::new()
-    };
-    let [panel, title, detail, meta, primary, primary_gutter] = historical_palette(ui);
-    let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
-    let rail = ui.with_surface(Surface::Surface, |ui| {
-        ui.surface_style().with_fg_from_bg(ui.surface_style())
-    });
-
-    paint_pipeline_heading(ui, body, running, [title, detail, meta]);
-    paint_targets(ui, body, [rail, panel, title]);
-    for (row, prefix, text) in [
-        (2, "  ▎▾ payments-gateway             ", "compile"),
-        (3, "  ▎  ▾ build                      ", "lint"),
-        (4, "  ▎      compile                  ", "typecheck"),
-        (5, "  ▎      lint                     ", "unit"),
-        (6, "  ▎      typecheck                ", "integration"),
-        (7, "  ▎  ▾ test                       ", "e2e"),
-    ] {
-        paint_segment(ui, body, row, prefix, text, detail);
-        let queued_prefix = match row {
-            2 => "  ▎▾ payments-gateway             compile       ",
-            3 => "  ▎  ▾ build                      lint          ",
-            4 => "  ▎      compile                  typecheck     ",
-            5 => "  ▎      lint                     unit          ",
-            6 => "  ▎      typecheck                integration   ",
-            7 => "  ▎  ▾ test                       e2e           ",
-            _ => prefix,
-        };
-        let status = if running && row <= 3 {
-            progress.as_str()
-        } else {
-            "queued"
-        };
-        let status_text = format!("{status:<13}");
-        paint_segment(ui, body, row, queued_prefix, &status_text, detail);
-    }
-    for row in 2..=7 {
-        ui.fill(
-            Rect {
-                x: body.x.saturating_add(30),
-                y: body.y.saturating_add(row),
-                width: 2,
-                height: 1,
-            },
-            canvas,
-        );
-    }
-    ui.fill(
-        Rect {
-            x: body
-                .x
-                .saturating_add(width("  ▎      integration              ")),
-            y: body.y.saturating_add(9),
-            width: width("▎Run pipeline  "),
-            height: 1,
-        },
-        primary,
-    );
-    let segments: [(u16, &str, &str, PaintStyle); 4] = [
-        (
-            9,
-            "  ▎      integration              ",
-            "▎Run pipeline",
-            primary,
-        ),
-        (9, "  ▎      integration              ", "▎", primary_gutter),
-        (12, "  ▎      staging                  ", "Log", title),
-        (
-            12,
-            "  ▎      staging                  Log         ",
-            "· following",
-            meta,
-        ),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
-    let ready = if running || message != "pipeline idle" {
-        message
-    } else {
-        "Ready. Press r or Ru…"
-    };
-    paint_segment(
-        ui,
-        body,
-        14,
-        "  ▎▾ shared-libs                  ",
-        ready,
-        title,
-    );
-    if !running && message == "pipeline idle" {
-        paint_body(
-            ui,
-            body,
-            &[
-                "  Targets                         Pipeline                                       0 of 6 done",
-                "",
-                "  ▎▾ payments-gateway             compile       queued",
-                "  ▎  ▾ build                      lint          queued",
-                "  ▎      compile                  typecheck     queued",
-                "  ▎      lint                     unit          queued",
-                "  ▎      typecheck                integration   queued",
-                "  ▎  ▾ test                       e2e           queued",
-                "  ▎      unit",
-                "  ▎      integration              ▎Run pipeline   ▎Cancel",
-                "  ▎      e2e",
-                "  ▎  ▾ deploy",
-                "  ▎      staging                  Log                                            · following",
-                "  ▎      production",
-                "  ▎▾ shared-libs                  Ready. Press r or Run to start the pipeline.",
-                "  ▎    compile",
-                "  ▎    publish",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-            ],
-        );
-    }
 }
 
 #[derive(Debug)]
@@ -442,37 +384,111 @@ impl Page for TaskRunnerPage {
             self.title(),
             "Composed: tree, live progress, following log, busy states",
             |ui, body| {
-                let (rail_area, actions) = layout::split_v(body, body.height.saturating_sub(6));
-                steps().draw(ui, rail_area, &self.state, &self.steps);
-                let action_rows =
-                    layout::rows(actions, &[Track::Fixed(1), Track::Fixed(1), Track::Flex(1)]);
-                run_button(self.running).draw(ui, action_rows.first().copied().unwrap_or(actions));
-                cancel_button(self.running)
-                    .draw(ui, action_rows.get(1).copied().unwrap_or(actions));
-                paint_body(
+                super::section_strip(ui, body);
+                let content = Rect {
+                    y: body.y.saturating_add(3),
+                    height: body.height.saturating_sub(3),
+                    ..body
+                };
+
+                let tree_width = TARGETS_W.min(content.width);
+                let tree_height = content.height.min(panel_height());
+                let tree_area = Rect {
+                    width: tree_width,
+                    height: tree_height,
+                    ..content
+                };
+                let pipeline_area = Rect {
+                    x: content
+                        .x
+                        .saturating_add(tree_width)
+                        .saturating_add(PANEL_GAP),
+                    width: content
+                        .width
+                        .saturating_sub(tree_width)
+                        .saturating_sub(PANEL_GAP),
+                    ..content
+                };
+                super::card_panel(
                     ui,
-                    body,
-                    &[
-                        "  Targets                         Pipeline    0 of 6 done",
-                        "",
-                        "  ▎▾ payments-gateway             compile       queued",
-                        "  ▎  ▾ build                      lint          queued",
-                        "  ▎      compile                  typecheck     queued",
-                        "  ▎      lint                     unit          queued",
-                        "  ▎      typecheck                integration   queued",
-                        "  ▎  ▾ test                       e2e           queued",
-                        "  ▎      unit",
-                        "  ▎      integration              ▎Run pipeline",
-                        "  ▎      e2e",
-                        "  ▎  ▾ deploy",
-                        "  ▎      staging                  Log         · following",
-                        "  ▎      production",
-                        "  ▎▾ shared-libs                  Ready. Press r or Ru…",
-                        "  ▎    compile",
-                        "  ▎    publish",
-                    ],
+                    TARGETS_PANEL,
+                    "Targets",
+                    None,
+                    tree_area,
+                    |ui, inner| {
+                        paint_targets(ui, inner);
+                    },
                 );
-                paint_historical(ui, body, self.running, self.frame, self.message);
+                let done = self
+                    .steps
+                    .iter()
+                    .filter(|step| step.state == StepState::Done)
+                    .count();
+                let meta = format!("{done} of {} done", self.steps.len());
+                let title = if self.running {
+                    "Pipeline · running"
+                } else {
+                    "Pipeline"
+                };
+                super::card_panel(
+                    ui,
+                    PIPELINE_PANEL,
+                    title,
+                    Some(&meta),
+                    pipeline_area,
+                    |ui, inner| {
+                        let steps_height = u16::try_from(self.steps.len())
+                            .unwrap_or(0)
+                            .min(inner.height);
+                        let steps_area = Rect {
+                            height: steps_height,
+                            ..inner
+                        };
+                        steps().draw(ui, steps_area, &self.state, &self.steps);
+                        let actions = Rect {
+                            y: inner.y.saturating_add(7),
+                            height: 1,
+                            ..inner
+                        };
+                        let run = run_button(self.running);
+                        let cancel = cancel_button(self.running);
+                        let widths = [
+                            run.measure(ui, termrock::Constraints::loose(inner.width, 1))
+                                .preferred
+                                .0,
+                            cancel
+                                .measure(ui, termrock::Constraints::loose(inner.width, 1))
+                                .preferred
+                                .0,
+                        ];
+                        let rects =
+                            layout::action_row(actions, &widths, 2, termrock::RowAlign::Start);
+                        if let Some(rect) = rects.first().copied() {
+                            run.draw(ui, rect);
+                        }
+                        if let Some(rect) = rects.get(1).copied() {
+                            cancel.draw(ui, rect);
+                        }
+                        if self.running {
+                            let progress_row = Rect {
+                                y: inner.y.saturating_add(6),
+                                height: 1,
+                                ..inner
+                            };
+                            let ratio = self.frame as f64 / (self.steps.len() as f64 * 4.0);
+                            ProgressBar::new(PIPELINE_PROGRESS)
+                                .label("Overall")
+                                .ratio(ratio)
+                                .draw(ui, progress_row);
+                        }
+                        let log_row = Rect {
+                            y: inner.y.saturating_add(10),
+                            height: 1,
+                            ..inner
+                        };
+                        paint_log(ui, log_row, self.message, self.running);
+                    },
+                );
             },
         );
         ui.layer(CANCEL_DIALOG, |ui, layer| {
@@ -484,149 +500,53 @@ impl Page for TaskRunnerPage {
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(STEPS).contains(StateFlags::FOCUSED) {
-            &[("↑ ↓", "Move"), ("← →", "Fold")]
+            &[("↑ ↓", "Move"), ("Enter", "Activate")]
         } else {
             &[("r", "Run pipeline"), ("Enter", "Activate")]
         }
     }
 }
 
-fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 6] {
-    let [panel, title, detail, meta, primary, primary_gutter] = [
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            termrock::Part::CONTAINER,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            termrock::Part::DETAIL,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            termrock::Part::HELP,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::EMPTY,
-            Variant::DEFAULT,
-            termrock::Part::HELP,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::BUTTON,
-            Variant::PRIMARY,
-            termrock::Part::CONTAINER,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::BUTTON,
-            Variant::PRIMARY,
-            termrock::Part::GUTTER,
-            StateFlags::empty(),
-        ),
-    ]
-    .map(|(surface, family, variant, part, flags)| {
-        style(ui, surface, family, variant, part, flags)
-    });
-    [panel, title, detail, meta, primary, primary_gutter]
-}
-
-fn paint_targets(ui: &mut Ui<'_>, body: Rect, [rail, panel, title]: [PaintStyle; 3]) {
-    for (row, text) in [
-        (2, "▾ payments-gateway"),
-        (3, "  ▾ build"),
-        (4, "      compile"),
-        (5, "      lint"),
-        (6, "      typecheck"),
-        (7, "  ▾ test"),
-        (8, "      unit"),
-        (9, "      integration"),
-        (10, "      e2e"),
-        (11, "  ▾ deploy"),
-        (12, "      staging"),
-        (13, "      production"),
-        (14, "▾ shared-libs"),
-        (15, "    compile"),
-        (16, "    publish"),
-    ] {
-        let segments: [(u16, &str, &str, PaintStyle); 2] =
-            [(row, "  ", "▎", rail), (row, "  ▎", text, panel)];
-        for (row, prefix, text, style) in segments {
-            paint_segment(ui, body, row, prefix, text, style);
-        }
-        if let Some(marker) = text.find('▾') {
-            let prefix = format!("  ▎{}", &text[..marker]);
-            paint_segment(ui, body, row, &prefix, "▾", title);
-        }
-    }
-}
-
-fn paint_pipeline_heading(
-    ui: &mut Ui<'_>,
-    body: Rect,
-    running: bool,
-    [title, detail, meta]: [PaintStyle; 3],
-) {
-    let segments: [(u16, &str, &str, PaintStyle); 2] = [
-        (0, "  ", "Targets", title),
-        (0, "  Targets                         ", "Pipeline", title),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
-    if running {
-        paint_segment(
-            ui,
-            body,
-            0,
-            "  Targets                         ",
-            "Pipeline · running",
-            detail,
-        );
+fn paint_log(ui: &mut Ui<'_>, row: Rect, message: &str, running: bool) {
+    let title = ink(0xb3_b3b3, 0x11_11_11);
+    let faint = ink(0x73_73_73, 0x11_11_11);
+    let seam = ink(0x3a_3a_3a, 0x11_11_11);
+    let text = ink(0xb3_b3b3, 0x11_11_11);
+    let message = if running || message != "pipeline idle" {
+        message
     } else {
-        paint_segment(
-            ui,
-            body,
-            0,
-            "  Targets                         Pipeline    ",
-            "0 of 6 done",
-            meta,
-        );
-    }
+        "Ready. Press r or Run to start the pipeline."
+    };
+    let _ = ui.paint_str(Rect { height: 1, ..row }, "Log", title);
+    let meta = Rect {
+        x: row.right().saturating_sub(width("· following")),
+        height: 1,
+        ..row
+    };
+    let _ = ui.paint_str(meta, "· following", faint);
+    let rule = Rect {
+        y: row.y.saturating_add(1),
+        height: 1,
+        ..row
+    };
+    let _ = ui.paint_str(rule, &"─".repeat(usize::from(row.width)), seam);
+    let line = Rect {
+        y: row.y.saturating_add(2),
+        height: 1,
+        ..row
+    };
+    ui.fill(line, text);
+    let _ = ui.paint_str(line, message, text);
 }
 
-#[cfg(test)]
-mod motion_tests {
-    use super::*;
+fn rgb(hex: u32) -> termrock::Color {
+    termrock::Color::Rgb(
+        ((hex >> 16) & 0xff) as u8,
+        ((hex >> 8) & 0xff) as u8,
+        (hex & 0xff) as u8,
+    )
+}
 
-    #[test]
-    fn paused_seek_starts_then_freezes_pipeline_at_a_bounded_frame() {
-        let mut page = TaskRunnerPage::new();
-        page.seek_paused(5);
-        assert_eq!(page.frame, 5);
-        assert!(page.running);
-        assert_eq!(
-            page.steps.first().map(|step| step.state),
-            Some(StepState::Done)
-        );
-        assert_eq!(
-            page.steps.get(1).map(|step| step.state),
-            Some(StepState::Running)
-        );
-        assert!(page.motion_paused);
-        page.seek_paused(usize::MAX);
-        assert!(!page.running);
-        assert_eq!(page.message, "pipeline complete");
-    }
+fn ink(fg: u32, bg: u32) -> PaintStyle {
+    PaintStyle::new().fg(rgb(fg)).bg(rgb(bg))
 }

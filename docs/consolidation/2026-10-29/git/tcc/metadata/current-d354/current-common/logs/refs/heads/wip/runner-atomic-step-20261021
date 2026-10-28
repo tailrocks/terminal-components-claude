@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 986332c65158d4539bbbb69ae782e802125aa45f Alexey Zhokhov <alexey@zhokhov.com> 1792545516 +0700	branch: Created from origin/parity/termrock-visual-baseline
+986332c65158d4539bbbb69ae782e802125aa45f d7b77d89a930871df67e4129e8858c94ee516a11 Alexey Zhokhov <alexey@zhokhov.com> 1792545712 +0700	commit: fix(test): pin each fresh-run advance to its planned step
+d7b77d89a930871df67e4129e8858c94ee516a11 a818aa649b466c055bf82ea9cf43a216bfc77bba Alexey Zhokhov <alexey@zhokhov.com> 1792545721 +0700	rebase (finish): refs/heads/wip/runner-atomic-step-20261021 onto eedfcf01de0f18fc8b16608f82d666c6787be978
+a818aa649b466c055bf82ea9cf43a216bfc77bba 76e4775505a60203f53db908bdc07584461f4cbe Alexey Zhokhov <alexey@zhokhov.com> 1792545733 +0700	commit: docs(audit): require a new capture anchor after runner change
+76e4775505a60203f53db908bdc07584461f4cbe 243af5b6e1f54993db4b84aa484c994b61c62623 Alexey Zhokhov <alexey@zhokhov.com> 1792545769 +0700	commit: test: close lock probe pipes deterministically

@@ -1,0 +1,48 @@
+{
+  "record_type": "bounded_lint_cleanup",
+  "source_commit": "7efe824fefeab1b26794b2fec9f749214d81041a",
+  "target": "crates/tablepro-domain/src/model.rs::History::seeded",
+  "scope_correction": "The initial task message called this ResultGrid::seeded. At the recorded source commit, ResultGrid has no seeded method; the lint target is History::seeded in model.rs. No domain.rs or other application file was changed.",
+  "change": "Moved the existing 15-row history fixture into a private typed constant. Kept History::seeded as the public constructor and retained ID allocation and HistoryEntry construction there.",
+  "public_api_changed": false,
+  "runtime_behavior_intended_to_change": false,
+  "before": {
+    "seeded_function_sha256": "1b4cc0ba246c9e4f023a8576a97afca6cf9a45420bd8008652bc934b5e606388",
+    "canonical_seed_row_tuple_sequence_sha256": "8da7f557b9a930d52d688e753f71eb25fe1b6132e956d780d6eb1e5fcff9c05b"
+  },
+  "after": {
+    "seeded_function_sha256": "0a047d3f5d37dc696e62face1035ed01fffc0d51b249a15ae9071768f62cd965",
+    "canonical_seed_row_tuple_sequence_sha256": "8da7f557b9a930d52d688e753f71eb25fe1b6132e956d780d6eb1e5fcff9c05b",
+    "tuple_sequence_matches_before": true
+  },
+  "verification": [
+    {
+      "command": "cargo nextest run -p tablepro-domain --all-targets",
+      "result": "passed",
+      "tests_passed": 12,
+      "tests_failed": 0,
+      "tests_skipped": 0
+    },
+    {
+      "command": "cargo clippy -p tablepro-domain --all-targets -- -D warnings",
+      "result": "passed"
+    },
+    {
+      "command": "cargo fmt -p tablepro-domain -- --check",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "cargo clippy -p tablepro-ui --all-targets -- -D warnings",
+      "result": "failed outside assigned ownership scope",
+      "errors": 33,
+      "files": "crates/tablepro-ui/src/app.rs, crates/tablepro-ui/src/app/picker_contract.rs, crates/tablepro-ui/src/safe_mode.rs, crates/tablepro-ui/src/tab_list.rs",
+      "note": "No UI files were changed. The check was not run on a clean baseline in this task, so these are recorded as observed, not asserted pre-existing."
+    }
+  ],
+  "product_parity_claimed": false,
+  "independent_review": "pending"
+}

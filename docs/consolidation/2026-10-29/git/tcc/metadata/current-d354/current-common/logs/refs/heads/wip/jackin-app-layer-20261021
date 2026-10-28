@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 1b9bd580e5f46dff23630a8c15c85e7f14cf7c4e Alexey Zhokhov <alexey@zhokhov.com> 1792598230 +0700	branch: Created from origin/parity/termrock-visual-baseline
+1b9bd580e5f46dff23630a8c15c85e7f14cf7c4e 4d0dffee4ad1800147837206f990da09c043f385 Alexey Zhokhov <alexey@zhokhov.com> 1792598954 +0700	commit: feat(runtime): add the component-author canvas primitives
+4d0dffee4ad1800147837206f990da09c043f385 a05fee155e45775e667fe4fce9a871a70c9cc0ff Alexey Zhokhov <alexey@zhokhov.com> 1792599393 +0700	commit: refactor(jackin): paint the app layer through the author canvas
+a05fee155e45775e667fe4fce9a871a70c9cc0ff 8cae7b80582d56bcf7f574aaddf7bf79beeee88b Alexey Zhokhov <alexey@zhokhov.com> 1792600111 +0700	commit: refactor(jackin): keep the raw buffer out of the app layer
+8cae7b80582d56bcf7f574aaddf7bf79beeee88b c9e8798ffeee5e04be8c4f0030a6f21de6356b3f Alexey Zhokhov <alexey@zhokhov.com> 1792600135 +0700	rebase (finish): refs/heads/wip/jackin-app-layer-20261021 onto af0168f367c0d329a6bd3ebfe8b359a4ae74a97f
+c9e8798ffeee5e04be8c4f0030a6f21de6356b3f 3f796fee45742f1a4d205b9216e1515a821b588a Alexey Zhokhov <alexey@zhokhov.com> 1792600413 +0700	commit: refactor(jackin): drop the redundant size switches in the settings frames
+3f796fee45742f1a4d205b9216e1515a821b588a 6d5326514c8c05686081eb331959a8cb5e8bfe4f Alexey Zhokhov <alexey@zhokhov.com> 1792600785 +0700	commit: chore(xtask): drop the stale Jackin ownership exceptions
+6d5326514c8c05686081eb331959a8cb5e8bfe4f 4246661e5c57d79e7ca564cadb079dbd1be22535 Alexey Zhokhov <alexey@zhokhov.com> 1792601295 +0700	rebase (finish): refs/heads/wip/jackin-app-layer-20261021 onto 384b818b274cbdfa216df1372e09edf2b0813ad9

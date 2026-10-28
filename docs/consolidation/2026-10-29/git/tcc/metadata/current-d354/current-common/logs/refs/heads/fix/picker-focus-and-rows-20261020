@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 f8e08fc29edc1841bbbd0a70ab4388c5e6ba6f23 Alexey Zhokhov <alexey@zhokhov.com> 1792496025 +0700	branch: Created from HEAD
+f8e08fc29edc1841bbbd0a70ab4388c5e6ba6f23 56a8547a48647d7158f6a288df6db4708f7b0f0c Alexey Zhokhov <alexey@zhokhov.com> 1792496277 +0700	commit: fix(picker): inherit row limit and avoid duplicate focus

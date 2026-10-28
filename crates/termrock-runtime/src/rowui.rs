@@ -8,12 +8,18 @@ use ratatui_core::style::Modifier;
 use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
-use crate::text::{Span, width};
-use crate::theme::{Align, Family, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::text::{Span, truncate, truncate_middle, width};
+use crate::theme::{
+    Align, CursorStyle, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant,
+};
 use crate::ui::{FrameRead, Ui};
 
 pub trait RowFn<T> {
     fn row(&self, item: &T, row: &mut RowUi<'_>);
+
+    fn intrinsic_label_width(&self, _item: &T) -> Option<u16> {
+        None
+    }
 }
 
 impl<T, F: Fn(&T, &mut RowUi<'_>)> RowFn<T> for F {
@@ -26,9 +32,228 @@ impl<T: core::fmt::Display> RowFn<T> for termrock_collections::DefaultRow {
     fn row(&self, item: &T, row: &mut RowUi<'_>) {
         row.label_fmt(format_args!("{item}"));
     }
+
+    fn intrinsic_label_width(&self, item: &T) -> Option<u16> {
+        Some(width(&item.to_string()))
+    }
 }
 
 pub const MAX_COLUMNS: usize = 16;
+
+const fn selected_row_patch() -> StylePatch {
+    StylePatch::new()
+        .set_bg(Role::HighlightBg)
+        .set_fg(Role::HighlightFg)
+        .add(Modifier::BOLD)
+        .remove(Modifier::UNDERLINED)
+}
+
+fn selected_part_patch(part: Part) -> StylePatch {
+    let patch = StylePatch::new()
+        .set_bg(Role::HighlightBg)
+        .set_fg(Role::HighlightFg)
+        .remove(Modifier::UNDERLINED);
+    if part == Part::LABEL || part == Part::ROW {
+        patch.add(Modifier::BOLD)
+    } else {
+        patch.remove(Modifier::BOLD)
+    }
+}
+
+fn merge_patch(base: Option<StylePatch>, over: Option<StylePatch>) -> Option<StylePatch> {
+    match (base, over) {
+        (Some(base), Some(over)) => Some(base.merge(over)),
+        (Some(patch), None) | (None, Some(patch)) => Some(patch),
+        (None, None) => None,
+    }
+}
+
+fn fill_gutter_patch(flags: StateFlags) -> StylePatch {
+    if flags.contains(StateFlags::FOCUSED) {
+        StylePatch::new()
+            .set_fg(Role::HighlightBg)
+            .set_bg(Role::HighlightBg)
+            .add(Modifier::BOLD)
+    } else {
+        StylePatch::new()
+            .set_fg(Role::CurrentSurface)
+            .set_bg(Role::CurrentSurface)
+            .remove(Modifier::BOLD)
+    }
+}
+
+fn resolve_row_part(
+    ui: &mut Ui<'_>,
+    family: Family,
+    variant: Variant,
+    flags: StateFlags,
+    part: Part,
+    patch: Option<StylePatch>,
+    cursor_style: CursorStyle,
+) -> crate::theme::Resolved {
+    resolve_row_part_with_defaults(
+        ui,
+        family,
+        variant,
+        flags,
+        part,
+        patch,
+        cursor_style,
+        crate::theme::StyleDefaults::default(),
+    )
+}
+
+fn picker_row_defaults(family: Family, part: Part, flags: StateFlags) -> StylePatch {
+    if family != Family::PICKER {
+        return StylePatch::new();
+    }
+    match part {
+        Part::ICON => {
+            let ink = if flags.contains(StateFlags::FOCUSED) {
+                FgStep::Primary
+            } else {
+                FgStep::Muted
+            };
+            StylePatch::new()
+                .set_fg(Role::Fg(ink))
+                .remove(Modifier::BOLD)
+        }
+        Part::META => StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Muted))
+            .remove(Modifier::BOLD),
+        _ => StylePatch::new(),
+    }
+}
+
+fn readable_picker_ink(
+    preferred: ratatui_core::style::Color,
+    bg: Option<ratatui_core::style::Color>,
+) -> Option<ratatui_core::style::Color> {
+    use crate::theme::contrast_ratio;
+    use ratatui_core::style::Color;
+
+    let bg = bg?;
+    let ratio = |fg| contrast_ratio(fg, bg).unwrap_or(0.0);
+    if ratio(preferred) >= 4.5 {
+        return None;
+    }
+    let (black, white) = (ratio(Color::Black), ratio(Color::White));
+    let (ink, contrast) = if black >= white {
+        (Color::Black, black)
+    } else {
+        (Color::White, white)
+    };
+    (contrast >= 4.5).then_some(ink)
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "keeps the existing resolver inputs and adds only component defaults"
+)]
+fn resolve_row_part_with_defaults(
+    ui: &mut Ui<'_>,
+    family: Family,
+    variant: Variant,
+    flags: StateFlags,
+    part: Part,
+    patch: Option<StylePatch>,
+    cursor_style: CursorStyle,
+    component_defaults: crate::theme::StyleDefaults<'_>,
+) -> crate::theme::Resolved {
+    if cursor_style == CursorStyle::Fill && part == Part::GUTTER {
+        let explicit = ui.style_defaults_with_explicit(
+            family,
+            variant,
+            part,
+            flags,
+            crate::theme::StyleDefaults::default(),
+            patch.as_ref(),
+        );
+        let local = fill_gutter_patch(flags).merge(explicit.explicit);
+        let mut resolved = ui.style_defaults(
+            family,
+            variant,
+            part,
+            flags,
+            crate::theme::StyleDefaults::default(),
+            Some(&local),
+        );
+        if explicit.explicit.glyph == Slot::Inherit {
+            resolved.glyph = Slot::Clear;
+        }
+        return resolved;
+    }
+    let mut fallback = picker_row_defaults(family, part, flags).merge(component_defaults.base);
+    if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
+        fallback = fallback.merge(selected_part_patch(part));
+    }
+    let mut defaults = crate::theme::StyleDefaults::new(fallback).mono(component_defaults.mono);
+    if fallback != StylePatch::new() || !component_defaults.mono.is_empty() {
+        let mut resolved =
+            ui.style_defaults_with_explicit(family, variant, part, flags, defaults, patch.as_ref());
+        if family == Family::PICKER
+            && matches!(part, Part::ICON | Part::META)
+            && resolved.explicit.bg != Slot::Inherit
+            && resolved.explicit.fg == Slot::Inherit
+            && let Some(preferred) = resolved.resolved.style.fg
+            && let Some(ink) = readable_picker_ink(preferred, resolved.resolved.style.bg)
+        {
+            fallback = fallback.set_fg(Role::Custom(ink));
+            defaults = crate::theme::StyleDefaults::new(fallback).mono(component_defaults.mono);
+            resolved = ui.style_defaults_with_explicit(
+                family,
+                variant,
+                part,
+                flags,
+                defaults,
+                patch.as_ref(),
+            );
+        }
+        let resolved = resolved.resolved;
+        if part == Part::GUTTER {
+            let explicit = ui.style_defaults_with_explicit(
+                family,
+                variant,
+                part,
+                flags,
+                crate::theme::StyleDefaults::default(),
+                patch.as_ref(),
+            );
+            if explicit.explicit.glyph == Slot::Inherit {
+                return crate::theme::Resolved {
+                    glyph: Slot::Clear,
+                    ..resolved
+                };
+            }
+        }
+        return resolved;
+    }
+    match patch {
+        Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
+        None => ui.style(family, variant, part, flags),
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MetaPaint {
+    needed_width: u16,
+    admitted_width: u16,
+    logical_x: Option<u16>,
+}
+
+impl MetaPaint {
+    pub const fn needed_width(self) -> u16 {
+        self.needed_width
+    }
+
+    pub const fn admitted_width(self) -> u16 {
+        self.admitted_width
+    }
+
+    pub const fn logical_x(self) -> Option<u16> {
+        self.logical_x
+    }
+}
 
 pub struct RowUi<'u> {
     ui: Ui<'u>,
@@ -38,9 +263,17 @@ pub struct RowUi<'u> {
     flags: StateFlags,
     key: ItemKey,
     row: Rect,
+    container_width: u16,
+    cursor_style: CursorStyle,
+    author_style: crate::author::PartStyle<'u>,
+    author_parts: Option<&'u [Part]>,
+    container_patch: Option<StylePatch>,
     label_patch: Option<StylePatch>,
     left: u16,
     right: u16,
+    keep_tail: bool,
+    padded_tail: bool,
+    last_meta_paint: Option<MetaPaint>,
 }
 
 impl fmt::Debug for RowUi<'_> {
@@ -49,6 +282,7 @@ impl fmt::Debug for RowUi<'_> {
             .field("owner", &self.owner)
             .field("key", &self.key)
             .field("row", &self.row)
+            .field("container_width", &self.container_width)
             .field("left", &self.left)
             .field("right", &self.right)
             .finish_non_exhaustive()
@@ -70,6 +304,34 @@ impl<'u> RowUi<'u> {
 
     #[expect(
         clippy::too_many_arguments,
+        reason = "shared widgets pass the complete row allocation alongside the local content area"
+    )]
+    pub fn new_with_container_width<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        container_width: u16,
+    ) -> RowUi<'u> {
+        Self::new_with_patches_and_container_width(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            container_width,
+            None,
+            None,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
         reason = "the crate-private constructor extends RowUi's public phase context with two scoped patches"
     )]
     pub fn new_with_patches<'a: 'u>(
@@ -83,8 +345,132 @@ impl<'u> RowUi<'u> {
         container_patch: Option<StylePatch>,
         label_patch: Option<StylePatch>,
     ) -> RowUi<'u> {
+        Self::construct(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            row.width,
+            crate::author::PartStyle::new(),
+            container_patch,
+            label_patch,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "shared widgets pass the complete row allocation alongside the local content area"
+    )]
+    pub fn new_with_patches_and_container_width<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        container_width: u16,
+        container_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+    ) -> RowUi<'u> {
+        Self::construct(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            container_width,
+            crate::author::PartStyle::new(),
+            container_patch,
+            label_patch,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "component-author rows carry the existing phase context and one part-style contract"
+    )]
+    pub fn new_with_author_style<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        author_style: crate::author::PartStyle<'u>,
+    ) -> RowUi<'u> {
+        Self::construct(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            row.width,
+            author_style,
+            None,
+            None,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the component-author row contract carries identity, state, geometry, parts, and one container patch"
+    )]
+    pub fn new_with_author_style_and_container_patch<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        author_style: crate::author::PartStyle<'u>,
+        container_patch: StylePatch,
+    ) -> RowUi<'u> {
+        Self::construct(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            row.width,
+            author_style,
+            Some(container_patch),
+            None,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the private constructor centralizes the public and component-author row paths"
+    )]
+    fn construct<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        container_width: u16,
+        author_style: crate::author::PartStyle<'u>,
+        container_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+    ) -> RowUi<'u> {
         let mut ui = ui.reborrow();
-        let container = match container_patch {
+        let initial_container_patch =
+            merge_patch(author_style.part_patch(Part::CONTAINER), container_patch);
+        let container = match initial_container_patch {
             Some(patch) => {
                 ui.style_patched(family, variant, Part::CONTAINER, flags, &patch)
                     .style
@@ -100,10 +486,50 @@ impl<'u> RowUi<'u> {
             flags,
             key,
             row,
+            container_width,
+            cursor_style: CursorStyle::Bar,
+            author_style,
+            author_parts: None,
+            container_patch,
             label_patch,
             left: 0,
             right: 0,
+            keep_tail: false,
+            padded_tail: false,
+            last_meta_paint: None,
         }
+    }
+
+    fn patch_for(&self, part: Part) -> Option<StylePatch> {
+        let mut patch = self
+            .author_part(part)
+            .then(|| self.author_style.part_patch(part))
+            .flatten();
+        let scoped = match part {
+            Part::CONTAINER => self.container_patch,
+            Part::LABEL => self.label_patch,
+            _ => None,
+        };
+        if let Some(scoped) = scoped {
+            patch = merge_patch(patch, Some(scoped));
+        }
+        patch
+    }
+
+    fn author_part(&self, part: Part) -> bool {
+        self.author_parts.is_none_or(|parts| parts.contains(&part))
+    }
+
+    pub fn with_author_parts(mut self, parts: &'u [Part]) -> Self {
+        self.author_parts = Some(parts);
+        self
+    }
+
+    fn fill_patch(&self) -> Option<StylePatch> {
+        merge_patch(
+            self.author_style.part_patch(Part::ROW),
+            self.patch_for(Part::CONTAINER),
+        )
     }
 
     pub const fn flags(&self) -> StateFlags {
@@ -122,6 +548,45 @@ impl<'u> RowUi<'u> {
         self.row
     }
 
+    pub const fn container_width(&self) -> u16 {
+        self.container_width
+    }
+
+    pub fn with_cursor_style(mut self, style: CursorStyle) -> Self {
+        self.cursor_style = style;
+        if style == CursorStyle::Fill && self.flags.contains(StateFlags::FOCUSED) {
+            let patch = self.fill_patch();
+            let resolved = self.ui.style_defaults(
+                self.family,
+                self.variant,
+                Part::ROW,
+                self.flags,
+                crate::theme::StyleDefaults::new(selected_row_patch()),
+                patch.as_ref(),
+            );
+            self.ui.fill(self.row, resolved.style);
+        } else if style == CursorStyle::Fill {
+            let mut defaults = StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::CurrentSurface)
+                .remove(Modifier::BOLD);
+            if self.flags.contains(StateFlags::DISABLED) {
+                defaults = defaults.set_fg(Role::DisabledFg);
+            }
+            let patch = self.fill_patch();
+            let resolved = self.ui.style_defaults(
+                self.family,
+                self.variant,
+                Part::ROW,
+                self.flags,
+                crate::theme::StyleDefaults::new(defaults),
+                patch.as_ref(),
+            );
+            self.ui.fill(self.row, resolved.style);
+        }
+        self
+    }
+
     fn remaining(&self) -> Rect {
         let used = self.left.saturating_add(self.right);
         Rect {
@@ -132,27 +597,53 @@ impl<'u> RowUi<'u> {
         }
     }
 
+    pub fn remaining_width(&self) -> u16 {
+        self.remaining().width
+    }
+
     fn style_of(&mut self, part: Part) -> PaintStyle {
-        let r = match (part, self.label_patch) {
-            (Part::LABEL, Some(patch)) => {
-                self.ui
-                    .style_patched(self.family, self.variant, part, self.flags, &patch)
-            }
-            _ => self.ui.style(self.family, self.variant, part, self.flags),
-        };
-        #[cfg(feature = "testing")]
-        self.ui
-            .note_styled(self.owner, self.family, self.variant, part, r);
+        self.style_of_with_defaults(part, crate::theme::StyleDefaults::default())
+    }
+
+    fn style_of_with_defaults(
+        &mut self,
+        part: Part,
+        defaults: crate::theme::StyleDefaults<'_>,
+    ) -> PaintStyle {
+        let patch = self.patch_for(part);
+        let r = resolve_row_part_with_defaults(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+            defaults,
+        );
         r.style
     }
 
     pub fn marker(&mut self, g: GlyphRole) {
-        let r = self
-            .ui
-            .style(self.family, self.variant, Part::MARKER, self.flags);
-        #[cfg(feature = "testing")]
-        self.ui
-            .note_styled(self.owner, self.family, self.variant, Part::MARKER, r);
+        let patch = self.patch_for(Part::MARKER);
+        self.paint_marker(g, patch);
+    }
+
+    pub fn marker_patched(&mut self, g: GlyphRole, patch: &StylePatch) {
+        let patch = merge_patch(self.patch_for(Part::MARKER), Some(*patch));
+        self.paint_marker(g, patch);
+    }
+
+    fn paint_marker(&mut self, g: GlyphRole, patch: Option<StylePatch>) {
+        let r = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::MARKER,
+            patch,
+            self.cursor_style,
+        );
         let area = self.remaining();
         let cell = Rect {
             width: area.width.min(1),
@@ -175,21 +666,122 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn gutter(&mut self) {
-        let r = self
-            .ui
-            .style(self.family, self.variant, Part::GUTTER, self.flags);
+        self.leading_part(Part::GUTTER, 1, 0, |_| {});
+    }
+
+    pub fn leading_part(
+        &mut self,
+        part: Part,
+        width: u16,
+        gap: u16,
+        fallback: impl FnOnce(&mut CellUi<'_>),
+    ) {
         let area = self.remaining();
         let cell = Rect {
-            width: area.width.min(1),
+            width: width.min(area.width),
             ..area
         };
-        match r.glyph {
-            Slot::Set(g) => {
-                self.ui.glyph(cell, g, r.style);
+        let patch = self.patch_for(part);
+        let resolved = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+        );
+        let author_style = self.author_style;
+        let allowed = self.author_part(part);
+        let slot = allowed.then(|| author_style.slot_for(part)).flatten();
+        if let Some(slot) = slot {
+            slot(&mut self.ui, cell);
+        } else {
+            match resolved.glyph {
+                Slot::Set(glyph) => {
+                    self.ui.glyph(cell, glyph, resolved.style);
+                }
+                Slot::Clear => self.ui.fill(cell, resolved.style),
+                Slot::Inherit => {
+                    self.ui.fill(cell, resolved.style);
+                    let mut content = CellUi::new(self.ui.reborrow(), cell, resolved.style);
+                    fallback(&mut content);
+                }
             }
-            Slot::Inherit | Slot::Clear => self.ui.fill(cell, r.style),
         }
-        self.left = self.left.saturating_add(1);
+        self.left = self.left.saturating_add(width).saturating_add(gap);
+    }
+
+    pub fn trailing_part(
+        &mut self,
+        part: Part,
+        width: u16,
+        gap: u16,
+        fallback: impl FnOnce(&mut CellUi<'_>),
+    ) {
+        let area = self.remaining();
+        let cell_width = width.min(area.width);
+        let cell = Rect {
+            x: area.right().saturating_sub(cell_width),
+            width: cell_width,
+            ..area
+        };
+        let patch = self.patch_for(part);
+        let resolved = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+        );
+        let author_style = self.author_style;
+        let allowed = self.author_part(part);
+        let slot = allowed.then(|| author_style.slot_for(part)).flatten();
+        if let Some(slot) = slot {
+            slot(&mut self.ui, cell);
+        } else {
+            match resolved.glyph {
+                Slot::Set(glyph) => {
+                    self.ui.glyph(cell, glyph, resolved.style);
+                }
+                Slot::Clear => self.ui.fill(cell, resolved.style),
+                Slot::Inherit => {
+                    self.ui.fill(cell, resolved.style);
+                    let mut content = CellUi::new(self.ui.reborrow(), cell, resolved.style);
+                    fallback(&mut content);
+                }
+            }
+        }
+        self.right = self.right.saturating_add(cell_width).saturating_add(gap);
+    }
+
+    pub fn has_space(&self) -> bool {
+        !self.remaining().is_empty()
+    }
+
+    pub fn reserve_right(&mut self, n: u16) {
+        self.right = self.right.saturating_add(n);
+    }
+
+    pub fn begin_content(&mut self) {
+        self.row = self.remaining();
+        self.left = 0;
+        self.right = 0;
+        self.last_meta_paint = None;
+    }
+
+    pub const fn meta_paint(&self) -> Option<MetaPaint> {
+        self.last_meta_paint
+    }
+
+    fn record_meta_paint(&mut self, needed_width: u16, logical_x: Option<u16>) {
+        self.last_meta_paint = Some(MetaPaint {
+            needed_width,
+            admitted_width: if logical_x.is_some() { needed_width } else { 0 },
+            logical_x,
+        });
     }
 
     pub fn indent(&mut self, depth: u16) {
@@ -202,13 +794,135 @@ impl<'u> RowUi<'u> {
         self.label_in(s, st);
     }
 
+    pub fn label_matched(&mut self, s: &str, matched: &[usize]) {
+        let patch = self.patch_for(Part::LABEL);
+        let resolved = self.ui.style_defaults_with_explicit(
+            self.family,
+            self.variant,
+            Part::LABEL,
+            self.flags,
+            crate::theme::StyleDefaults::new(StylePatch::new().remove(Modifier::BOLD)),
+            patch.as_ref(),
+        );
+
+        let style = resolved.resolved.style;
+        let area = self.remaining();
+        let used = if width(s) <= area.width {
+            self.ui.paint_matched(area, s, matched, style)
+        } else {
+            let head = Rect {
+                width: area.width.saturating_sub(1),
+                ..area
+            };
+            let used = self.ui.paint_matched(head, s, matched, style);
+            let tail = Rect {
+                x: area.x.saturating_add(used),
+                width: area.width.saturating_sub(used),
+                ..area
+            };
+            used.saturating_add(self.ui.glyph(tail, GlyphRole::Ellipsis, style))
+        };
+        self.left = self.left.saturating_add(used);
+    }
+
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
-        let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
-        let st = self
-            .ui
-            .style_patched(self.family, self.variant, Part::LABEL, self.flags, &patch)
-            .style;
+        let patch = self
+            .patch_for(Part::LABEL)
+            .map_or(*p, |forwarded| forwarded.merge(*p));
+        let st = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::LABEL,
+            Some(patch),
+            self.cursor_style,
+        )
+        .style;
         self.label_in(s, st);
+    }
+
+    pub fn label_middle(&mut self, text: &str, patch: &StylePatch) {
+        let remaining = self.remaining();
+        let slot_width = remaining.width.saturating_sub(1);
+        if slot_width == 0 {
+            return;
+        }
+
+        let patch = self
+            .patch_for(Part::LABEL)
+            .map_or(*patch, |forwarded| forwarded.merge(*patch));
+        let style = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::LABEL,
+            Some(patch),
+            self.cursor_style,
+        )
+        .style;
+        let slot = Rect {
+            width: slot_width,
+            ..remaining
+        };
+        let truncated = truncate_middle(text, slot_width);
+
+        self.ui.fill(slot, style);
+        let _ = self.ui.paint_str(slot, &truncated, style);
+        self.left = self.left.saturating_add(slot_width);
+    }
+
+    pub fn label_end(&mut self, text: &str, patch: &StylePatch) {
+        let remaining = self.remaining();
+        let slot_width = remaining.width.saturating_sub(1);
+        if slot_width == 0 {
+            return;
+        }
+
+        let patch = self
+            .patch_for(Part::LABEL)
+            .map_or(*patch, |forwarded| forwarded.merge(*patch));
+        let style = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::LABEL,
+            Some(patch),
+            self.cursor_style,
+        )
+        .style;
+        let slot = Rect {
+            width: slot_width,
+            ..remaining
+        };
+
+        self.ui.fill(slot, style);
+        let truncated = truncate(text, slot_width);
+        let _ = self.ui.paint_str(slot, &truncated, style);
+        self.left = self.left.saturating_add(slot_width);
+
+        if !self.keep_tail && width(text) <= slot_width {
+            self.ui.fill(
+                Rect {
+                    x: remaining.x.saturating_add(slot_width),
+                    width: 1,
+                    ..remaining
+                },
+                style,
+            );
+            self.left = self.left.saturating_add(1);
+            self.padded_tail = true;
+        }
+    }
+
+    pub fn keep_row_tail(&mut self) {
+        self.keep_tail = true;
+    }
+
+    pub const fn padded_tail(&self) -> bool {
+        self.padded_tail
     }
 
     fn label_in(&mut self, s: &str, st: PaintStyle) {
@@ -253,9 +967,22 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn meta(&mut self, s: &str) {
+        self.meta_with_gap(s, 1);
+    }
+
+    pub fn meta_with_gap(&mut self, s: &str, gap: u16) {
         let need = width(s);
         let area = self.remaining();
-        if need == 0 || need.saturating_add(2) > area.width {
+        let Some(metadata_budget) = area
+            .width
+            .checked_sub(gap)
+            .and_then(|width| width.checked_sub(1))
+        else {
+            self.record_meta_paint(need, None);
+            return;
+        };
+        if need == 0 || need > metadata_budget {
+            self.record_meta_paint(need, None);
             return;
         }
         let st = self.style_of(Part::META);
@@ -266,7 +993,73 @@ impl<'u> RowUi<'u> {
             height: 1,
         };
         self.ui.paint_str(cell, s, st);
+        self.right = self.right.saturating_add(need).saturating_add(gap);
+        self.record_meta_paint(need, Some(cell.x));
+    }
+
+    pub fn meta_with_defaults(&mut self, s: &str, defaults: termrock_theme::StyleDefaults<'_>) {
+        let need = width(s);
+        let area = self.remaining();
+        if need == 0 || need.saturating_add(2) > area.width {
+            self.record_meta_paint(need, None);
+            return;
+        }
+        let st = self.style_of_with_defaults(Part::META, defaults);
+        let cell = Rect {
+            x: area.right().saturating_sub(need),
+            y: area.y,
+            width: need,
+            height: 1,
+        };
+        self.ui.paint_str(cell, s, st);
         self.right = self.right.saturating_add(need).saturating_add(1);
+        self.record_meta_paint(need, Some(cell.x));
+    }
+
+    pub fn glyph_before_meta(&mut self, role: GlyphRole, patch: &StylePatch) {
+        let Some(meta) = self.last_meta_paint else {
+            return;
+        };
+        if meta.admitted_width() == 0 || self.row.height == 0 {
+            return;
+        }
+        let Some(meta_x) = meta.logical_x() else {
+            return;
+        };
+        let Some(x) = meta_x.checked_sub(4) else {
+            return;
+        };
+        if x < self.row.x || x >= self.row.right() {
+            return;
+        }
+
+        let patch = self
+            .patch_for(Part::ICON)
+            .map_or(*patch, |authored| authored.merge(*patch));
+        let mut style = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::ICON,
+            Some(patch),
+            self.cursor_style,
+        )
+        .style;
+        if matches!(patch.bg, Slot::Inherit)
+            && let Some(bg) = self
+                .ui
+                .buffer()
+                .cell((x, self.row.y))
+                .and_then(|cell| cell.style().bg)
+        {
+            style = style.bg(bg);
+        }
+
+        let area = Rect::new(x, self.row.y, 1, 1);
+        if self.ui.glyph(area, role, style) > 0 {
+            self.ui.patch_style(area, style, patch);
+        }
     }
 
     pub fn trailing(&mut self, s: &str, p: &StylePatch) {
@@ -275,10 +1068,16 @@ impl<'u> RowUi<'u> {
         if need == 0 || need > area.width {
             return;
         }
-        let st = self
-            .ui
-            .style_patched(self.family, self.variant, Part::META, self.flags, p)
-            .style;
+        let st = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::META,
+            Some(*p),
+            self.cursor_style,
+        )
+        .style;
         let cell = Rect {
             x: area.right().saturating_sub(need),
             y: area.y,
@@ -299,10 +1098,15 @@ impl<'u> RowUi<'u> {
             height: 1,
         };
         self.right = self.right.saturating_add(w).saturating_add(1);
-        let r = self.ui.style(self.family, self.variant, p, self.flags);
-        #[cfg(feature = "testing")]
-        self.ui
-            .note_styled(self.owner, self.family, self.variant, p, r);
+        let r = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            p,
+            None,
+            self.cursor_style,
+        );
         CellUi::with_resolved_glyph(self.ui.reborrow(), cell, r.style, r.glyph)
     }
 
@@ -318,8 +1122,6 @@ impl<'u> RowUi<'u> {
         let style = self.style_of(Part::CELL);
         self.left = self.left.saturating_add(area.width);
         ColumnsUi {
-            #[cfg(feature = "testing")]
-            owner: self.owner,
             family: self.family,
             variant: self.variant,
             flags: self.flags,
@@ -330,6 +1132,7 @@ impl<'u> RowUi<'u> {
             n,
             gap,
             style,
+            cursor_style: self.cursor_style,
         }
     }
 
@@ -369,6 +1172,7 @@ pub struct CellUi<'u> {
     ui: Ui<'u>,
     area: Rect,
     style: PaintStyle,
+    reset_style: PaintStyle,
     used: u16,
     align: Align,
     tone: Option<Role>,
@@ -402,6 +1206,7 @@ impl<'u> CellUi<'u> {
             ui,
             area,
             style,
+            reset_style: style,
             used: 0,
             align: Align::Left,
             tone: None,
@@ -431,6 +1236,10 @@ impl<'u> CellUi<'u> {
                 .saturating_sub(reserved),
             height: 1,
         }
+    }
+
+    pub fn available_width(&self) -> u16 {
+        self.free().width
     }
 
     fn paint_resolved_glyph(&mut self) {
@@ -527,6 +1336,11 @@ impl<'u> CellUi<'u> {
         self
     }
 
+    pub const fn padding_style(&mut self, style: PaintStyle) -> &mut Self {
+        self.reset_style = style;
+        self
+    }
+
     pub const fn tone(&mut self, r: Role) -> &mut Self {
         self.tone = Some(r);
         self
@@ -548,12 +1362,23 @@ impl<'u> CellUi<'u> {
         self
     }
 
+    pub fn suffix_style(&mut self, g: GlyphRole, style: PaintStyle) -> &mut Self {
+        let area = self.free();
+        let used = self.ui.glyph(area, g, style);
+        self.used = self.used.saturating_add(used);
+        self
+    }
+
     pub fn patch(&mut self, p: &StylePatch) -> &mut Self {
         self.patch = Some(match self.patch {
             Some(cur) => cur.merge(*p),
             None => *p,
         });
         self
+    }
+
+    pub fn color_level(&self) -> crate::theme::ColorLevel {
+        self.ui.theme_ref().capability.color
     }
 }
 
@@ -578,7 +1403,7 @@ impl Drop for CellUi<'_> {
                 x = x.saturating_sub(1);
                 let src = Position::new(x, y);
                 let dst = Position::new(x.saturating_add(shift), y);
-                self.ui.move_cell(src, dst, self.style);
+                self.ui.move_cell(src, dst, self.reset_style);
             }
         }
 
@@ -602,8 +1427,6 @@ impl Drop for CellUi<'_> {
 }
 
 pub struct ColumnsUi<'u> {
-    #[cfg(feature = "testing")]
-    owner: Id,
     family: Family,
     variant: Variant,
     flags: StateFlags,
@@ -614,6 +1437,7 @@ pub struct ColumnsUi<'u> {
     n: usize,
     gap: u16,
     style: PaintStyle,
+    cursor_style: CursorStyle,
 }
 
 impl fmt::Debug for ColumnsUi<'_> {
@@ -654,17 +1478,27 @@ impl ColumnsUi<'_> {
     }
 
     pub fn cell_part(&mut self, i: usize, part: Part) -> CellUi<'_> {
+        self.cell_part_with_defaults(i, part, termrock_theme::StyleDefaults::default())
+    }
+
+    pub fn cell_part_with_defaults(
+        &mut self,
+        i: usize,
+        part: Part,
+        defaults: termrock_theme::StyleDefaults<'_>,
+    ) -> CellUi<'_> {
         let rect = self.rect(i);
-        let resolved = match (part, self.label_patch) {
-            (Part::LABEL, Some(patch)) => {
-                self.ui
-                    .style_patched(self.family, self.variant, part, self.flags, &patch)
-            }
-            _ => self.ui.style(self.family, self.variant, part, self.flags),
-        };
-        #[cfg(feature = "testing")]
-        self.ui
-            .note_styled(self.owner, self.family, self.variant, part, resolved);
+        let patch = (part == Part::LABEL).then_some(self.label_patch).flatten();
+        let resolved = resolve_row_part_with_defaults(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+            defaults,
+        );
         CellUi::with_resolved_glyph(self.ui.reborrow(), rect, resolved.style, resolved.glyph)
     }
 
@@ -741,305 +1575,5 @@ impl termrock_text::secret::CellWriter for CellUi<'_> {
 
     fn text(&mut self, s: &str) {
         self.text(s);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use ratatui_core::buffer::Buffer;
-
-    use super::*;
-    use crate::theme::Theme;
-    use crate::ui::cx::LastFrame;
-    use crate::ui::{FrameState, UiCore};
-
-    const OWNER: Id = Id::root("rowui.owner");
-    const SCREEN: Rect = Rect {
-        x: 0,
-        y: 0,
-        width: 30,
-        height: 2,
-    };
-
-    fn paint(row: Rect, f: impl FnOnce(&mut RowUi<'_>)) -> Buffer {
-        let theme = Theme::junie();
-        paint_with(&theme, Family::LIST, StateFlags::empty(), row, f)
-    }
-
-    fn paint_with(
-        theme: &Theme,
-        family: Family,
-        flags: StateFlags,
-        row: Rect,
-        f: impl FnOnce(&mut RowUi<'_>),
-    ) -> Buffer {
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
-            let mut r = RowUi::new(
-                &mut ui,
-                OWNER,
-                family,
-                Variant::DEFAULT,
-                flags,
-                ItemKey::index(0),
-                row,
-            );
-            f(&mut r);
-        }
-        page
-    }
-
-    fn paint_with_patches(
-        container_patch: Option<StylePatch>,
-        label_patch: Option<StylePatch>,
-        f: impl FnOnce(&mut RowUi<'_>),
-    ) -> Buffer {
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            let mut row = RowUi::new_with_patches(
-                &mut ui,
-                OWNER,
-                Family::LIST,
-                Variant::DEFAULT,
-                StateFlags::empty(),
-                ItemKey::index(0),
-                Rect::new(0, 0, 20, 1),
-                container_patch,
-                label_patch,
-            );
-            f(&mut row);
-        }
-        page
-    }
-
-    fn theme_with_part_glyph(part: Part, glyph: Slot<GlyphRole>) -> Theme {
-        let mut theme = Theme::junie();
-        theme.recipes.get_mut(Family::LIST).parts.entry(part).glyph = glyph;
-        theme
-    }
-
-    fn row_text(buf: &Buffer, y: u16, from: u16, to: u16) -> String {
-        let mut out = String::new();
-        let mut x = from;
-        while x < to {
-            let Some(c) = buf.cell((x, y)) else { break };
-            out.push_str(c.symbol());
-            x = x.saturating_add(width(c.symbol()).max(1));
-        }
-        out
-    }
-
-    #[test]
-    fn row_ui_label_writes_cells_without_an_intermediate_string() {
-        let page = paint(Rect::new(0, 0, 10, 1), |r| r.label("hello"));
-        assert_eq!(row_text(&page, 0, 0, 10), "hello     ");
-
-        let page = paint(Rect::new(0, 0, 5, 1), |r| r.label("hello world"));
-        let painted = row_text(&page, 0, 0, 5);
-        assert_eq!(painted.chars().count(), 5);
-        assert!(painted.ends_with('…'), "{painted:?}");
-
-        let page = paint(Rect::new(0, 0, 10, 1), |r| {
-            r.label_fmt(format_args!("{}-{}", 12, 7));
-        });
-        assert_eq!(row_text(&page, 0, 0, 10), "12-7      ");
-    }
-
-    #[test]
-    fn forwarded_patches_reach_only_the_automatic_container_and_labels() {
-        let container = StylePatch::new().add(Modifier::REVERSED);
-        let label = StylePatch::new().add(Modifier::BOLD);
-        let page = paint_with_patches(Some(container), Some(label), |row| {
-            row.marker(GlyphRole::WarningMark);
-            row.meta("m");
-            row.label("label");
-        });
-
-        assert!(
-            page.cell((10, 0))
-                .is_some_and(|cell| cell.modifier.contains(Modifier::REVERSED)),
-            "the automatic container fill receives its forwarded patch"
-        );
-        assert!(
-            page.cell((2, 0))
-                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD)),
-            "automatic label painters receive the forwarded label patch"
-        );
-        assert!(
-            page.cell((0, 0))
-                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD)),
-            "MARKER remains row-owned"
-        );
-        assert!(
-            page.cell((19, 0))
-                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD)),
-            "META remains row-owned"
-        );
-    }
-
-    #[test]
-    fn explicit_label_patch_wins_over_the_forwarded_label_patch() {
-        let forwarded = StylePatch::new().add(Modifier::BOLD);
-        let local = StylePatch::new().remove(Modifier::BOLD);
-        let page = paint_with_patches(None, Some(forwarded), |row| {
-            row.label_patched("label", &local);
-        });
-        assert!(
-            page.cell((0, 0))
-                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
-        );
-    }
-
-    #[test]
-    fn row_ui_meta_is_dropped_all_or_none() {
-        let page = paint(Rect::new(0, 0, 12, 1), |r| {
-            r.meta("42");
-            r.label("name");
-        });
-        assert_eq!(row_text(&page, 0, 0, 12), "name      42");
-
-        let page = paint(Rect::new(0, 0, 3, 1), |r| {
-            r.meta("42");
-            r.label("name");
-        });
-        assert_eq!(row_text(&page, 0, 0, 3), "na…");
-
-        let page = paint(Rect::new(0, 0, 4, 1), |r| r.meta("42"));
-        assert_eq!(row_text(&page, 0, 0, 4), "  42");
-    }
-
-    #[test]
-    fn row_ui_marker_honours_resolved_glyph_slot() {
-        let set = theme_with_part_glyph(Part::MARKER, Slot::Set(GlyphRole::Checked));
-        let page = paint_with(
-            &set,
-            Family::LIST,
-            StateFlags::empty(),
-            Rect::new(0, 0, 8, 1),
-            |r| {
-                r.marker(GlyphRole::WarningMark);
-                r.label("item");
-            },
-        );
-        assert_eq!(row_text(&page, 0, 0, 2), "✓ ");
-
-        let clear = theme_with_part_glyph(Part::MARKER, Slot::Clear);
-        let page = paint_with(
-            &clear,
-            Family::LIST,
-            StateFlags::empty(),
-            Rect::new(0, 0, 8, 1),
-            |r| {
-                r.marker(GlyphRole::WarningMark);
-                r.label("item");
-            },
-        );
-        assert_eq!(row_text(&page, 0, 0, 2), "  ");
-    }
-
-    #[test]
-    fn row_ui_part_paints_a_resolved_glyph_as_a_reserved_suffix() {
-        let theme = theme_with_part_glyph(Part::META, Slot::Set(GlyphRole::Checked));
-        let page = paint_with(
-            &theme,
-            Family::LIST,
-            StateFlags::empty(),
-            Rect::new(0, 0, 8, 1),
-            |r| {
-                r.part(Part::META, 4).text("x");
-            },
-        );
-        assert_eq!(row_text(&page, 0, 4, 8), "x✓  ");
-    }
-
-    #[test]
-    fn row_ui_part_clear_reserves_a_blank_cell_and_differs_from_inherit() {
-        let cell_text = |glyph| {
-            let theme = theme_with_part_glyph(Part::META, glyph);
-            let page = paint_with(
-                &theme,
-                Family::LIST,
-                StateFlags::empty(),
-                Rect::new(0, 0, 8, 1),
-                |r| {
-                    r.part(Part::META, 4).text("xyzw");
-                },
-            );
-            row_text(&page, 0, 4, 8)
-        };
-        let set = cell_text(Slot::Set(GlyphRole::Checked));
-        let clear = cell_text(Slot::Clear);
-        let inherit = cell_text(Slot::Inherit);
-
-        assert_eq!(set, "xyz✓");
-
-        assert_eq!(clear, "xyz ");
-
-        assert_eq!(inherit, "xyzw");
-        assert_ne!(clear, inherit);
-    }
-
-    #[test]
-    fn row_ui_columns_clip_to_the_row() {
-        let page = paint(Rect::new(2, 0, 12, 1), |r| {
-            let mut c = r.columns(&[Track::Flex(1), Track::Flex(1)]);
-            c.cell(0).text("aaaaaaaa");
-            c.cell(1).text("bbbbbbbb");
-        });
-
-        assert_eq!(
-            page.cell((0, 0)).map(|c| c.symbol().to_owned()),
-            Some(" ".to_owned())
-        );
-        assert_eq!(
-            page.cell((1, 0)).map(|c| c.symbol().to_owned()),
-            Some(" ".to_owned())
-        );
-        for x in 14..30u16 {
-            assert_eq!(
-                page.cell((x, 0)).map(|c| c.symbol().to_owned()),
-                Some(" ".to_owned())
-            );
-        }
-        let inside = row_text(&page, 0, 2, 14);
-        assert_eq!(inside.chars().count(), 12);
-
-        let many: Vec<Track> = (0..MAX_COLUMNS + 4).map(|_| Track::Flex(1)).collect();
-        let page = paint(Rect::new(0, 0, 20, 1), |r| {
-            let mut c = r.columns(&many);
-            for i in 0..4 {
-                c.cell(i).text("xx");
-            }
-        });
-        for x in 20..30u16 {
-            assert_eq!(
-                page.cell((x, 0)).map(|c| c.symbol().to_owned()),
-                Some(" ".to_owned())
-            );
-        }
-    }
-
-    #[test]
-    fn in_place_number_formatting() {
-        let mut b = [0u8; 24];
-        assert_eq!(format_i64(0, &mut b), "0");
-        assert_eq!(format_i64(-1234, &mut b), "-1234");
-        assert_eq!(format_i64(i64::MIN, &mut b), "-9223372036854775808");
-        let mut m = [0u8; 32];
-        assert_eq!(format_money(0, &mut m), "0.00");
-        assert_eq!(format_money(-123_456, &mut m), "-1,234.56");
-        assert_eq!(format_money(5, &mut m), "0.05");
-        assert_eq!(format_money(100_000_000, &mut m), "1,000,000.00");
     }
 }

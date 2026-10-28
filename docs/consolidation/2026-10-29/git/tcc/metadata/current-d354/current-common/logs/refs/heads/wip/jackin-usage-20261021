@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 40bc297e5f1b18f58f1466d5aaa8d80f19c051a2 Alexey Zhokhov <alexey@zhokhov.com> 1792595273 +0700	branch: Created from origin/parity/termrock-visual-baseline
+40bc297e5f1b18f58f1466d5aaa8d80f19c051a2 505411b742d43aad9a5b5a4f8e419896cedbd2dd Alexey Zhokhov <alexey@zhokhov.com> 1792597949 +0700	commit: refactor(jackin): paint the locked hard-launch chrome from the live path
+505411b742d43aad9a5b5a4f8e419896cedbd2dd 1106415fd3dd2d811b5c407c542e38d9cd8b0121 Alexey Zhokhov <alexey@zhokhov.com> 1792599377 +0700	commit: refactor(jackin): compose the narrow hard-cases manager from live state
+1106415fd3dd2d811b5c407c542e38d9cd8b0121 24066ec9ddbb46513730bc55b16bd6bd15ab7f5f Alexey Zhokhov <alexey@zhokhov.com> 1792599967 +0700	commit: jackin: compose help overlay from real page path
+24066ec9ddbb46513730bc55b16bd6bd15ab7f5f 961e4b709006681cb916a04a4450f6c070d4ea79 Alexey Zhokhov <alexey@zhokhov.com> 1792600753 +0700	commit: jackin: gate the accounts frames in their view modules
+961e4b709006681cb916a04a4450f6c070d4ea79 8a9b2880762dd56a7cb33d45275067bb26c4caad Alexey Zhokhov <alexey@zhokhov.com> 1792600772 +0700	rebase (finish): refs/heads/wip/jackin-usage-20261021 onto 384b818b274cbdfa216df1372e09edf2b0813ad9
+8a9b2880762dd56a7cb33d45275067bb26c4caad cf1208b362ab109dbc564d27122cea7fb3e54c35 Alexey Zhokhov <alexey@zhokhov.com> 1792602157 +0700	commit: jackin: own the detail drawer frame in its view module
+cf1208b362ab109dbc564d27122cea7fb3e54c35 fc2d9cdc65414984ed8ebe38de8becd4745f9f25 Alexey Zhokhov <alexey@zhokhov.com> 1792602169 +0700	commit: jackin: rename the capsule resting frame and wire the drawer view
+fc2d9cdc65414984ed8ebe38de8becd4745f9f25 f285caf7765d84f42ebc9a836754d5ff4bb146d9 Alexey Zhokhov <alexey@zhokhov.com> 1792602347 +0700	commit: jackin: drop the historical_ name from the mono readability test
+f285caf7765d84f42ebc9a836754d5ff4bb146d9 d200d5b15d8fc9d1cfd541dd16fdb083a92ed17e Alexey Zhokhov <alexey@zhokhov.com> 1792602417 +0700	commit: docs: hand off the Jackin historical dispatch retirement
+d200d5b15d8fc9d1cfd541dd16fdb083a92ed17e 5dfff7f20f8adfeb9c0438040ee0b3db58bcc0b1 Alexey Zhokhov <alexey@zhokhov.com> 1792602434 +0700	commit: docs: record the Jackin historical-dispatch retirement in the matrix

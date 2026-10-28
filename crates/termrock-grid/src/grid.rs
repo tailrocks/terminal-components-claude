@@ -1,7 +1,9 @@
 use core::fmt;
+use std::time::Duration;
 
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
+use termrock_core::typeahead::TypeAhead;
 
 use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
@@ -14,7 +16,7 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
 use crate::theme::{
-    Align, Family, FgStep, GlyphRole, Modifier, Role, StyleDefaults, StylePatch, Variant,
+    Align, Family, FgStep, GlyphRole, Modifier, Role, Slot, StyleDefaults, StylePatch, Variant,
 };
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_collections::collection::{
@@ -29,7 +31,6 @@ use termrock_runtime::scroll_region::ScrollRegion;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnKey(u16);
 
@@ -224,6 +225,10 @@ pub trait GridModel {
 
     fn row_key(&self, row: usize) -> ItemKey;
 
+    fn row_enabled(&self, _row: usize) -> bool {
+        true
+    }
+
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>>;
 
     fn row_decor(&self, _row: usize) -> RowDecor<'_> {
@@ -249,6 +254,26 @@ pub trait GridModel {
     fn actions(&self, _row: usize, _col: usize) -> &[CellAction] {
         &[]
     }
+
+    fn revision(&self) -> Option<u64> {
+        None
+    }
+}
+
+fn find_type_ahead_row<M: GridModel + ?Sized>(
+    prefix: &str,
+    len: usize,
+    from: usize,
+    search_column: usize,
+    model: &M,
+) -> Option<usize> {
+    TypeAhead::find_indexed(
+        prefix,
+        len,
+        from,
+        |row| model.cell(row, search_column).map_or("", |cell| cell.text),
+        |row| model.row_enabled(row),
+    )
 }
 
 pub trait GridEditor: GridModel {
@@ -326,6 +351,8 @@ pub enum GridCmd {
     BeginEdit,
 
     Copy,
+
+    SortCurrent,
 }
 
 const fn b(
@@ -516,6 +543,26 @@ const BINDINGS: [Binding<GridCmd>; 25] = [
         false,
     ),
 ];
+const SORT_BINDING: Binding<GridCmd> = b(
+    "grid.sort-current",
+    Chord::key(KeyCode::Char('s')),
+    GridCmd::SortCurrent,
+    "Sort",
+    false,
+);
+
+const fn with_sort_binding(base: [Binding<GridCmd>; 25]) -> [Binding<GridCmd>; 26] {
+    let mut combined = [SORT_BINDING; 26];
+    let mut index = 0;
+    while index < base.len() {
+        combined[index] = base[index];
+        index += 1;
+    }
+    combined[25] = SORT_BINDING;
+    combined
+}
+
+const TABLE_BINDINGS: [Binding<GridCmd>; 26] = with_sort_binding(BINDINGS);
 
 pub const GRID_MAX_COLUMNS: usize = 64;
 
@@ -645,6 +692,21 @@ pub enum GridOverflowIndicator {
     Ellipsis,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub(crate) enum TypeAheadColumn {
+    #[default]
+    Cursor,
+    Index(usize),
+    Key(ColumnKey),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct TypeAheadConfig {
+    column: TypeAheadColumn,
+    identity: Option<ColumnKey>,
+    timeout: Duration,
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GridState {
     sampled_widths: [Option<SampledWidth>; GRID_MAX_COLUMNS],
@@ -665,6 +727,9 @@ pub struct GridState {
     edit: Option<(ItemKey, ColumnKey)>,
 
     editor: TextInputState,
+
+    type_ahead: TypeAhead,
+    type_ahead_config: Option<TypeAheadConfig>,
 
     sort: Option<(ColumnKey, SortDir)>,
 }
@@ -696,12 +761,23 @@ impl Default for GridState {
             pending_column: None,
             edit: None,
             editor,
+            type_ahead: TypeAhead::default(),
+            type_ahead_config: None,
             sort: None,
         }
     }
 }
 
 impl GridState {
+    pub(crate) fn invalidate_model(&mut self) {
+        self.core.invalidate();
+        self.type_ahead.reset();
+    }
+
+    pub(crate) fn set_sort(&mut self, sort: Option<(ColumnKey, SortDir)>) {
+        self.sort = sort;
+    }
+
     pub fn sampled_column_width(&self, key: ColumnKey) -> Option<u16> {
         self.sampled_width(key).map(|sample| sample.natural)
     }
@@ -762,8 +838,26 @@ impl GridState {
         changed
     }
 
+    pub fn set_scroll_reveal(&mut self, row: usize) {
+        self.core.scroll_mut().ensure_visible_on_next_layout(row);
+    }
+
     pub const fn col_offset(&self) -> usize {
         self.col_offset
+    }
+
+    pub(crate) fn set_col_offset(&mut self, offset: usize) {
+        self.col_offset = offset;
+    }
+
+    pub fn visible_rows(&self, total: usize) -> core::ops::Range<usize> {
+        let scroll = self.core.scroll();
+        let start = scroll.offset().min(total);
+        start..start.saturating_add(scroll.viewport_len()).min(total)
+    }
+
+    pub const fn rows_overflow(&self) -> bool {
+        self.core.scroll().overflows()
     }
 
     fn set_cursor(&mut self, row: usize, key: ItemKey, col_index: usize, col: ColumnKey) {
@@ -783,6 +877,9 @@ impl GridState {
 impl Reconcile for GridState {
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
         let r = self.core.reconcile(len, &key);
+        if r != Reconciliation::Unchanged {
+            self.type_ahead.reset();
+        }
         if let Some(RangeAnchor::Cell(a, _)) = self.anchor
             && !(0..len).any(|i| key(i) == a)
         {
@@ -798,6 +895,7 @@ impl Reconcile for GridState {
 
     fn invalidate(&mut self) {
         self.core.invalidate();
+        self.type_ahead.reset();
     }
 }
 
@@ -939,6 +1037,9 @@ pub struct Grid<'a> {
     id: Id,
     columns: &'a [Column<'a>],
     nav: NavUnit,
+    row_nav_scrolls_columns: bool,
+    row_nav_scroll_limit: Option<usize>,
+    sort_current_column: bool,
     column_gap: u16,
     gutter: GridGutter,
     right_reserve: u16,
@@ -947,8 +1048,12 @@ pub struct Grid<'a> {
     column_fit: GridColumnFit,
     header_sizing: GridHeaderSizing,
     sort_indicator: GridSortIndicator,
+    cell_tone_styles: &'a [(Role, StylePatch)],
     overflow_indicator: GridOverflowIndicator,
     disabled: bool,
+    type_ahead: bool,
+    type_ahead_column: TypeAheadColumn,
+    type_ahead_timeout: Duration,
     fetch_on_activate: bool,
     fetch_label: &'a str,
     fetch_glyph: GlyphRole,
@@ -980,6 +1085,7 @@ impl<'a> Grid<'a> {
         Part::HEADER,
         Part::ROW,
         Part::CELL,
+        Part::TEXT,
         Part::TRACK,
         Part::THUMB,
         Part::OVERFLOW,
@@ -997,6 +1103,9 @@ impl<'a> Grid<'a> {
             id,
             columns,
             nav: NavUnit::Cell,
+            row_nav_scrolls_columns: false,
+            row_nav_scroll_limit: None,
+            sort_current_column: false,
             column_gap: 1,
             gutter: GridGutter::Compact,
             right_reserve: 0,
@@ -1005,8 +1114,12 @@ impl<'a> Grid<'a> {
             column_fit: GridColumnFit::Whole,
             header_sizing: GridHeaderSizing::Content,
             sort_indicator: GridSortIndicator::Always,
+            cell_tone_styles: &[],
             overflow_indicator: GridOverflowIndicator::Count,
             disabled: false,
+            type_ahead: false,
+            type_ahead_column: TypeAheadColumn::Cursor,
+            type_ahead_timeout: TypeAhead::DEFAULT_TIMEOUT,
             fetch_on_activate: false,
             fetch_label: "more",
             fetch_glyph: GlyphRole::MoreRows,
@@ -1077,8 +1190,55 @@ impl<'a> Grid<'a> {
     }
 
     #[must_use]
+    pub(crate) const fn row_nav_scrolls_columns(mut self, enabled: bool) -> Self {
+        self.row_nav_scrolls_columns = enabled;
+        self
+    }
+
+    pub(crate) const fn row_nav_scroll_limit(mut self, limit: usize) -> Self {
+        self.row_nav_scroll_limit = Some(limit);
+        self
+    }
+
+    #[must_use]
+    pub(crate) const fn sort_current_column(mut self, enabled: bool) -> Self {
+        self.sort_current_column = enabled;
+        self
+    }
+
+    #[must_use]
     pub const fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead(mut self, enabled: bool) -> Self {
+        self.type_ahead = enabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead_column(mut self, column: Option<usize>) -> Self {
+        self.type_ahead_column = match column {
+            Some(index) => TypeAheadColumn::Index(index),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead_column_key(mut self, key: Option<ColumnKey>) -> Self {
+        self.type_ahead_column = match key {
+            Some(key) => TypeAheadColumn::Key(key),
+            None => TypeAheadColumn::Cursor,
+        };
+        self
+    }
+
+    #[must_use]
+    pub const fn type_ahead_timeout(mut self, timeout: Duration) -> Self {
+        self.type_ahead_timeout = timeout;
         self
     }
 
@@ -1162,6 +1322,12 @@ impl<'a> Grid<'a> {
     }
 
     #[must_use]
+    pub const fn cell_tone_styles(mut self, styles: &'a [(Role, StylePatch)]) -> Self {
+        self.cell_tone_styles = styles;
+        self
+    }
+
+    #[must_use]
     pub const fn overflow_indicator(mut self, policy: GridOverflowIndicator) -> Self {
         self.overflow_indicator = policy;
         self
@@ -1228,6 +1394,77 @@ impl<'a> Grid<'a> {
 
     fn column_count(&self) -> usize {
         self.columns.len().min(GRID_MAX_COLUMNS)
+    }
+
+    fn sync_type_ahead(&self, state: &mut GridState) {
+        if !self.type_ahead || self.disabled {
+            state.type_ahead = TypeAhead::default();
+            state.type_ahead_config = None;
+            return;
+        }
+        let identity = match self.type_ahead_column {
+            TypeAheadColumn::Cursor => self.col_key(self.cursor_col(state)),
+            TypeAheadColumn::Index(index) => self.col_key(index),
+            TypeAheadColumn::Key(key) => self.col_index(key).map(|_| key),
+        };
+        let config = TypeAheadConfig {
+            column: self.type_ahead_column,
+            identity,
+            timeout: self.type_ahead_timeout,
+        };
+        if state.type_ahead_config != Some(config) {
+            state.type_ahead = TypeAhead::with_timeout(self.type_ahead_timeout);
+            state.type_ahead_config = Some(config);
+        }
+    }
+
+    fn type_ahead_column_index(&self, state: &GridState) -> Option<usize> {
+        match self.type_ahead_column {
+            TypeAheadColumn::Cursor => {
+                let column = self.cursor_col(state);
+                (column < self.column_count()).then_some(column)
+            }
+            TypeAheadColumn::Index(column) => (column < self.column_count()).then_some(column),
+            TypeAheadColumn::Key(key) => self.col_index(key),
+        }
+    }
+
+    fn type_ahead_key<M: GridModel + ?Sized>(
+        &self,
+        cx: &Cx<'_>,
+        state: &mut GridState,
+        model: &M,
+        key: crate::event::Key,
+        len: usize,
+        acc: &mut Acc<GridAction>,
+    ) {
+        if !self.type_ahead || state.is_editing() {
+            return;
+        }
+        let Some(character) = TypeAhead::char_of(&key) else {
+            return;
+        };
+        let Some(search_column) = self.type_ahead_column_index(state) else {
+            state.type_ahead.reset();
+            acc.consumed();
+            return;
+        };
+        let from = if state.on_fetch_row() || len == 0 {
+            0
+        } else {
+            state.core.cursor_index().min(len.saturating_sub(1))
+        };
+        let found = {
+            let prefix = state
+                .type_ahead
+                .feed_at_duration(character, cx.now().as_duration());
+            find_type_ahead_row(prefix, len, from, search_column, model)
+        };
+        if let Some(row) = found {
+            let cursor_column = self.cursor_col(state);
+            self.move_to(state, model, row, cursor_column, false, acc);
+        }
+        acc.consumed();
     }
 
     fn assert_distinct_column_keys(&self) {
@@ -1406,38 +1643,49 @@ impl<'a> Grid<'a> {
                     .flatten()
             })
             .and_then(|key| self.col_index(key));
-        let Some(target) = target else {
-            return g;
-        };
-        if self.columns.get(target).is_some_and(|c| c.sticky) {
-            return g;
-        }
-        let ordinal = self
-            .columns
-            .iter()
-            .take(target)
-            .filter(|c| !c.sticky)
-            .count();
-        let count = self
-            .columns
-            .iter()
-            .enumerate()
-            .take(g.n)
-            .filter(|(i, c)| !c.sticky && g.complete.get(*i).copied().unwrap_or(false))
-            .count();
-        if count == 0 {
-            return g;
+        if let Some(target) = target
+            && !self.columns.get(target).is_some_and(|c| c.sticky)
+        {
+            let ordinal = self
+                .columns
+                .iter()
+                .take(target)
+                .filter(|c| !c.sticky)
+                .count();
+            let count = self
+                .columns
+                .iter()
+                .enumerate()
+                .take(g.n)
+                .filter(|(i, c)| !c.sticky && g.complete.get(*i).copied().unwrap_or(false))
+                .count();
+            if count > 0 {
+                let offset = if ordinal < g.offset {
+                    ordinal
+                } else if ordinal >= g.offset.saturating_add(count) {
+                    ordinal.saturating_add(1).saturating_sub(count)
+                } else {
+                    g.offset
+                };
+                if offset != g.offset {
+                    g = self.place_columns(body, widths, offset, gutter_width, number_width);
+                }
+            }
         }
 
-        let offset = if ordinal < g.offset {
-            ordinal
-        } else if ordinal >= g.offset.saturating_add(count) {
-            ordinal.saturating_add(1).saturating_sub(count)
-        } else {
-            g.offset
-        };
-        if offset != g.offset {
-            g = self.place_columns(body, widths, offset, gutter_width, number_width);
+        while g.offset > 0 {
+            let previous = self.place_columns(
+                body,
+                widths,
+                g.offset.saturating_sub(1),
+                gutter_width,
+                number_width,
+            );
+            if previous.hidden_right == 0 {
+                g = previous;
+            } else {
+                break;
+            }
         }
 
         g
@@ -1599,6 +1847,80 @@ fn apply_style_delta(ui: &Ui<'_>, base: PaintStyle, delta: StylePatch) -> PaintS
     }
     let top = crate::theme::resolve::bind(ui.theme_ref(), delta, None, ui.surface()).style;
     base.patch(top)
+}
+
+fn preserve_default_clears(
+    defaults: StylePatch,
+    resolved: PaintStyle,
+    mut explicit: StylePatch,
+) -> StylePatch {
+    if defaults.fg == Slot::Clear && resolved.fg.is_none() && explicit.fg == Slot::Inherit {
+        explicit.fg = Slot::Clear;
+    }
+    if defaults.bg == Slot::Clear && resolved.bg.is_none() && explicit.bg == Slot::Inherit {
+        explicit.bg = Slot::Clear;
+    }
+    if defaults.underline == Slot::Clear
+        && resolved.underline_color.is_none()
+        && explicit.underline == Slot::Inherit
+    {
+        explicit.underline = Slot::Clear;
+    }
+    explicit
+}
+
+fn active_cell_style(
+    ui: &Ui<'_>,
+    row_style: PaintStyle,
+    cell: crate::theme::ResolvedStyle,
+    strike: bool,
+) -> PaintStyle {
+    let mut active_style = ui
+        .surface_style()
+        .patch(cell.resolved.style)
+        .remove_modifier(
+            row_style
+                .as_style()
+                .add_modifier
+                .difference(cell.resolved.style.as_style().add_modifier),
+        );
+    if row_style.as_style().underline_color.is_some()
+        && cell.resolved.style.as_style().underline_color.is_none()
+    {
+        active_style = active_style.underline_color(ratatui_core::style::Color::Reset);
+    }
+    if strike && !cell.explicit.remove.contains(Modifier::CROSSED_OUT) {
+        active_style = active_style.add_modifier(Modifier::CROSSED_OUT);
+    }
+    active_style
+}
+
+fn inherited_style_defaults(style: PaintStyle, explicit: StylePatch) -> StyleDefaults<'static> {
+    let raw = style.as_style();
+    let mut base = StylePatch::new();
+    if let Some((role, _)) = style.fg_role {
+        base = base.set_fg(role);
+    } else if let Some(color) = raw.fg {
+        base = base.set_fg(Role::Custom(color));
+    } else if matches!(explicit.fg, Slot::Clear) {
+        base = base.clear_fg();
+    }
+    if let Some((role, _)) = style.bg_role {
+        base = base.set_bg(role);
+    } else if let Some(color) = raw.bg {
+        base = base.set_bg(Role::Custom(color));
+    } else if matches!(explicit.bg, Slot::Clear) {
+        base = base.clear_bg();
+    }
+    if let Some((role, _)) = style.underline_role() {
+        base = base.set_underline(role);
+    } else if let Some(color) = raw.underline_color {
+        base = base.set_underline(Role::Custom(color));
+    } else if matches!(explicit.underline, Slot::Clear) {
+        base.underline = Slot::Clear;
+    }
+    base = base.add(raw.add_modifier).remove(raw.sub_modifier);
+    StyleDefaults::new(base)
 }
 
 fn push_grouped(out: &mut String, n: usize) {
@@ -1855,7 +2177,11 @@ impl Grid<'_> {
         if st.is_editing() {
             return Err(GridCursorError::Editing);
         }
+        st.type_ahead.reset();
         self.move_to(st, model, row_index, col_index, false, &mut Acc::new());
+        st.core
+            .scroll_mut()
+            .ensure_visible_on_next_layout(row_index);
         Ok(())
     }
 
@@ -1944,6 +2270,37 @@ impl Grid<'_> {
         st.col_offset = scroll_index;
     }
 
+    fn prune_checked_rows<M: GridModel + ?Sized>(&self, st: &mut GridState, model: &M) -> bool {
+        let len = model.row_count();
+        let checked = st.core.checked_mut();
+        if checked.is_empty() {
+            return false;
+        }
+
+        if matches!(checked, KeySet::AllExcept(_)) {
+            let mut dropped = false;
+            for row in 0..len {
+                if !model.row_enabled(row) {
+                    let key = model.row_key(row);
+                    if checked.contains(key) {
+                        checked.remove(key);
+                        dropped = true;
+                    }
+                }
+            }
+            dropped
+        } else {
+            let mut enabled_keys = Vec::with_capacity(len);
+            for row in 0..len {
+                if model.row_enabled(row) {
+                    enabled_keys.push(model.row_key(row));
+                }
+            }
+            enabled_keys.sort_unstable();
+            checked.retain(|key| enabled_keys.binary_search(&key).is_ok()) > 0
+        }
+    }
+
     fn toggle_row<M: GridModel + ?Sized>(
         &self,
         st: &mut GridState,
@@ -1951,7 +2308,7 @@ impl Grid<'_> {
         row: usize,
         acc: &mut Acc<GridAction>,
     ) {
-        if row >= model.row_count() {
+        if row >= model.row_count() || !model.row_enabled(row) {
             acc.consumed();
             return;
         }
@@ -2001,11 +2358,16 @@ impl Grid<'_> {
         if st.core.cursor().is_some_and(|key| {
             st.core.cursor_index() >= len || model.row_key(st.core.cursor_index()) != key
         }) {
+            st.type_ahead.reset();
             st.core.invalidate();
         }
 
         let outcome = st.core.reconcile_with(len, |i| model.row_key(i), |_| true);
+        if self.prune_checked_rows(st, model) {
+            acc.changed();
+        }
         if outcome != Reconciliation::Unchanged {
+            st.type_ahead.reset();
             if let Some(RangeAnchor::Cell(a, _)) = st.anchor
                 && Self::row_index(model, a, st.core.cursor_index()).is_none()
             {
@@ -2045,6 +2407,7 @@ impl Grid<'_> {
             st.col = self.col_key(0);
             st.col_index = 0;
         } else if st.col.is_some_and(|key| self.col_index(key).is_none()) {
+            st.type_ahead.reset();
             st.col_index = st.col_index.min(column_count.saturating_sub(1));
             st.col = self.col_key(st.col_index);
             st.anchor = None;
@@ -2086,12 +2449,21 @@ impl Grid<'_> {
         for it in cx.intents(self.id) {
             match it {
                 Intent::Binding(action) => {
+                    st.type_ahead.reset();
                     let row = st.fetch_row.map_or_else(
                         || st.core.cursor_index().min(len.saturating_sub(1)),
                         |f| f.boundary,
                     );
                     let col = self.cursor_col(st);
-                    match Binding::command(&BINDINGS, action) {
+                    let command = Binding::command(
+                        if self.sort_current_column {
+                            &TABLE_BINDINGS
+                        } else {
+                            &BINDINGS
+                        },
+                        action,
+                    );
+                    match command {
                         Some(GridCmd::Up) => {
                             self.move_to(st, model, row.saturating_sub(1), col, false, acc);
                         }
@@ -2110,6 +2482,30 @@ impl Grid<'_> {
                         }
                         Some(GridCmd::Right) if st.on_fetch_row() => {
                             self.move_to(st, model, row, col.saturating_add(1), false, acc);
+                        }
+                        Some(GridCmd::Left)
+                            if matches!(self.nav, NavUnit::Row) && self.row_nav_scrolls_columns =>
+                        {
+                            if st.col_offset > 0 {
+                                st.col_offset = st.col_offset.saturating_sub(1);
+                                acc.changed();
+                            } else {
+                                acc.consumed();
+                            }
+                        }
+                        Some(GridCmd::Right)
+                            if matches!(self.nav, NavUnit::Row) && self.row_nav_scrolls_columns =>
+                        {
+                            if st.col_offset
+                                < self
+                                    .row_nav_scroll_limit
+                                    .unwrap_or_else(|| column_count.saturating_sub(1))
+                            {
+                                st.col_offset = st.col_offset.saturating_add(1);
+                                acc.changed();
+                            } else {
+                                acc.consumed();
+                            }
                         }
                         Some(GridCmd::Left) => match self.nav {
                             NavUnit::Row => acc.consumed(),
@@ -2188,12 +2584,19 @@ impl Grid<'_> {
                             if matches!(self.select_mode, SelectMode::None) {
                                 acc.consumed();
                             } else {
-                                let all =
-                                    (0..len).all(|i| st.core.checked().contains(model.row_key(i)));
+                                let all = (0..len).all(|i| {
+                                    !model.row_enabled(i)
+                                        || st.core.checked().contains(model.row_key(i))
+                                });
                                 if all {
                                     st.core.checked_mut().none();
                                 } else {
                                     st.core.checked_mut().all();
+                                    for i in 0..len {
+                                        if !model.row_enabled(i) {
+                                            st.core.checked_mut().remove(model.row_key(i));
+                                        }
+                                    }
                                 }
                                 acc.changed();
                             }
@@ -2202,7 +2605,11 @@ impl Grid<'_> {
                             if len == 0 || column_count == 0 {
                                 acc.consumed();
                             } else if matches!(self.nav, NavUnit::Row) {
-                                acc.action(GridAction::Activated(model.row_key(row)));
+                                if model.row_enabled(row) {
+                                    acc.action(GridAction::Activated(model.row_key(row)));
+                                } else {
+                                    acc.consumed();
+                                }
                             } else {
                                 pending.edit = Some(EditRequest {
                                     row,
@@ -2232,6 +2639,24 @@ impl Grid<'_> {
                                 acc.consumed();
                             }
                         }
+                        Some(GridCmd::SortCurrent) if self.sort_current_column => {
+                            let key = self.col_key(col);
+                            if let Some(key) = key.filter(|_| {
+                                self.columns.get(col).is_some_and(|column| column.sortable)
+                            }) {
+                                let dir = match st.sort {
+                                    Some((current, SortDir::Asc)) if current == key => {
+                                        SortDir::Desc
+                                    }
+                                    _ => SortDir::Asc,
+                                };
+                                st.sort = Some((key, dir));
+                                acc.action(GridAction::Sort(key, dir));
+                            } else {
+                                acc.consumed();
+                            }
+                        }
+                        Some(GridCmd::SortCurrent) => {}
                         None => {}
                     }
                 }
@@ -2249,6 +2674,9 @@ impl Grid<'_> {
                             column.sortable && column_item_key(column.key) == header_key
                         })
                     });
+                    if matches!(phase, Phase::Click | Phase::DoubleClick) && col.is_some() {
+                        st.type_ahead.reset();
+                    }
                     match (phase, col.and_then(|i| self.col_key(i))) {
                         (Phase::Click | Phase::DoubleClick, Some(key)) => {
                             let dir = match st.sort {
@@ -2271,6 +2699,7 @@ impl Grid<'_> {
                     ..
                 } => {
                     if let Some(row) = Self::row_index(model, key, st.core.cursor_index()) {
+                        st.type_ahead.reset();
                         self.move_to(st, model, row, self.cursor_col(st), false, acc);
                         self.toggle_row(st, model, row, acc);
                     } else {
@@ -2321,6 +2750,7 @@ impl Grid<'_> {
                             item: Some(row_key),
                         },
                     pos,
+                    mods,
                     ..
                 } => {
                     let Some(row) = Self::row_index(model, row_key, st.core.cursor_index()) else {
@@ -2335,11 +2765,23 @@ impl Grid<'_> {
                         continue;
                     }
                     let col = hit.unwrap_or_else(|| self.cursor_col(st));
+                    if matches!(phase, Phase::Press | Phase::DoubleClick) {
+                        st.type_ahead.reset();
+                    }
                     match phase {
-                        Phase::Press => self.move_to(st, model, row, col, false, acc),
+                        Phase::Press => {
+                            let extend = matches!(self.nav, NavUnit::Row) && mods.contains(SHIFT);
+                            self.move_to(st, model, row, col, extend, acc);
+                        }
                         Phase::DoubleClick => {
                             if matches!(self.nav, NavUnit::Row) {
-                                acc.action(GridAction::Activated(row_key));
+                                if mods.contains(SHIFT) {
+                                    acc.consumed();
+                                } else if model.row_enabled(row) {
+                                    acc.action(GridAction::Activated(row_key));
+                                } else {
+                                    acc.consumed();
+                                }
                             } else {
                                 pending.edit = Some(EditRequest {
                                     row,
@@ -2361,6 +2803,7 @@ impl Grid<'_> {
                         },
                     ..
                 } => {
+                    st.type_ahead.reset();
                     if self.fetch_on_activate {
                         if st.is_editing() || !model.has_more() {
                             acc.consumed();
@@ -2371,6 +2814,8 @@ impl Grid<'_> {
                     acc.action(GridAction::FetchMore);
                 }
                 Intent::Pointer { .. } => acc.consumed(),
+                Intent::FocusOut { to } if to != Some(self.id) => st.type_ahead.reset(),
+                Intent::Key(key) => self.type_ahead_key(cx, st, model, key, len, acc),
                 _ => {}
             }
         }
@@ -2390,6 +2835,7 @@ impl Grid<'_> {
         model: &M,
     ) -> Response<GridAction> {
         self.assert_distinct_column_keys();
+        self.sync_type_ahead(st);
         if self.disabled {
             for _ in cx.intents(self.id) {}
             for _ in cx.intents(self.editor_id()) {}
@@ -2404,6 +2850,7 @@ impl Grid<'_> {
             ..
         }) = pending.edit
             && row < model.row_count()
+            && model.row_enabled(row)
         {
             acc.action(GridAction::Activated(model.row_key(row)));
         }
@@ -2417,6 +2864,7 @@ impl Grid<'_> {
         model: &mut M,
     ) -> Response<GridAction> {
         self.assert_distinct_column_keys();
+        self.sync_type_ahead(st);
         if self.disabled {
             for _ in cx.intents(self.id) {}
             for _ in cx.intents(self.editor_id()) {}
@@ -2447,6 +2895,7 @@ impl Grid<'_> {
         acc: &mut Acc<GridAction>,
     ) {
         let EditRequest { row, col, cause } = request;
+        st.type_ahead.reset();
         let key = model.row_key(row);
         let Some(ck) = self.col_key(col) else { return };
         st.editor.set_error(None);
@@ -2454,7 +2903,7 @@ impl Grid<'_> {
             || !self.columns.get(col).is_some_and(|c| c.editable)
             || !model.is_editable(row, col)
         {
-            if cause == EditCause::Activate {
+            if cause == EditCause::Activate && model.row_enabled(row) {
                 acc.action(GridAction::Activated(key));
             }
             return;
@@ -2518,6 +2967,8 @@ impl Grid<'_> {
                 geometry.complete.get(col).copied().unwrap_or(false)
             });
         let mut r = TextInput::new(self.editor_id())
+            .embedded_cell()
+            .text_style_target(Family::GRID, Variant::DEFAULT, Part::TEXT)
             .blur(self.blur)
             .pointer_enabled(pointer_enabled)
             .update(cx, &mut st.editor, &mut value);
@@ -2800,6 +3251,41 @@ impl Grid<'_> {
         resolved
     }
 
+    fn cell_style(
+        &self,
+        ui: &mut Ui<'_>,
+        flags: StateFlags,
+        defaults: StyleDefaults<'_>,
+    ) -> crate::theme::ResolvedStyle {
+        let mut base = defaults.base;
+        for (part, patch) in self.part_defaults {
+            if *part == Part::CELL {
+                base = base.merge(*patch);
+            }
+        }
+        let defaults = StyleDefaults { base, ..defaults };
+        let local = self.ov.part_patch(Part::CELL);
+        let mut resolved = ui.style_defaults_with_explicit(
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::CELL,
+            flags,
+            defaults,
+            local.as_ref(),
+        );
+        resolved.explicit =
+            preserve_default_clears(base, resolved.resolved.style, resolved.explicit);
+        self.ov.note(
+            ui,
+            self.id,
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::CELL,
+            resolved.resolved,
+        );
+        resolved
+    }
+
     fn draw_detailed_gutter(
         &self,
         ui: &mut Ui<'_>,
@@ -2814,6 +3300,8 @@ impl Grid<'_> {
             style: inherited,
         } = row;
         let inherited = ui.surface_style().patch(inherited);
+
+        ui.fill(geometry.gutter_row(y), inherited);
         let focused = flags.contains(StateFlags::FOCUSED);
         let checked = flags.contains(StateFlags::CHECKED);
         let mut focus = StylePatch::new().set_glyph(GlyphRole::FocusBar);
@@ -2948,13 +3436,33 @@ impl Grid<'_> {
             width: content.width,
             height: 1,
         };
-        let rs = self.ov.style(
+        let row_defaults = self
+            .part_defaults
+            .iter()
+            .filter(|(part, _)| *part == Part::ROW)
+            .fold(StylePatch::new(), |base, (_, patch)| base.merge(*patch));
+        let row_defaults = StyleDefaults::new(row_defaults);
+        let row_local = self.ov.part_patch(Part::ROW);
+        let mut row_resolved = ui.style_defaults_with_explicit(
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::ROW,
+            rflags,
+            row_defaults,
+            row_local.as_ref(),
+        );
+        row_resolved.explicit = preserve_default_clears(
+            row_defaults.base,
+            row_resolved.resolved.style,
+            row_resolved.explicit,
+        );
+        self.ov.note(
             ui,
             self.id,
             Family::GRID,
             Variant::DEFAULT,
             Part::ROW,
-            rflags,
+            row_resolved.resolved,
         );
         let mut row_delta = StylePatch::new();
         if decor.strike {
@@ -2963,8 +3471,12 @@ impl Grid<'_> {
         if decor.faint {
             row_delta = row_delta.add(Modifier::DIM);
         }
-        let row_style = apply_style_delta(ui, rs.style, row_delta);
+        let row_style = apply_style_delta(ui, row_resolved.resolved.style, row_delta);
+        let cell_defaults = inherited_style_defaults(row_style, row_resolved.explicit);
         ui.fill(band, row_style);
+        if !row_resolved.explicit.is_empty() {
+            termrock_runtime::author::patch_style(ui, band, row_style, row_resolved.explicit);
+        }
         if self.gutter == GridGutter::Compact {
             if is_cursor && live.contains(StateFlags::FOCUSED) {
                 ui.glyph(super::cell_at(band, band.x), GlyphRole::FocusBar, row_style);
@@ -3004,7 +3516,7 @@ impl Grid<'_> {
                 .then(|| state.edit_error())
                 .flatten();
             let mut cflags = rflags.difference(StateFlags::PRESSED);
-            if is_cursor && i == cursor.1 {
+            if is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED) {
                 cflags |= StateFlags::ACTIVE;
             }
             if range
@@ -3021,16 +3533,22 @@ impl Grid<'_> {
             if !self.disabled && pressed == Some(PartRef::item(Part::CELL, key)) {
                 cflags |= StateFlags::PRESSED;
             }
+            let cell_defaults = if cflags.contains(StateFlags::ACTIVE) {
+                StyleDefaults::default()
+            } else {
+                cell_defaults
+            };
             let Some(cell) = cell else {
-                let cs = self.ov.style(
-                    ui,
-                    self.id,
-                    Family::GRID,
-                    Variant::DEFAULT,
-                    Part::CELL,
-                    cflags,
-                );
-                ui.fill(rect, cs.style);
+                let cs = self.cell_style(ui, cflags, cell_defaults);
+                let style = if cflags.contains(StateFlags::ACTIVE) {
+                    active_cell_style(ui, row_style, cs, decor.strike)
+                } else {
+                    cs.resolved.style
+                };
+                ui.fill(rect, style);
+                if !cs.explicit.is_empty() {
+                    termrock_runtime::author::patch_style(ui, rect, cs.resolved.style, cs.explicit);
+                }
                 if !inert {
                     geometry.register_cell_part(
                         ui,
@@ -3045,22 +3563,36 @@ impl Grid<'_> {
             let cdecor = model.cell_decor(row, i);
             let actions = model.actions(row, i);
             cflags |= cdecor.flags();
-            let cs = self.ov.style(
-                ui,
-                self.id,
-                Family::GRID,
-                Variant::DEFAULT,
-                Part::CELL,
-                cflags,
-            );
+            let cs = self.cell_style(ui, cflags, cell_defaults);
+            if cflags.contains(StateFlags::ACTIVE) && (!actions.is_empty() || cell.text.is_empty())
+            {
+                ui.fill(rect, active_cell_style(ui, row_style, cs, decor.strike));
+            }
+            if !cs.explicit.is_empty() {
+                termrock_runtime::author::patch_style(ui, rect, cs.resolved.style, cs.explicit);
+            }
             let mut cell_delta = StylePatch::new();
             if let Some(role) = cdecor.tone.or(cell.tone) {
                 cell_delta = cell_delta.set_fg(role);
+                if let Some((_, patch)) =
+                    self.cell_tone_styles.iter().find(|(tone, _)| *tone == role)
+                {
+                    cell_delta = cell_delta.merge(*patch);
+                }
             }
             if cdecor.italic {
                 cell_delta = cell_delta.add(Modifier::ITALIC);
             }
-            let style = apply_style_delta(ui, cs.style, cell_delta);
+
+            if decor.strike && !cs.explicit.remove.contains(Modifier::CROSSED_OUT) {
+                cell_delta = cell_delta.add(Modifier::CROSSED_OUT);
+            }
+            let cell_style = if cflags.contains(StateFlags::ACTIVE) {
+                active_cell_style(ui, row_style, cs, decor.strike)
+            } else {
+                cs.resolved.style
+            };
+            let style = apply_style_delta(ui, cell_style, cell_delta);
             let mut text_rect = rect;
             if let Some(gl) = self.columns.get(i).and_then(|c| c.prefix_glyph) {
                 let used = ui.glyph(rect, gl, style);
@@ -3097,7 +3629,12 @@ impl Grid<'_> {
                 .filter(|_| !editing && refused_error.is_none())
                 .zip(self.col_key(i))
             {
+                let padding_style = (cflags.contains(StateFlags::ACTIVE) && actions.is_empty())
+                    .then(|| ui.surface_style().patch(row_style));
                 let mut painter = CellUi::new(ui.reborrow(), text_rect, style);
+                if let Some(padding_style) = padding_style {
+                    painter.padding_style(padding_style);
+                }
                 painter.align(align);
                 render(
                     GridCell {
@@ -3113,6 +3650,9 @@ impl Grid<'_> {
                 );
             } else {
                 paint_aligned(ui, text_rect, text, align, style);
+            }
+            if cflags.contains(StateFlags::ACTIVE) && !cs.explicit.is_empty() {
+                termrock_runtime::author::patch_style(ui, rect, cs.resolved.style, cs.explicit);
             }
             if !inert {
                 geometry.register_cell_part(ui, self.id, PartRef::item(Part::CELL, key), i, rect);
@@ -3147,6 +3687,8 @@ impl Grid<'_> {
             }
             if editing {
                 TextInput::new(self.id.part(Part::TEXT))
+                    .embedded_cell()
+                    .text_style_target(Family::GRID, Variant::DEFAULT, Part::TEXT)
                     .pointer_enabled(geometry.complete.get(i).copied().unwrap_or(false))
                     .disabled(self.disabled)
                     .value(cell.text)
@@ -3201,7 +3743,18 @@ impl Grid<'_> {
             );
         }
         if !inert {
-            ui.publish_bindings(self.id, live, &BINDINGS);
+            ui.publish_bindings(
+                self.id,
+                live,
+                if self.sort_current_column {
+                    &TABLE_BINDINGS
+                } else {
+                    &BINDINGS
+                },
+            );
+            if self.type_ahead && !self.disabled && !st.is_editing() {
+                ui.publish_type_ahead(self.id, live);
+            }
         }
         let container = self.ov.style(
             ui,
@@ -3215,6 +3768,7 @@ impl Grid<'_> {
         let (header, note, body, bar) = self.chrome(area, reason);
         let scroll = Self::scroll_for_view(st, usize::from(body.height));
         let content = self.bar().draw(ui, body, &scroll, total);
+        let scroll_view = ScrollRegion::view(&scroll, content, total);
         let rows = Self::window(st, content, total);
         let g = self.geometry(content, st, model, rows.clone());
         let head = Rect {
@@ -3377,6 +3931,9 @@ impl Grid<'_> {
             }
             self.draw_row(ui, y, row, &row_paint);
         }
+        if !inert {
+            ui.scroll_edges(content, &scroll_view);
+        }
         self.draw_actions(ui, bar, live);
         area
     }
@@ -3422,1630 +3979,5 @@ impl Bindings for Grid<'_> {
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<GridCmd>] {
         &BINDINGS
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use core::cell::Cell;
-
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::{Position, Rect};
-
-    use super::*;
-    use crate::event::MouseKind;
-    use crate::runtime::stub::{key, mouse};
-    use crate::runtime::{App, Runtime};
-    use crate::theme::Theme;
-    use crate::validate::FieldError;
-
-    const ID: Id = Id::root("grid.tests");
-    const AREA: Rect = Rect::new(0, 0, 30, 6);
-    const CELL_ACTION: ActionKey = ActionKey::custom("follow");
-    const CELL_ACTIONS: [CellAction; 1] = [CellAction::new(CELL_ACTION)];
-
-    fn columns() -> [Column<'static>; 2] {
-        [
-            Column {
-                key: ColumnKey::num(1),
-                title: "Name",
-                subtitle: None,
-                align: Align::Left,
-                min_width: 8,
-                max_width: 8,
-                sortable: true,
-                editable: true,
-                sticky: false,
-                prefix_glyph: None,
-                badge: None,
-            },
-            Column {
-                key: ColumnKey::num(2),
-                title: "Value",
-                subtitle: None,
-                align: Align::Left,
-                min_width: 8,
-                max_width: 8,
-                sortable: false,
-                editable: true,
-                sticky: false,
-                prefix_glyph: None,
-                badge: None,
-            },
-        ]
-    }
-
-    #[derive(Clone, Copy, Debug, Default)]
-    enum Mode {
-        #[default]
-        Inline,
-        Cycle,
-        External,
-        Refuse,
-    }
-
-    #[derive(Default)]
-    struct Model {
-        rows: Vec<(ItemKey, [&'static str; 2])>,
-        mode: Mode,
-        cycles: usize,
-        commits: Vec<String>,
-        fail_commit: bool,
-        locked: bool,
-        reason: Option<&'static str>,
-        cell_action: bool,
-    }
-
-    impl Model {
-        fn two() -> Self {
-            Model {
-                rows: vec![
-                    (ItemKey::num(10), ["alpha", "1"]),
-                    (ItemKey::num(20), ["beta", "2"]),
-                ],
-                ..Model::default()
-            }
-        }
-    }
-
-    #[test]
-    fn keyed_cursor_errors_preserve_complete_state_and_typed_reason() {
-        let columns = columns();
-        let grid = Grid::new(ID, &columns);
-        let model = Model::two();
-        let mut state = GridState {
-            edit: Some((ItemKey::num(10), ColumnKey::num(1))),
-            ..GridState::default()
-        };
-        state.editor.begin("retained draft");
-        let before = state.clone();
-        for (row, col, expected) in [
-            (99, 1, GridCursorError::UnknownRow(ItemKey::num(99))),
-            (10, 99, GridCursorError::UnknownColumn(ColumnKey::num(99))),
-            (20, 2, GridCursorError::Editing),
-        ] {
-            assert_eq!(
-                grid.move_cursor_to(&mut state, &model, ItemKey::num(row), ColumnKey::num(col)),
-                Err(expected)
-            );
-            assert_eq!(state, before);
-        }
-    }
-
-    #[test]
-    fn keyed_cursor_clears_range_but_preserves_checked_rows_and_sticky_window() {
-        let mut columns = columns().to_vec();
-        columns[0].sticky = true;
-        columns.push(Column::new(ColumnKey::num(3), "last"));
-        let grid = Grid::new(ID, &columns);
-        let model = Model::two();
-        let mut state = GridState {
-            anchor: Some(RangeAnchor::Cell(ItemKey::num(20), ColumnKey::num(2))),
-            col_offset: 1,
-            ..GridState::default()
-        };
-        state.core.checked_mut().insert(ItemKey::num(20));
-        assert_eq!(
-            grid.move_cursor_to(&mut state, &model, ItemKey::num(10), ColumnKey::num(1)),
-            Ok(())
-        );
-        assert_eq!(state.anchor, None);
-        assert!(state.core.checked().contains(ItemKey::num(20)));
-        assert_eq!(state.col_offset, 1);
-        assert_eq!(state.core.scroll().pending_reveal(), Some(0));
-    }
-
-    impl GridModel for Model {
-        fn row_count(&self) -> usize {
-            self.rows.len()
-        }
-
-        fn row_key(&self, row: usize) -> ItemKey {
-            self.rows.get(row).map_or(ItemKey::index(row), |r| r.0)
-        }
-
-        fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
-            self.rows
-                .get(row)
-                .and_then(|r| r.1.get(col))
-                .copied()
-                .map(CellRef::new)
-        }
-
-        fn read_only_reason(&self) -> Option<&str> {
-            self.reason
-        }
-
-        fn actions(&self, row: usize, col: usize) -> &[CellAction] {
-            if self.cell_action && row == 0 && col == 0 {
-                &CELL_ACTIONS
-            } else {
-                &[]
-            }
-        }
-    }
-
-    impl GridEditor for Model {
-        fn edit_intent(&self, _row: usize, _col: usize) -> EditIntent<'_> {
-            match self.mode {
-                Mode::Inline => EditIntent::Inline { initial: "alpha" },
-                Mode::Cycle => EditIntent::Cycle,
-                Mode::External => EditIntent::External,
-                Mode::Refuse => EditIntent::Refuse { reason: "locked" },
-            }
-        }
-
-        fn apply_cycle(&mut self, _row: usize, _col: usize) {
-            self.cycles = self.cycles.saturating_add(1);
-        }
-
-        fn commit_cell(&mut self, _row: usize, _col: usize, text: &str) -> Result<(), FieldError> {
-            if self.fail_commit {
-                Err(FieldError::coded("rejected", "grid-test"))
-            } else {
-                self.commits.push(text.to_owned());
-                Ok(())
-            }
-        }
-
-        fn is_editable(&self, _row: usize, _col: usize) -> bool {
-            !self.locked
-        }
-    }
-
-    #[derive(Default)]
-    struct RaggedModel {
-        second_present: Cell<bool>,
-        absent_decor: Cell<usize>,
-        absent_actions: Cell<usize>,
-        editor_hooks: Cell<usize>,
-    }
-
-    impl GridModel for RaggedModel {
-        fn row_count(&self) -> usize {
-            1
-        }
-
-        fn row_key(&self, _row: usize) -> ItemKey {
-            ItemKey::num(1)
-        }
-
-        fn cell(&self, _row: usize, col: usize) -> Option<CellRef<'_>> {
-            match col {
-                0 => Some(CellRef::new("present")),
-                1 if self.second_present.get() => Some(CellRef::new("action")),
-                _ => None,
-            }
-        }
-
-        fn cell_decor(&self, _row: usize, col: usize) -> CellDecor<'_> {
-            if col == 1 {
-                self.absent_decor
-                    .set(self.absent_decor.get().saturating_add(1));
-            }
-            CellDecor::default()
-        }
-
-        fn actions(&self, _row: usize, col: usize) -> &[CellAction] {
-            if col == 1 && !self.second_present.get() {
-                self.absent_actions
-                    .set(self.absent_actions.get().saturating_add(1));
-            }
-            if col == 1 && self.second_present.get() {
-                &CELL_ACTIONS
-            } else {
-                &[]
-            }
-        }
-    }
-
-    impl GridEditor for RaggedModel {
-        fn edit_intent(&self, _row: usize, _col: usize) -> EditIntent<'_> {
-            self.editor_hooks
-                .set(self.editor_hooks.get().saturating_add(1));
-            EditIntent::Cycle
-        }
-
-        fn apply_cycle(&mut self, _row: usize, _col: usize) {
-            self.editor_hooks
-                .set(self.editor_hooks.get().saturating_add(1));
-        }
-
-        fn commit_cell(&mut self, _row: usize, _col: usize, _text: &str) -> Result<(), FieldError> {
-            self.editor_hooks
-                .set(self.editor_hooks.get().saturating_add(1));
-            Ok(())
-        }
-
-        fn is_editable(&self, _row: usize, _col: usize) -> bool {
-            self.editor_hooks
-                .set(self.editor_hooks.get().saturating_add(1));
-            true
-        }
-    }
-
-    struct RaggedApp {
-        state: GridState,
-        model: RaggedModel,
-        actions: Vec<GridAction>,
-    }
-
-    impl App for RaggedApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let mut columns = columns();
-            if let Some(column) = columns.get_mut(1) {
-                column.sortable = true;
-            }
-            let mut response =
-                Grid::new(ID, &columns).update_editable(cx, &mut self.state, &mut self.model);
-            if let Some(action) = response.take_action() {
-                self.actions.push(action);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let mut columns = columns();
-            if let Some(column) = columns.get_mut(1) {
-                column.sortable = true;
-            }
-            Grid::new(ID, &columns).draw(ui, AREA, &self.state, &self.model);
-        }
-    }
-
-    struct DisplayOnlyModel;
-
-    impl GridModel for DisplayOnlyModel {
-        fn row_count(&self) -> usize {
-            1
-        }
-
-        fn row_key(&self, _row: usize) -> ItemKey {
-            ItemKey::num(1)
-        }
-
-        fn cell(&self, _row: usize, col: usize) -> Option<CellRef<'_>> {
-            (col == 0).then_some(CellRef::new("display only"))
-        }
-    }
-
-    struct DisplayOnlyApp {
-        state: GridState,
-        model: DisplayOnlyModel,
-    }
-
-    impl App for DisplayOnlyApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            Grid::new(ID, &columns())
-                .update(cx, &mut self.state, &self.model)
-                .erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            Grid::new(ID, &columns()).draw(ui, AREA, &self.state, &self.model);
-        }
-    }
-
-    struct GridApp {
-        state: GridState,
-        model: Model,
-        editable: bool,
-        actions: Vec<GridAction>,
-    }
-
-    impl GridApp {
-        fn new(model: Model, editable: bool) -> Self {
-            GridApp {
-                state: GridState::default(),
-                model,
-                editable,
-                actions: Vec::new(),
-            }
-        }
-    }
-
-    impl App for GridApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let columns = columns();
-            let grid = Grid::new(ID, &columns).select_mode(SelectMode::Multi);
-            let mut response = if self.editable {
-                grid.update_editable(cx, &mut self.state, &mut self.model)
-            } else {
-                grid.update(cx, &mut self.state, &self.model)
-            };
-            if let Some(action) = response.take_action() {
-                self.actions.push(action);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            Grid::new(ID, &columns())
-                .select_mode(SelectMode::Multi)
-                .draw(ui, AREA, &self.state, &self.model);
-        }
-    }
-
-    struct AreaGridApp {
-        state: GridState,
-        model: Model,
-        area: Rect,
-    }
-
-    impl App for AreaGridApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            Grid::new(ID, &columns())
-                .update(cx, &mut self.state, &self.model)
-                .erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            Grid::new(ID, &columns()).draw(ui, self.area, &self.state, &self.model);
-        }
-    }
-
-    fn runtime(model: Model, editable: bool) -> (Runtime<GridApp>, Buffer) {
-        let mut runtime = Runtime::new(GridApp::new(model, editable), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        (runtime, buffer)
-    }
-
-    #[cfg(debug_assertions)]
-    #[test]
-    #[should_panic(expected = "columns \"Name\" and \"Value\" share ColumnKey::num(1)")]
-    fn duplicate_column_keys_are_rejected_by_name() {
-        let mut columns = columns();
-        if let Some(column) = columns.get_mut(1) {
-            column.key = ColumnKey::num(1);
-        }
-        Grid::new(ID, &columns).assert_distinct_column_keys();
-    }
-
-    #[test]
-    fn right_header_overflow_reserves_space_before_truncating_the_title() {
-        let columns = [
-            Column {
-                key: ColumnKey::num(1),
-                title: "total_amount_and_more",
-                subtitle: None,
-                align: Align::Left,
-                min_width: 18,
-                max_width: 18,
-                sortable: false,
-                editable: false,
-                sticky: false,
-                prefix_glyph: None,
-                badge: None,
-            },
-            Column {
-                key: ColumnKey::num(2),
-                title: "second",
-                subtitle: None,
-                align: Align::Left,
-                min_width: 8,
-                max_width: 8,
-                sortable: false,
-                editable: false,
-                sticky: false,
-                prefix_glyph: None,
-                badge: None,
-            },
-        ];
-        let model = Model::two();
-        let area = Rect::new(0, 0, 20, 5);
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                Grid::new(ID, &columns).draw(ui, area, &GridState::default(), &model);
-            })
-            .commit_presented();
-
-        assert_eq!(
-            buffer
-                .cell(Position::new(17, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("…")
-        );
-        assert_eq!(
-            buffer
-                .cell(Position::new(18, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("1")
-        );
-        assert_eq!(
-            buffer
-                .cell(Position::new(19, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("›")
-        );
-    }
-
-    #[cfg(debug_assertions)]
-    #[test]
-    #[should_panic(expected = "share ColumnKey::num(1)")]
-    fn draw_rejects_duplicate_column_keys() {
-        let mut columns = columns();
-        if let Some(column) = columns.get_mut(1) {
-            column.key = ColumnKey::num(1);
-        }
-        let model = Model::two();
-        let screen = AREA;
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(screen);
-        runtime
-            .draw_scene(screen, &mut buffer, |ui, _| {
-                Grid::new(ID, &columns).draw(ui, screen, &GridState::default(), &model);
-            })
-            .commit_presented();
-    }
-
-    #[test]
-    #[should_panic(expected = "ColumnKey::num is 0..=0x7FFF")]
-    fn column_key_num_rejects_the_hashed_range() {
-        let _ = ColumnKey::num(core::hint::black_box(0x8000));
-    }
-
-    #[test]
-    fn column_key_num_keeps_every_number_it_accepts() {
-        for n in [0_u16, 1, 255, 0x7FFE, COLUMN_KEY_MAX] {
-            assert_eq!(ColumnKey::num(n).raw(), n, "num must not fold {n}");
-            assert!(ColumnKey::num(n).raw() <= COLUMN_KEY_MAX);
-        }
-    }
-
-    #[test]
-    fn numbered_and_named_column_keys_never_meet() {
-        for name in ["id", "name", "schema.table", "", "\u{1f600}"] {
-            let named = ColumnKey::of(name);
-            assert!(named.raw() > COLUMN_KEY_MAX, "{name:?} left the high half");
-            for n in [0_u16, 1, 255, 0x7FFF] {
-                assert_ne!(named, ColumnKey::num(n));
-            }
-        }
-    }
-
-    #[test]
-    fn column_key_of_uses_the_shared_custom_fold() {
-        for name in ["id", "name", "schema.table", ""] {
-            assert_eq!(ColumnKey::of(name).raw(), custom_hash16(name));
-            assert_eq!(ColumnKey::of(name).raw(), Part::custom(name).raw());
-        }
-        assert_ne!(ColumnKey::of("id"), ColumnKey::of("name"));
-        assert_eq!(ColumnKey::of("id"), ColumnKey::of("id"));
-    }
-
-    #[test]
-    fn column_key_debug_names_its_range() {
-        assert_eq!(format!("{:?}", ColumnKey::num(2)), "ColumnKey::num(2)");
-        assert_eq!(
-            format!("{:?}", ColumnKey::of("id")),
-            format!("ColumnKey::of(#{:04x})", ColumnKey::of("id").raw())
-        );
-    }
-
-    #[test]
-    fn an_absent_column_index_has_no_key_rather_than_a_sentinel() {
-        let columns = columns();
-        let grid = Grid::new(ID, &columns);
-        assert_eq!(grid.col_key(0), Some(ColumnKey::num(1)));
-        assert_eq!(grid.col_key(1), Some(ColumnKey::num(2)));
-        assert_eq!(grid.col_key(2), None);
-        assert_eq!(grid.col_key(usize::MAX), None);
-
-        const { assert!(u16::MAX > COLUMN_KEY_MAX) };
-    }
-
-    #[test]
-    fn parts_and_slot_contract_are_exact() {
-        assert_eq!(
-            Grid::PARTS,
-            &[
-                Part::CONTAINER,
-                Part::HEADER,
-                Part::ROW,
-                Part::CELL,
-                Part::TRACK,
-                Part::THUMB,
-                Part::OVERFLOW,
-                Part::EMPTY,
-                Part::ACTIONS,
-                Part::GUTTER,
-                Part::MARKER,
-                Part::CHANGE,
-                Part::ROW_NUMBER,
-                Part::ICON,
-            ]
-        );
-        let addressable = [
-            Part::HEADER,
-            Part::EMPTY,
-            Part::ACTIONS,
-            Part::TRACK,
-            Part::THUMB,
-        ];
-        assert!(addressable.iter().all(|part| Grid::PARTS.contains(part)));
-    }
-
-    #[test]
-    fn grid_has_no_whole_surface_status_configuration() {
-        let columns = columns();
-        let debug = format!("{:?}", Grid::new(ID, &columns));
-        assert!(!debug.contains("status"));
-        assert_eq!(Grid::PARTS.len(), 14);
-        assert!(Grid::new(ID, &columns).header_prefixes.is_empty());
-    }
-
-    #[test]
-    fn zero_rows_render_explicit_loading_and_error_empty_states() {
-        fn render(empty: EmptyState<'_>) -> String {
-            let columns = columns();
-            let model = Model::default();
-            let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(AREA);
-            runtime
-                .draw_scene(AREA, &mut buffer, |ui, _| {
-                    Grid::new(ID, &columns).empty(empty).draw(
-                        ui,
-                        AREA,
-                        &GridState::default(),
-                        &model,
-                    );
-                })
-                .commit_presented();
-            buffer
-                .content()
-                .iter()
-                .map(ratatui_core::buffer::Cell::symbol)
-                .collect()
-        }
-
-        assert!(
-            render(EmptyState::Loading {
-                label: "Loading rows"
-            })
-            .contains("Loading rows")
-        );
-        assert!(
-            render(EmptyState::Error {
-                message: "Load failed",
-                detail: Some("Retry later"),
-            })
-            .contains("Load failed")
-        );
-    }
-
-    #[test]
-    fn slot_surface_equals_the_documented_invariant_r_set() {
-        fn render(slot: Option<Part>) -> Buffer {
-            let screen = Rect::new(0, 0, 20, 10);
-            let replace = |ui: &mut Ui<'_>, area: Rect| {
-                ui.paint_str(area, "#", ui.surface_style());
-            };
-            let columns = columns();
-            let mut model = Model::two();
-            model.cell_action = true;
-            model
-                .rows
-                .extend((0..20).map(|i| (ItemKey::num(100 + i), ["overflow", "row"])));
-            let empty = Model::default();
-            let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(screen);
-            runtime
-                .draw_scene(screen, &mut buffer, |ui, _| {
-                    let mut full = Grid::new(ID, &columns).actions_slot(&replace);
-                    let mut blank = Grid::new(ID.sub("empty"), &columns);
-                    if let Some(part) = slot {
-                        full = full.slot(part, &replace);
-                        blank = blank.slot(part, &replace);
-                    }
-                    full.draw(ui, Rect::new(0, 0, 12, 6), &GridState::default(), &model);
-                    blank.draw(ui, Rect::new(0, 7, 12, 3), &GridState::default(), &empty);
-                })
-                .commit_presented();
-            buffer
-        }
-
-        let baseline = render(None);
-        let addressable = [
-            Part::HEADER,
-            Part::EMPTY,
-            Part::ACTIONS,
-            Part::TRACK,
-            Part::THUMB,
-        ];
-        for &part in Grid::PARTS {
-            assert_eq!(
-                render(Some(part)) != baseline,
-                addressable.contains(&part),
-                "slot truth disagrees for {part:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn state_accessors_expose_only_keyed_owned_state() {
-        let mut state = GridState::default();
-        state.set_cursor(1, ItemKey::num(20), 1, ColumnKey::num(2));
-        state.core.checked_mut().insert(ItemKey::num(20));
-        state.col_offset = 3;
-        state.edit = Some((ItemKey::num(20), ColumnKey::num(2)));
-        state
-            .editor
-            .set_error(Some(FieldError::coded("bad", "typed")));
-
-        assert_eq!(state.cursor(), Some((ItemKey::num(20), ColumnKey::num(2))));
-        assert!(state.selected_rows().contains(ItemKey::num(20)));
-        assert!(state.is_editing());
-        assert_eq!(state.edit_error().and_then(|e| e.code), Some("typed"));
-        assert_eq!(state.col_offset(), 3);
-    }
-
-    #[test]
-    fn grid_edit_errors_resolve_plain_sensitivity_but_keep_secret_errors_redacted() {
-        const DETAIL: &str = "validation detail";
-
-        let mut state = GridState::default();
-        state
-            .editor
-            .set_error(Some(FieldError::coded(DETAIL, "typed")));
-        assert_eq!(
-            state.edit_error().map(|error| error.message.as_ref()),
-            Some(DETAIL)
-        );
-        assert_eq!(
-            state.edit_error().and_then(|error| error.code),
-            Some("typed")
-        );
-
-        state.editor.set_sensitive(true);
-        state
-            .editor
-            .set_error(Some(FieldError::coded(DETAIL, "secret")));
-        assert_eq!(
-            state.edit_error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(state.edit_error().and_then(|error| error.code).is_none());
-    }
-
-    #[test]
-    fn grid_model_only_supports_read_only_update_and_draw() {
-        let app = DisplayOnlyApp {
-            state: GridState::default(),
-            model: DisplayOnlyModel,
-        };
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
-
-        assert_eq!(
-            runtime.app().state.cursor(),
-            Some((ItemKey::num(1), ColumnKey::num(2)))
-        );
-    }
-
-    #[test]
-    fn read_only_f2_never_activates_but_enter_still_does() {
-        let (mut runtime, _) = runtime(Model::two(), false);
-
-        let f2 = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(2)));
-        assert!(f2.is_consumed());
-        assert!(runtime.app().actions.is_empty());
-
-        let enter = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        assert!(enter.is_consumed());
-        assert_eq!(
-            runtime.app().actions,
-            [GridAction::Activated(ItemKey::num(10))]
-        );
-    }
-
-    #[test]
-    fn explicit_edit_has_no_activation_fallback_for_a_locked_cell() {
-        let mut model = Model::two();
-        model.locked = true;
-        let (mut runtime, _) = runtime(model, true);
-
-        let f2 = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(2)));
-        assert!(f2.is_consumed());
-        assert!(!runtime.app().state.is_editing());
-        assert!(runtime.app().actions.is_empty());
-
-        let enter = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        assert!(enter.is_consumed());
-        assert!(!runtime.app().state.is_editing());
-        assert_eq!(
-            runtime.app().actions,
-            [GridAction::Activated(ItemKey::num(10))]
-        );
-    }
-
-    #[test]
-    fn ragged_holes_remain_navigable_without_cell_hooks() {
-        let app = RaggedApp {
-            state: GridState::default(),
-            model: RaggedModel::default(),
-            actions: Vec::new(),
-        };
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-
-        assert_eq!(
-            runtime.app().state.cursor(),
-            Some((ItemKey::num(1), ColumnKey::num(2)))
-        );
-        assert_eq!(
-            runtime.app().actions,
-            [GridAction::Moved, GridAction::Activated(ItemKey::num(1))]
-        );
-        assert_eq!(runtime.app().model.absent_decor.get(), 0);
-        assert_eq!(runtime.app().model.absent_actions.get(), 0);
-        assert_eq!(runtime.app().model.editor_hooks.get(), 0);
-
-        let header = runtime
-            .area_of_part(
-                ID,
-                PartRef::item(Part::HEADER, column_item_key(ColumnKey::num(2))),
-            )
-            .unwrap_or(Rect::ZERO);
-        assert!(!header.is_empty());
-        let _ =
-            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, header.x, header.y));
-        let _ =
-            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, header.x, header.y));
-        assert_eq!(
-            runtime.app().actions.last(),
-            Some(&GridAction::Sort(ColumnKey::num(2), SortDir::Asc))
-        );
-
-        let pointer_app = RaggedApp {
-            state: GridState::default(),
-            model: RaggedModel::default(),
-            actions: Vec::new(),
-        };
-        let mut pointer = Runtime::new(pointer_app, Theme::junie());
-        let _ = pointer.initialize();
-        pointer.draw_buffer(AREA, &mut buffer).commit_presented();
-        pointer.draw_buffer(AREA, &mut buffer).commit_presented();
-        let hole = pointer
-            .area_of_part(ID, PartRef::item(Part::CELL, ItemKey::num(1)))
-            .unwrap_or(Rect::ZERO);
-        assert!(!hole.is_empty());
-        assert_eq!(hole.x, 11);
-        let _ = crate::runtime::stub::deliver(&mut pointer, mouse(MouseKind::Down, hole.x, hole.y));
-        assert_eq!(
-            pointer.app().state.cursor(),
-            Some((ItemKey::num(1), ColumnKey::num(2)))
-        );
-        assert_eq!(pointer.app().model.absent_decor.get(), 0);
-        assert_eq!(pointer.app().model.absent_actions.get(), 0);
-        assert_eq!(pointer.app().model.editor_hooks.get(), 0);
-
-        let columns = columns();
-        let grid = Grid::new(ID, &columns);
-        assert_eq!(
-            grid.copy_tsv(&runtime.app().state, &runtime.app().model, (0, 1)),
-            "\n"
-        );
-    }
-
-    #[test]
-    fn ragged_hole_resolves_and_fills_cell_patch() {
-        let patch = [(Part::CELL, StylePatch::new().add(Modifier::BOLD))];
-        let columns = columns();
-        let model = RaggedModel::default();
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, _| {
-                Grid::new(ID, &columns).patch_part(&patch).draw(
-                    ui,
-                    AREA,
-                    &GridState::default(),
-                    &model,
-                );
-            })
-            .commit_presented();
-
-        assert!(
-            buffer
-                .cell(Position::new(11, 1))
-                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
-        );
-        assert_eq!(model.absent_decor.get(), 0);
-        assert_eq!(model.absent_actions.get(), 0);
-    }
-
-    #[test]
-    fn stale_cell_action_intent_rechecks_cell_presence() {
-        let model = RaggedModel {
-            second_present: Cell::new(true),
-            ..RaggedModel::default()
-        };
-        let app = RaggedApp {
-            state: GridState::default(),
-            model,
-            actions: Vec::new(),
-        };
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        let affordance = runtime
-            .area_of_part(ID, PartRef::item(Part::ACTIONS, ItemKey::num(1)))
-            .unwrap_or(Rect::ZERO);
-        assert!(!affordance.is_empty());
-
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            mouse(MouseKind::Down, affordance.x, affordance.y),
-        );
-        runtime.app().model.second_present.set(false);
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            mouse(MouseKind::Up, affordance.x, affordance.y),
-        );
-
-        assert!(
-            runtime
-                .app()
-                .actions
-                .iter()
-                .all(|action| !matches!(action, GridAction::CellAction(..)))
-        );
-        assert_eq!(runtime.app().model.absent_actions.get(), 0);
-    }
-
-    #[test]
-    fn cell_alignment_distinguishes_inheritance_from_explicit_left() {
-        struct AlignmentModel(Option<Align>);
-
-        impl GridModel for AlignmentModel {
-            fn row_count(&self) -> usize {
-                1
-            }
-
-            fn row_key(&self, _row: usize) -> ItemKey {
-                ItemKey::num(1)
-            }
-
-            fn cell(&self, _row: usize, _col: usize) -> Option<CellRef<'_>> {
-                Some(match self.0 {
-                    Some(align) => CellRef::new("x").align(align),
-                    None => CellRef::new("x"),
-                })
-            }
-        }
-
-        fn render(column_align: Align, cell_align: Option<Align>) -> Buffer {
-            let screen = Rect::new(0, 0, 12, 3);
-            let columns = [Column {
-                align: column_align,
-                min_width: 8,
-                max_width: 8,
-                ..Column::new(ColumnKey::num(1), "value")
-            }];
-            let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(screen);
-            runtime
-                .draw_scene(screen, &mut buffer, |ui, _| {
-                    Grid::new(ID, &columns).draw(
-                        ui,
-                        screen,
-                        &GridState::default(),
-                        &AlignmentModel(cell_align),
-                    );
-                })
-                .commit_presented();
-            buffer
-        }
-
-        let inherited = render(Align::Right, None);
-        let explicit_left = render(Align::Right, Some(Align::Left));
-        let explicit_center = render(Align::Left, Some(Align::Center));
-        let explicit_right = render(Align::Left, Some(Align::Right));
-        assert_eq!(CellRef::new("x").align, None);
-        assert_eq!(
-            CellRef::new("x").align(Align::Left).align,
-            Some(Align::Left)
-        );
-        assert_eq!(
-            inherited
-                .cell(Position::new(9, 1))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("x")
-        );
-        assert_eq!(
-            explicit_left
-                .cell(Position::new(2, 1))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("x")
-        );
-        assert_eq!(
-            explicit_center
-                .cell(Position::new(5, 1))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("x")
-        );
-        assert_eq!(
-            explicit_right
-                .cell(Position::new(9, 1))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("x")
-        );
-    }
-
-    #[test]
-    fn model_cell_calls_never_exceed_max_columns() {
-        struct BoundedModel {
-            largest_column: Cell<usize>,
-            out_of_bounds_calls: Cell<usize>,
-        }
-
-        impl BoundedModel {
-            fn record(&self, col: usize) {
-                self.largest_column.set(self.largest_column.get().max(col));
-                if col >= GRID_MAX_COLUMNS {
-                    self.out_of_bounds_calls
-                        .set(self.out_of_bounds_calls.get().saturating_add(1));
-                }
-            }
-        }
-
-        impl GridModel for BoundedModel {
-            fn row_count(&self) -> usize {
-                1
-            }
-
-            fn row_key(&self, _row: usize) -> ItemKey {
-                ItemKey::num(1)
-            }
-
-            fn cell(&self, _row: usize, col: usize) -> Option<CellRef<'_>> {
-                self.record(col);
-                Some(CellRef::new("x"))
-            }
-
-            fn cell_decor(&self, _row: usize, col: usize) -> CellDecor<'_> {
-                self.record(col);
-                CellDecor::default()
-            }
-
-            fn actions(&self, _row: usize, col: usize) -> &[CellAction] {
-                self.record(col);
-                &[]
-            }
-        }
-
-        let mut columns = [Column::new(ColumnKey::num(0), "x"); GRID_MAX_COLUMNS + 2];
-        for (index, column) in columns.iter_mut().enumerate() {
-            column.key = ColumnKey::num(index as u16);
-        }
-        let model = BoundedModel {
-            largest_column: Cell::new(0),
-            out_of_bounds_calls: Cell::new(0),
-        };
-        let screen = Rect::new(0, 0, 200, 3);
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(screen);
-        runtime
-            .draw_scene(screen, &mut buffer, |ui, _| {
-                Grid::new(ID, &columns).draw(ui, screen, &GridState::default(), &model);
-            })
-            .commit_presented();
-        let mut state = GridState::default();
-        state.set_cursor(
-            0,
-            ItemKey::num(1),
-            GRID_MAX_COLUMNS - 1,
-            ColumnKey::num(GRID_MAX_COLUMNS.saturating_sub(1) as u16),
-        );
-        let _ = Grid::new(ID, &columns).copy_tsv(
-            &state,
-            &model,
-            (0, GRID_MAX_COLUMNS.saturating_sub(1)),
-        );
-
-        assert_eq!(model.largest_column.get(), GRID_MAX_COLUMNS - 1);
-        assert_eq!(model.out_of_bounds_calls.get(), 0);
-    }
-
-    #[test]
-    fn nonzero_origin_tiny_grid_never_places_a_column_outside_its_area() {
-        let screen = Rect::new(0, 0, 12, 10);
-        let area = Rect::new(5, 5, 2, 2);
-        let columns = columns();
-        let model = Model::two();
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(screen);
-        runtime
-            .draw_scene(screen, &mut buffer, |ui, _| {
-                Grid::new(ID, &columns).draw(ui, area, &GridState::default(), &model);
-            })
-            .commit_presented();
-
-        for y in 0..screen.height {
-            for x in 0..screen.width {
-                if !area.contains(Position::new(x, y)) {
-                    assert_eq!(
-                        buffer
-                            .cell(Position::new(x, y))
-                            .map(ratatui_core::buffer::Cell::symbol),
-                        Some(" "),
-                        "grid painted outside {area:?} at ({x}, {y})"
-                    );
-                }
-            }
-        }
-        let geometry = Grid::new(ID, &columns).geometry(
-            Rect::new(5, 6, 2, 1),
-            &GridState::default(),
-            &model,
-            0..1,
-        );
-        assert!(geometry.shown.iter().all(|shown| !shown));
-    }
-
-    #[test]
-    fn oversized_first_column_is_clipped_to_positive_available_width() {
-        let screen = Rect::new(0, 0, 14, 10);
-        let area = Rect::new(5, 5, 4, 3);
-        let body = Rect::new(5, 6, 4, 2);
-        let columns = columns();
-        let model = Model::two();
-        let mut state = GridState::default();
-        state.set_cursor(0, ItemKey::num(10), 1, ColumnKey::num(2));
-        let grid = Grid::new(ID, &columns);
-        let geometry = grid.geometry(body, &state, &model, 0..2);
-        assert_eq!(geometry.cell(0, body.y), Rect::new(7, 6, 2, 1));
-        assert!(geometry.cell(1, body.y).is_empty());
-        assert_eq!(geometry.column_at(8), Some(0));
-        assert_eq!(geometry.column_at(body.right()), None);
-
-        let app = AreaGridApp { state, model, area };
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let mut buffer = Buffer::empty(screen);
-        runtime.draw_buffer(screen, &mut buffer).commit_presented();
-        runtime.draw_buffer(screen, &mut buffer).commit_presented();
-        for y in 0..screen.height {
-            for x in 0..screen.width {
-                if !area.contains(Position::new(x, y)) {
-                    assert_eq!(
-                        buffer
-                            .cell(Position::new(x, y))
-                            .map(ratatui_core::buffer::Cell::symbol),
-                        Some(" "),
-                        "grid painted outside {area:?} at ({x}, {y})"
-                    );
-                }
-            }
-        }
-        let cell = runtime
-            .area_of_part(ID, PartRef::item(Part::CELL, ItemKey::num(10)))
-            .unwrap_or(Rect::ZERO);
-        assert_eq!(cell, Rect::new(7, 6, 2, 1));
-        let header = runtime
-            .area_of_part(
-                ID,
-                PartRef::item(Part::HEADER, column_item_key(ColumnKey::num(1))),
-            )
-            .unwrap_or(Rect::ZERO);
-        assert_eq!(header, Rect::new(7, 5, 2, 1));
-
-        let _ = runtime.initialize();
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            mouse(MouseKind::Down, cell.right() - 1, cell.y),
-        );
-        assert_eq!(
-            runtime.app().state.cursor(),
-            Some((ItemKey::num(10), ColumnKey::num(1)))
-        );
-    }
-
-    #[test]
-    fn oversized_sticky_column_is_clipped_and_hides_nonsticky_columns_truthfully() {
-        let area = Rect::new(0, 0, 10, 3);
-        let mut columns = columns();
-        if let Some(sticky) = columns.get_mut(0) {
-            sticky.sticky = true;
-            sticky.min_width = 9;
-            sticky.max_width = 9;
-        }
-        if let Some(nonsticky) = columns.get_mut(1) {
-            nonsticky.sortable = true;
-        }
-        let model = Model::two();
-        let state = GridState::default();
-        let grid = Grid::new(ID, &columns);
-        let geometry = grid.geometry(Rect::new(0, 1, 10, 2), &state, &model, 0..2);
-        assert_eq!(geometry.shown.first().copied(), Some(true));
-        assert_eq!(geometry.shown.get(1).copied(), Some(false));
-        assert_eq!(geometry.hidden_right, 1);
-        assert_eq!(geometry.cell(0, 1), Rect::new(2, 1, 8, 1));
-        assert!(geometry.cell(1, 1).is_empty());
-        assert_eq!(geometry.column_at(area.right()), None);
-
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                grid.draw(ui, area, &state, &model);
-            })
-            .commit_presented();
-        let mut label = None;
-        runtime
-            .draw_scene(area, &mut buffer, |ui, _| {
-                grid.draw(ui, area, &state, &model);
-                label = grid.cols_label(ui, &state, &model);
-            })
-            .commit_presented();
-        assert_eq!(label.as_deref(), Some("cols 1–1 of 2"));
-        assert!(
-            runtime
-                .area_of_part(
-                    ID,
-                    PartRef::item(Part::HEADER, column_item_key(ColumnKey::num(2))),
-                )
-                .is_none()
-        );
-        let overflow = Theme::junie().design.glyphs.get(GlyphRole::OverflowRight);
-        assert!(
-            buffer
-                .content()
-                .iter()
-                .any(|cell| cell.symbol() == overflow)
-        );
-    }
-
-    #[test]
-    fn variable_ragged_rows_survive_tiny_layout_measure_and_tsv() {
-        struct VariableModel {
-            rows: [&'static [&'static str]; 5],
-            cell_calls: Cell<usize>,
-        }
-
-        impl GridModel for VariableModel {
-            fn row_count(&self) -> usize {
-                self.rows.len()
-            }
-
-            fn row_key(&self, row: usize) -> ItemKey {
-                ItemKey::index(row)
-            }
-
-            fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
-                self.cell_calls.set(self.cell_calls.get().saturating_add(1));
-                self.rows
-                    .get(row)
-                    .and_then(|cells| cells.get(col))
-                    .copied()
-                    .map(CellRef::new)
-            }
-        }
-
-        let mut columns = [Column::new(ColumnKey::num(0), "x"); 4];
-        for (index, column) in columns.iter_mut().enumerate() {
-            column.key = ColumnKey::num(index as u16);
-        }
-        let model = VariableModel {
-            rows: [
-                &[],
-                &["a"],
-                &["b", "c"],
-                &["d", "e", "f"],
-                &["g", "h", "i", "j"],
-            ],
-            cell_calls: Cell::new(0),
-        };
-        let grid = Grid::new(ID, &columns);
-        let screen = Rect::new(0, 0, 12, 10);
-        for width in 0..=3 {
-            for height in 0..=3 {
-                let area = Rect::new(5, 5, width, height);
-                let mut runtime =
-                    Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-                let mut buffer = Buffer::empty(screen);
-                let before_measure = model.cell_calls.get();
-                runtime
-                    .draw_scene(screen, &mut buffer, |ui, _| {
-                        let _ = grid.measure(ui, Constraints::loose(width, height));
-                        assert_eq!(model.cell_calls.get(), before_measure);
-                        grid.draw(ui, area, &GridState::default(), &model);
-                    })
-                    .commit_presented();
-                for y in 0..screen.height {
-                    for x in 0..screen.width {
-                        if !area.contains(Position::new(x, y)) {
-                            assert_eq!(
-                                buffer
-                                    .cell(Position::new(x, y))
-                                    .map(ratatui_core::buffer::Cell::symbol),
-                                Some(" "),
-                                "{width}x{height} grid painted outside at ({x}, {y})"
-                            );
-                        }
-                    }
-                }
-            }
-        }
-
-        let mut state = GridState::default();
-        state.set_cursor(4, ItemKey::index(4), 3, ColumnKey::num(3));
-        state.anchor = Some(RangeAnchor::Cell(ItemKey::index(0), ColumnKey::num(0)));
-        assert_eq!(
-            grid.copy_tsv(&state, &model, (4, 3)),
-            "\t\t\t\na\t\t\t\nb\tc\t\t\nd\te\tf\t\ng\th\ti\tj\n"
-        );
-    }
-
-    #[test]
-    fn sort_is_a_permutation_and_edits_stay_bound_to_the_source_row() {
-        let columns = columns();
-        let grid = Grid::new(ID, &columns).select_mode(SelectMode::Multi);
-        let mut model = Model::two();
-        let mut state = GridState::default();
-        state.set_cursor(1, ItemKey::num(20), 0, ColumnKey::num(1));
-        state.core.checked_mut().insert(ItemKey::num(10));
-        state.anchor = Some(RangeAnchor::Cell(ItemKey::num(10), ColumnKey::num(1)));
-        state.edit = Some((ItemKey::num(20), ColumnKey::num(1)));
-        let _ = state.reconcile(model.row_count(), |i| model.row_key(i));
-
-        model.rows.reverse();
-        if state
-            .core
-            .cursor()
-            .is_some_and(|key| model.row_key(state.core.cursor_index()) != key)
-        {
-            state.invalidate();
-        }
-        let _ = state.reconcile(model.row_count(), |i| model.row_key(i));
-
-        assert_eq!(state.cursor(), Some((ItemKey::num(20), ColumnKey::num(1))));
-        assert!(state.selected_rows().contains(ItemKey::num(10)));
-        assert_eq!(state.edit, Some((ItemKey::num(20), ColumnKey::num(1))));
-        assert_eq!(grid.range(&state, &model, (0, 0)), Some(((0, 1), (0, 0))));
-    }
-
-    #[test]
-    fn range_copy_is_tsv() {
-        let columns = columns();
-        let grid = Grid::new(ID, &columns);
-        let model = Model::two();
-        let mut state = GridState::default();
-        state.set_cursor(1, ItemKey::num(20), 1, ColumnKey::num(2));
-        state.anchor = Some(RangeAnchor::Cell(ItemKey::num(10), ColumnKey::num(1)));
-        assert_eq!(grid.copy_tsv(&state, &model, (1, 1)), "alpha\t1\nbeta\t2\n");
-    }
-
-    #[test]
-    fn sortable_header_emits_keyed_requests_without_reordering_the_model() {
-        let (mut rt, _) = runtime(Model::two(), false);
-        let part = PartRef::item(Part::HEADER, column_item_key(ColumnKey::num(1)));
-        let rect = rt.area_of_part(ID, part).unwrap_or(Rect::ZERO);
-        assert!(!rect.is_empty());
-        let x = rect.x.saturating_add(rect.width / 2);
-        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Down, x, rect.y));
-        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Up, x, rect.y));
-        assert_eq!(
-            rt.app().actions,
-            [GridAction::Sort(ColumnKey::num(1), SortDir::Asc)]
-        );
-        assert_eq!(
-            rt.app().model.rows.iter().map(|r| r.0).collect::<Vec<_>>(),
-            [ItemKey::num(10), ItemKey::num(20)]
-        );
-
-        let (mut descending, _) = runtime(Model::two(), false);
-        descending.app_mut().state.sort = Some((ColumnKey::num(1), SortDir::Asc));
-        let rect = descending.area_of_part(ID, part).unwrap_or(Rect::ZERO);
-        let x = rect.x.saturating_add(rect.width / 2);
-        let _ = crate::runtime::stub::deliver(&mut descending, mouse(MouseKind::Down, x, rect.y));
-        let _ = crate::runtime::stub::deliver(&mut descending, mouse(MouseKind::Up, x, rect.y));
-        assert_eq!(
-            descending.app().actions,
-            [GridAction::Sort(ColumnKey::num(1), SortDir::Desc)]
-        );
-    }
-
-    #[test]
-    fn edit_intent_inline_cycle_external_refuse() {
-        let (mut inline, _) = runtime(Model::two(), true);
-        let _ = crate::runtime::stub::deliver(&mut inline, key(KeyCode::Enter));
-        assert!(inline.app().state.is_editing());
-
-        let mut cycle_model = Model::two();
-        cycle_model.mode = Mode::Cycle;
-        let (mut cycle, _) = runtime(cycle_model, true);
-        let _ = crate::runtime::stub::deliver(&mut cycle, key(KeyCode::Enter));
-        assert_eq!(cycle.app().model.cycles, 1);
-
-        let mut external_model = Model::two();
-        external_model.mode = Mode::External;
-        let (mut external, _) = runtime(external_model, true);
-        let _ = crate::runtime::stub::deliver(&mut external, key(KeyCode::Enter));
-        assert_eq!(
-            external.app().actions,
-            [GridAction::EditRequested(
-                ItemKey::num(10),
-                ColumnKey::num(1)
-            )]
-        );
-
-        let mut refuse_model = Model::two();
-        refuse_model.mode = Mode::Refuse;
-        let (mut refuse, mut refuse_buffer) = runtime(refuse_model, true);
-        let _ = crate::runtime::stub::deliver(&mut refuse, key(KeyCode::Enter));
-        refuse
-            .draw_buffer(AREA, &mut refuse_buffer)
-            .commit_presented();
-        assert_eq!(
-            refuse.app().state.edit_error().map(ToString::to_string),
-            Some("locked".to_owned())
-        );
-        assert!(!refuse.app().state.is_editing());
-        let refused_text = refuse_buffer
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect::<String>();
-        assert!(refused_text.contains("locked"));
-    }
-
-    #[test]
-    fn update_editable_commits_through_the_editor() {
-        let (mut runtime, _) = runtime(Model::two(), true);
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        runtime
-            .draw_buffer(AREA, &mut Buffer::empty(AREA))
-            .commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('x')));
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        assert_eq!(runtime.app().model.commits.len(), 1);
-        assert!(!runtime.app().state.is_editing());
-
-        runtime.app_mut().model.fail_commit = true;
-        runtime
-            .draw_buffer(AREA, &mut Buffer::empty(AREA))
-            .commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        runtime
-            .draw_buffer(AREA, &mut Buffer::empty(AREA))
-            .commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        assert!(runtime.app().state.is_editing());
-        assert_eq!(
-            runtime.app().state.edit_error().and_then(|e| e.code),
-            Some("grid-test")
-        );
-
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
-        assert!(!runtime.app().state.is_editing());
-        assert!(runtime.app().state.edit_error().is_none());
-    }
-
-    #[test]
-    fn click_inside_an_active_inline_edit_goes_to_the_editor() {
-        let (mut runtime, _) = runtime(Model::two(), true);
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        runtime
-            .draw_buffer(AREA, &mut Buffer::empty(AREA))
-            .commit_presented();
-        let editor = runtime.area_of(ID.part(Part::TEXT)).unwrap_or(Rect::ZERO);
-        assert!(!editor.is_empty());
-        let before = runtime.app().actions.len();
-        let _ =
-            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, editor.x, editor.y));
-        let _ =
-            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, editor.x, editor.y));
-        assert_eq!(runtime.app().actions.len(), before);
-        assert!(runtime.app().state.is_editing());
-    }
-
-    #[test]
-    fn read_only_reason_is_rendered_from_a_grid_model() {
-        let mut model = Model::two();
-        model.reason = Some("read only by source");
-        let (_, buffer) = runtime(model, false);
-        let text: String = buffer
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect();
-        assert!(text.contains("read only by source"));
-    }
-
-    #[test]
-    fn cell_actions_affordance_is_painted_for_a_read_only_model() {
-        let mut model = Model::two();
-        model.cell_action = true;
-        let (mut runtime, buffer) = runtime(model, false);
-        let glyph = Theme::junie().design.glyphs.get(GlyphRole::FollowRef);
-        assert!(buffer.content().iter().any(|cell| cell.symbol() == glyph));
-        let affordance = runtime
-            .area_of_part(ID, PartRef::item(Part::ACTIONS, ItemKey::num(10)))
-            .unwrap_or(Rect::ZERO);
-        assert!(!affordance.is_empty());
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            mouse(MouseKind::Down, affordance.x, affordance.y),
-        );
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            mouse(MouseKind::Up, affordance.x, affordance.y),
-        );
-        assert_eq!(
-            runtime.app().actions,
-            [GridAction::CellAction(
-                ItemKey::num(10),
-                ColumnKey::num(1),
-                CELL_ACTION
-            )]
-        );
-    }
-
-    #[test]
-    fn nested_scroll_overrides_and_actions_slot_change_the_declared_parts() {
-        let replace = |ui: &mut Ui<'_>, area: Rect| {
-            ui.paint_str(area, "#", ui.surface_style());
-        };
-        let patch = StylePatch::new().add(Modifier::BOLD);
-        let parts = [(Part::TRACK, patch), (Part::THUMB, patch)];
-        let mut model = Model::two();
-        model.cell_action = true;
-        model
-            .rows
-            .extend((0..20).map(|i| (ItemKey::num(100 + i), ["overflow", "row"])));
-        let columns = columns();
-        let grid = Grid::new(ID, &columns)
-            .actions_slot(&replace)
-            .patch_part(&parts)
-            .slot(Part::ACTIONS, &replace);
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, _| {
-                grid.draw(ui, AREA, &GridState::default(), &model);
-            })
-            .commit_presented();
-
-        let hashes = buffer
-            .content()
-            .iter()
-            .filter(|cell| cell.symbol() == "#")
-            .count();
-        assert!(hashes >= 2, "ACTIONS slot must reach cell and action row");
-        for part in [Part::TRACK, Part::THUMB] {
-            let area = runtime
-                .area_of_part(ID, PartRef::of(part))
-                .unwrap_or(Rect::ZERO);
-            assert!(!area.is_empty(), "{part:?} was not registered");
-            assert!(
-                buffer
-                    .cell(Position::new(area.x, area.y))
-                    .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD)),
-                "{part:?} dropped its forwarded patch"
-            );
-        }
-    }
-
-    #[test]
-    fn reference_grid_makes_its_nested_scroll_region_inert() {
-        let columns = columns();
-        let grid = Grid::new(ID, &columns);
-        let mut model = Model::two();
-        model
-            .rows
-            .extend((0..20).map(|i| (ItemKey::num(100 + i), ["overflow", "row"])));
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, _| {
-                ui.reference(
-                    Some(crate::ReferenceTarget::new(
-                        ID,
-                        crate::ReferenceState::FOCUSED,
-                    )),
-                    |ui| grid.draw(ui, AREA, &GridState::default(), &model),
-                );
-            })
-            .commit_presented();
-        assert!(runtime.area_of(ID).is_none());
-        assert!(runtime.area_of_part(ID, PartRef::of(Part::TRACK)).is_none());
-    }
-
-    #[test]
-    fn reference_focus_and_press_cannot_fabricate_row_selection() {
-        let columns = columns();
-        let grid = Grid::new(ID, &columns).select_mode(SelectMode::Multi);
-        let model = Model::two();
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        let target = crate::ReferenceTarget::new(
-            ID,
-            crate::ReferenceState::FOCUSED | crate::ReferenceState::PRESSED,
-        )
-        .part(PartRef::item(Part::ROW, ItemKey::num(10)));
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, _| {
-                ui.reference(Some(target), |ui| {
-                    grid.draw(ui, AREA, &GridState::default(), &model);
-                });
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer
-                .cell(Position::new(1, 1))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(" ")
-        );
-
-        let mut selected = GridState::default();
-        selected.core.checked_mut().insert(ItemKey::num(10));
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, _| {
-                ui.reference(Some(target), |ui| grid.draw(ui, AREA, &selected, &model));
-            })
-            .commit_presented();
-        assert_eq!(
-            buffer
-                .cell(Position::new(1, 1))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(Theme::junie().design.glyphs.get(GlyphRole::Checked))
-        );
-    }
-
-    #[test]
-    fn column_reveal_updates_the_exact_horizontal_offset_reader() {
-        let mut many = [Column::new(ColumnKey::num(0), "0"); 6];
-        for (i, column) in many.iter_mut().enumerate() {
-            column.key = ColumnKey::num(i as u16);
-            column.title = "column";
-        }
-        let grid = Grid::new(ID, &many);
-        let mut state = GridState::default();
-        grid.reveal_column(&mut state, 5);
-        assert_eq!(state.col_offset(), 5);
-    }
-
-    #[test]
-    fn sortable_headers_use_typed_theme_glyphs() {
-        let (_, buffer) = runtime(Model::two(), false);
-        let glyph = Theme::junie().design.glyphs.get(GlyphRole::SortAsc);
-        assert!(buffer.content().iter().any(|cell| cell.symbol() == glyph));
-        assert!(buffer.cell(Position::new(0, 0)).is_some());
     }
 }

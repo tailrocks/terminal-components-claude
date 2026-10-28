@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 a1091ba6e1f4c449965656ac29afa0e13896bacf Alexey Zhokhov <alexey@zhokhov.com> 1792136198 +0700	branch: Created from origin/design/interaction-polish
+a1091ba6e1f4c449965656ac29afa0e13896bacf 2d4679e406c5499ec25a8f7982d83e9aa733cb43 Alexey Zhokhov <alexey@zhokhov.com> 1792136949 +0700	commit: feat(viewport): TextViewport scrolls wide lines sideways under a horizontal bar
+2d4679e406c5499ec25a8f7982d83e9aa733cb43 6f075829abba06853e31de55c4ceb5adaf93c8c9 Alexey Zhokhov <alexey@zhokhov.com> 1792136981 +0700	rebase (finish): refs/heads/viewport-hscroll onto 71477f7581a0d09123032f9cc2f92f17f6cf4f7f
+6f075829abba06853e31de55c4ceb5adaf93c8c9 32faf4e38ad250c67d42178ee07a8128981adfb8 Alexey Zhokhov <alexey@zhokhov.com> 1792137080 +0700	commit: feat(apps): terminal, diff and pane viewports pan sideways
+32faf4e38ad250c67d42178ee07a8128981adfb8 b68c2210ef2e025e2faf9e1dcc2be578de5d4dd9 Alexey Zhokhov <alexey@zhokhov.com> 1792137084 +0700	rebase (finish): refs/heads/viewport-hscroll onto 3269986608a41dbca03c37a92f7c1562486936ca
+b68c2210ef2e025e2faf9e1dcc2be578de5d4dd9 5d11945964a1d303ac01a636b94e54b3e2bde4ad Alexey Zhokhov <alexey@zhokhov.com> 1792137230 +0700	commit: feat(scroll): vertical bars page on a track click when configured
+5d11945964a1d303ac01a636b94e54b3e2bde4ad 7338c7ecf84a31748614ee8108690ea1a2b64aa3 Alexey Zhokhov <alexey@zhokhov.com> 1792137233 +0700	rebase (finish): refs/heads/viewport-hscroll onto bffb93bdc8d76d1249aea1ec58c2ebb0a17d859a
+7338c7ecf84a31748614ee8108690ea1a2b64aa3 ca56bdc2ff3f380f6db828f50be687f0b01c2d2c Alexey Zhokhov <alexey@zhokhov.com> 1792137288 +0700	commit: docs(audit): record TextViewport horizontal scrolling and vertical paging status

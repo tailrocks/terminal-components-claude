@@ -1,0 +1,69 @@
+{
+  "kind": "independent-rust-public-api-review",
+  "candidate": "306d72f28627c39aa875ae14647ce6ddb68474b2",
+  "before": "b1195b4b0e1241bcac454c6332d45b6423f2f142",
+  "verdict": "No actionable defect found in the scoped implementation; clear for this additive shared API increment only.",
+  "scope": [
+    "CodeEditorState::cursor_pos",
+    "CodeEditorState::find_info",
+    "CodeEditor::open_find",
+    "CompletingCodeEditor::open_find",
+    "keyboard Find shared transition and exports"
+  ],
+  "findings": [],
+  "source_assessment": [
+    "Inspection reads the existing TextEditorCore and FindState; no duplicate cursor/query/match owner.",
+    "Public entry and keyboard entry share begin_find; disabled exits before focus/state mutation; read-only search remains enabled.",
+    "Completion wrapper rejects disabled editors before controller dismissal or items.clear; enabled invocation dismisses through the existing controller, clears items, then uses the same editor transition.",
+    "No unsafe code, new concurrency mechanism, renderer, application import, broad external command dispatcher, or domain ownership introduced.",
+    "Existing APIs are additive; CursorPos and CodeFindInfo are exported for consumers."
+  ],
+  "validation": {
+    "native": "cargo nextest run -p termrock-editors: 62 passed, 0 failed, 0 skipped",
+    "lint": "cargo clippy -p termrock-editors --all-targets -- -D warnings: exit 0",
+    "format": "cargo fmt --check -p termrock-editors: exit 0",
+    "external": "Separate package using only public crate APIs: 7 passed, 0 failed, 0 skipped.",
+    "before_negative": "Same public consumer at parent revision with no-op compatibility traits only for absent APIs: 2 passed, 5 failed, 0 skipped. Real sibling-button visibility/focus and active completion dismissal fail without relying only on accessor assertions.",
+    "defaults": "Existing keyboard-only Find/accept/reopen/Escape/manual-completion flows, editable and read-only, 22 full rendered-buffer/focus/projected-cursor/document/cursor-offset/action checkpoints: byte identical before and after.",
+    "default_frames_sha256": "00df01448a384776403d5050e2df58ac5f159d1a166b6cfbfb58f22549535db8",
+    "targets": [
+      "/private/tmp/editor-external-find-review-20261021/target-after-306d72f28",
+      "/private/tmp/editor-external-find-review-20261021/target-before-b1195b4b0"
+    ],
+    "additional_checks": [
+      "Read-only query search for wide and combining text and no matches, repeated open/close, unchanged document.",
+      "Disabled wrapper invoked with live completion checks exact-call full state equality, layer identity and popup openness before returning.",
+      "Existing authored real Runtime tests retain zero/narrow draw, Unicode cell cursor, rendered footer and button/key matching state checks."
+    ],
+    "bounded_execution": "Each command group had a 205-second work deadline, 10-second TERM reserve and 4-second KILL reserve; no command exceeded this bound."
+  },
+  "rejected_probe_history": [
+    "Initial external manifest inherited unrelated /private/tmp/Cargo.toml workspace; added package-local [workspace] before any executable proof.",
+    "Initial prechange compatibility shim referenced absent CursorPos export and did not compile; corrected to a local compatibility type. That compile failure is not negative behavior proof.",
+    "Initial disabled completion probe asserted popup remained open after Runtime delivered continuation updates. Existing disabled CompletingCodeEditor::update legitimately dismisses completion then. This observation does not implicate open_find. Corrected independent probe asserts full state and layer equality inside the exact rejected public call; passed."
+  ],
+  "limits": [
+    "No real CLI/frozen visual comparison, Showcase adoption, replay-path removal, complete workspace gate or product parity clearance.",
+    "Known pre-existing find-query Backspace uses String::pop and is not grapheme-safe; separate baseline-backed work remains required.",
+    "Native tests use the existing exact-candidate target cache; before/after external consumers use distinct revision-specific targets.",
+    "No production source edits. External review artifacts and sparse read-only before worktree retained for reproducibility."
+  ],
+  "receipts_sha256": {
+    "native-and-lint.log": "53df290f8ea6512aed5f16cd245c82e16af197a29fed9589c2e1ccb7050fb94e",
+    "external-after.log": "fec991fe22db8a4162b2983752312dd41fb60d1436ed2bc47b4d822e9b13c680",
+    "after-final.log": "09cb3d304d2fdf028570f1f6330d5474da5a8056171266bd12ce004487409eb9",
+    "before-consumer-final.log": "767c6b8bdf6327dc74c2c37beea182169d21f6095ae22c8b88a44ec4175e57fe",
+    "after-complete.log": "87b1c586b46a913a2e54feb7e4a3176ec29929cf96396c1a14e4cfa8c3f6873e",
+    "before-consumer-complete.log": "4d8a9f505f9ffd7fef252a23a92a2549b7574b5bf0e5ae07c5d3d9b233553285",
+    "after-final-seven.log": "6d7e5f6aae3f612ed5d788e3abb1dce6caaa8f062551ab821c4f837442ebe461",
+    "before-consumer-final-seven.log": "a6c6d75d6bc9e80dd2eab19c23cd4b997deaefd88c0dba7aae77eac222166b73",
+    "after-frames.txt": "00df01448a384776403d5050e2df58ac5f159d1a166b6cfbfb58f22549535db8",
+    "before-consumer-frames.txt": "00df01448a384776403d5050e2df58ac5f159d1a166b6cfbfb58f22549535db8",
+    "after/Cargo.toml": "c1b05a8f590b85309828188e82ccc852e4dc85fce67726d9845e8dfe1a27578f",
+    "after/Cargo.lock": "33bc24436f66966e6ef055bb016d42f85e2a1cd2a5a01bf00a1fe4c7264bac66",
+    "after/tests/review.rs": "d668e4610989114817a8302ea1b95aac6324b8adf618ee43827a238cea133a9a",
+    "before-consumer/Cargo.toml": "79cd3111e283016e7d45845fc1b618192f36b65cc3955873f6e3c5c6d717feea",
+    "before-consumer/Cargo.lock": "33bc24436f66966e6ef055bb016d42f85e2a1cd2a5a01bf00a1fe4c7264bac66",
+    "before-consumer/tests/review.rs": "b2d900f8dbd9124ee8c5dcaef5a681bcd46522199dae0d79e0b220dc576bb389"
+  }
+}

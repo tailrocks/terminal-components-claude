@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 fb0cbea3c9f14a3bdfc1fff3af18aa75c0c56c29 Alexey Zhokhov <alexey@zhokhov.com> 1792665067 +0700	branch: Created from origin/parity/termrock-visual-baseline
+fb0cbea3c9f14a3bdfc1fff3af18aa75c0c56c29 be8e895b8c7c5bf3530e2c5ca4350a0cddad48b4 Alexey Zhokhov <alexey@zhokhov.com> 1792666868 +0700	commit: feat(termrock): add component composition adapters
+be8e895b8c7c5bf3530e2c5ca4350a0cddad48b4 497f7a352e2f059533076d15f9818ea49e2b7bc6 Alexey Zhokhov <alexey@zhokhov.com> 1792666871 +0700	commit: demo(showcase): compose dialog body sections
+497f7a352e2f059533076d15f9818ea49e2b7bc6 6db2d2dce2dc61273dfb24900d870ed3f7d4d84a Alexey Zhokhov <alexey@zhokhov.com> 1792667152 +0700	rebase (finish): refs/heads/wip/recover-composition-adapters-20261022 onto 902f91e2eef897a7251c0a0d0a41f75ca64c0522

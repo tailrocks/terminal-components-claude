@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 a848219fd858ed6352fcb403b2cc5d5953083e6f Alexey Zhokhov <alexey@zhokhov.com> 1792500306 +0700	branch: Created from origin/parity/termrock-visual-baseline
+a848219fd858ed6352fcb403b2cc5d5953083e6f 99b719d85a0714c88484240dbc9184f110b518d4 Alexey Zhokhov <alexey@zhokhov.com> 1792500936 +0700	rebase (finish): refs/heads/parity/button-contract-20261020 onto 99b719d85a0714c88484240dbc9184f110b518d4
+99b719d85a0714c88484240dbc9184f110b518d4 7dab012ee6c0094f7a2a0264a41d6530984c6820 Alexey Zhokhov <alexey@zhokhov.com> 1792501102 +0700	commit: fix(controls): share button state and busy rendering
+7dab012ee6c0094f7a2a0264a41d6530984c6820 92d6bf07c75ec062e28b1d1b7a5f0089d935775f Alexey Zhokhov <alexey@zhokhov.com> 1792501349 +0700	commit: fix(controls): preserve button focus and marker patches
+92d6bf07c75ec062e28b1d1b7a5f0089d935775f b0f8f3a0156ba447dd5de3fc9725ec0969dc4479 Alexey Zhokhov <alexey@zhokhov.com> 1792501371 +0700	rebase (finish): refs/heads/parity/button-contract-20261020 onto 407d727f9f952bafcbb842e8be341ffb32120e4e
+b0f8f3a0156ba447dd5de3fc9725ec0969dc4479 2d65740b717a86fbc5701c0286f7b35454ea5332 Alexey Zhokhov <alexey@zhokhov.com> 1792501801 +0700	commit: fix(theme): match pressed button variant ink

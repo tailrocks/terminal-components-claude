@@ -1,0 +1,28 @@
+0000000000000000000000000000000000000000 2e07d6f7bb72e59ff8e5f876565deec3af02272d Alexey Zhokhov <alexey@zhokhov.com> 1792038251 +0700
+2e07d6f7bb72e59ff8e5f876565deec3af02272d 2e07d6f7bb72e59ff8e5f876565deec3af02272d Alexey Zhokhov <alexey@zhokhov.com> 1792038252 +0700	reset: moving to HEAD
+2e07d6f7bb72e59ff8e5f876565deec3af02272d 2458d3a1909f27969677470eb9d6421321ed393e Alexey Zhokhov <alexey@zhokhov.com> 1792039365 +0700	commit: restore: import the PR #17 crate skeleton under crates/
+2458d3a1909f27969677470eb9d6421321ed393e cd460471e8f0f4b97f1550c80675598b9c355a88 Alexey Zhokhov <alexey@zhokhov.com> 1792039380 +0700	commit: restore: keep the target visibility tools and mise config
+cd460471e8f0f4b97f1550c80675598b9c355a88 7682c0613db8a1bd86659d2de01b8e7bae84d111 Alexey Zhokhov <alexey@zhokhov.com> 1792042160 +0700	commit: restore: land the termrock-* library split with target content
+7682c0613db8a1bd86659d2de01b8e7bae84d111 0945498a4550d10b0789a5cd5b75c2d4afe1f4e7 Alexey Zhokhov <alexey@zhokhov.com> 1792042335 +0700	commit: restore: runtime test stubs, measure trait tests, theme test decoupling
+0945498a4550d10b0789a5cd5b75c2d4afe1f4e7 d930c798db04458002fd48767f0e524723208ad6 Alexey Zhokhov <alexey@zhokhov.com> 1792042429 +0700	commit: restore: runtime test stubs, measure trait tests, theme test decoupling
+d930c798db04458002fd48767f0e524723208ad6 94d1884098779d1a49fefb0c4cd2f460e24aa369 Alexey Zhokhov <alexey@zhokhov.com> 1792042742 +0700	commit: restore: showcase and holla app groups on the split structure
+94d1884098779d1a49fefb0c4cd2f460e24aa369 04e795a4a2e5e72e2b8da8305ee141cf32b17b4c Alexey Zhokhov <alexey@zhokhov.com> 1792043329 +0700	commit: restore: retire the monolith paths after the split
+04e795a4a2e5e72e2b8da8305ee141cf32b17b4c ae671abc4687eaac340e8b573c5783b9e7bebbc0 Alexey Zhokhov <alexey@zhokhov.com> 1792044011 +0700	commit: restore: reconcile test surfaces after the split
+ae671abc4687eaac340e8b573c5783b9e7bebbc0 31d1ed11a86d2b7e1e85d4ffc7fcecdf019f656d Alexey Zhokhov <alexey@zhokhov.com> 1792047035 +0700	commit: restore: port the monolith integration test suite into the split crates
+31d1ed11a86d2b7e1e85d4ffc7fcecdf019f656d 4e714d0af6c1e6037ba2cb1e747bfcd9916407c7 Alexey Zhokhov <alexey@zhokhov.com> 1792047654 +0700	commit: fix(backend): restore optional crossterm wiring on the runtime
+4e714d0af6c1e6037ba2cb1e747bfcd9916407c7 dbb9cf23fa68ce2b6162d2d1df8257caf565ea74 Alexey Zhokhov <alexey@zhokhov.com> 1792064122 +0700	commit: test: recover the Tuiscotti qualification probe from PR #16
+dbb9cf23fa68ce2b6162d2d1df8257caf565ea74 13f431324ce2a7dd9b1ec9510ac695a66a5d80a0 Alexey Zhokhov <alexey@zhokhov.com> 1792064794 +0700	commit: fix(gates): re-baseline the governance and evidence gates onto the integrated tree
+13f431324ce2a7dd9b1ec9510ac695a66a5d80a0 063fce54ba9f15992118c64104ba60ad1187cdd2 Alexey Zhokhov <alexey@zhokhov.com> 1792064877 +0700	commit: ci: record the workflow regeneration inputs and the generator ceiling
+063fce54ba9f15992118c64104ba60ad1187cdd2 7db0535e9be5c8815224c56e4e8092c6b21f6ce9 Alexey Zhokhov <alexey@zhokhov.com> 1792065104 +0700	commit (merge): merge: audit-resolve the termrock-implementation histories into the split
+7db0535e9be5c8815224c56e4e8092c6b21f6ce9 23234c7f085f0ded694b966939e7be06de8d42ea Alexey Zhokhov <alexey@zhokhov.com> 1792065176 +0700	commit: docs(ledger): record the validation runs, gate re-baselines and history merge
+23234c7f085f0ded694b966939e7be06de8d42ea 0d939eadfdb3c5916260abff49989ebb1ebedd57 Alexey Zhokhov <alexey@zhokhov.com> 1792065541 +0700	commit: chore: ignore nested and linked build scratch
+0d939eadfdb3c5916260abff49989ebb1ebedd57 aa455e94802d231714636a9f46389265fb5fb625 Alexey Zhokhov <alexey@zhokhov.com> 1792065965 +0700	commit: docs(ledger): record the branch consolidation
+aa455e94802d231714636a9f46389265fb5fb625 c0fcd4b05bc84e7fbc073e3c6ed577a0c9b5d6fa Alexey Zhokhov <alexey@zhokhov.com> 1792068061 +0700	commit: ci: regenerate the Velnor workflow for the 44-crate workspace
+c0fcd4b05bc84e7fbc073e3c6ed577a0c9b5d6fa b8b33a056003e908089b7d3c8513f02c54ef294c Alexey Zhokhov <alexey@zhokhov.com> 1792068769 +0700	commit: fix(visibility): address the PR #24 review findings
+b8b33a056003e908089b7d3c8513f02c54ef294c 015bccb8c27722717dfe03a78db2a72fb7efe66e Alexey Zhokhov <alexey@zhokhov.com> 1792070453 +0700	commit: fix(ci): land the isolated-unit clippy and doc findings
+015bccb8c27722717dfe03a78db2a72fb7efe66e 9896a575c83341baa8849fd5330b16cab6ae7587 Alexey Zhokhov <alexey@zhokhov.com> 1792071778 +0700	commit: docs: re-point cross-split intra-doc links
+9896a575c83341baa8849fd5330b16cab6ae7587 09b109d4416ffdb2ecd19e65055eed1c768829d9 Alexey Zhokhov <alexey@zhokhov.com> 1792073864 +0700	commit: fix(visibility): archive the branch-scoped subjects gate and track tuiscotti main
+09b109d4416ffdb2ecd19e65055eed1c768829d9 9e675ae9f5668fcef4a823a48c1cdb33d0f2974a Alexey Zhokhov <alexey@zhokhov.com> 1792073905 +0700	commit: style: format the tablepro-demo catalog test
+9e675ae9f5668fcef4a823a48c1cdb33d0f2974a c2402886796cce11b81e9b4bcaf76278711cbda2 Alexey Zhokhov <alexey@zhokhov.com> 1792075466 +0700	commit: test: qualify the showcase PTY session beside the showcase binary
+c2402886796cce11b81e9b4bcaf76278711cbda2 c5630e01db5ab7cbbe931368839f63a640376632 Alexey Zhokhov <alexey@zhokhov.com> 1792075482 +0700	commit: style: format the qualification tests
+c5630e01db5ab7cbbe931368839f63a640376632 7013df32a8aeb041d0f7459b0357a1a0693f35c5 Alexey Zhokhov <alexey@zhokhov.com> 1792076911 +0700	commit: chore(visibility): merge doubled ignore reasons on the archived subjects gate

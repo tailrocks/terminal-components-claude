@@ -1,0 +1,97 @@
+{
+  "reviewed_revision": "42fb861c07228db39f40228b5ecaa2e3521d6239",
+  "comparison_base": "f2d66896f3341b115a217a1bdad6379badebccbb",
+  "inherited_recolor_revision": "d591748ac6ca2b676568a2de0b70d6162dc23a45",
+  "disposition": "Not cleared as product parity or reusable architecture. The new exact-size replay fallback and page-painted modal suppression extend previously recorded prohibited mechanisms. An independent runtime consumer also demonstrates semantic metadata loss in inherited recolor helpers.",
+  "attribution": "The actual f2d-to-42fb source delta changes app.rs and launch_cockpit.rs only, plus the migration record. The 50-line dialog recoloring and 55-line runtime helper additions belong to d591748ac, which is already a literal ancestor of f2d. They are reviewed here as inherited current source, not falsely attributed to 42fb.",
+  "findings": [
+    {
+      "id": "J42-1",
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:9585",
+      "issue": "The new branch requires exact 120 by 40 dimensions, the captured LaunchRunning paused frame-40 scene, a non-TrueColor capability, and an open info/cancel state. It paints draw_historical_launch_running, fixed dialog plates, and an application-painted footer. This is an exact captured-scene bypass rather than shared live component composition.",
+      "supporting_paths": [
+        "crates/jackin-preview-app/src/app.rs:7135",
+        "crates/jackin-preview-app/src/app.rs:7293",
+        "crates/jackin-preview-app/src/app/launch_cockpit.rs:21"
+      ],
+      "owner": "Replace cockpit regions through existing shared layout, Steps, status/footer components, and semantic theme data. Keep simulation and run data in the app; do not move the presentation frame table into Termrock."
+    },
+    {
+      "id": "J42-2",
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:7166",
+      "issue": "launch_dialog_on_page expands suppression of real Dialog layer drawing. Its responsive-size-or-exact-size clause covers every size in the captured scene. At exact 120 by 40 TrueColor, historical_cockpit_info additionally requires the exact accent RGB and historical_cockpit_cancel additionally requires cancel_from_x. A custom-accent info dialog or a cancel opened through the real Cancel button is therefore suppressed while neither the historical plate nor the new non-TrueColor fallback applies. This is a source-derived missing-visible-dialog path; no real app reproduction was run in this packet.",
+      "supporting_paths": [
+        "crates/jackin-preview-app/src/app.rs:7226",
+        "crates/jackin-preview-app/src/app.rs:7259",
+        "crates/jackin-preview-app/src/app.rs:8797",
+        "crates/jackin-preview-app/src/app.rs:8814",
+        "crates/jackin-preview-app/src/app.rs:1595",
+        "crates/jackin-preview-app/src/app.rs:4088"
+      ],
+      "owner": "The real shared Dialog/overlay must own modal drawing, backdrop, input scope, footer hints, cursor and focus restoration. Test the same configured dialog for key and pointer activation, all profiles, changed data and adjacent sizes."
+    },
+    {
+      "id": "J42-3",
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_dialog_plate.rs:1729",
+      "introduced_by": "d591748ac6ca2b676568a2de0b70d6162dc23a45",
+      "issue": "The app recolors a fixed truecolor dialog plate through a hardcoded RGB-to-index table and then infers rain from raw color/background pairs across the whole screen. This reconstructs semantic roles after painting and alters unrelated matching colors. Raw generic quantization cannot prove semantic field mapping, and captured frame agreement cannot justify this production bypass.",
+      "supporting_paths": [
+        "crates/jackin-preview-app/src/app/launch_dialog_plate.rs:1734",
+        "crates/jackin-preview-app/src/app/launch_dialog_plate.rs:1754"
+      ],
+      "owner": "Resolve genuine dialog, text, surface and backdrop roles once through shared theme recipes before painting. Preserve actual frozen role/state outputs and independently review capability conflicts; do not copy this exact-RGB table into a general theme oracle."
+    },
+    {
+      "id": "J42-4",
+      "severity": "P1",
+      "path": "crates/termrock-runtime/src/ui/mod.rs:1372",
+      "introduced_by": "d591748ac6ca2b676568a2de0b70d6162dc23a45",
+      "issue": "Both recolor helpers unconditionally mark the whole clipped area with no semantic style metadata. Even recolor_rgb(identity) and recolor_fg returning None discard foreground and background roles of completely unchanged cells. A later dim_layer consequently changes their output differently from untouched identical cells.",
+      "supporting_paths": [
+        "crates/termrock-runtime/src/ui/mod.rs:1401"
+      ],
+      "owner": "If a low-level component-author recolor API remains justified, preserve all metadata for unchanged channels and update only genuinely replaced raw channels through existing canonical metadata machinery. Do not globally clear unrelated roles. Applications should consume semantic components rather than use recoloring to repair their output."
+    },
+    {
+      "id": "J42-5",
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_cockpit.rs:21",
+      "issue": "The new footer is an application-owned Buffer painter with hardcoded raw colors. It calls the inherited emphasize_footer fixed column list (37\u201342 and 50\u201355, plus column 19 for cancel). These positions are captured-cell repairs, not semantic hint emphasis.",
+      "supporting_paths": [
+        "crates/jackin-preview-app/src/app/launch_cockpit.rs:84",
+        "crates/jackin-preview-app/src/app/launch_cockpit.rs:404"
+      ],
+      "owner": "Use a shared status/hint row with typed chord and action content. That component owns spacing, emphasis, cell-width clipping and current-layer presentation."
+    }
+  ],
+  "frozen_evidence": [
+    {
+      "reference": "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/jackin_preview/screens/cockpit.rs:393",
+      "fact": "open_info constructs live properties from role, target, agent, account, run ID, optional container and debug telemetry, then opens the shared InfoDialog through the overlay scope."
+    },
+    {
+      "reference": "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/jackin_preview/screens/cockpit.rs:451",
+      "fact": "ask_cancel opens the shared destructive Dialog with the domain cancellation description and Keep launching cancel action. It does not switch to a size/scenario/frame-specific page painter."
+    }
+  ],
+  "retained_useful_intent": "Avoiding duplicate backdrop dimming and presenting current overlay hints are valid goals. The frozen Keep launching wording and existing live domain cancellation/info data should be retained. This does not justify bypassing the real modal layer or restoring any replay implementation.",
+  "independent_runtime_probe": {
+    "source": "/private/tmp/recolor-42fb-independent/src/lib.rs",
+    "log": "/tmp/recolor-42fb-independent.log",
+    "command": "cargo nextest run --manifest-path /private/tmp/recolor-42fb-independent/Cargo.toml --no-fail-fast",
+    "result": "3 tests run: raw-cell identity control passes; identity-RGB and None-foreground semantic dimming tests fail; zero skipped. Before dimming cells match. After dimming recolored cells have RGB(38,38,38) on black, while untouched cells retain semantic RGB(179,179,179) on RGB(39,39,42).",
+    "source_sha256": "6d872ee8ee3d08d01ef8d572dc1cbe6a9cf298c935247fa43469647596316824",
+    "log_sha256": "526aff178a825e5aee5054467ba0f9b7f228701af3558c03e9ca8fd0f7f0629c"
+  },
+  "staged_replacement_checks": [
+    "Keep the approved narrow Button change separate from these inherited application paths; a merge for preservation is not approval.",
+    "First repair or remove the unnecessary low-level recolor helpers with the preserved no-op tests, changed-only channel tests, clipping tests, indexed/named colors and role-aware dimming checks. Serialize runtime ownership with the TextArea window writer.",
+    "Build real info content using PropsList/PropsState and Dialog content slots, and real cancel content using shared Dialog actions. The same configuration and resolved layer must serve update and draw.",
+    "Reproduce the missing-dialog combinations through real app input before replacing the bypass: pointer versus x activation, custom accent, truecolor and indexed/mono, exact and adjacent dimensions, changed run/account/target values, selection/copy, scrolling, dismissal and focus restoration.",
+    "Remove page modal/footer replay and exact RGB repairs only after the affected real component comparisons pass. Preserve frozen results and any reference defects independently; do not refresh expected artifacts from candidate output."
+  ],
+  "limits": "The no-op recolor defect is independently reproduced. Other findings are exact source and frozen source analysis, not complete application CLI comparisons. No expected artifacts, product source, tag or branch were modified. Full application parity and reusable library acceptance remain incomplete."
+}

@@ -1,0 +1,43 @@
+{
+  "candidate": "/private/tmp/pr38-consolidation-staging-20261029/git-store-groups-r14-r17-v2",
+  "candidate_SHA256SUMS_sha256": "02107c7a2c3e15681dcfd371842515449600774a3f0a043f12bcfd29ef36139f",
+  "candidate_object_file_map_sha256": "9720145ffc171e950550877edbbc1b243cf620118599dd1b2c96205fc4ca6bd7",
+  "candidate_preservation_manifest_sha256": "e3650ff25b3772b33d6d46074e2443a9f7e81a03ed3e01ff73131b3ecdf2073e",
+  "decoder": "git cat-file --batch with explicit full OIDs; SHA1(type + space + logical-size + NUL + decoded-bytes) verified for all 9026",
+  "files": [
+    {
+      "path": "decoded-object-inventory.json",
+      "sha256": "461b628a0b02de12117d741188013e92029ca1cdf1835ed5f6c68548850e3b0f",
+      "size_bytes": 1334157
+    },
+    {
+      "path": "decoded-size-corrections.json",
+      "sha256": "c81a0ea5002fc03075d59d925a7dfe9ef023d07e528d9e4c46c69b323862b45c",
+      "size_bytes": 660155
+    },
+    {
+      "path": "decoded-size-corrections-provenance.json",
+      "sha256": "4fbcad89b9a1972ef15913cdcc623134495afb2e70b5dce1426c896a1935d6ff",
+      "size_bytes": 7107857
+    },
+    {
+      "path": "pack-inventory-size-review.json",
+      "sha256": "abb1692e52f9349f521f65cfe48978b28b5d21a9b2ffcedfb4a3edd08a15ddc8",
+      "size_bytes": 784221
+    },
+    {
+      "path": "pack-verification.json",
+      "sha256": "ff640558864bcf9d113fe15ac86e90529c7be194895640ce8c6b12a64fc0879c",
+      "size_bytes": 3985
+    },
+    {
+      "path": "chunk-verification.json",
+      "sha256": "7bedea325d53b5d60b679240cb6e13913c6484d5622d02ed3cfe6226d3873af0",
+      "size_bytes": 694
+    }
+  ],
+  "isolated_odb": "/private/tmp/pr38-consolidation-inventory-20261029/engine-git-custody-review-r14-r17-v2/isolated-union.git",
+  "offline_pack_check": "git index-pack --index-version=2 <copied-pack>, without --fix-thin; 11 unique pack payloads, all exit 0",
+  "union_oid_count": 9026,
+  "unique_union_size_mismatches": 4510
+}

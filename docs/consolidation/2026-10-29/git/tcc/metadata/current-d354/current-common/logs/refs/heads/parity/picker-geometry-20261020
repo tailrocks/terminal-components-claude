@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 56a8547a48647d7158f6a288df6db4708f7b0f0c Alexey Zhokhov <alexey@zhokhov.com> 1792496856 +0700	branch: Created from 56a8547a48647d7158f6a288df6db4708f7b0f0c
+56a8547a48647d7158f6a288df6db4708f7b0f0c 0638339b71148ccb72e7703085761251a4789128 Alexey Zhokhov <alexey@zhokhov.com> 1792496931 +0700	cherry-pick: feat(termrock): add typed picker layer slot
+0638339b71148ccb72e7703085761251a4789128 661f21fac34690bdff0fc8fb6985a0485b8b99bd Alexey Zhokhov <alexey@zhokhov.com> 1792497135 +0700	commit: fix(picker): restore frozen dialog geometry
+661f21fac34690bdff0fc8fb6985a0485b8b99bd 607255fda685dcf68ba4698e2655fb13c882023e Alexey Zhokhov <alexey@zhokhov.com> 1792497185 +0700	commit (amend): fix(picker): restore frozen dialog geometry
+607255fda685dcf68ba4698e2655fb13c882023e 28cc24880525dba2b24690e9fcacf2cfa6dd0aca Alexey Zhokhov <alexey@zhokhov.com> 1792497249 +0700	commit (amend): fix(picker): restore frozen dialog geometry
+28cc24880525dba2b24690e9fcacf2cfa6dd0aca 6b72d77a6e3914557e862d0f8490f9cfcc01c5b8 Alexey Zhokhov <alexey@zhokhov.com> 1792497923 +0700	commit: fix(overlays): match picker geometry and hints

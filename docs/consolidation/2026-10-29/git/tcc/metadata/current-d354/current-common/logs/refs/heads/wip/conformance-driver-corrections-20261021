@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 5b3097acab788ed4e189bc7e6aab27f1b6a6ee65 Alexey Zhokhov <alexey@zhokhov.com> 1792593129 +0700	branch: Created from origin/parity/termrock-visual-baseline
+5b3097acab788ed4e189bc7e6aab27f1b6a6ee65 f74b2c7d44e2455805677790e58d93724766cda6 Alexey Zhokhov <alexey@zhokhov.com> 1792593787 +0700	commit: test(conformance): align checks with live fixture states
+f74b2c7d44e2455805677790e58d93724766cda6 442f6fd8246b750c9fdb84fd00d69fc5cd5403f0 Alexey Zhokhov <alexey@zhokhov.com> 1792593803 +0700	rebase (finish): refs/heads/wip/conformance-driver-corrections-20261021 onto bfefea9ce4b3ab91f846239d5f315534ccc2ff43
+442f6fd8246b750c9fdb84fd00d69fc5cd5403f0 86737f121e034f78bc501081ed985fe29a9f34be Alexey Zhokhov <alexey@zhokhov.com> 1792594051 +0700	commit (amend): test(conformance): align checks with live fixture states
+86737f121e034f78bc501081ed985fe29a9f34be 79f8990630e129bf35103dd0b3a860dc27eae87f Alexey Zhokhov <alexey@zhokhov.com> 1792594073 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+79f8990630e129bf35103dd0b3a860dc27eae87f 9ba5e96d8223f53b55c669279603c976acbfbdbd Alexey Zhokhov <alexey@zhokhov.com> 1792594200 +0700	commit: test(conformance): detect same-runtime theme mutations
+9ba5e96d8223f53b55c669279603c976acbfbdbd dc4c1e2775b4fb8c8573a7ab1ddc2e1c70331144 Alexey Zhokhov <alexey@zhokhov.com> 1792595294 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+dc4c1e2775b4fb8c8573a7ab1ddc2e1c70331144 04fd52fc8712776301dbb31a53886c0e1be093fa Alexey Zhokhov <alexey@zhokhov.com> 1792596067 +0700	commit: test: isolate conformance activation and theme probes
+04fd52fc8712776301dbb31a53886c0e1be093fa f14f249ae912eae099c391c472f2b54eff5ce3fc Alexey Zhokhov <alexey@zhokhov.com> 1792596500 +0700	commit (merge): Merge remote-tracking branch 'origin/parity/termrock-visual-baseline' into wip/conformance-driver-corrections-20261021
+f14f249ae912eae099c391c472f2b54eff5ce3fc 22366ab816b95ed71be970b4ea541fc332cb8e86 Alexey Zhokhov <alexey@zhokhov.com> 1792596670 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

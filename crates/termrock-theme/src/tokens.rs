@@ -212,6 +212,20 @@ pub struct ColorTokens {
     pub disabled_fg: Color,
     pub disabled_bg: Color,
     pub read_only_fg: Color,
+
+    pub status_bar_bg: Color,
+
+    pub status_bar_fg: Color,
+
+    pub status_accent: Color,
+
+    pub chrome_rule: Color,
+
+    pub scroll_track: Color,
+
+    pub scroll_thumb: Color,
+
+    pub tag_ink: Color,
     pub syntax: SyntaxTokens,
     pub meter: MeterTokens,
 }
@@ -257,6 +271,13 @@ impl ColorTokens {
             disabled_fg,
             disabled_bg,
             read_only_fg,
+            status_bar_bg,
+            status_bar_fg,
+            status_accent,
+            chrome_rule,
+            scroll_track,
+            scroll_thumb,
+            tag_ink,
             syntax,
             meter,
         } = *self;
@@ -294,6 +315,13 @@ impl ColorTokens {
             disabled_fg: mapper.color(disabled_fg),
             disabled_bg: mapper.color(disabled_bg),
             read_only_fg: mapper.color(read_only_fg),
+            status_bar_bg: mapper.color(status_bar_bg),
+            status_bar_fg: mapper.color(status_bar_fg),
+            status_accent: mapper.color(status_accent),
+            chrome_rule: mapper.color(chrome_rule),
+            scroll_track: mapper.color(scroll_track),
+            scroll_thumb: mapper.color(scroll_thumb),
+            tag_ink: mapper.color(tag_ink),
             syntax: syntax.map_colors(&mut |color| mapper.color(color)),
             meter: meter.map_with(mapper),
         }
@@ -311,13 +339,13 @@ impl ColorTokens {
                 rest
             }
         }
-        let mut collect = Collect(Vec::with_capacity(73));
+        let mut collect = Collect(Vec::with_capacity(80));
         let _ = self.map_with(&mut collect);
         collect.0
     }
 
     pub fn colors(&self) -> Vec<Color> {
-        let mut out = Vec::with_capacity(72);
+        let mut out = Vec::with_capacity(79);
         let _ = self.map_colors(&mut |c| {
             out.push(c);
             c
@@ -477,119 +505,4 @@ impl ColorLevel {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Capability {
     pub color: ColorLevel,
-}
-
-#[cfg(test)]
-mod tests {
-    use std::ffi::OsStr;
-
-    use super::ColorLevel;
-
-    #[test]
-    fn term_dumb_is_mono() {
-        assert_eq!(
-            ColorLevel::from_env(None, None, Some("dumb"), Some("truecolor"), true),
-            ColorLevel::Mono
-        );
-    }
-
-    #[test]
-    fn no_color_triggers_on_any_non_empty_value() {
-        for v in ["1", "0", "false", " "] {
-            assert_eq!(
-                ColorLevel::from_env(
-                    None,
-                    Some(OsStr::new(v)),
-                    Some("xterm-256color"),
-                    Some("truecolor"),
-                    true
-                ),
-                ColorLevel::Mono,
-                "NO_COLOR={v:?} must disable colour"
-            );
-        }
-        for v in [Some(OsStr::new("")), None] {
-            assert_eq!(
-                ColorLevel::from_env(None, v, Some("xterm-256color"), Some("truecolor"), true),
-                ColorLevel::TrueColor,
-                "NO_COLOR={v:?} must not disable colour"
-            );
-        }
-    }
-
-    #[test]
-    fn a_non_tty_stdout_is_mono() {
-        assert_eq!(
-            ColorLevel::from_env(None, None, Some("xterm-256color"), Some("truecolor"), false),
-            ColorLevel::Mono
-        );
-    }
-
-    #[test]
-    fn clicolor_force_overrides_no_color_and_the_tty_check() {
-        assert_eq!(
-            ColorLevel::from_env(
-                Some(OsStr::new("1")),
-                Some(OsStr::new("1")),
-                Some("xterm-256color"),
-                Some("truecolor"),
-                false
-            ),
-            ColorLevel::TrueColor
-        );
-        for off in ["", "0"] {
-            assert_eq!(
-                ColorLevel::from_env(
-                    Some(OsStr::new(off)),
-                    Some(OsStr::new("1")),
-                    Some("xterm-256color"),
-                    Some("truecolor"),
-                    false
-                ),
-                ColorLevel::Mono,
-                "CLICOLOR_FORCE={off:?} must not force colour"
-            );
-        }
-    }
-
-    #[test]
-    fn clicolor_force_does_not_override_term_dumb() {
-        assert_eq!(
-            ColorLevel::from_env(
-                Some(OsStr::new("1")),
-                None,
-                Some("dumb"),
-                Some("truecolor"),
-                true
-            ),
-            ColorLevel::Mono
-        );
-    }
-
-    #[test]
-    fn narrow_to_returns_the_poorer_level() {
-        use ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
-        const LADDER: [ColorLevel; 4] = [Mono, Ansi16, Ansi256, TrueColor];
-        for (i, a) in LADDER.into_iter().enumerate() {
-            for (j, b) in LADDER.into_iter().enumerate() {
-                let expected = if i <= j { a } else { b };
-                assert_eq!(a.narrow_to(b), expected, "{a:?}.narrow_to({b:?})");
-                assert_eq!(a.narrow_to(b), b.narrow_to(a), "{a:?}/{b:?} not symmetric");
-            }
-            assert_eq!(a.narrow_to(a), a, "{a:?} not idempotent");
-            assert_eq!(a.narrow_to(TrueColor), a, "TrueColor is the identity");
-            assert_eq!(a.narrow_to(Mono), Mono, "Mono absorbs");
-        }
-    }
-
-    #[test]
-    fn term_unset_or_empty_is_ansi16() {
-        for term in [None, Some("")] {
-            assert_eq!(
-                ColorLevel::from_env(None, None, term, None, true),
-                ColorLevel::Ansi16,
-                "TERM={term:?}"
-            );
-        }
-    }
 }

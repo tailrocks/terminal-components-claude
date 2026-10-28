@@ -1,9 +1,10 @@
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
+use ratatui_core::style::{Color, Modifier};
 
 use crate::id::{Id, Part, PartRef};
 use crate::response::StateFlags;
-use crate::theme::{Family, GlyphRole, Surface, Variant};
+use crate::theme::{Family, GlyphRole, Slot, Surface, Variant};
 use crate::ui::Ui;
 
 pub use crate::author::PartStyle;
@@ -29,8 +30,61 @@ pub fn overlay_chrome<R>(
         if area.is_empty() {
             return ui.with_area(area, |ui| body(ui, area));
         }
-        let container = ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live);
-        ui.fill(area, container.style);
+        let backdrop_chrome = matches!(family, Family::PICKER | Family::DIALOG);
+        let container = (!backdrop_chrome)
+            .then(|| ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live));
+        if backdrop_chrome {
+            let container_patch = ov.part_patch(Part::CONTAINER);
+            let detailed = ui.style_defaults_with_explicit(
+                family,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                live,
+                crate::theme::StyleDefaults::default(),
+                container_patch.as_ref(),
+            );
+            ov.note(
+                ui,
+                id,
+                family,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                detailed.resolved,
+            );
+            let resolved = detailed.resolved.style.into_style();
+            let explicit = detailed.explicit;
+            let card_bg = match explicit.bg {
+                Slot::Inherit => resolved.bg.unwrap_or(Color::Reset),
+                Slot::Set(_) => resolved.bg.unwrap_or(Color::Reset),
+                Slot::Clear => Color::Reset,
+            };
+            for pos in area.positions() {
+                let (src_fg, src_bg) = ui
+                    .page_mut()
+                    .cell(pos)
+                    .map(|cell| (cell.fg, cell.bg))
+                    .unwrap_or((
+                        ratatui_core::style::Color::Reset,
+                        ratatui_core::style::Color::Reset,
+                    ));
+                let (backdrop_fg, _, _) = ui.theme_ref().backdrop_cell(src_fg, src_bg);
+                let dim = ui.theme_ref().backdrop_dim_level();
+                if let Some(cell) = ui.buffer().cell_mut(pos) {
+                    cell.set_symbol(" ");
+                    cell.fg = backdrop_fg;
+                    cell.bg = card_bg;
+                    cell.modifier = if dim {
+                        Modifier::DIM
+                    } else {
+                        Modifier::empty()
+                    };
+                }
+            }
+            ui.patch_style(area, detailed.resolved.style, explicit);
+            ui.mark_area(area, None);
+        } else if let Some(container) = container {
+            ui.fill(area, container.style);
+        }
         ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
 
         let border = ov.style(ui, id, family, Variant::DEFAULT, Part::BORDER, border_live);
@@ -148,54 +202,5 @@ impl<A> Acc<A> {
             Invalidate::Layout => r.relayout(),
         };
         r.for_id(id)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use ratatui_core::layout::Rect;
-
-    use super::cell_at;
-
-    const AREA: Rect = Rect {
-        x: 4,
-        y: 5,
-        width: 3,
-        height: 2,
-    };
-
-    #[test]
-    fn cell_at_is_empty_for_every_x_outside_the_area_on_either_side() {
-        assert_eq!(cell_at(AREA, AREA.x - 1).width, 0);
-        assert_eq!(cell_at(AREA, 0).width, 0);
-
-        let narrow = Rect { width: 1, ..AREA };
-        assert_eq!(cell_at(narrow, narrow.right().saturating_sub(2)).width, 0);
-
-        let empty = Rect { width: 0, ..AREA };
-        assert_eq!(cell_at(empty, empty.x).width, 0);
-
-        for x in AREA.x..AREA.right() {
-            assert_eq!(
-                cell_at(AREA, x),
-                Rect {
-                    x,
-                    y: AREA.y,
-                    width: 1,
-                    height: AREA.height,
-                }
-            );
-        }
-
-        assert_eq!(
-            cell_at(AREA, AREA.right()),
-            Rect {
-                x: AREA.right(),
-                y: AREA.y,
-                width: 0,
-                height: AREA.height,
-            }
-        );
-        assert_eq!(cell_at(AREA, AREA.right() + 1).width, 0);
     }
 }

@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 5b3097acab788ed4e189bc7e6aab27f1b6a6ee65 Alexey Zhokhov <alexey@zhokhov.com> 1792593233 +0700	branch: Created from 5b3097acab788ed4e189bc7e6aab27f1b6a6ee65
+5b3097acab788ed4e189bc7e6aab27f1b6a6ee65 29521eb31016f5091319bb050742a186fe963eb9 Alexey Zhokhov <alexey@zhokhov.com> 1792593402 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+29521eb31016f5091319bb050742a186fe963eb9 260a27c977c00cd649013003e42773b0b2f3b944 Alexey Zhokhov <alexey@zhokhov.com> 1792593728 +0700	commit (merge): Merge commit 'c932adb5ee29ef8ed9f90cc022c39cb9c0472e5d' into parity/picker-contrast-integrate-20261021
+260a27c977c00cd649013003e42773b0b2f3b944 7ca251723a6783a9fffca79acebb5bf0c4fff731 Alexey Zhokhov <alexey@zhokhov.com> 1792593729 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+7ca251723a6783a9fffca79acebb5bf0c4fff731 d8eff52c20154d1f12c262f37c2d160f622d040d Alexey Zhokhov <alexey@zhokhov.com> 1792594006 +0700	commit: docs: record picker contrast integration evidence
+d8eff52c20154d1f12c262f37c2d160f622d040d c6dfab74d6d7f22490ae0195a6b9a0a218331b0a Alexey Zhokhov <alexey@zhokhov.com> 1792594009 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+c6dfab74d6d7f22490ae0195a6b9a0a218331b0a 4ef7353f7985dcf171906913d26a33b83e037f09 Alexey Zhokhov <alexey@zhokhov.com> 1792594246 +0700	commit: docs: refresh picker integration verification

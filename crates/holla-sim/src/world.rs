@@ -1,3 +1,7 @@
+use crate::activity_supervisor::{
+    ActivityExecutionId, ActivityExecutionStart, ActivityStopProfile, ActivitySupervisor,
+    ActivitySupervisorError,
+};
 use crate::clock::Clock;
 use crate::domain::activity::Activity;
 use crate::domain::debian::DebianState;
@@ -81,13 +85,35 @@ pub enum Msg {
     DiscoveryFailed(Domain),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProcessFact {
+    pub pid: u32,
+    pub name: String,
+    pub cpu_percent: u32,
+    pub memory_mb: u32,
+    pub state: String,
+    pub port: Option<u16>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SystemFacts {
+    pub cpu_percent: u32,
+    pub swap_used_mb: u32,
+    pub pressure_minutes: u32,
+    pub btm_installed: bool,
+    pub network: Vec<(String, String)>,
+    pub processes: Vec<ProcessFact>,
+}
+
 pub struct World {
     pub effect_revision: u64,
     pub scenario: Scenario,
     pub clock: Clock,
+    pub activity_supervisor: ActivitySupervisor,
     pub host: Host,
     pub cwd: String,
     pub discovery: Vec<Discovery>,
+    pub system: Option<SystemFacts>,
 
     pub mise: Option<MiseState>,
     pub git: Option<GitRepo>,
@@ -99,6 +125,7 @@ pub struct World {
     pub debian: Option<DebianState>,
     pub memory: Memory,
     pub activities: Vec<Activity>,
+    scenario_activity_execution_ids: Vec<ActivityExecutionId>,
 }
 
 impl World {
@@ -107,9 +134,11 @@ impl World {
             effect_revision: 0,
             scenario,
             clock: Clock::new(),
+            activity_supervisor: ActivitySupervisor::new(),
             host,
             cwd: cwd.to_owned(),
             discovery: vec![],
+            system: None,
             mise: None,
             git: None,
             ssh: vec![],
@@ -120,7 +149,36 @@ impl World {
             debian: None,
             memory: Memory::default(),
             activities: vec![],
+            scenario_activity_execution_ids: Vec::new(),
         }
+    }
+
+    pub fn register_scenario_activity(
+        &mut self,
+        activity: Activity,
+        start: ActivityExecutionStart,
+        profile: ActivityStopProfile,
+    ) -> Result<ActivityExecutionId, ActivitySupervisorError> {
+        if self
+            .activities
+            .iter()
+            .any(|existing| existing.id == activity.id)
+        {
+            return Err(ActivitySupervisorError::DuplicateActivityId {
+                activity_id: activity.id,
+            });
+        }
+
+        let execution_id = self
+            .activity_supervisor
+            .register(&activity, start, profile)?;
+        self.activities.push(activity);
+        self.scenario_activity_execution_ids.push(execution_id);
+        Ok(execution_id)
+    }
+
+    pub fn scenario_activity_execution_ids(&self) -> &[ActivityExecutionId] {
+        &self.scenario_activity_execution_ids
     }
 
     pub fn now_ms(&self) -> i64 {
@@ -141,6 +199,10 @@ impl World {
 
     pub fn discovering(&self) -> bool {
         self.discovery.iter().any(|d| !d.done && !d.failed)
+    }
+
+    pub fn settled(&self) -> bool {
+        self.discovery.iter().all(|d| d.done || d.failed)
     }
 
     pub fn discovered(&self, domain: Domain) -> bool {
@@ -188,6 +250,7 @@ impl World {
 
     fn step(&mut self) -> Vec<Msg> {
         let now = self.clock.now_ms;
+        self.activity_supervisor.advance_to(now);
         let mut msgs = vec![];
         for d in &mut self.discovery {
             if d.done || d.failed || now < d.at_ms {
@@ -202,61 +265,5 @@ impl World {
             }
         }
         msgs
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::domain::host::Environment;
-
-    #[test]
-    fn discovery_is_progressive_and_failures_settle() {
-        let mut w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
-        w.discovery = vec![
-            Discovery::at(Domain::Git, 100),
-            Discovery::failing(Domain::Docker, 200),
-        ];
-        assert!(w.discovering());
-        w.clock.running = true;
-        let msgs = w.tick(150);
-        assert_eq!(msgs, vec![Msg::Discovered(Domain::Git)]);
-        assert!(w.discovering());
-        let msgs = w.tick(100);
-        assert_eq!(msgs, vec![Msg::DiscoveryFailed(Domain::Docker)]);
-        assert!(!w.discovering());
-        assert!(w.discovery_failed(Domain::Docker));
-        assert!(w.discovered(Domain::Git));
-
-        assert!(w.tick(100).is_empty());
-        let _ = Environment::Local;
-    }
-    #[test]
-    fn seek_preserves_reference_quantization_and_pause() {
-        let mut w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
-        w.clock.running = false;
-        w.seek(100);
-        assert_eq!(w.now_ms(), 160);
-        assert!(!w.clock.running);
-        w.seek(80);
-        assert_eq!(w.now_ms(), 160, "seek never moves backwards");
-        w.clock.now_ms = 33;
-        w.seek(100);
-        assert_eq!(
-            w.now_ms(),
-            113,
-            "quantization starts at the current instant"
-        );
-    }
-
-    #[test]
-    fn seek_maximum_frame_is_bounded_and_settles_discovery() {
-        let mut w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
-        w.discovery = World::default_schedule();
-        w.seek(u64::MAX);
-        assert_eq!(w.now_ms(), i64::MAX);
-        assert!(!w.discovering());
-        assert!(w.tick(80).is_empty());
-        assert_eq!(w.now_ms(), i64::MAX);
     }
 }

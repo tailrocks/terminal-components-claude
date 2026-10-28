@@ -1,0 +1,143 @@
+{
+  "recorded_utc": "2026-10-21T04:19:34.806753+00:00",
+  "reviewer": "/root/integrated_wip_retirement_review",
+  "reviewed_integration_commit": "7b3a6d0e6c6ba0a44062be7dc28fde3fb19870b7",
+  "verdict": "YES: remote-only retirement of exactly the seven listed root-owned, fully integrated task WIP refs is safe under fresh coordinator checks. No findings against this bounded retirement operation.",
+  "items": [
+    {
+      "ref": "wip/canonical-stage1-owned-20261021",
+      "verdict": "YES",
+      "exact_cas_expected_old_oid": "9cd3f9f733065b452d13926ca0ae28049c0840dd",
+      "proof": "Fresh ls-remote exact expected tip; merge-base ancestor exit 0; unique commit count 0; no open PR; no classic protection; attached source worktree clean and HEAD exact. Repository branch ruleset protects only default main.",
+      "preserve_local_branch_and_worktree": true,
+      "active_writer_scope": "Coordinator attests root-assigned author ended; live collaboration list at review contained only root, button architect, BackTab writer, this reviewer, Showcase writer. None owns these seven refs. Refresh before deletion."
+    },
+    {
+      "ref": "wip/canonical-stage2-owned-20261021",
+      "verdict": "YES",
+      "exact_cas_expected_old_oid": "4e04be07a15377f902316633e859c41a9ba50d58",
+      "proof": "Fresh ls-remote exact expected tip; merge-base ancestor exit 0; unique commit count 0; no open PR; no classic protection; attached source worktree clean and HEAD exact. Repository branch ruleset protects only default main.",
+      "preserve_local_branch_and_worktree": true,
+      "active_writer_scope": "Coordinator attests root-assigned author ended; live collaboration list at review contained only root, button architect, BackTab writer, this reviewer, Showcase writer. None owns these seven refs. Refresh before deletion."
+    },
+    {
+      "ref": "wip/editor-live-contract-20261021",
+      "verdict": "YES",
+      "exact_cas_expected_old_oid": "3133b9a984daa6a4dd2d03cf2aaf3397a8453a18",
+      "proof": "Fresh ls-remote exact expected tip; merge-base ancestor exit 0; unique commit count 0; no open PR; no classic protection; attached source worktree clean and HEAD exact. Repository branch ruleset protects only default main.",
+      "preserve_local_branch_and_worktree": true,
+      "active_writer_scope": "Coordinator attests root-assigned author ended; live collaboration list at review contained only root, button architect, BackTab writer, this reviewer, Showcase writer. None owns these seven refs. Refresh before deletion."
+    },
+    {
+      "ref": "wip/menu-danger-profile-20261021",
+      "verdict": "YES",
+      "exact_cas_expected_old_oid": "6e8c90fc23da761cfbdc7d73a09cfa92b21082a7",
+      "proof": "Fresh ls-remote exact expected tip; merge-base ancestor exit 0; unique commit count 0; no open PR; no classic protection; attached source worktree clean and HEAD exact. Repository branch ruleset protects only default main.",
+      "preserve_local_branch_and_worktree": true,
+      "active_writer_scope": "Coordinator attests root-assigned author ended; live collaboration list at review contained only root, button architect, BackTab writer, this reviewer, Showcase writer. None owns these seven refs. Refresh before deletion."
+    },
+    {
+      "ref": "wip/panel-composition-20261021",
+      "verdict": "YES",
+      "exact_cas_expected_old_oid": "ef7e04a91713739e99460bc4839d5c0fb066d855",
+      "proof": "Fresh ls-remote exact expected tip; merge-base ancestor exit 0; unique commit count 0; no open PR; no classic protection; attached source worktree clean and HEAD exact. Repository branch ruleset protects only default main.",
+      "preserve_local_branch_and_worktree": true,
+      "active_writer_scope": "Coordinator attests root-assigned author ended; live collaboration list at review contained only root, button architect, BackTab writer, this reviewer, Showcase writer. None owns these seven refs. Refresh before deletion."
+    },
+    {
+      "ref": "wip/visible-terminal-cursor-20261021",
+      "verdict": "YES",
+      "exact_cas_expected_old_oid": "8be128f073c19076a2977e349e8732cd74f08821",
+      "proof": "Fresh ls-remote exact expected tip; merge-base ancestor exit 0; unique commit count 0; no open PR; no classic protection; attached source worktree clean and HEAD exact. Repository branch ruleset protects only default main.",
+      "preserve_local_branch_and_worktree": true,
+      "active_writer_scope": "Coordinator attests root-assigned author ended; live collaboration list at review contained only root, button architect, BackTab writer, this reviewer, Showcase writer. None owns these seven refs. Refresh before deletion."
+    },
+    {
+      "ref": "wip/master-detail-policy-20261021",
+      "verdict": "YES",
+      "exact_cas_expected_old_oid": "f861b24518132a0f8e1ba177fab88f67da82a188",
+      "proof": "Fresh ls-remote exact expected tip; merge-base ancestor exit 0; unique commit count 0; no open PR; no classic protection; attached source worktree clean and HEAD exact. Repository branch ruleset protects only default main.",
+      "preserve_local_branch_and_worktree": true,
+      "active_writer_scope": "Coordinator attests root-assigned author ended; live collaboration list at review contained only root, button architect, BackTab writer, this reviewer, Showcase writer. None owns these seven refs. Refresh before deletion."
+    }
+  ],
+  "source_and_test_evidence": [
+    {
+      "path": "docs/audits/evidence/2026-10-21-current-blockers/stage2-4e04-independent-clearance.json",
+      "exit": 0,
+      "bytes": 7088,
+      "sha256": "15feeaf89d5b07cbf6b9204299b6f9170a2552fd8070e33ad901a20367da5090",
+      "valid_json": true
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-current-blockers/editor-306d72-independent-clearance.json",
+      "exit": 0,
+      "bytes": 5878,
+      "sha256": "3854c2a8f4425c1dcab05fa6d823fb127882c8a8a387f9ecce40ed2b451397ab",
+      "valid_json": true
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-current-blockers/menu-1011159-independent-clearance.json",
+      "exit": 0,
+      "bytes": 10829,
+      "sha256": "4a49b5e50a932a4a348e035f99471fc348861263493ffb93fbe2029d198d8ed8",
+      "valid_json": true
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-current-blockers/panel-ef7e04a-independent-clearance.json",
+      "exit": 0,
+      "bytes": 9395,
+      "sha256": "4009e4de5aaad4951b44c826fcc106d1c823c8b22eeb884bd481402235151ac7",
+      "valid_json": true
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-current-blockers/visible-cursor-8be-independent-clearance.json",
+      "exit": 0,
+      "bytes": 8499,
+      "sha256": "05daa3e9637fc655c3086e83076d09922ba9d49ad896d4be7df81f7cb077f183",
+      "valid_json": true
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-current-blockers/master-detail-f861-independent-clearance.json",
+      "exit": 0,
+      "bytes": 7239,
+      "sha256": "42b13d15dc0be720cd239ac6d7362f38128549979b25b2f3d7ed8486aa36bc68",
+      "valid_json": true
+    },
+    {
+      "path": "docs/audits/evidence/2026-10-21-current-blockers/stage3d-stage1-independent-result-admission.json",
+      "exit": 0,
+      "bytes": 7651,
+      "sha256": "ae23cdeb2a7cf4b1e7db63b975d919a5fa6668700e9245362f4053c00d623ce0",
+      "valid_json": true
+    }
+  ],
+  "default_branch_query": {
+    "exit": 0,
+    "stdout": "{\"default_branch\":\"main\"}\n",
+    "stderr": ""
+  },
+  "proof_packets": [
+    {
+      "path": "/private/tmp/integrated-wip-retirement-review-20261021/raw-proof.json",
+      "sha256": "f2786092a2f521741ca482a6fecf1394f15ebdef7aa762bb36723bd52d43f1db"
+    },
+    {
+      "path": "/private/tmp/integrated-wip-retirement-review-20261021/ownership-and-protection.json",
+      "sha256": "4b55b4b166e9df13a109f747974f81e67fa7c5f8e8e8663bfcc3f98104eb27a2"
+    }
+  ],
+  "required_at_execution": [
+    "Acquire shared push lock with owned token.",
+    "Fresh ls-remote must equal every exact expected OID and candidate integration must still contain each tip.",
+    "Refresh open PR, protection, and active writer checks; stop a ref if any differs.",
+    "Delete remote refs only with exact old-OID leases and preferably one atomic push.",
+    "Verify deleted remote refs absent. Preserve all local branches, attached worktrees, evidence and all unlisted refs.",
+    "Commit this review and deletion receipts in the current migration record."
+  ],
+  "limits": [
+    "No remote deletion, push, fetch, branch mutation, source edit or product tests performed.",
+    "Retirement does not approve product parity, full library acceptance, hosted CI, or currently missing application adoption.",
+    "Root author ownership and ended status corroborated by supplied assignment, clean task-named worktrees, committed migration evidence and live agent list; no process-wide foreign PID inspection or termination performed."
+  ]
+}

@@ -1,0 +1,17 @@
+test_all_nine_driver_inputs_are_hash_checked_with_fake_git (independent_v12_tests.SupervisorV12Stage2Tests.test_all_nine_driver_inputs_are_hash_checked_with_fake_git) ... ok
+test_controlled_environment_is_allowlisted_and_new_target_only (independent_v12_tests.SupervisorV12Stage2Tests.test_controlled_environment_is_allowlisted_and_new_target_only) ... ok
+test_environment_difference_rejected_without_value_disclosure (independent_v12_tests.SupervisorV12Stage2Tests.test_environment_difference_rejected_without_value_disclosure) ... ok
+test_event_identity_uses_exact_external_supervisor_bytes (independent_v12_tests.SupervisorV12Stage2Tests.test_event_identity_uses_exact_external_supervisor_bytes) ... ok
+test_fake_subprocess_term_cleanup (independent_v12_tests.SupervisorV12Stage2Tests.test_fake_subprocess_term_cleanup) ... ok
+test_inclusive_220_budget_reserves_cleanup_and_finalization (independent_v12_tests.SupervisorV12Stage2Tests.test_inclusive_220_budget_reserves_cleanup_and_finalization) ... ok
+test_log_is_exclusive (independent_v12_tests.SupervisorV12Stage2Tests.test_log_is_exclusive) ... ok
+test_nonzero_exit_never_succeeds (independent_v12_tests.SupervisorV12Stage2Tests.test_nonzero_exit_never_succeeds) ... ok
+test_success_requires_zero_exit_no_timeout_and_reaped (independent_v12_tests.SupervisorV12Stage2Tests.test_success_requires_zero_exit_no_timeout_and_reaped) ... ok
+test_timeout_cooperatively_signals_exact_direct_child_and_fails_closed (independent_v12_tests.SupervisorV12Stage2Tests.test_timeout_cooperatively_signals_exact_direct_child_and_fails_closed) ... ok
+test_unreaped_direct_child_never_claims_success (independent_v12_tests.SupervisorV12Stage2Tests.test_unreaped_direct_child_never_claims_success) ... ok
+test_v7_source_and_tests_remain_byte_identical (independent_v12_tests.SupervisorV12Stage2Tests.test_v7_source_and_tests_remain_byte_identical) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 28.711s
+
+OK

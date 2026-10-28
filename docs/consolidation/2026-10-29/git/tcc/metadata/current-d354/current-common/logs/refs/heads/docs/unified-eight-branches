@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 a8651aae5ce395020115e909bbbc5ecc6d2d1b01 Alexey Zhokhov <alexey@zhokhov.com> 1792328130 +0700	branch: Created from main
+a8651aae5ce395020115e909bbbc5ecc6d2d1b01 f117412d18ef9251ff84f6efc04e81568f07c3f7 Alexey Zhokhov <alexey@zhokhov.com> 1792328217 +0700	commit (amend): docs: identify missing Showcase route coverage
+f117412d18ef9251ff84f6efc04e81568f07c3f7 9566605636f3a14969f3bfc94937c8d82409bc92 Alexey Zhokhov <alexey@zhokhov.com> 1792328509 +0700	commit: style: remove whitespace left by Rust comment cleanup
+9566605636f3a14969f3bfc94937c8d82409bc92 faeab489d1f174ce13ce22211c0e02c9a7c0e0f6 Alexey Zhokhov <alexey@zhokhov.com> 1792329703 +0700	commit: fix(ci): align Rust gates with minimal source documentation
+faeab489d1f174ce13ce22211c0e02c9a7c0e0f6 755e4dd72fe0023d801733bd3847b07b8415cb6f Alexey Zhokhov <alexey@zhokhov.com> 1792329879 +0700	commit: fix(validation): migrate capture pins and checkout fixtures
+755e4dd72fe0023d801733bd3847b07b8415cb6f 82b71f6f86f217cd7aea099b888e8c829292dd06 Alexey Zhokhov <alexey@zhokhov.com> 1792330605 +0700	commit: docs: reconcile validation contracts across branches
+82b71f6f86f217cd7aea099b888e8c829292dd06 cbae08ab65187fac0ea5475ae35eceb132b657af Alexey Zhokhov <alexey@zhokhov.com> 1792331154 +0700	commit: fix(visibility): separate source validation from generated reports
+cbae08ab65187fac0ea5475ae35eceb132b657af d66ef160cee0fb7915edad40c389de5e7ae08fe4 Alexey Zhokhov <alexey@zhokhov.com> 1792331154 +0700	commit: docs: distinguish artifact reports from publishing protocols

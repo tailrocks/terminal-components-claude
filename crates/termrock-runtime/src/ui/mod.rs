@@ -1,8 +1,11 @@
+mod command_scope;
+pub mod composition;
 pub mod cx;
 pub mod derived;
 pub mod layer_buf;
 pub mod measure;
 pub mod paint;
+mod slot;
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -11,22 +14,24 @@ use ratatui_core::style::Color;
 use core::ops::{BitOr, BitOrAssign};
 use std::collections::HashMap;
 
+pub use composition::{CompositionError, CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH};
 use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
+pub use slot::LayerSlot;
 
 use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
-use crate::diagnostics::Diagnostic;
+use crate::diagnostics::{Diagnostic, Diagnostics};
 use crate::focus::{FocusEntry, FocusRing, Focusability, ScopeId, ScopeMode};
-use crate::hit::{Axes, Headroom, Registry};
+use crate::hit::{Axes, Headroom, Registry, ScrollRouteKey, TextDragRegistration};
 use crate::id::{Id, Part, PartRef};
 use crate::keymap::{
-    Binding, BindingRegistry, DynamicBindingRegistry, FocusedHintKey, FocusedHints, HintLayer,
-    KeyMap,
+    Binding, BindingDescriptor, BindingExtensionError, BindingRegistry, DynamicBindingRegistry,
+    FocusedHintKey, FocusedHints, HintLayer, KeyMap, ScopedBubbleBinding,
 };
-use crate::layer::{LayerId, LayerKind};
+use crate::layer::{LayerId, LayerKind, LayerOpening};
 use crate::response::StateFlags;
 use crate::theme::resolve::StyleCache;
 use crate::theme::{DesignTokens, Family, Overlay, Resolved, Role, Surface, Theme, Variant};
@@ -57,31 +62,54 @@ impl CellRoles {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct TypeAheadDeclaration {
+    pub(crate) owner: Id,
+    pub(crate) layer: LayerId,
+}
+
 #[derive(Debug, Default)]
 pub struct FrameState {
     pub registry: Registry,
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
+    pub(crate) layer_openings: Vec<LayerOpening>,
+    pub(crate) managed_tooltip_opening: Option<LayerOpening>,
+    pub(crate) managed_tooltip_drawn: bool,
     pub(crate) cursors: Vec<CursorRequest>,
+    pub(crate) retained_cursor_request: Option<RetainedCursorRequest>,
     pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
+    pub(crate) focused_paste_targets: Vec<crate::runtime::typing::FocusedPasteDeclaration>,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing_resolved: crate::runtime::typing::TypingResolved,
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
-    pub(crate) diagnostics: Vec<Diagnostic>,
+    pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
+    pub(crate) type_aheads: Vec<TypeAheadDeclaration>,
+    pub(crate) diagnostics: Diagnostics,
+    pub(crate) tooltips: crate::Tooltips,
     pub(crate) roles: Vec<CellRoles>,
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
     pub(crate) top: LayerId,
-    #[cfg(feature = "testing")]
-    pub(crate) styled_parts: Vec<(Id, Part)>,
-    #[cfg(feature = "testing")]
-    pub(crate) styled_queries: Vec<StyledQuery>,
 }
 
-#[cfg(feature = "testing")]
-pub type StyledQuery = (Id, Family, Variant, Part, Resolved);
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct RetainedCursorRequest {
+    pub(crate) owner: Id,
+    pub(crate) parent_layer: LayerId,
+    pub(crate) overlay_layer: LayerId,
+    pub(crate) cursor_index: usize,
+    pub(crate) mode: CursorRetentionMode,
+    pub(crate) ambiguous: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CursorRetentionMode {
+    FocusedOwner,
+    VisibleOwner,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct ReferenceState(u8);
@@ -164,13 +192,21 @@ impl FrameState {
         self.registry.reset(generation);
         self.ring.reset();
         self.layers.begin();
+        self.layer_openings.clear();
+        self.managed_tooltip_opening = None;
+        self.managed_tooltip_drawn = false;
+        self.tooltips = crate::Tooltips::DEFAULT;
         self.cursors.clear();
+        self.retained_cursor_request = None;
         self.typing.clear();
+        self.focused_paste_targets.clear();
         self.typing_bindings.reset();
         self.typing_resolved = crate::runtime::typing::TypingResolved::default();
         self.layout.clear();
         self.declared.clear();
         self.bindings.reset();
+        self.scoped_bubble_bindings.clear();
+        self.type_aheads.clear();
         self.diagnostics.clear();
         self.roles.clear();
         self.roles
@@ -178,10 +214,6 @@ impl FrameState {
         self.screen = screen;
         self.inert_floor = LayerId::PAGE;
         self.top = LayerId::PAGE;
-        #[cfg(feature = "testing")]
-        self.styled_parts.clear();
-        #[cfg(feature = "testing")]
-        self.styled_queries.clear();
     }
 
     fn role_index(&self, pos: Position) -> Option<usize> {
@@ -209,9 +241,8 @@ pub struct UiCore {
     pub(crate) keymap_revision: u64,
     dynamic_bindings: DynamicBindingRegistry,
     next_targetless_reference: u64,
-    pub(crate) scroll_bg_counts: HashMap<Color, usize>,
-    pub(crate) scroll_bg_order: Vec<Color>,
     pub(crate) cluster_scratch: crate::text::clusters::ClusterScratch,
+    pub(crate) majority_bg_counts: HashMap<Color, (usize, usize)>,
 }
 
 impl core::fmt::Debug for UiCore {
@@ -301,6 +332,10 @@ impl core::fmt::Debug for Ui<'_> {
 }
 
 impl<'f> Ui<'f> {
+    pub const fn tooltips(&self) -> crate::Tooltips {
+        self.frame.tooltips
+    }
+
     pub fn new(
         frame: &'f mut FrameState,
         page: &'f mut Buffer,
@@ -341,6 +376,23 @@ impl<'f> Ui<'f> {
         }
     }
 
+    pub fn with_theme<R>(&mut self, theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
+        let mut nested = Ui {
+            frame: &mut *self.frame,
+            page: &mut *self.page,
+            core: &mut *self.core,
+            theme,
+            last: self.last,
+            clip: self.clip,
+            surface: self.surface,
+            target: self.target,
+            layer: self.layer,
+            inert: self.inert,
+            reference: self.reference,
+        };
+        f(&mut nested)
+    }
+
     pub const fn full(&self) -> Rect {
         self.clip
     }
@@ -357,8 +409,35 @@ impl<'f> Ui<'f> {
         self.layer
     }
 
+    pub fn is_covered_by_native_layer(&self) -> bool {
+        self.reference.is_none() && self.layer != self.frame.top
+    }
+
+    pub fn owner_has_focus_presentation(&self, owner: Id) -> bool {
+        match self.reference_state(owner) {
+            Some(state) => state.contains(StateFlags::FOCUSED),
+            None => self.last.snapshot.focus == Some(owner),
+        }
+    }
+
     pub const fn is_inert(&self) -> bool {
         self.inert || self.reference.is_some()
+    }
+
+    pub const fn context_state(&self) -> StateFlags {
+        if self.is_inert() {
+            StateFlags::INACTIVE_LAYER
+        } else {
+            StateFlags::empty()
+        }
+    }
+
+    pub const fn is_inactive_layer(&self) -> bool {
+        self.is_inert()
+    }
+
+    pub fn diagnostic(&mut self, diagnostic: Diagnostic) {
+        self.frame.diagnostics.push(diagnostic);
     }
 
     pub fn reference<R>(
@@ -405,7 +484,7 @@ impl<'f> Ui<'f> {
         part: Part,
         flags: StateFlags,
     ) -> Resolved {
-        let acc = self.core.style_cache.accumulate(
+        self.core.style_cache.resolve(
             self.theme,
             family,
             variant,
@@ -413,8 +492,8 @@ impl<'f> Ui<'f> {
             flags,
             &self.core.overlays,
             self.core.stack_hash,
-        );
-        crate::theme::resolve::bind(self.theme, acc, None, self.surface)
+            self.surface,
+        )
     }
 
     pub(crate) fn style_inherited(
@@ -455,6 +534,46 @@ impl<'f> Ui<'f> {
         )
     }
 
+    pub fn style_defaults_with_explicit(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        defaults: crate::theme::StyleDefaults<'_>,
+        local: Option<&crate::theme::StylePatch>,
+    ) -> crate::theme::ResolvedStyle {
+        crate::theme::resolve::bind_defaults_with_explicit(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            defaults,
+            local,
+        )
+    }
+
+    pub fn style_defaults_with_fallback_ownership(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        defaults: crate::theme::StyleDefaults<'_>,
+        local: Option<&crate::theme::StylePatch>,
+    ) -> (Resolved, crate::theme::StylePatch) {
+        crate::theme::resolve::bind_defaults_with_fallback_ownership(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            defaults,
+            local,
+        )
+    }
+
     pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
         crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
     }
@@ -467,7 +586,7 @@ impl<'f> Ui<'f> {
         flags: StateFlags,
         patch: &crate::theme::StylePatch,
     ) -> Resolved {
-        let acc = self.core.style_cache.accumulate(
+        self.core.style_cache.resolve_patched(
             self.theme,
             family,
             variant,
@@ -475,38 +594,9 @@ impl<'f> Ui<'f> {
             flags,
             &self.core.overlays,
             self.core.stack_hash,
-        );
-        crate::theme::resolve::bind(self.theme, acc, Some(patch), self.surface)
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn note_styled(
-        &mut self,
-        owner: Id,
-        family: Family,
-        variant: Variant,
-        part: Part,
-        resolved: Resolved,
-    ) {
-        self.frame.styled_parts.push((owner, part));
-        self.frame
-            .styled_queries
-            .push((owner, family, variant, part, resolved));
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn styled_parts(&self) -> &[(Id, Part)] {
-        &self.frame.styled_parts
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn styled_queries(&self) -> &[StyledQuery] {
-        &self.frame.styled_queries
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn style_cache_stats(&self) -> (u64, u64) {
-        self.core.style_cache.stats()
+            self.surface,
+            patch,
+        )
     }
 
     pub fn resolve(
@@ -558,6 +648,20 @@ impl<'f> Ui<'f> {
     ) -> R {
         let r = self.style(family, variant, part, flags);
         f(&mut self.reborrow(), r)
+    }
+
+    pub(crate) fn with_part_hit_precedence<R>(
+        &mut self,
+        part: PartRef,
+        f: impl FnOnce(&mut Ui<'_>) -> R,
+    ) -> R {
+        let start = self.frame.registry.len();
+        let result = {
+            let mut nested = self.reborrow();
+            f(&mut nested)
+        };
+        self.frame.registry.promote_part_hit_suffix(start, part);
+        result
     }
 
     pub fn with_area<R>(&mut self, area: Rect, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
@@ -678,7 +782,12 @@ impl<'f> Ui<'f> {
     }
 
     pub fn declare_state(&mut self, id: Id, flags: StateFlags) {
-        if self.reference.is_some() || flags.is_empty() {
+        if self.reference.is_some() {
+            return;
+        }
+
+        let flags = flags | self.context_state();
+        if flags.is_empty() {
             return;
         }
         if let Some((_, f)) = self.frame.declared.iter_mut().find(|(i, _)| *i == id) {
@@ -693,6 +802,44 @@ impl<'f> Ui<'f> {
         owner: Id,
         flags: StateFlags,
         table: &'static [Binding<C>],
+    ) {
+        self.publish_bindings_filtered(owner, flags, table, |_| true);
+    }
+
+    pub(crate) fn publish_scope_bindings<C: Copy + 'static>(
+        &mut self,
+        scope: ScopeId,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+    ) {
+        if self.registrations_suppressed() || self.frame.ring.scope_layer(scope) != Some(self.layer)
+        {
+            return;
+        }
+        if let Some(action) =
+            self.frame
+                .bindings
+                .publish_filtered(owner, flags, self.layer, table, |_| true)
+        {
+            self.frame
+                .diagnostics
+                .push(Diagnostic::DuplicateBindingAction { owner, action });
+            return;
+        }
+        self.frame.scoped_bubble_bindings.push(ScopedBubbleBinding {
+            scope,
+            owner,
+            layer: self.layer,
+        });
+    }
+
+    pub(crate) fn publish_bindings_filtered<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
     ) {
         let initial_focus = self.last.snapshot.focus.is_none()
             && self.last.ring.entries().is_empty()
@@ -709,11 +856,102 @@ impl<'f> Ui<'f> {
         } else {
             flags
         };
-        if let Some(action) = self.frame.bindings.publish(owner, flags, self.layer, table) {
+        if let Some(action) = self
+            .frame
+            .bindings
+            .publish_filtered(owner, flags, self.layer, table, include)
+        {
             self.frame
                 .diagnostics
                 .push(Diagnostic::DuplicateBindingAction { owner, action });
         }
+    }
+
+    pub(crate) fn extend_bindings<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+    ) -> Result<(), BindingExtensionError> {
+        let initial_focus = self.last.snapshot.focus.is_none()
+            && self.last.ring.entries().is_empty()
+            && self.frame.ring.reachable().next().map(|entry| entry.id) == Some(owner);
+        if self.registrations_suppressed()
+            || (self.last.snapshot.focus != Some(owner) && !initial_focus)
+            || (!flags.contains(StateFlags::FOCUSED) && !initial_focus)
+            || !self.frame.ring.contains(owner)
+        {
+            return Ok(());
+        }
+        let flags = if initial_focus {
+            flags | StateFlags::FOCUSED
+        } else {
+            flags
+        };
+        match self
+            .frame
+            .bindings
+            .extend(owner, flags, self.layer, table, include)
+        {
+            Ok(()) => Ok(()),
+            Err(error @ BindingExtensionError::MissingBase { .. }) => Err(error),
+            Err(error @ BindingExtensionError::DuplicateAction { action, .. }) => {
+                self.frame
+                    .diagnostics
+                    .push(Diagnostic::DuplicateBindingAction { owner, action });
+                Err(error)
+            }
+            Err(error @ BindingExtensionError::ConflictingChord { chord, .. }) => {
+                self.frame.diagnostics.push(Diagnostic::BindingConflict {
+                    chord,
+                    phase: crate::keymap::KeyPhase::Bubble,
+                    a: owner,
+                    b: owner,
+                });
+                Err(error)
+            }
+        }
+    }
+
+    pub fn publish_type_ahead(&mut self, owner: Id, flags: StateFlags) {
+        if self.registrations_suppressed()
+            || flags.intersects(StateFlags::DISABLED | StateFlags::EDITING)
+        {
+            return;
+        }
+
+        let registered_here = self.frame.ring.entry(owner).is_some_and(|entry| {
+            entry.layer == self.layer
+                && !entry.disabled
+                && !entry.swallows_typing
+                && !entry.area.is_empty()
+        }) && self.frame.ring.contains(owner)
+            && !self
+                .frame
+                .declared
+                .iter()
+                .any(|(id, state)| *id == owner && state.contains(StateFlags::EDITING))
+            && self.frame.registry.layer_of(owner) == Some(self.layer)
+            && self
+                .frame
+                .registry
+                .area_of(owner)
+                .is_some_and(|area| !area.is_empty());
+        if !registered_here
+            || self
+                .frame
+                .type_aheads
+                .iter()
+                .any(|declaration| declaration.owner == owner && declaration.layer == self.layer)
+        {
+            return;
+        }
+
+        self.frame.type_aheads.push(TypeAheadDeclaration {
+            owner,
+            layer: self.layer,
+        });
     }
 
     pub fn publish_typing_target<C: Copy + 'static>(
@@ -746,9 +984,79 @@ impl<'f> Ui<'f> {
         }
     }
 
+    pub fn publish_focused_paste_target(&mut self, owner: Id) {
+        let registered_here = self
+            .frame
+            .ring
+            .entry(owner)
+            .is_some_and(|entry| entry.layer == self.layer && !entry.area.is_empty())
+            && self.frame.registry.layer_of(owner) == Some(self.layer)
+            && self
+                .frame
+                .registry
+                .area_of(owner)
+                .is_some_and(|area| !area.is_empty());
+        if self.registrations_suppressed() || !registered_here {
+            return;
+        }
+        if !self
+            .frame
+            .focused_paste_targets
+            .iter()
+            .any(|declaration| declaration.owner == owner && declaration.layer == self.layer)
+        {
+            self.frame.focused_paste_targets.push(
+                crate::runtime::typing::FocusedPasteDeclaration {
+                    owner,
+                    layer: self.layer,
+                },
+            );
+        }
+    }
+
     pub fn publish_dynamic_bindings<I>(&mut self, owner: Id, flags: StateFlags, bindings: I)
     where
         I: Iterator<Item = (ActionKey, Option<crate::event::Chord>)> + Clone,
+    {
+        self.publish_additional_binding_descriptors(
+            owner,
+            flags,
+            bindings.map(|(action, chord)| BindingDescriptor {
+                action,
+                chord,
+                label: "",
+                priority: 0,
+                visible: false,
+            }),
+        );
+    }
+
+    pub fn publish_additional_bindings<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+    ) {
+        self.publish_additional_binding_descriptors(
+            owner,
+            flags,
+            table.iter().map(|binding| BindingDescriptor {
+                action: binding.action,
+                chord: binding.chord,
+                label: binding.label,
+                priority: binding.priority,
+                visible: binding.visible,
+            }),
+        );
+    }
+
+    fn publish_additional_binding_descriptors<I>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        bindings: I,
+    ) where
+        I: Iterator<Item = BindingDescriptor> + Clone,
     {
         let initial_focus = self.last.snapshot.focus.is_none()
             && self.last.ring.entries().is_empty()
@@ -765,12 +1073,17 @@ impl<'f> Ui<'f> {
         } else {
             flags
         };
-        let base = self
+        let (base, base_descriptors) = self
             .frame
             .bindings
             .get(owner)
-            .map(|(published, _)| published.table);
-        let (descriptors, revision) = self.core.dynamic_bindings.update(owner, base, bindings);
+            .map_or((None, &[][..]), |(published, descriptors)| {
+                (Some(published.table), descriptors)
+            });
+        let (descriptors, revision) =
+            self.core
+                .dynamic_bindings
+                .update_descriptors(owner, base, base_descriptors, bindings);
         if let Some(action) =
             self.frame
                 .bindings
@@ -823,6 +1136,43 @@ impl<'f> Ui<'f> {
             .register_part(owner, part, area.intersection(self.clip), self.layer);
     }
 
+    pub fn register_text_drag_autoscroll(
+        &mut self,
+        owner: Id,
+        part: PartRef,
+        area: Rect,
+        axes: Axes,
+        headroom: Headroom,
+        source_revision: u32,
+    ) {
+        if self.registrations_suppressed() {
+            return;
+        }
+        self.frame
+            .registry
+            .register_text_drag_autoscroll(TextDragRegistration {
+                owner,
+                part,
+                area: area.intersection(self.clip),
+                layer: self.layer,
+                axes,
+                headroom,
+                source_revision,
+            });
+    }
+
+    pub fn register_hover_part(&mut self, owner: Id, part: PartRef, area: Rect) {
+        if self.registrations_suppressed() {
+            return;
+        }
+        self.frame.registry.register_hover_part(
+            owner,
+            part,
+            area.intersection(self.clip),
+            self.layer,
+        );
+    }
+
     pub fn register_decor(&mut self, owner: Id, part: PartRef, area: Rect) {
         if self.registrations_suppressed() {
             return;
@@ -845,6 +1195,85 @@ impl<'f> Ui<'f> {
         );
     }
 
+    pub fn register_routed_scroll(
+        &mut self,
+        id: Id,
+        area: Rect,
+        axes: Axes,
+        head: Headroom,
+        source_revision: u64,
+    ) -> Option<ScrollRouteKey> {
+        if self.registrations_suppressed() {
+            return None;
+        }
+        self.frame.registry.register_routed_scroll(
+            id,
+            area.intersection(self.clip),
+            self.layer,
+            axes,
+            head,
+            source_revision,
+        )
+    }
+
+    pub fn register_hit_stack_wheel(
+        &mut self,
+        id: Id,
+        part: PartRef,
+        area: Rect,
+        axes: Axes,
+        source_revision: u64,
+    ) -> Option<ScrollRouteKey> {
+        if self.registrations_suppressed() {
+            return None;
+        }
+        self.frame.registry.register_hit_stack_wheel(
+            id,
+            part,
+            area.intersection(self.clip),
+            self.layer,
+            axes,
+            source_revision,
+        )
+    }
+
+    pub fn register_event_local_hit_stack_wheel(
+        &mut self,
+        id: Id,
+        part: PartRef,
+        area: Rect,
+        axes: Axes,
+        source_revision: u64,
+    ) -> Option<ScrollRouteKey> {
+        if self.registrations_suppressed() {
+            return None;
+        }
+        self.frame.registry.register_event_local_hit_stack_wheel(
+            id,
+            part,
+            area.intersection(self.clip),
+            self.layer,
+            axes,
+            source_revision,
+        )
+    }
+
+    pub fn link_scroll_parent(&mut self, child: ScrollRouteKey, parent: ScrollRouteKey) -> bool {
+        !self.registrations_suppressed() && self.frame.registry.link_scroll_parent(child, parent)
+    }
+
+    pub fn register_passive_reveal_scroll(&mut self, id: Id, area: Rect, head: Headroom) {
+        if self.registrations_suppressed() {
+            return;
+        }
+        self.frame.registry.register_passive_reveal_scroll(
+            id,
+            area.intersection(self.clip),
+            self.layer,
+            head,
+        );
+    }
+
     pub fn report_layout(&mut self, id: Id, l: LayoutFacts) {
         if self.reference.is_some() {
             return;
@@ -852,16 +1281,143 @@ impl<'f> Ui<'f> {
         self.frame.layout.push((id, l));
     }
 
+    pub fn report_horizontal_source_offset(&mut self, owner: Id, source_column: usize) -> bool {
+        if self.reference.is_some() {
+            return false;
+        }
+        let Some((_, facts)) = self
+            .frame
+            .layout
+            .iter_mut()
+            .rev()
+            .find(|(id, _)| *id == owner)
+        else {
+            return false;
+        };
+        facts.horizontal_source_offset = Some(source_column);
+        true
+    }
+
     pub fn set_cursor(&mut self, owner: Id, pos: Position) {
-        self.record_cursor(owner, pos, false);
+        self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Block);
+    }
+
+    pub fn set_bar_cursor(&mut self, owner: Id, pos: Position) {
+        self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Bar);
+    }
+
+    pub fn retain_owner_cursor(&mut self, owner: Id) -> bool {
+        self.retain_cursor_request(owner, CursorRetentionMode::FocusedOwner)
+    }
+
+    pub fn retain_visible_owner_cursor(&mut self, owner: Id) -> bool {
+        self.retain_cursor_request(owner, CursorRetentionMode::VisibleOwner)
+    }
+
+    fn retain_cursor_request(&mut self, owner: Id, mode: CursorRetentionMode) -> bool {
+        if self.reference.is_some() || self.inert || self.layer != self.frame.top {
+            return false;
+        }
+        if mode == CursorRetentionMode::FocusedOwner && self.last.snapshot.focus != Some(owner) {
+            return false;
+        }
+        let Some((top_index, top)) = self.frame.layers.active().iter().enumerate().next_back()
+        else {
+            return false;
+        };
+        if top.layer != self.layer
+            || !top.drawn
+            || top.spec.kind != LayerKind::Popover
+            || top.spec.inert_below
+        {
+            return false;
+        }
+        if let Some(existing) = self.frame.retained_cursor_request.as_mut() {
+            if existing.owner == owner && existing.mode == mode && !existing.ambiguous {
+                return true;
+            }
+            if !existing.ambiguous {
+                self.frame
+                    .diagnostics
+                    .push(crate::diagnostics::Diagnostic::CursorRejected {
+                        owner,
+                        layer: self.layer,
+                    });
+                existing.ambiguous = true;
+            }
+            return false;
+        }
+        let parent_layer = top_index
+            .checked_sub(1)
+            .and_then(|parent_index| self.frame.layers.active().get(parent_index))
+            .map_or(LayerId::PAGE, |parent| parent.layer);
+        if parent_layer < self.frame.inert_floor
+            || self.frame.registry.layer_of(owner) != Some(parent_layer)
+        {
+            return false;
+        }
+        let Some(area) = self.frame.registry.area_of(owner) else {
+            return false;
+        };
+        let Some((cursor_index, cursor)) =
+            self.frame
+                .cursors
+                .iter_mut()
+                .enumerate()
+                .rev()
+                .find(|(_, cursor)| {
+                    cursor.owner == owner
+                        && cursor.layer == parent_layer
+                        && !cursor.inert
+                        && !cursor.typing_offer
+                        && self.frame.screen.contains(cursor.pos)
+                        && area.contains(cursor.pos)
+                })
+        else {
+            return false;
+        };
+        cursor.layer = self.layer;
+        self.frame.retained_cursor_request = Some(RetainedCursorRequest {
+            owner,
+            parent_layer,
+            overlay_layer: self.layer,
+            cursor_index,
+            mode,
+            ambiguous: false,
+        });
+        true
+    }
+
+    pub fn set_undrawn_top_bar_cursor(&mut self, owner: Id, area: Rect, pos: Position) {
+        if self.reference.is_some() || area.is_empty() {
+            return;
+        }
+        let saved_layer = self.layer;
+        let saved_inert = self.inert;
+        self.layer = self.frame.top;
+        self.inert = false;
+        self.register_keyboard_editor(owner, area, Focusability::Focusable, StateFlags::EDITING);
+        self.set_bar_cursor(owner, pos);
+        self.layer = saved_layer;
+        self.inert = saved_inert;
     }
 
     pub fn offer_typing_cursor(&mut self, owner: Id, pos: Position) {
-        self.record_cursor(owner, pos, true);
+        self.record_cursor(owner, pos, true, crate::cursor::CursorShape::Block);
     }
 
-    fn record_cursor(&mut self, owner: Id, pos: Position, typing_offer: bool) {
-        if self.reference.is_some() {
+    fn record_cursor(
+        &mut self,
+        owner: Id,
+        pos: Position,
+        typing_offer: bool,
+        shape: crate::cursor::CursorShape,
+    ) {
+        let in_clip = self.clip.contains(pos)
+            || (self.layer > LayerId::PAGE
+                && self.layer == self.frame.top
+                && self.frame.screen.contains(pos));
+        if self.reference.is_some() || !in_clip {
             return;
         }
         self.frame.cursors.push(CursorRequest {
@@ -870,11 +1426,46 @@ impl<'f> Ui<'f> {
             pos,
             inert: self.inert,
             typing_offer,
+            shape,
         });
     }
 
-    pub fn layer<R>(&mut self, id: Id, f: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R> {
+    pub fn layer_for<R>(
+        &mut self,
+        opening: LayerOpening,
+        f: impl FnOnce(&mut Ui<'_>, Rect) -> R,
+    ) -> Option<R> {
         if self.reference.is_some() {
+            return None;
+        }
+        let index = self.frame.layers.find(opening.id())?;
+        let layer_matches = self
+            .frame
+            .layers
+            .active()
+            .get(index)
+            .is_some_and(|draw| draw.layer == opening.layer_id());
+        if !layer_matches || !self.frame.layer_openings.contains(&opening) {
+            return None;
+        }
+        self.layer_with_opening(opening.id(), Some(opening), f)
+    }
+
+    pub fn layer<R>(&mut self, id: Id, f: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R> {
+        self.layer_with_opening(id, None, f)
+    }
+
+    fn layer_with_opening<R>(
+        &mut self,
+        id: Id,
+        opening: Option<LayerOpening>,
+        f: impl FnOnce(&mut Ui<'_>, Rect) -> R,
+    ) -> Option<R> {
+        if self.reference.is_some() {
+            return None;
+        }
+        let managed = self.frame.managed_tooltip_opening;
+        if managed.is_some_and(|managed| managed.id() == id) && opening != managed {
             return None;
         }
         let idx = self.frame.layers.find(id)?;
@@ -889,6 +1480,9 @@ impl<'f> Ui<'f> {
             d.drawn = true;
             (d.layer, d.area, d.spec.kind)
         };
+        if managed.is_some() && opening == managed {
+            self.frame.managed_tooltip_drawn = true;
+        }
         let inert = layer < self.frame.inert_floor;
         let surface = match kind {
             LayerKind::Modal => Surface::Overlay,
@@ -953,14 +1547,12 @@ impl<'f> Ui<'f> {
         if !self.clip.contains(src) || !self.clip.contains(dst) {
             return;
         }
-        let roles = match self.target {
-            Target::Page => self.roles_at(src),
-            Target::Layer(i) => self
-                .frame
-                .layers
-                .active()
-                .get(i)
-                .map_or_else(CellRoles::default, |d| d.roles_at(src)),
+        let (roles, underlay) = match self.target {
+            Target::Page => (self.roles_at(src), None),
+            Target::Layer(i) => self.frame.layers.active().get(i).map_or_else(
+                || (CellRoles::default(), None),
+                |d| (d.roles_at(src), d.underlay_at(src).cloned()),
+            ),
         };
         if let Some(cell) = self.buffer().cell(src).cloned() {
             if let Some(target) = self.buffer().cell_mut(dst) {
@@ -978,15 +1570,30 @@ impl<'f> Ui<'f> {
                 Target::Layer(i) => {
                     if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
                         d.set_roles(dst, roles);
+                        d.set_underlay(dst, underlay);
                     }
                 }
             }
             if let Some(cell) = self.buffer().cell_mut(src) {
+                let kept_fg = cell.fg;
+                let kept_bg = cell.bg;
                 cell.reset();
-                cell.set_style(reset.into_style());
+                let style = reset.into_style();
+                cell.set_style(style);
+                if style.fg.is_none() {
+                    cell.fg = kept_fg;
+                }
+                if style.bg.is_none() {
+                    cell.bg = kept_bg;
+                }
             }
-            self.mark(src, None);
+
             self.mark(src, Some(reset));
+            if let Target::Layer(i) = self.target
+                && let Some(d) = self.frame.layers.active_mut().get_mut(i)
+            {
+                d.reset_source_underlay(src, reset);
+            }
         }
     }
 
@@ -1000,6 +1607,15 @@ impl<'f> Ui<'f> {
                 }
             }
             Target::Layer(i) => {
+                if style.is_none() {
+                    let page_cell = self.page.cell(pos).cloned();
+                    let page_roles = self.roles_at(pos);
+                    if let Some(page_cell) = page_cell
+                        && let Some(d) = self.frame.layers.active_mut().get_mut(i)
+                    {
+                        d.materialize_underlay(pos, &page_cell, page_roles);
+                    }
+                }
                 if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
                     d.mark(pos, style);
                 }
@@ -1051,6 +1667,129 @@ impl<'f> Ui<'f> {
         self.page
     }
 
+    pub fn fill_card_from_page(&mut self, area: Rect, card: ratatui_core::style::Color) {
+        let theme = self.theme.clone();
+        let samples: Vec<_> = area
+            .positions()
+            .map(|pos| {
+                let (fg, bg) = self
+                    .page
+                    .cell(pos)
+                    .map(|cell| (cell.fg, cell.bg))
+                    .unwrap_or((
+                        ratatui_core::style::Color::Reset,
+                        ratatui_core::style::Color::Reset,
+                    ));
+                let (fg, _) = theme.backdrop_colors(fg, bg);
+                (pos, fg)
+            })
+            .collect();
+        {
+            let buf = self.buffer();
+            for (pos, fg) in samples {
+                if let Some(cell) = buf.cell_mut(pos) {
+                    cell.set_symbol(" ");
+                    let mut style = ratatui_core::style::Style::new();
+                    style.fg = Some(fg);
+                    style.bg = Some(card);
+                    cell.set_style(style);
+                    cell.modifier = ratatui_core::style::Modifier::empty();
+                }
+            }
+        }
+        self.mark_area(area, None);
+    }
+
+    pub fn fill_keep_fg(&mut self, area: Rect, bg: ratatui_core::style::Color) {
+        self.fill(area, crate::theme::PaintStyle::new().bg(bg));
+    }
+
+    pub fn recolor_rgb(
+        &mut self,
+        area: Rect,
+        mut map: impl FnMut(ratatui_core::style::Color) -> ratatui_core::style::Color,
+    ) {
+        self.recolor_cells(area, |fg, bg| {
+            let fg = if matches!(fg, ratatui_core::style::Color::Rgb(..)) {
+                map(fg)
+            } else {
+                fg
+            };
+            let bg = if matches!(bg, ratatui_core::style::Color::Rgb(..)) {
+                map(bg)
+            } else {
+                bg
+            };
+            (fg, bg)
+        });
+    }
+
+    pub fn recolor_pair(
+        &mut self,
+        area: Rect,
+        map: impl FnMut(
+            ratatui_core::style::Color,
+            ratatui_core::style::Color,
+        ) -> (ratatui_core::style::Color, ratatui_core::style::Color),
+    ) {
+        self.recolor_cells(area, map);
+    }
+
+    pub fn recolor_fg(
+        &mut self,
+        area: Rect,
+        mut map: impl FnMut(
+            ratatui_core::style::Color,
+            ratatui_core::style::Color,
+        ) -> Option<ratatui_core::style::Color>,
+    ) {
+        self.recolor_cells(area, |fg, bg| (map(fg, bg).unwrap_or(fg), bg));
+    }
+
+    fn recolor_cells(
+        &mut self,
+        area: Rect,
+        mut map: impl FnMut(
+            ratatui_core::style::Color,
+            ratatui_core::style::Color,
+        ) -> (ratatui_core::style::Color, ratatui_core::style::Color),
+    ) {
+        let area = area.intersection(self.clip);
+        for pos in area.positions() {
+            let Some((old_fg, old_bg)) = self.buffer().cell(pos).map(|cell| (cell.fg, cell.bg))
+            else {
+                continue;
+            };
+            let (fg, bg) = map(old_fg, old_bg);
+            let fg_changed = fg != old_fg;
+            let bg_changed = bg != old_bg;
+            if !fg_changed && !bg_changed {
+                continue;
+            }
+
+            {
+                let Some(cell) = self.buffer().cell_mut(pos) else {
+                    continue;
+                };
+                if fg_changed {
+                    cell.set_fg(fg);
+                }
+                if bg_changed {
+                    cell.set_bg(bg);
+                }
+            }
+
+            let mut patch = crate::theme::PaintStyle::new();
+            if fg_changed {
+                patch = patch.fg(fg);
+            }
+            if bg_changed {
+                patch = patch.bg(bg);
+            }
+            self.mark(pos, Some(patch));
+        }
+    }
+
     pub(crate) fn layer_count(&self) -> usize {
         self.frame.layers.active().len()
     }
@@ -1065,7 +1804,12 @@ impl<'f> Ui<'f> {
 
     pub(crate) fn composite(&mut self, i: usize) {
         if let Some(d) = self.frame.layers.active().get(i) {
-            d.composite_onto(self.page, &mut self.frame.roles);
+            let content_dim = matches!(d.spec.backdrop, crate::layer::Backdrop::Dim { .. })
+                && matches!(
+                    self.theme_ref().capability.color,
+                    crate::theme::ColorLevel::Ansi16 | crate::theme::ColorLevel::Mono
+                );
+            d.composite_onto(self.page, &mut self.frame.roles, content_dim);
         }
     }
 }
@@ -1122,814 +1866,5 @@ impl FrameRead for Ui<'_> {
         } else {
             self.last.layout_of(id)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::{Position, Rect};
-    use ratatui_core::style::Style;
-
-    use super::cx::LastFrame;
-    use super::{
-        CellRoles, FrameRead, FrameState, LayoutFacts, ReferenceState, ReferenceTarget, Ui, UiCore,
-    };
-    use crate::action::ActionKey;
-    use crate::event::{Chord, KeyCode};
-    use crate::focus::Focusability;
-    use crate::hit::{Axes, Headroom};
-    use crate::id::{Id, ItemKey, Part, PartRef};
-    use crate::keymap::Binding;
-    use crate::layer::{LayerId, LayerSpec};
-    use crate::response::StateFlags;
-    use crate::rowui::RowUi;
-    use crate::theme::{
-        Family, FgStep, Overlay, OverlayRule, Role, StylePatch, Surface, Theme, Variant,
-    };
-
-    const SCREEN: Rect = Rect {
-        x: 0,
-        y: 0,
-        width: 24,
-        height: 3,
-    };
-    const OWNER: Id = Id::root("ui.owner");
-    const OTHER: Id = Id::root("ui.other");
-
-    #[derive(Clone, Copy)]
-    enum TestCmd {
-        Activate,
-    }
-
-    const TEST_BINDINGS: &[Binding<TestCmd>] = &[Binding {
-        action: ActionKey::CONFIRM,
-        chord: Some(Chord::key(KeyCode::Enter)),
-        cmd: TestCmd::Activate,
-        label: "Activate",
-        priority: 1,
-        visible: true,
-    }];
-
-    fn with_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let out = {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
-            f(&mut ui)
-        };
-        (out, page)
-    }
-
-    #[test]
-    fn reference_state_has_exactly_the_four_runtime_bits() {
-        const CONST_COMBINED: ReferenceState =
-            ReferenceState::FOCUS_VISIBLE.union(ReferenceState::PRESSED);
-        assert_eq!(
-            CONST_COMBINED.state_flags(),
-            StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE | StateFlags::PRESSED
-        );
-
-        let choices = [
-            (ReferenceState::FOCUSED, StateFlags::FOCUSED),
-            (ReferenceState::FOCUS_VISIBLE, StateFlags::FOCUS_VISIBLE),
-            (ReferenceState::HOVERED, StateFlags::HOVERED),
-            (ReferenceState::PRESSED, StateFlags::PRESSED),
-        ];
-        for mask in 0u8..16 {
-            let mut reference = ReferenceState::default();
-            let mut expected = StateFlags::empty();
-            for (i, (reference_bit, state_bit)) in choices.iter().copied().enumerate() {
-                if mask & (1 << i) != 0 {
-                    reference |= reference_bit;
-                    expected |= state_bit;
-                }
-            }
-            if expected.contains(StateFlags::FOCUS_VISIBLE) {
-                expected |= StateFlags::FOCUSED;
-            }
-            assert_eq!(reference.state_flags(), expected, "mask {mask:04b}");
-        }
-    }
-
-    #[test]
-    fn reference_injects_only_the_exact_target_and_hides_stale_live_state() {
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let part = PartRef::item(Part::MARKER, ItemKey::num(7));
-        let stale_part = PartRef::of(Part::LABEL);
-        let last = LastFrame {
-            declared: vec![
-                (OWNER, StateFlags::ERROR | StateFlags::EDITING),
-                (OTHER, StateFlags::BUSY),
-            ],
-            snapshot: super::cx::Snapshot {
-                focus: Some(OTHER),
-                focus_visible: true,
-                hover: Some((OTHER, stale_part)),
-                hover_suppressed: false,
-                pressed: Some((OWNER, stale_part)),
-                capture: Some(OTHER),
-            },
-            ..LastFrame::default()
-        };
-        let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-
-        let target = ReferenceTarget::new(
-            OWNER,
-            ReferenceState::FOCUSED
-                | ReferenceState::FOCUS_VISIBLE
-                | ReferenceState::HOVERED
-                | ReferenceState::PRESSED,
-        )
-        .part(part);
-        ui.reference(Some(target), |ui| {
-            assert_eq!(
-                ui.state(OWNER),
-                StateFlags::FOCUSED
-                    | StateFlags::FOCUS_VISIBLE
-                    | StateFlags::HOVERED
-                    | StateFlags::PRESSED
-            );
-            assert_eq!(ui.state(OTHER), StateFlags::empty());
-            assert_eq!(ui.hovered_part(OWNER), Some(part));
-            assert_eq!(ui.pressed_part(OWNER), Some(part));
-            assert_eq!(ui.hovered_part(OTHER), None);
-            assert_eq!(ui.pressed_part(OTHER), None);
-        });
-        ui.reference(None, |ui| {
-            assert_eq!(ui.state(OWNER), StateFlags::empty());
-            assert_eq!(ui.state(OTHER), StateFlags::empty());
-            assert_eq!(ui.hovered_part(OWNER), None);
-            assert_eq!(ui.pressed_part(OWNER), None);
-        });
-        ui.reference(
-            Some(ReferenceTarget::new(OWNER, ReferenceState::HOVERED)),
-            |ui| {
-                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
-                assert_eq!(
-                    ui.hovered_part(OWNER),
-                    Some(PartRef::of(Part::CONTAINER)),
-                    "an owner target canonicalizes to its container part"
-                );
-            },
-        );
-        ui.reference(
-            Some(ReferenceTarget::new(OWNER, ReferenceState::PRESSED)),
-            |ui| {
-                assert_eq!(ui.pressed_part(OWNER), Some(PartRef::of(Part::CONTAINER)));
-            },
-        );
-    }
-
-    #[test]
-    fn nested_reference_restores_the_outer_target_even_after_a_panic() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            assert!(!ui.is_inert());
-            let outer =
-                ReferenceTarget::new(OWNER, ReferenceState::HOVERED).part(PartRef::of(Part::LABEL));
-            let inner = ReferenceTarget::new(OTHER, ReferenceState::PRESSED)
-                .part(PartRef::of(Part::MARKER));
-            ui.reference(Some(outer), |ui| {
-                assert!(ui.is_inert());
-                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
-                ui.reference(Some(inner), |ui| {
-                    assert_eq!(ui.state(OWNER), StateFlags::empty());
-                    assert_eq!(ui.state(OTHER), StateFlags::PRESSED);
-                });
-                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
-
-                let unwind = catch_unwind(AssertUnwindSafe(|| {
-                    ui.reference(Some(inner), |_| panic!("reference probe"));
-                }));
-                assert!(unwind.is_err());
-                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
-                assert_eq!(ui.hovered_part(OWNER), Some(PartRef::of(Part::LABEL)));
-            });
-            assert!(!ui.is_inert());
-        });
-    }
-
-    #[test]
-    fn reference_sinks_every_registration_and_runtime_output() {
-        const LAYER: Id = Id::root("ui.layer");
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        frame
-            .layers
-            .push(LAYER, LayerId(1), LayerSpec::modal(LAYER), SCREEN, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let mut layer_ran = false;
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            ui.reference(None, |ui| {
-                ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-                ui.register_focus_only(OTHER, Focusability::Focusable);
-                ui.register_editor(OWNER, SCREEN, Focusability::Focusable, StateFlags::EDITING);
-                ui.register_part(OWNER, PartRef::of(Part::LABEL), SCREEN);
-                ui.register_decor(OWNER, PartRef::of(Part::HELP), SCREEN);
-                ui.register_scroll(OWNER, SCREEN, Axes::Both, Headroom::default());
-                ui.declare_state(OWNER, StateFlags::ERROR);
-                ui.report_layout(OWNER, LayoutFacts::new(1, 2, 3, 4));
-                ui.set_cursor(OWNER, Position::new(1, 1));
-                ui.publish_bindings(OWNER, StateFlags::FOCUSED, TEST_BINDINGS);
-                ui.publish_dynamic_bindings(
-                    OWNER,
-                    StateFlags::FOCUSED,
-                    core::iter::once((ActionKey::SAVE, Some(Chord::key(KeyCode::Char('s'))))),
-                );
-                assert!(ui.layer(LAYER, |_, _| layer_ran = true).is_none());
-                ui.focus_scope(OWNER, crate::focus::ScopeMode::Trap, |ui| {
-                    ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-                });
-            });
-        }
-
-        assert!(!layer_ran);
-        assert!(!frame.registry.has_owner(OWNER));
-        assert!(!frame.registry.has_owner(OTHER));
-        assert!(frame.ring.entries().is_empty());
-        assert!(frame.declared.is_empty());
-        assert!(frame.layout.is_empty());
-        assert!(frame.cursors.is_empty());
-        assert!(frame.bindings.get(OWNER).is_none());
-        assert!(frame.diagnostics.is_empty());
-        assert!(
-            frame
-                .layers
-                .active()
-                .first()
-                .is_some_and(|layer| !layer.drawn)
-        );
-    }
-
-    #[test]
-    fn reference_cache_is_namespaced_from_live_and_sibling_scopes() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let formerly_colliding = OWNER.sub("__reference").index(0);
-            *ui.cache::<u32>(formerly_colliding) = 7;
-            let first = ReferenceTarget::new(OWNER, ReferenceState::FOCUSED);
-            let second = ReferenceTarget::new(OTHER, ReferenceState::FOCUSED);
-            ui.reference(Some(first), |ui| {
-                assert_eq!(*ui.cache::<u32>(OWNER), 0);
-                *ui.cache::<u32>(OWNER) = 11;
-                ui.reference(Some(second), |ui| {
-                    assert_eq!(*ui.cache::<u32>(OWNER), 0);
-                    *ui.cache::<u32>(OWNER) = 13;
-                });
-                assert_eq!(*ui.cache::<u32>(OWNER), 11);
-            });
-            ui.reference(Some(second), |ui| {
-                assert_eq!(*ui.cache::<u32>(OWNER), 13);
-            });
-            ui.reference(Some(first), |ui| {
-                assert_eq!(*ui.cache::<u32>(OWNER), 11);
-            });
-            assert_eq!(*ui.cache::<u32>(formerly_colliding), 7);
-        });
-    }
-
-    #[test]
-    fn targetless_sibling_reference_scopes_do_not_share_cache() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.reference(None, |ui| {
-                assert_eq!(*ui.cache::<u32>(OWNER), 0);
-                *ui.cache::<u32>(OWNER) = 11;
-            });
-            ui.reference(None, |ui| {
-                assert_eq!(
-                    *ui.cache::<u32>(OWNER),
-                    0,
-                    "a targetless sibling is a distinct reference fixture"
-                );
-            });
-        });
-    }
-
-    #[test]
-    fn reference_panic_cannot_poison_the_live_cache_namespace() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            *ui.cache::<u32>(OWNER) = 7;
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.reference(
-                    Some(ReferenceTarget::new(OWNER, ReferenceState::FOCUSED)),
-                    |ui| {
-                        *ui.cache::<u32>(OWNER) = 99;
-                        panic!("reference cache probe");
-                    },
-                );
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(*ui.cache::<u32>(OWNER), 7);
-        });
-    }
-
-    #[test]
-    fn reference_hides_stale_tab_shaped_area_and_layout() {
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(2, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let mut registry = crate::hit::Registry::default();
-        registry.reset(1);
-        let _ = registry.register_control(OWNER, Rect::new(2, 1, 20, 1), LayerId::PAGE);
-        let last = LastFrame {
-            registry,
-            layout: vec![(OWNER, LayoutFacts::new(3, 12, 1, 20))],
-            ..LastFrame::default()
-        };
-        let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-        assert_eq!(ui.area(OWNER), Some(Rect::new(2, 1, 20, 1)));
-        assert_eq!(ui.layout(OWNER), Some(LayoutFacts::new(3, 12, 1, 20)));
-        ui.reference(
-            Some(ReferenceTarget::new(OWNER, ReferenceState::FOCUSED)),
-            |ui| {
-                assert_eq!(ui.area(OWNER), None);
-                assert_eq!(ui.layout(OWNER), None);
-            },
-        );
-    }
-
-    #[test]
-    fn focused_hints_are_suppressed_inside_a_reference_scope() {
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame {
-            snapshot: super::cx::Snapshot {
-                focus: Some(OWNER),
-                ..super::cx::Snapshot::default()
-            },
-            ..LastFrame::default()
-        };
-        let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-        ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-        ui.publish_bindings(OWNER, StateFlags::FOCUSED, TEST_BINDINGS);
-        assert!(ui.with_focused_hints(|_, _| ()).is_some());
-        ui.reference(
-            Some(ReferenceTarget::new(OWNER, ReferenceState::FOCUSED)),
-            |ui| assert!(ui.with_focused_hints(|_, _| ()).is_none()),
-        );
-    }
-
-    #[test]
-    fn focus_only_is_reachable_without_an_area_or_hit_target() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.register_focus_only(OWNER, Focusability::Focusable);
-
-            assert_eq!(ui.frame.ring.next(None), Some(OWNER));
-            assert_eq!(ui.frame.ring.entry(OWNER).map(|e| e.area), Some(Rect::ZERO));
-            assert_eq!(ui.frame.registry.area_of(OWNER), None);
-            assert_eq!(ui.frame.registry.hit(Position::new(0, 0)), None);
-        });
-    }
-
-    #[test]
-    fn focus_only_click_only_is_a_no_op() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.register_focus_only(OWNER, Focusability::ClickOnly);
-
-            assert!(!ui.frame.ring.is_registered(OWNER));
-            assert!(!ui.frame.registry.has_owner(OWNER));
-        });
-    }
-
-    #[test]
-    fn zero_area_control_still_registers_nothing() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.register_control(OWNER, Rect::ZERO, Focusability::Focusable);
-
-            assert!(!ui.frame.ring.is_registered(OWNER));
-            assert!(!ui.frame.registry.has_owner(OWNER));
-        });
-    }
-
-    #[test]
-    fn focus_only_preserves_disabled_and_read_only_semantics() {
-        const DISABLED: Id = Id::root("ui.disabled");
-        const READ_ONLY: Id = Id::root("ui.read-only");
-
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            ui.register_focus_only(DISABLED, Focusability::Disabled);
-            ui.register_focus_only(READ_ONLY, Focusability::FocusableReadOnly);
-
-            assert!(ui.frame.ring.is_registered(DISABLED));
-            assert!(!ui.frame.ring.contains(DISABLED));
-            assert!(ui.frame.ring.contains(READ_ONLY));
-            assert_eq!(ui.frame.declared, vec![(READ_ONLY, StateFlags::READ_ONLY)]);
-        });
-    }
-
-    #[test]
-    fn with_part_resolves_once_and_records_the_role() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            #[cfg(feature = "testing")]
-            let before = ui.style_cache_stats();
-            let painted = ui.with_part(
-                Family::LIST,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                StateFlags::empty(),
-                |ui, r| {
-                    let area = Rect::new(0, 0, 4, 1);
-                    ui.fill(area, r.style);
-                    (area, r)
-                },
-            );
-            #[cfg(feature = "testing")]
-            {
-                let after = ui.style_cache_stats();
-                assert_eq!(after.1, before.1 + 1, "exactly one cache miss");
-                assert_eq!(after.0, before.0, "and no hit: it resolved once");
-            }
-            let (area, r) = painted;
-
-            assert_eq!(ui.full(), SCREEN);
-            assert_eq!(ui.surface(), Surface::Canvas);
-            for pos in area.positions() {
-                assert_eq!(
-                    ui.roles_at(pos),
-                    CellRoles {
-                        fg: Some(Role::Fg(FgStep::Primary)),
-                        bg: Some(Role::CurrentSurface),
-                    }
-                );
-            }
-            assert_eq!(r.style.bg, Some(theme.bg(Surface::Canvas)));
-        });
-    }
-
-    #[test]
-    fn surface_style_is_the_left_operand_of_the_final_patch() {
-        for theme in [Theme::junie(), Theme::paper()] {
-            for s in [
-                Surface::Canvas,
-                Surface::Surface,
-                Surface::Elevated,
-                Surface::Overlay,
-                Surface::Popover,
-                Surface::Field,
-            ] {
-                with_ui(&theme, |ui| {
-                    ui.with_surface(s, |ui| {
-                        let inherited = ui.surface_style();
-                        assert_eq!(inherited.bg, Some(theme.bg(s)));
-                        assert_eq!(
-                            inherited.fg,
-                            crate::theme::resolve::bind_role(&theme, Role::Fg(FgStep::Primary), s)
-                        );
-                        assert_eq!(inherited.add_modifier, Style::new().add_modifier);
-                        for &f in &[Family::LIST, Family::BUTTON, Family::FIELD] {
-                            for &p in &[Part::CONTAINER, Part::LABEL, Part::GUTTER] {
-                                for st in [StateFlags::empty(), StateFlags::FOCUSED] {
-                                    let r = ui.style(f, Variant::DEFAULT, p, st);
-                                    assert_eq!(r.over(inherited), inherited.patch(r.style));
-                                }
-                            }
-                        }
-                    });
-                });
-            }
-        }
-    }
-
-    #[test]
-    fn dim_layer_uses_the_role_of_the_painted_cell() {
-        let theme = Theme::junie();
-        let backdrop = crate::theme::resolve::bind_role(&theme, Role::BackdropFg, Surface::Canvas);
-        let ((), page) = with_ui(&theme, |ui| {
-            let row = Rect::new(0, 0, 10, 1);
-            {
-                let mut r = RowUi::new(
-                    ui,
-                    OWNER,
-                    Family::LIST,
-                    Variant::DEFAULT,
-                    StateFlags::empty(),
-                    ItemKey::num(1),
-                    row,
-                );
-                let mut cell = r.part(Part::META, 6);
-                cell.align(crate::theme::Align::Right);
-                cell.text("ok");
-            }
-
-            for x in 12..24u16 {
-                assert_eq!(ui.roles_at(Position::new(x, 0)), CellRoles::default());
-            }
-            ui.dim_layer(SCREEN, 2);
-        });
-
-        let far = page.cell(Position::new(20, 2)).expect("cell");
-        assert_eq!(far.fg, backdrop.unwrap_or(far.fg));
-
-        let painted = page.cell(Position::new(1, 0)).expect("cell");
-        assert_eq!(painted.bg, theme.bg(Surface::Canvas));
-    }
-
-    static PANIC_OVERLAY_OUTER: [OverlayRule; 1] = [(
-        Family::LIST,
-        Variant::DEFAULT,
-        Part::CONTAINER,
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Warning),
-    )];
-    static PANIC_OVERLAY_INNER: [OverlayRule; 1] = [(
-        Family::LIST,
-        Variant::DEFAULT,
-        Part::CONTAINER,
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Danger),
-    )];
-
-    fn list_container_style(ui: &mut Ui<'_>) -> super::Resolved {
-        ui.style(
-            Family::LIST,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        )
-    }
-
-    #[test]
-    fn with_area_and_with_surface_restore_the_outer_view_after_a_panic() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let outer_clip = ui.full();
-            let outer_surface = ui.surface();
-            let inner = Rect::new(1, 1, 4, 1);
-
-            ui.with_area(inner, |ui| assert_eq!(ui.full(), inner));
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.with_area(inner, |_| panic!("area probe"));
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(
-                ui.full(),
-                outer_clip,
-                "a panicking body must not leave the clip narrowed"
-            );
-
-            ui.with_surface(Surface::Popover, |ui| {
-                assert_eq!(ui.surface(), Surface::Popover);
-            });
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.with_surface(Surface::Popover, |_| panic!("surface probe"));
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(
-                ui.surface(),
-                outer_surface,
-                "a panicking body must not leave the surface switched"
-            );
-        });
-    }
-
-    #[test]
-    fn with_overlay_restores_the_stack_after_a_panic() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let plain = list_container_style(ui);
-            let overlay = Overlay::new(&PANIC_OVERLAY_OUTER);
-            let patched = ui.with_overlay(&overlay, list_container_style);
-            assert_ne!(
-                patched.style.fg, plain.style.fg,
-                "the probe overlay must actually change the resolved style"
-            );
-            let depth = ui.core.overlays.len();
-            let hash = ui.core.stack_hash;
-
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.with_overlay(&overlay, |_| panic!("overlay probe"));
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(ui.core.overlays.len(), depth);
-            assert_eq!(ui.core.stack_hash, hash);
-            assert_eq!(
-                list_container_style(ui),
-                plain,
-                "a panicking overlay scope must not leak into later resolution"
-            );
-        });
-    }
-
-    #[test]
-    fn nested_overlay_panic_restores_exactly_the_outer_overlay() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let outer = Overlay::new(&PANIC_OVERLAY_OUTER);
-            let inner = Overlay::new(&PANIC_OVERLAY_INNER);
-            ui.with_overlay(&outer, |ui| {
-                let outer_style = list_container_style(ui);
-                let inner_style = ui.with_overlay(&inner, list_container_style);
-                assert_ne!(outer_style.style.fg, inner_style.style.fg);
-                assert_eq!(list_container_style(ui), outer_style);
-
-                let unwind = catch_unwind(AssertUnwindSafe(|| {
-                    ui.with_overlay(&inner, |_| panic!("nested overlay probe"));
-                }));
-                assert!(unwind.is_err());
-                assert_eq!(ui.core.overlays.len(), 1, "exactly the outer overlay");
-                assert_eq!(
-                    list_container_style(ui),
-                    outer_style,
-                    "unwinding pops the inner overlay only"
-                );
-            });
-            assert!(ui.core.overlays.is_empty());
-            assert_eq!(ui.core.stack_hash, 0);
-        });
-    }
-
-    #[test]
-    fn focus_scope_restores_the_open_scope_after_a_panic() {
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let root = ui.frame.ring.current_scope();
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.focus_scope(OWNER, crate::focus::ScopeMode::Trap, |ui| {
-                    ui.register_control(OWNER, Rect::new(0, 0, 4, 1), Focusability::Focusable);
-                    panic!("focus scope probe");
-                });
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(ui.frame.ring.current_scope(), root);
-
-            ui.register_control(OTHER, Rect::new(4, 0, 4, 1), Focusability::Focusable);
-            let entry = ui
-                .frame
-                .ring
-                .entries()
-                .iter()
-                .find(|e| e.id == OTHER)
-                .copied()
-                .expect("entry");
-            assert_eq!(
-                entry.scope, root,
-                "a control after the panic belongs to the outer scope, not the trap"
-            );
-        });
-    }
-
-    #[test]
-    fn layer_restores_the_page_target_and_scope_after_a_panic() {
-        const LAYER: Id = Id::root("ui.panic.layer");
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        let layer_area = Rect::new(1, 1, 4, 1);
-        frame.layers.push(
-            LAYER,
-            LayerId(1),
-            LayerSpec::modal(LAYER),
-            layer_area,
-            SCREEN,
-        );
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let root;
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            root = ui.frame.ring.current_scope();
-            let unwind = catch_unwind(AssertUnwindSafe(|| {
-                ui.layer(LAYER, |ui, area| {
-                    assert_eq!(ui.full(), area);
-                    assert_eq!(ui.layer_id(), LayerId(1));
-                    assert_eq!(ui.surface(), Surface::Overlay);
-                    assert_ne!(ui.frame.ring.current_scope(), root);
-                    panic!("layer probe");
-                });
-            }));
-            assert!(unwind.is_err());
-            assert_eq!(ui.full(), SCREEN);
-            assert_eq!(ui.layer_id(), LayerId::PAGE);
-            assert_eq!(ui.surface(), Surface::Canvas);
-            assert!(!ui.is_inert());
-            assert_eq!(ui.frame.ring.current_scope(), root);
-
-            ui.fill(SCREEN, Style::new().bg(theme.bg(Surface::Canvas)));
-            ui.register_control(OWNER, Rect::new(0, 0, 4, 1), Focusability::Focusable);
-        }
-
-        let entry = frame
-            .ring
-            .entries()
-            .iter()
-            .find(|e| e.id == OWNER)
-            .copied()
-            .expect("entry");
-        assert_eq!(entry.scope, root);
-        assert_eq!(
-            entry.layer,
-            LayerId::PAGE,
-            "a control after the panic registers on the page layer"
-        );
-        assert_eq!(
-            page.cell(Position::new(20, 2)).expect("cell").bg,
-            theme.bg(Surface::Canvas),
-            "painting after the panic reaches the page outside the layer's area"
-        );
-    }
-    #[test]
-    fn independent_carrier_layer_composite_keeps_origin() {
-        const LAYER: Id = Id::root("review.layer");
-        let theme = Theme::junie();
-        with_ui(&theme, |ui| {
-            let page = ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Fg(FgStep::Primary))
-                    .set_bg(Role::Surface(Surface::Canvas)),
-            );
-            ui.fill(SCREEN, page);
-            ui.frame
-                .layers
-                .push(LAYER, LayerId(1), LayerSpec::modal(LAYER), SCREEN, SCREEN);
-            ui.layer(LAYER, |ui, _| {
-                let st = ui.paint_patch(
-                    &StylePatch::new()
-                        .set_fg(Role::Fg(FgStep::Ghost))
-                        .set_bg(Role::Surface(Surface::Overlay)),
-                );
-                ui.paint_str(Rect::new(1, 0, 1, 1), "X", st);
-            });
-            ui.composite(0);
-            assert_eq!(
-                ui.roles_at(Position::new(1, 0)),
-                CellRoles {
-                    fg: Some(Role::Fg(FgStep::Ghost)),
-                    bg: Some(Role::Surface(Surface::Overlay))
-                },
-                "composited cells must carry layer origins, not page origins"
-            );
-            ui.dim_layer(SCREEN, 1);
-            assert_eq!(
-                ui.page.cell((1, 0)).unwrap().symbol(),
-                " ",
-                "Ghost on lower layer must erase under next modal"
-            );
-        });
-    }
-
-    #[test]
-    fn layer_scope_parent_follows_active_order_after_id_gap() {
-        const OUTER: Id = Id::root("ui.layer.outer");
-        const INNER: Id = Id::root("ui.layer.inner");
-        let theme = Theme::junie();
-        let mut frame = FrameState::default();
-        frame.reset(1, SCREEN);
-        frame
-            .layers
-            .push(OUTER, LayerId(1), LayerSpec::modal(OUTER), SCREEN, SCREEN);
-
-        frame
-            .layers
-            .push(INNER, LayerId(3), LayerSpec::modal(INNER), SCREEN, SCREEN);
-        let mut page = Buffer::empty(SCREEN);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            assert!(
-                ui.layer(OUTER, |ui, _| {
-                    ui.register_control(OWNER, SCREEN, Focusability::Focusable);
-                })
-                .is_some()
-            );
-            assert!(
-                ui.layer(INNER, |ui, _| {
-                    ui.register_control(OTHER, SCREEN, Focusability::Focusable);
-                })
-                .is_some()
-            );
-        }
-        let outer = frame.ring.entry(OWNER).map(|entry| entry.scope);
-        let inner = frame.ring.entry(OTHER).map(|entry| entry.scope);
-        assert!(
-            matches!((outer, inner), (Some(outer), Some(inner)) if frame.ring.within(inner, outer))
-        );
     }
 }

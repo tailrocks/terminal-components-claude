@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 f49d783cd4739696580f9e870ac6225e113405dd Alexey Zhokhov <alexey@zhokhov.com> 1792161731 +0700	branch: Created from HEAD
+f49d783cd4739696580f9e870ac6225e113405dd d79e922b464b8556b00260b02721fed25937994f Alexey Zhokhov <alexey@zhokhov.com> 1792161980 +0700	commit: fix(jackin): stale quota meters keep their level
+d79e922b464b8556b00260b02721fed25937994f b6270a0634336ecd1f16150624276651d1934e8b Alexey Zhokhov <alexey@zhokhov.com> 1792161983 +0700	rebase (finish): refs/heads/jackin-stale onto f78e2b60d81913795f173c0043d2792d28dab9e7
+b6270a0634336ecd1f16150624276651d1934e8b 83758d825a4dad339f67aa5523c4d8438bb1d0fe Alexey Zhokhov <alexey@zhokhov.com> 1792162194 +0700	commit (amend): fix(jackin): stale quota meters keep their level

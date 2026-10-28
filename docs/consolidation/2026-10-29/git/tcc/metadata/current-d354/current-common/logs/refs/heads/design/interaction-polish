@@ -1,0 +1,87 @@
+0000000000000000000000000000000000000000 4a79c0a2d40fca46fc406b77157ce3b3f12ec16b Alexey Zhokhov <alexey@zhokhov.com> 1792127780 +0700	branch: Created from HEAD
+4a79c0a2d40fca46fc406b77157ce3b3f12ec16b 55d88297cf124ae73bfc0c58485817ac59a0c94e Alexey Zhokhov <alexey@zhokhov.com> 1792127780 +0700	commit: feat(ui): overlay layer, dismiss policy and macOS-style menu bar
+55d88297cf124ae73bfc0c58485817ac59a0c94e c69bb13aece740229d11d3bd925a7fa6290d91c6 Alexey Zhokhov <alexey@zhokhov.com> 1792127780 +0700	commit: docs(agents): define role and hard rules
+c69bb13aece740229d11d3bd925a7fa6290d91c6 b9ff31567c9d37574f0b667805200e45aded916b Alexey Zhokhov <alexey@zhokhov.com> 1792127931 +0700	commit: feat(popup): configurable pass-through outside clicks
+b9ff31567c9d37574f0b667805200e45aded916b 5bfea9062ff42dc114aeba0855dab246c3238edd Alexey Zhokhov <alexey@zhokhov.com> 1792128137 +0700	commit: fix(dialog): refuse the gated action until the acknowledgement matches
+5bfea9062ff42dc114aeba0855dab246c3238edd 7bcc23dd2dcf30b31bb69682b97421cb549620f7 Alexey Zhokhov <alexey@zhokhov.com> 1792128200 +0700	commit: feat(menu): ContextMenu layers itself with a configurable dismiss policy
+7bcc23dd2dcf30b31bb69682b97421cb549620f7 3fb8335c7bd8a2c23c91d3b54f4fdbca752d03a2 Alexey Zhokhov <alexey@zhokhov.com> 1792128244 +0700	commit: fix(menu): keyboard wins over a parked pointer
+3fb8335c7bd8a2c23c91d3b54f4fdbca752d03a2 8049ca930b6873e5ea8c6b647a9d0cc33ca1ef1c Alexey Zhokhov <alexey@zhokhov.com> 1792128290 +0700	commit: fix(copy): hints advertise only keys that work
+8049ca930b6873e5ea8c6b647a9d0cc33ca1ef1c 36ce965885155c54d049ff0607871c6b3fcfdf85 Alexey Zhokhov <alexey@zhokhov.com> 1792128355 +0700	commit: fix(layout): width-safe truncation, badge hit areas, empty meta, narrow dialogs
+36ce965885155c54d049ff0607871c6b3fcfdf85 ba849cd892caa513e118117d21a057a0ec100cd0 Alexey Zhokhov <alexey@zhokhov.com> 1792128407 +0700	commit: fix(theme): pressed rows stay readable (Debug info white-on-white)
+ba849cd892caa513e118117d21a057a0ec100cd0 fd58bb7c999633a6cc450a2fbefb73fe36e684cc Alexey Zhokhov <alexey@zhokhov.com> 1792128451 +0700	commit: fix(button): busy primary label and spinner readable on the accent fill
+fd58bb7c999633a6cc450a2fbefb73fe36e684cc dfb88f0460b22188ea8aa249d32bc6ea16801e83 Alexey Zhokhov <alexey@zhokhov.com> 1792128460 +0700	commit: style: drop needless borrows in taskrunner labels
+dfb88f0460b22188ea8aa249d32bc6ea16801e83 5bf3f43111e54441307f5cd30a742aabfb879a74 Alexey Zhokhov <alexey@zhokhov.com> 1792128501 +0700	commit: fix(theme): modal backdrop no longer erases reversed text
+5bf3f43111e54441307f5cd30a742aabfb879a74 7c803a133244960db7be2277a24478d9a057b14e Alexey Zhokhov <alexey@zhokhov.com> 1792128617 +0700	commit: feat(completion): overlay layer and configurable dismiss
+7c803a133244960db7be2277a24478d9a057b14e a67e7c787b3129e5a6ef68f923c0d2cca578f409 Alexey Zhokhov <alexey@zhokhov.com> 1792128720 +0700	commit: feat(theme): cursor_row and CursorStyle for owner-focused lists
+a67e7c787b3129e5a6ef68f923c0d2cca578f409 e415ee12d7c9ab95566cd1c0b036555e53195ba8 Alexey Zhokhov <alexey@zhokhov.com> 1792128743 +0700	commit: docs(audits): record the October design review findings
+e415ee12d7c9ab95566cd1c0b036555e53195ba8 8dd0ac3a2d8ac86e676814642348560f09f382f5 Alexey Zhokhov <alexey@zhokhov.com> 1792128815 +0700	commit: docs(agents): visual-state hard rules and way of working
+8dd0ac3a2d8ac86e676814642348560f09f382f5 18d6d1bfacdb4605cdeaf4fa73ae66f1934b556b Alexey Zhokhov <alexey@zhokhov.com> 1792128939 +0700	commit: docs(agents): always delegate work to subagents
+18d6d1bfacdb4605cdeaf4fa73ae66f1934b556b fb70b7ddba60044c87b12003746e1fcf6f336dd8 Alexey Zhokhov <alexey@zhokhov.com> 1792129063 +0700	commit: docs(audits): add the interactive state matrix review
+fb70b7ddba60044c87b12003746e1fcf6f336dd8 e35912bb2f5e4380a08115d642218117622c7738 Alexey Zhokhov <alexey@zhokhov.com> 1792134098 +0700	pull: Fast-forward
+e35912bb2f5e4380a08115d642218117622c7738 c4f8a7b5b45f66a3daa8984aee18058a0578d92a Alexey Zhokhov <alexey@zhokhov.com> 1792136098 +0700	pull: Fast-forward
+c4f8a7b5b45f66a3daa8984aee18058a0578d92a 3485a4e7a08c015229877d66c848bf96cac86e49 Alexey Zhokhov <alexey@zhokhov.com> 1792137461 +0700	pull -q --ff-only: Fast-forward
+3485a4e7a08c015229877d66c848bf96cac86e49 e1540a2a4116c95ff6c6ec557d8b8a9d53332773 Alexey Zhokhov <alexey@zhokhov.com> 1792142741 +0700	pull: Fast-forward
+e1540a2a4116c95ff6c6ec557d8b8a9d53332773 0b23798183ad92edd3a30a1e85e3cdd301e7e054 Alexey Zhokhov <alexey@zhokhov.com> 1792144579 +0700	pull: Fast-forward
+0b23798183ad92edd3a30a1e85e3cdd301e7e054 9daa6f9387d0c0c0d916106953763e3e88b24707 Alexey Zhokhov <alexey@zhokhov.com> 1792144609 +0700	pull: Fast-forward
+9daa6f9387d0c0c0d916106953763e3e88b24707 80174ea3511ae305723b301ac6644575db568429 Alexey Zhokhov <alexey@zhokhov.com> 1792144624 +0700	pull -q --ff-only: Fast-forward
+80174ea3511ae305723b301ac6644575db568429 8149379470465b4673860e7cd9c34e4d0f981f2a Alexey Zhokhov <alexey@zhokhov.com> 1792145002 +0700	pull: Fast-forward
+8149379470465b4673860e7cd9c34e4d0f981f2a 6dc41693b6d49ca5de6e95dbaca96078fe26b349 Alexey Zhokhov <alexey@zhokhov.com> 1792145484 +0700	pull: Fast-forward
+6dc41693b6d49ca5de6e95dbaca96078fe26b349 725c6ef7d195f716952aa91a2e26cc9eb3355c3f Alexey Zhokhov <alexey@zhokhov.com> 1792146678 +0700	pull: Fast-forward
+725c6ef7d195f716952aa91a2e26cc9eb3355c3f a218fa0325710a4391df23adcf3be438be4d9e12 Alexey Zhokhov <alexey@zhokhov.com> 1792147746 +0700	pull: Fast-forward
+a218fa0325710a4391df23adcf3be438be4d9e12 0149b3f936f61ab14b152c8d86ca512b79b663e9 Alexey Zhokhov <alexey@zhokhov.com> 1792147836 +0700	pull: Fast-forward
+0149b3f936f61ab14b152c8d86ca512b79b663e9 46ed2b0d7d9cf9513e7e6eaf788cefd2b86ab3af Alexey Zhokhov <alexey@zhokhov.com> 1792148195 +0700	pull: Fast-forward
+46ed2b0d7d9cf9513e7e6eaf788cefd2b86ab3af 1cee36e985543131a8956642cdf909027ee65270 Alexey Zhokhov <alexey@zhokhov.com> 1792148385 +0700	pull: Fast-forward
+1cee36e985543131a8956642cdf909027ee65270 8e7c4f4f1b9c7c9310bf4f8fe08bf68d8e50d079 Alexey Zhokhov <alexey@zhokhov.com> 1792148394 +0700	pull: Fast-forward
+8e7c4f4f1b9c7c9310bf4f8fe08bf68d8e50d079 9315b44f123203e5e4cacaad7cfe5d5722618415 Alexey Zhokhov <alexey@zhokhov.com> 1792149368 +0700	pull: Fast-forward
+9315b44f123203e5e4cacaad7cfe5d5722618415 476a89f235cb1415eb7e203b7281749d9cb3af88 Alexey Zhokhov <alexey@zhokhov.com> 1792152688 +0700	pull: Fast-forward
+476a89f235cb1415eb7e203b7281749d9cb3af88 3073208926745a7135af24a163cc6c277bae19d2 Alexey Zhokhov <alexey@zhokhov.com> 1792154047 +0700	pull: Fast-forward
+3073208926745a7135af24a163cc6c277bae19d2 bc3a9cfa91cbf20324a6077e2690cb43f51772a6 Alexey Zhokhov <alexey@zhokhov.com> 1792155217 +0700	pull: Fast-forward
+bc3a9cfa91cbf20324a6077e2690cb43f51772a6 a6343ba8ee5ee0cfa0e802e1746e5c55ffaf9663 Alexey Zhokhov <alexey@zhokhov.com> 1792156029 +0700	pull: Fast-forward
+a6343ba8ee5ee0cfa0e802e1746e5c55ffaf9663 697435886514a5f1de9e7517d00b339970393140 Alexey Zhokhov <alexey@zhokhov.com> 1792156438 +0700	pull: Fast-forward
+697435886514a5f1de9e7517d00b339970393140 e1325c04f5ffaa99af981155c3be0f9155892761 Alexey Zhokhov <alexey@zhokhov.com> 1792156886 +0700	pull: Fast-forward
+e1325c04f5ffaa99af981155c3be0f9155892761 b68b376bda8043667303c14794588a42e09fe30d Alexey Zhokhov <alexey@zhokhov.com> 1792157158 +0700	pull: Fast-forward
+b68b376bda8043667303c14794588a42e09fe30d 5fea4ac9bce0d8db09c9af16246abff6c4bc1089 Alexey Zhokhov <alexey@zhokhov.com> 1792157203 +0700	pull: Fast-forward
+5fea4ac9bce0d8db09c9af16246abff6c4bc1089 56a137c78907204f6086dff7436e7e5a63c2c04f Alexey Zhokhov <alexey@zhokhov.com> 1792158156 +0700	pull: Fast-forward
+56a137c78907204f6086dff7436e7e5a63c2c04f a6015a06e3261d5da0eeebc8183ec62a257a6d79 Alexey Zhokhov <alexey@zhokhov.com> 1792158289 +0700	pull: Fast-forward
+a6015a06e3261d5da0eeebc8183ec62a257a6d79 226ce5f990a0ca8fcb6f6ceb5f9c491755bc9c43 Alexey Zhokhov <alexey@zhokhov.com> 1792158342 +0700	pull: Fast-forward
+226ce5f990a0ca8fcb6f6ceb5f9c491755bc9c43 b0d8b45cc44d1f2db6acd41389e3da8e78e87953 Alexey Zhokhov <alexey@zhokhov.com> 1792164510 +0700	pull: Fast-forward
+b0d8b45cc44d1f2db6acd41389e3da8e78e87953 1679f6c4973b269e91af9345bdc32a3391f647f0 Alexey Zhokhov <alexey@zhokhov.com> 1792166599 +0700	pull: Fast-forward
+1679f6c4973b269e91af9345bdc32a3391f647f0 521e1437e1463d242a04603c9fc42c5bf1e451af Alexey Zhokhov <alexey@zhokhov.com> 1792167794 +0700	pull: Fast-forward
+521e1437e1463d242a04603c9fc42c5bf1e451af e69a21374a3cdddb267099cf9f3ab92ced534148 Alexey Zhokhov <alexey@zhokhov.com> 1792168090 +0700	pull: Fast-forward
+e69a21374a3cdddb267099cf9f3ab92ced534148 1ec63b73794283be6cbb88564e48c1f9a5da2b40 Alexey Zhokhov <alexey@zhokhov.com> 1792174470 +0700	pull: Fast-forward
+1ec63b73794283be6cbb88564e48c1f9a5da2b40 395e4d61f4e964e6a6644f1b87256f96c212c41d Alexey Zhokhov <alexey@zhokhov.com> 1792174503 +0700	pull: Fast-forward
+395e4d61f4e964e6a6644f1b87256f96c212c41d ed1519e0bf446a8b5ad0471b40d4986e2d1893fd Alexey Zhokhov <alexey@zhokhov.com> 1792175199 +0700	pull: Fast-forward
+ed1519e0bf446a8b5ad0471b40d4986e2d1893fd d821cd98eb216e85e7f4f39fa2a7173417725ead Alexey Zhokhov <alexey@zhokhov.com> 1792175873 +0700	pull: Fast-forward
+d821cd98eb216e85e7f4f39fa2a7173417725ead 42f0b372e2db531b251a5287058556dbc65dc44b Alexey Zhokhov <alexey@zhokhov.com> 1792207312 +0700	pull: Fast-forward
+42f0b372e2db531b251a5287058556dbc65dc44b 315a39522ae97857ec45a1b981da831e7a118706 Alexey Zhokhov <alexey@zhokhov.com> 1792208210 +0700	pull: Fast-forward
+315a39522ae97857ec45a1b981da831e7a118706 1aa9a413fb93de508699724d31bef42f139650c3 Alexey Zhokhov <alexey@zhokhov.com> 1792208650 +0700	pull: Fast-forward
+1aa9a413fb93de508699724d31bef42f139650c3 c2d92546a24d2c4d6d6c3d0859b8c7196522c0b1 Alexey Zhokhov <alexey@zhokhov.com> 1792208827 +0700	pull: Fast-forward
+c2d92546a24d2c4d6d6c3d0859b8c7196522c0b1 34b1e7008e581bd6fa2c69e6498ae2dbd24a2a8c Alexey Zhokhov <alexey@zhokhov.com> 1792227391 +0700	pull: Fast-forward
+34b1e7008e581bd6fa2c69e6498ae2dbd24a2a8c 791c8df9425c74e34f4a82219f8857d45df1a48c Alexey Zhokhov <alexey@zhokhov.com> 1792227781 +0700	pull: Fast-forward
+791c8df9425c74e34f4a82219f8857d45df1a48c 44d0ef0fd92a2883e4cf91da192191865a691b73 Alexey Zhokhov <alexey@zhokhov.com> 1792234731 +0700	pull: Fast-forward
+44d0ef0fd92a2883e4cf91da192191865a691b73 08af0b70f47c53b068ebcca103d38a419b13e009 Alexey Zhokhov <alexey@zhokhov.com> 1792235322 +0700	pull: Fast-forward
+08af0b70f47c53b068ebcca103d38a419b13e009 6abad6305e3169db15c1a1b1a8be9be97b7934ef Alexey Zhokhov <alexey@zhokhov.com> 1792236029 +0700	pull: Fast-forward
+6abad6305e3169db15c1a1b1a8be9be97b7934ef f35a07d699e1f19ed458e551044f9c7ffc5daf84 Alexey Zhokhov <alexey@zhokhov.com> 1792242338 +0700	pull: Fast-forward
+f35a07d699e1f19ed458e551044f9c7ffc5daf84 4c418a6a51fb5d2ab0fbdd04d076d6dd6792a891 Alexey Zhokhov <alexey@zhokhov.com> 1792248617 +0700	pull: Fast-forward
+4c418a6a51fb5d2ab0fbdd04d076d6dd6792a891 f55fd2274197c0a235e0885e3cc5827062b887e1 Alexey Zhokhov <alexey@zhokhov.com> 1792249482 +0700	pull: Fast-forward
+f55fd2274197c0a235e0885e3cc5827062b887e1 0fad384c0850dd842ccc1db748a9303c3bbd9e4a Alexey Zhokhov <alexey@zhokhov.com> 1792250389 +0700	pull: Fast-forward
+0fad384c0850dd842ccc1db748a9303c3bbd9e4a d2493943c80a491bb923bd68a6b928993e0615bb Alexey Zhokhov <alexey@zhokhov.com> 1792250955 +0700	pull: Fast-forward
+d2493943c80a491bb923bd68a6b928993e0615bb 1e40e1c0862d527b74546212c39fc83a272dcf03 Alexey Zhokhov <alexey@zhokhov.com> 1792251944 +0700	pull: Fast-forward
+1e40e1c0862d527b74546212c39fc83a272dcf03 6b6561bf722571908832dcc95126b2884f562b74 Alexey Zhokhov <alexey@zhokhov.com> 1792252403 +0700	pull: Fast-forward
+6b6561bf722571908832dcc95126b2884f562b74 aa2315e534c04f61158de002d571d1d300d49b78 Alexey Zhokhov <alexey@zhokhov.com> 1792253703 +0700	pull: Fast-forward
+aa2315e534c04f61158de002d571d1d300d49b78 e0dd924b0b8a107f0785fc004493399bd54e3dfd Alexey Zhokhov <alexey@zhokhov.com> 1792254966 +0700	pull: Fast-forward
+e0dd924b0b8a107f0785fc004493399bd54e3dfd 362044c075d8b960630ee5eaf565221ebbc6f142 Alexey Zhokhov <alexey@zhokhov.com> 1792257253 +0700	pull: Fast-forward
+362044c075d8b960630ee5eaf565221ebbc6f142 2d4262375cdedaf21af117f2eec49c0aff09fd5a Alexey Zhokhov <alexey@zhokhov.com> 1792261260 +0700	pull: Fast-forward
+2d4262375cdedaf21af117f2eec49c0aff09fd5a ed65b5b31ab08efe5bd48aa1a766d57213432f3d Alexey Zhokhov <alexey@zhokhov.com> 1792263303 +0700	pull: Fast-forward
+ed65b5b31ab08efe5bd48aa1a766d57213432f3d d9e569bf6fd33d90266db597c458442c729340ad Alexey Zhokhov <alexey@zhokhov.com> 1792265595 +0700	pull: Fast-forward
+d9e569bf6fd33d90266db597c458442c729340ad d550de9587f0e7f459f6a9942b3d4525cba431ec Alexey Zhokhov <alexey@zhokhov.com> 1792323138 +0700	Rebase documentation and comment cleanup onto current remote baseline
+d550de9587f0e7f459f6a9942b3d4525cba431ec 80ed8a3668bd8acfb7766c308308dad278c18197 Alexey Zhokhov <alexey@zhokhov.com> 1792327897 +0700	commit: docs: identify missing Showcase route coverage
+80ed8a3668bd8acfb7766c308308dad278c18197 fec3f88d9abdce28211d45dea621826f109eb004 Alexey Zhokhov <alexey@zhokhov.com> 1792330605 +0700	commit (amend): docs: reconcile validation contracts across branches
+fec3f88d9abdce28211d45dea621826f109eb004 4169783ae883788186d161af09ba9c481bd84e5c Alexey Zhokhov <alexey@zhokhov.com> 1792331192 +0700	commit (amend): docs: reconcile validation contracts across branches
+4169783ae883788186d161af09ba9c481bd84e5c b00fbe3c3af9a6b9140fee9f87cfd1c96f604e78 Alexey Zhokhov <alexey@zhokhov.com> 1792485685 +0700	merge origin/design/interaction-polish: Fast-forward
+b00fbe3c3af9a6b9140fee9f87cfd1c96f604e78 15c37b443a02dd92a1b9e5b9c75a37300b729c60 Alexey Zhokhov <alexey@zhokhov.com> 1792487432 +0700	merge 15c37b443a02dd92a1b9e5b9c75a37300b729c60: Fast-forward
+15c37b443a02dd92a1b9e5b9c75a37300b729c60 859e44e97dd39c42d203838c60bf47e9f7b5b24e Alexey Zhokhov <alexey@zhokhov.com> 1792488065 +0700	merge 859e44e97dd39c42d203838c60bf47e9f7b5b24e: Fast-forward
+859e44e97dd39c42d203838c60bf47e9f7b5b24e f2f6eb716c4a512be3dc9423742fa06e86879b32 Alexey Zhokhov <alexey@zhokhov.com> 1792510807 +0700	pull: Fast-forward
+f2f6eb716c4a512be3dc9423742fa06e86879b32 b68788d6dddd38ade34c15a828cd1d3891f041ae Alexey Zhokhov <alexey@zhokhov.com> 1792620643 +0700	commit: docs(audit): record remote branch cleanup inventory and migration matrix
+b68788d6dddd38ade34c15a828cd1d3891f041ae f2f6eb716c4a512be3dc9423742fa06e86879b32 Alexey Zhokhov <alexey@zhokhov.com> 1792621071 +0700	reset: moving to origin/design/interaction-polish
+f2f6eb716c4a512be3dc9423742fa06e86879b32 5b3dbd7ae799f325efbb4f4cc11b2f5518dec948 Muse Code <muse@example.com> 1792916858 +0700	pull: Fast-forward

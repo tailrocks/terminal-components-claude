@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 0b371f9be4271eea751652739d78b154f5eac782 Alexey Zhokhov <alexey@zhokhov.com> 1792737622 +0700	branch: Created from origin/parity/termrock-visual-baseline
+0b371f9be4271eea751652739d78b154f5eac782 8dfab96f424c5b95b65e4fae2c53bea454418ddd Alexey Zhokhov <alexey@zhokhov.com> 1792738519 +0700	commit: feat(navigation): support middle-click tab close
+8dfab96f424c5b95b65e4fae2c53bea454418ddd 616236a58426b2a2f7269b1eabdce803047d6142 Alexey Zhokhov <alexey@zhokhov.com> 1792738792 +0700	commit: test(navigation): cover middle-close builder order
+616236a58426b2a2f7269b1eabdce803047d6142 4c855286e2ccb86447568bc40a4bad8c45150832 Alexey Zhokhov <alexey@zhokhov.com> 1792739097 +0700	rebase (finish): refs/heads/wip/tabs-middle-close-20261023 onto 87cc134a3842d1f52a5347e8108e2bcce61b6bfe

@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 6825b07e86bab75872866c6ed49e6877084db9bb Alexey Zhokhov <alexey@zhokhov.com> 1792554310 +0700	branch: Created from 6825b07e86bab75872866c6ed49e6877084db9bb
+6825b07e86bab75872866c6ed49e6877084db9bb 2b873e25b5e2a9a04fc8208ec9c6658cf480128d Alexey Zhokhov <alexey@zhokhov.com> 1792554646 +0700	commit: fix(overlays): add live context menu hints and anchors
+2b873e25b5e2a9a04fc8208ec9c6658cf480128d 541c57fb7d87f6514e27b0fc75c6beb01db54b51 Alexey Zhokhov <alexey@zhokhov.com> 1792554657 +0700	commit: docs: record context menu contract evidence
+541c57fb7d87f6514e27b0fc75c6beb01db54b51 383d72e9bc705f50e8ee79be4ad6250b50a279bd Alexey Zhokhov <alexey@zhokhov.com> 1792555548 +0700	commit: fix(overlays): restore frozen menu geometry
+383d72e9bc705f50e8ee79be4ad6250b50a279bd 1dee009130ca11876a8d5e53e04fe1046edb9888 Alexey Zhokhov <alexey@zhokhov.com> 1792555828 +0700	commit: fix(overlays): size executable menu shortcuts correctly

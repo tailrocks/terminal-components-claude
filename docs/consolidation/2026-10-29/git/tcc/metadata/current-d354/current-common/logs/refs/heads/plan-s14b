@@ -1,0 +1,19 @@
+0000000000000000000000000000000000000000 8996bcc6bd4a126d17025ededb70e9d640cf2dbc Alexey Zhokhov <alexey@zhokhov.com> 1792237446 +0700	branch: Created from HEAD
+8996bcc6bd4a126d17025ededb70e9d640cf2dbc 2bf1573f57028f5bc60ace1244fda31a6d1596fd Alexey Zhokhov <alexey@zhokhov.com> 1792237449 +0700	cherry-pick: feat(shell): Router, Nav, Chrome, Menus and Clipboard (S14 library)
+2bf1573f57028f5bc60ace1244fda31a6d1596fd a58eee178a4bffac33ce7e17125655f0de5e5b0b Alexey Zhokhov <alexey@zhokhov.com> 1792237449 +0700	cherry-pick: wip(showcase): page stack on shell::Router, page links navigate (S14, P0-G6)
+a58eee178a4bffac33ce7e17125655f0de5e5b0b 5195638f67975b121da17c821168d0aaac346de5 Alexey Zhokhov <alexey@zhokhov.com> 1792237777 +0700	commit: wip tests
+5195638f67975b121da17c821168d0aaac346de5 57a5b17b77dccbf3e32a0a390c763e746dfb25ae Alexey Zhokhov <alexey@zhokhov.com> 1792237837 +0700	commit: wip tests 2
+57a5b17b77dccbf3e32a0a390c763e746dfb25ae 6f3d5b85ed29bba5c5302e08608e626da35ac582 Alexey Zhokhov <alexey@zhokhov.com> 1792237838 +0700	branch: Reset to HEAD
+6f3d5b85ed29bba5c5302e08608e626da35ac582 2013e5b3a7ca6d1975b14cf63fb00de037b467af Alexey Zhokhov <alexey@zhokhov.com> 1792238403 +0700	commit (amend): feat(showcase): page stack on shell::Router, page links navigate (S14, P0-G6)
+2013e5b3a7ca6d1975b14cf63fb00de037b467af 1b2c4c4a019192a546e63cc26b3f54de9b6944c1 Alexey Zhokhov <alexey@zhokhov.com> 1792238404 +0700	commit: test(coverage): the coverage gate scans src/shell
+1b2c4c4a019192a546e63cc26b3f54de9b6944c1 5fbd76c1e5c09c3746653c371440f596c27414fe Alexey Zhokhov <alexey@zhokhov.com> 1792238443 +0700	commit: docs(audits): S14 page-stack decisions in the showcase shell
+5fbd76c1e5c09c3746653c371440f596c27414fe 38e6b9d0e3ff3868f2a5fd7d951f60bd0e25718c Alexey Zhokhov <alexey@zhokhov.com> 1792238455 +0700	rebase (finish): refs/heads/plan-s14b onto c46766dfa27dedb719846bb841b02554780c6214
+38e6b9d0e3ff3868f2a5fd7d951f60bd0e25718c e69de7f6a6071a0c09e48f25c667e14a7225ad4b Alexey Zhokhov <alexey@zhokhov.com> 1792239076 +0700	cherry-pick: refactor(tablepro): pages on shell::Router, frame from shell::Chrome (S14, CO14, A17)
+e69de7f6a6071a0c09e48f25c667e14a7225ad4b e34c08ccc2a20c7c4820e3968bd38833de2e70e6 Alexey Zhokhov <alexey@zhokhov.com> 1792239076 +0700	cherry-pick: fix(tablepro): disconnect and quit through the leave guard (S14, K4, A6)
+e34c08ccc2a20c7c4820e3968bd38833de2e70e6 34f51a6b4c3c79e1bc0210426f1d0af2d2fd309d Alexey Zhokhov <alexey@zhokhov.com> 1792239077 +0700	cherry-pick: fix(tablepro): copies reach the clipboard and report the truth (S14, SC34)
+34f51a6b4c3c79e1bc0210426f1d0af2d2fd309d 03249c2f6b093b8927de001267c8af8dab5827e9 Alexey Zhokhov <alexey@zhokhov.com> 1792239077 +0700	cherry-pick: refactor(tablepro): the app menu carries its commands in shell::Menus (S14, M23)
+03249c2f6b093b8927de001267c8af8dab5827e9 e2c274a8ec5ba1f5d139aaed1e51b79f9f8d9ddb Alexey Zhokhov <alexey@zhokhov.com> 1792239687 +0700	cherry-pick: refactor(jackin): pages on shell::Router, typed host menus, one quit and copy path (S14)
+e2c274a8ec5ba1f5d139aaed1e51b79f9f8d9ddb 9528c991422852703f0260ebf0c9688184231930 Alexey Zhokhov <alexey@zhokhov.com> 1792239687 +0700	cherry-pick: refactor(holla): page stacks on shell::Router, typed menus, Clipboard, Chrome (S14)
+9528c991422852703f0260ebf0c9688184231930 930b4bd5244e46671062a656b39c268eff09f164 Alexey Zhokhov <alexey@zhokhov.com> 1792239687 +0700	cherry-pick: test(visual): holla's leave-guard dialog sites recorded as gaps (S14)
+930b4bd5244e46671062a656b39c268eff09f164 02ed57e548ad91ab849a1582349bd895c5b06b67 Alexey Zhokhov <alexey@zhokhov.com> 1792239690 +0700	rebase (finish): refs/heads/plan-s14b onto d67f78dce6a50b78826a09dc8778d9c389b52881
+02ed57e548ad91ab849a1582349bd895c5b06b67 2f014008a4c01fb46f7d83ca4184e9c4b286e3bd Alexey Zhokhov <alexey@zhokhov.com> 1792240368 +0700	commit: docs: S14 done (Router, Chrome, Menus, Clipboard; four apps on them); CO14, A17, P0-G6 links

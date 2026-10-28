@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 99b719d85a0714c88484240dbc9184f110b518d4 Alexey Zhokhov <alexey@zhokhov.com> 1792501013 +0700	branch: Created from 99b719d85a0714c88484240dbc9184f110b518d4
+99b719d85a0714c88484240dbc9184f110b518d4 a2c202062147e99c5624e8a2acabf504678295cc Alexey Zhokhov <alexey@zhokhov.com> 1792501550 +0700	commit: fix: preserve explicit shared component styles
+a2c202062147e99c5624e8a2acabf504678295cc 94a1215e27e67bfad76f9edb8ca5b00fa9810c80 Alexey Zhokhov <alexey@zhokhov.com> 1792501566 +0700	rebase (finish): refs/heads/parity/shared-style-regressions-20261020 onto 407d727f9f952bafcbb842e8be341ffb32120e4e
+94a1215e27e67bfad76f9edb8ca5b00fa9810c80 016a2cef5cca094129a0b176e63e070b70503b9f Alexey Zhokhov <alexey@zhokhov.com> 1792502510 +0700	commit: fix: preserve explicit theme style precedence
+016a2cef5cca094129a0b176e63e070b70503b9f 708420d470cc333867efaf0738faf21a3cd15a79 Alexey Zhokhov <alexey@zhokhov.com> 1792502521 +0700	rebase (finish): refs/heads/parity/shared-style-regressions-20261020 onto a5766d24783c2b268e727497fe6861b6479c71cc

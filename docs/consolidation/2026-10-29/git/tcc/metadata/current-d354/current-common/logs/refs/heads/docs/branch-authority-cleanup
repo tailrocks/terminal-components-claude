@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 8125677eb5299982dcd5b0113511c27ee17e58de Alexey Zhokhov <alexey@zhokhov.com> 1792302349 +0700	branch: Created from HEAD
+8125677eb5299982dcd5b0113511c27ee17e58de b03f80527b73456fbad7d24ecbc54222a3f8157f Alexey Zhokhov <alexey@zhokhov.com> 1792303015 +0700	commit (amend): chore: remove Rust comments without changing code tokens
+b03f80527b73456fbad7d24ecbc54222a3f8157f dc9b1e42c19f8fc87209fe583642036b2e81d1cb Alexey Zhokhov <alexey@zhokhov.com> 1792303284 +0700	commit: docs: reconcile architecture and product authority across project plans
+dc9b1e42c19f8fc87209fe583642036b2e81d1cb 039daab014ae492b9a08888a9ee468b60a7c0a28 Alexey Zhokhov <alexey@zhokhov.com> 1792303683 +0700	commit: chore: format comment-free Rust and retire obsolete guides
+039daab014ae492b9a08888a9ee468b60a7c0a28 bcc0f9f9bd87c84fffafcab2c04f63bd5928dded Alexey Zhokhov <alexey@zhokhov.com> 1792305732 +0700	commit: style: remove comment-derived attribute spacing
+bcc0f9f9bd87c84fffafcab2c04f63bd5928dded 1e04593ab3689844521a521e5be39fac01021edf Alexey Zhokhov <alexey@zhokhov.com> 1792305756 +0700	commit: docs: reconcile remaining guides and record cleanup evidence
+1e04593ab3689844521a521e5be39fac01021edf b9b9bb0f2f350a22937a842aea67f85a7856253a Alexey Zhokhov <alexey@zhokhov.com> 1792305946 +0700	commit: docs: include final attribute-spacing source revision
+b9b9bb0f2f350a22937a842aea67f85a7856253a f510169bee51ffb2fe41e8080a94a7bafe5d8d03 Alexey Zhokhov <alexey@zhokhov.com> 1792307003 +0700	commit: docs: rebuild project documentation and retire obsolete reports
+f510169bee51ffb2fe41e8080a94a7bafe5d8d03 eec887bcbdd8011aa91fffb787b43ae466b6a6db Alexey Zhokhov <alexey@zhokhov.com> 1792307162 +0700	commit: docs: make safety guidance describe ongoing maintenance
+eec887bcbdd8011aa91fffb787b43ae466b6a6db 94b1711cdf0eca2ee62f5eb2f9d9e77d4177e94e Alexey Zhokhov <alexey@zhokhov.com> 1792307454 +0700	commit: docs: map current package and dependency ownership
+94b1711cdf0eca2ee62f5eb2f9d9e77d4177e94e fa60869245e935c5a5933dd7ddc20f7d355e4c71 Alexey Zhokhov <alexey@zhokhov.com> 1792307667 +0700	commit: docs: use the current facade package in pull request checks
+fa60869245e935c5a5933dd7ddc20f7d355e4c71 ba9a9fd2667f88f5035b27c02bf5ba6702a4b831 Alexey Zhokhov <alexey@zhokhov.com> 1792307831 +0700	commit: fix: preserve the frozen visibility proof source fixture
+ba9a9fd2667f88f5035b27c02bf5ba6702a4b831 c4b62deccf0ff32383253f597d020084dc180c03 Alexey Zhokhov <alexey@zhokhov.com> 1792320735 +0700	commit: docs: define source documentation policy and lint levels

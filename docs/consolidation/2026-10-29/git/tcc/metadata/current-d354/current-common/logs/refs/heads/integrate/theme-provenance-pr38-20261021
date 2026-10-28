@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 50c783569e9ec45c0c7f84679c33ebeb1a1d4250 Alexey Zhokhov <alexey@zhokhov.com> 1792599695 +0700	branch: Created from origin/parity/termrock-visual-baseline
+50c783569e9ec45c0c7f84679c33ebeb1a1d4250 41fa0b2cb4ee96021d19cc8f6d87de18bcd15f39 Alexey Zhokhov <alexey@zhokhov.com> 1792599701 +0700	merge wip/theme-declaration-provenance-stage2a-20261021: Merge made by the 'ort' strategy.
+41fa0b2cb4ee96021d19cc8f6d87de18bcd15f39 af0168f367c0d329a6bd3ebfe8b359a4ae74a97f Alexey Zhokhov <alexey@zhokhov.com> 1792599908 +0700	commit: docs: record Theme provenance integration receipts

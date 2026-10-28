@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 df39d20e30225af56c71878de0d408d3b10dc322 Alexey Zhokhov <alexey@zhokhov.com> 1792174528 +0700	branch: Created from plan-s6
+df39d20e30225af56c71878de0d408d3b10dc322 71387a952282b7e559cd7100173acd9aff0f0cf5 Alexey Zhokhov <alexey@zhokhov.com> 1792175319 +0700	commit: WIP s6 widgets
+71387a952282b7e559cd7100173acd9aff0f0cf5 df39d20e30225af56c71878de0d408d3b10dc322 Alexey Zhokhov <alexey@zhokhov.com> 1792175327 +0700	reset: moving to HEAD~1
+df39d20e30225af56c71878de0d408d3b10dc322 20476f9bd511c77ff973b37b4da5c8c16358e692 Alexey Zhokhov <alexey@zhokhov.com> 1792175750 +0700	commit: WIP final state
+20476f9bd511c77ff973b37b4da5c8c16358e692 df39d20e30225af56c71878de0d408d3b10dc322 Alexey Zhokhov <alexey@zhokhov.com> 1792175755 +0700	reset: moving to df39d20e3
+df39d20e30225af56c71878de0d408d3b10dc322 59140f2576e504e0043247441b0363ff8ac1dffa Alexey Zhokhov <alexey@zhokhov.com> 1792175864 +0700	commit: feat(pointer): MouseTarget for collections and navigation widgets
+59140f2576e504e0043247441b0363ff8ac1dffa 4d38cc5eba1c1b0e25d78b7090c5796742016399 Alexey Zhokhov <alexey@zhokhov.com> 1792175964 +0700	commit: feat(pointer): MouseTarget for text fields and controls
+4d38cc5eba1c1b0e25d78b7090c5796742016399 b324eb61f9c87bfa96b5321a1264751aed268d3f Alexey Zhokhov <alexey@zhokhov.com> 1792176088 +0700	commit: fix(pointer): popups and dialogs route by owner; wheel in a form (M18)
+b324eb61f9c87bfa96b5321a1264751aed268d3f 5c32f425f183f46a4d7a6d2ca4d57ad307916969 Alexey Zhokhov <alexey@zhokhov.com> 1792176178 +0700	commit: test(pointer): every widget routes its parts as a MouseTarget
+5c32f425f183f46a4d7a6d2ca4d57ad307916969 cd7d9791270aeeba8ce59250aa9cf6cfa232b4c3 Alexey Zhokhov <alexey@zhokhov.com> 1792176271 +0700	commit: fix(picker): own its light-dismiss backdrop (S5 deviation 5)

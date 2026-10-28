@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 be1ef0e320332b6ce32b8b0f8e3e401389451bb6 Alexey Zhokhov <alexey@zhokhov.com> 1792537969 +0700	branch: Created from HEAD
+be1ef0e320332b6ce32b8b0f8e3e401389451bb6 efda9593a905e3d462a62852748cf43254276dca Alexey Zhokhov <alexey@zhokhov.com> 1792537973 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+efda9593a905e3d462a62852748cf43254276dca f080aff1b403520a91be298adf91aa2dfbd588ab Alexey Zhokhov <alexey@zhokhov.com> 1792538171 +0700	commit: test(navigation): restore legacy disabled palette fixture
+f080aff1b403520a91be298adf91aa2dfbd588ab b5f09170d8d49266848e66df29266ef9e5c5f49d Alexey Zhokhov <alexey@zhokhov.com> 1792538237 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+b5f09170d8d49266848e66df29266ef9e5c5f49d 4fb359b8e7239118a04d0cf6d81304c2d3a5d6e0 Alexey Zhokhov <alexey@zhokhov.com> 1792539000 +0700	commit: test(navigation): isolate muted palette negative guard
+4fb359b8e7239118a04d0cf6d81304c2d3a5d6e0 eb82d6e1526cd55f21cdc66590b9ff36d7606deb Alexey Zhokhov <alexey@zhokhov.com> 1792539016 +0700	commit: docs(audit): record item row guard verification

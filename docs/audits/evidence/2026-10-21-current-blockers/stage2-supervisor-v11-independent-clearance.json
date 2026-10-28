@@ -1,0 +1,101 @@
+{
+  "schema": "termrock.stage3d.external-supervisor-v11-stage2.independent-review.v1",
+  "decision": "CLEAR exact V11 stage2-only supervisor source under its explicitly documented kernel-stall limitation; operational result still requires independent verification.",
+  "findings": [],
+  "reviewed_inputs": {
+    "source": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v11-stage2-20261021.py",
+      "sha256": "a28fe81fc0214c230f3ec147ee546f4a57c3c9bb12d0f963cea7e5fa938765d3"
+    },
+    "tests": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v11-stage2-20261021.py",
+      "sha256": "997540d8783f83fc5fc3f960832829e70586448d31c431a2a0b694e91877be1d"
+    },
+    "handoff": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v11-stage2-author-handoff-20261021.json",
+      "sha256": "575e9742a9c43920af98c0487b564d068f58a713b7051d6d1c319e89c0c1005d"
+    },
+    "prior_v10_review": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v10-stage2-independent-review-20261021.json",
+      "sha256": "134d2e41da98c6c9f55d899ed21ce6ab24eb4b47bfd4e630207df6fe7d078655"
+    },
+    "test_results": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v11-stage2-independent-test-results-20261021.json",
+      "sha256": "ade06366da1283ce5aebaf24da3aabca5f32d1850078f16eca023914481c3e5c"
+    }
+  },
+  "method": "Bounded independent read-only source diff review, unchanged new regressions applied to exact V10 and V11 in memory, and complete current synthetic test suite rerun under a 180-second subprocess timeout. No production or test source edits and no operational preparation commands.",
+  "tests": {
+    "before_v10": {
+      "run": 2,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v11-stage2-independent-before_v10-focused-20261021.log",
+      "sha256": "27a556fc003a36e0d04e7b77314df803be21ad550886aa507470f8ee2532c208"
+    },
+    "after_v11": {
+      "run": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v11-stage2-independent-after_v11-focused-20261021.log",
+      "sha256": "5305c02fb37e3bc94160c445b648c8e6c402946e21eaf308c1ea0f317731c4ad"
+    },
+    "full_suite": {
+      "exit_status": 0,
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v11-stage2-independent-full-tests-20261021.log",
+      "sha256": "d60322f13e96cd348fef9f9f832e2d05f2156d21b9b458c802ab7866b6dbdfa8"
+    },
+    "handoff_hashes_match": {
+      "canonical_runner": true,
+      "final_tests": true,
+      "source": true,
+      "tests": true,
+      "v10_review": true,
+      "v10_source": true,
+      "v10_tests": true,
+      "v9_review": true
+    }
+  },
+  "resolved_findings": [
+    {
+      "id": "V10-STAGE2-1",
+      "status": "fixed",
+      "evidence": "Both unchanged main-level delayed-write and delayed-flag-restoration regressions fail on V10 with 0 != 124 and pass on V11 with exit 124. New source checks the deadline after every completed write and after restoring descriptor flags before successful return."
+    },
+    {
+      "id": "V9-STAGE2-1",
+      "status": "explicitly bounded limitation retained",
+      "evidence": "The V10-to-V11 diff does not alter the honest scope: kernel-blocked filesystem/output syscalls can outlast the deadline while blocked; late sink and report completion are rejected on return. This is not a universal hard wall-clock guarantee."
+    },
+    {
+      "id": "V8-exception-cleanup",
+      "status": "fix retained",
+      "evidence": "The V10-to-V11 diff leaves exact-owned-Popen TERM grace, direct-PID KILL fallback, bounded reap, error recording, and fail-closed supervision logic unchanged. Full synthetic suite includes cooperative and TERM-resistant real children."
+    }
+  ],
+  "scope_checks": {
+    "source_delta": "Only post-write/post-restoration deadline checks and V11 artifact/schema version strings. No unrelated scope growth.",
+    "pins": "Canonical source remains e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80, canonical independent clearance 15feeaf89d5b07cbf6b9204299b6f9170a2552fd8070e33ad901a20367da5090, stage1 admission ae23cdeb2a7cf4b1e7db63b975d919a5fa6668700e9245362f4053c00d623ce0. All eight handoff evidence hashes independently matched.",
+    "stage_scope": "Only stage 2 prepare-live enabled; stages 1 and 3 through 8 remain disabled. No key/plan/capture/replay/application operation enabled by this review.",
+    "event_rule": "Persisted success-shaped event or stdout payload alone is insufficient. Require complete exclusive event publication and wrapper exit status 0; timeout after output returns 124. Product acceptance is explicitly excluded.",
+    "flaky_history": "Earlier V10 final3 cooperative-child failure remains preserved and is not counted green. Current V11 independent 29-case run passed; no claim of exhaustive flake elimination."
+  },
+  "limitations": [
+    "Filesystem/output kernel stalls are explicitly outside the hard completion guarantee while blocked.",
+    "Only the exact direct child is owned by the external wrapper; canonical runner owns its broker and children. No universal descendant containment is claimed.",
+    "This source review is not proof that actual stage2 preparation succeeded, and provides no visual, functional, or reusable-library acceptance credit."
+  ],
+  "operations_executed": {
+    "synthetic_tests": true,
+    "real_synthetic_children_only": true,
+    "preflight": false,
+    "prepare_live": false,
+    "key_access": false,
+    "application_launch": false,
+    "capture": false,
+    "replay": false,
+    "candidate_comparison": false
+  }
+}

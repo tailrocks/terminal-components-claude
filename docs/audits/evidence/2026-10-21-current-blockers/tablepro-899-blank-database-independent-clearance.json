@@ -1,0 +1,118 @@
+{
+  "schema": "independent-rust-domain-review-v1",
+  "reviewer": "/root/tablepro_database_validation_reviewer",
+  "created_at": "2026-10-21T02:46:41.530097+00:00",
+  "source_commit": "8992262f4c75c7eadf6730f7fa270385ad6003aa",
+  "exact_parent": "31a7049d41bc54ddce4065db4996108cc9a61283",
+  "fixed_baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "decision": "cleared_for_bounded_domain_integration_with_prerequisite_f0760cc",
+  "findings": [],
+  "review_scope": "The delta removes the PostgreSQL-only DatabaseRequired rule, adds two domain tests, and corrects the reconnect fixture to enter a valid Name through the visible shared Input. The prerequisite blank-draft constructor is required separately; this review does not approve the old base wholesale.",
+  "source_evidence": [
+    "Frozen ConnForm::validate at connections.rs301-305 validates Name and Port only. Frozen submit887-927 commits Database editing but adds no Database-required rule.",
+    "Candidate validate_all219-227 retains Name.trim().is_empty() and unchanged valid_port. Removed condition affected engine0 only; MySQL/SQLite rules are unchanged.",
+    "Candidate FormData::validate_all delegates to ConnectionDraft::validate_all368-369; app10033-10050 invokes it before Save/SaveConnect. No shared widget mechanism or production frame artifact is changed.",
+    "Original guard, cancel, active-tab, pending-edit and diagnostics assertions remain after the inserted real Name entry."
+  ],
+  "checks": {
+    "external_before": {
+      "commit": "31a7049d41bc54ddce4065db4996108cc9a61283",
+      "passed": 1,
+      "failed": 3,
+      "skipped": 0,
+      "exit": 100
+    },
+    "external_after": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "test_source_unchanged": true
+    },
+    "independent_boundaries": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "combinations": 132,
+      "coverage": "Three engines, four Database values including blank/whitespace/Unicode, three invalid Name values, four valid and four invalid Port values."
+    },
+    "native_before_isolated": {
+      "run": 208,
+      "passed": 205,
+      "failed": 3,
+      "skipped": 0,
+      "exit": 100,
+      "failures": [
+        "form_radio_enter_submits",
+        "connection_form_names_preserve_footer_grapheme_boundaries",
+        "save_connect_from_workbench_form_requires_guard_and_cancel_keeps_work"
+      ]
+    },
+    "native_after": {
+      "run": 210,
+      "passed": 209,
+      "failed": 1,
+      "skipped": 0,
+      "exit": 100,
+      "failures": [
+        "form_radio_enter_submits"
+      ]
+    },
+    "owned_rustfmt": {
+      "exit": 0
+    },
+    "git_diff_check": {
+      "exit": 0
+    }
+  },
+  "preserved_footer_unicode_sha256": "039f97837cf162bbef20347e5a49eb6e88301145ab7584a4116c1ad0b8f3ad31",
+  "remaining": [
+    {
+      "location": "crates/tablepro-ui/tests/form_radio.rs:117",
+      "status": "Existing failure on both exact parent and candidate: fixture expects Production/Safe(3,3), actual blank-New defaults(0,0). This review does not authorize blessing the fixture or radio behavior."
+    },
+    {
+      "location": "crates/tablepro-domain/src/connections.rs:60",
+      "status": "Existing Port0 acceptance differs from frozen1..65535; unchanged by this delta."
+    },
+    {
+      "location": "crates/tablepro-domain/src/connections.rs:250",
+      "status": "Existing saved Name preserves whitespace while frozen trims; unchanged by this delta."
+    }
+  ],
+  "invalidated_verification": {
+    "artifact": "native-before.log",
+    "reason": "Reusing the after target for the exact-parent native workspace returned210tests including two absent new tests, proving stale build reuse. This result is rejected. Distinct parent-only target independently rebuilds and returns208tests/205passed/3failed. Future before/after native workspace checks must use distinct target directories."
+  },
+  "limitations": [
+    "No real CLI/tuiscotti run or frozen binary execution was performed. Frozen rules were independently source-qualified.",
+    "Full workspace formatting, Clippy, application parity and library completion are not established. Only owned Rust formatting and bounded domain/UI Nextest checks were independently run.",
+    "No source edits, snapshot updates, key access, baseline changes or repository publication were performed."
+  ],
+  "source_sha256": {
+    "crates/tablepro-domain/src/connections.rs": "322f8a776e730b0815c7d05fd099fd2c48fc7406d0687f69ae1b640a314213a3",
+    "crates/tablepro-ui/tests/replacement_contract.rs": "bba6805d4c7fcbd60c56296156bba00337d2e9f77d7f584dc5f04246e0efeac9",
+    "crates/tablepro-ui/tests/footer_unicode.rs": "039f97837cf162bbef20347e5a49eb6e88301145ab7584a4116c1ad0b8f3ad31"
+  },
+  "artifacts": {
+    "external-after-result.json": "7b8ce935c2f6005677fc441ee63722ae73fd79df7d1d1c4ccbeab26cb0db3665",
+    "verification-results.json": "d45ff2935908d943a5c8f65b9e725d36001f8d4a784528f9f7a9e0b2d452a306",
+    "native-before-isolated.log": "835d2d0aa00079d4c05be700464946642874c7172d16e770709d37d99ebf24f1",
+    "native-before-isolated-result.json": "236d104695c8eeb8a88c07d0e1969b07e45a9ec02de30020afb2bd0bcd6f3849",
+    "boundary.log": "d19f160be8fef6785bf2ca93f88ee6375046743583cd854d7c940af0e05ecb54",
+    "native.log": "ef77cbe2bb55a25f80019b634f62f36062ab482beaa2076ba03ee14ed8b848f5",
+    "native-before.log": "96dfc776c88762ef2c9a2411b0a529078b59c9beae7e1f9fdffb3e5cc37b7d82",
+    "external-before-result.json": "70c700a777b690c59f0f2e8c46c921e8d0e9b9efc88c15197273f12fb4c9146f",
+    "external-before.log": "ce8f45b5ec41d22a729ddf2adbed5b429ca9cb65c9cc277e203980ba5f955d27",
+    "external-after.log": "6d2f9a32f46d803d9c146bda8d413f0f5ef3ee10024a9b891ef92d9bce9401a0",
+    "native-before-result.json": "b5dbbe438d30a9d41ee7e06d2e5a236743b1729c4c65fe06076c7b574fc508d5",
+    "consumer-before/Cargo.toml": "3dfced83d5a42c490ac62ad27b9128b41fe0f52d97ed805be8c4d71dd3e4e624",
+    "consumer-before/Cargo.lock": "51cbce238490ca8954079a023bf77f06808d126d19c55a9678b251a3538e24bb",
+    "consumer/Cargo.toml": "eaff1e6f30bd8f8109991bfa59c1b9c1da26a8ac918b27ee28d632bc844ce9d1",
+    "consumer/Cargo.lock": "51cbce238490ca8954079a023bf77f06808d126d19c55a9678b251a3538e24bb",
+    "consumer/tests/boundary.rs": "9e535b1195f4b7b37e66e32cdc8da5fd93856559009375f2547ab7c952171db6",
+    "consumer/tests/validation.rs": "1c81cb07224bd47cfd3c85a6efea0dcccefc027909dcc979e9aded323d7ab4f3",
+    "consumer-before/tests/validation.rs": "1c81cb07224bd47cfd3c85a6efea0dcccefc027909dcc979e9aded323d7ab4f3"
+  }
+}

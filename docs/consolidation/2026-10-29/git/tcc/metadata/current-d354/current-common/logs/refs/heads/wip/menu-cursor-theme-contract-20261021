@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 29c0e50e106dbd1da3e0e462543fe4d50ebdf93b Alexey Zhokhov <alexey@zhokhov.com> 1792565544 +0700	branch: Created from origin/parity/termrock-visual-baseline
+29c0e50e106dbd1da3e0e462543fe4d50ebdf93b 7fb00b61e8dc615aa41509f612199bf945d05fbc Alexey Zhokhov <alexey@zhokhov.com> 1792566078 +0700	merge 7fb00b61e8dc615aa41509f612199bf945d05fbc: Fast-forward
+7fb00b61e8dc615aa41509f612199bf945d05fbc 4d84ff9a2082075510708aedec1be76758001465 Alexey Zhokhov <alexey@zhokhov.com> 1792566118 +0700	commit: fix(menu): restore profile cursor modifiers
+4d84ff9a2082075510708aedec1be76758001465 02dde9678d3d2d3a6940659025a6551735bdb8d7 Alexey Zhokhov <alexey@zhokhov.com> 1792578152 +0700	commit: fix(menu): match frozen cursor state modifiers

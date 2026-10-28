@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 241d3fa0cbb5957d5846b3b9f9863f641f786bda Alexey Zhokhov <alexey@zhokhov.com> 1792733011 +0700	branch: Created from HEAD
+241d3fa0cbb5957d5846b3b9f9863f641f786bda 4dde217f4f34b1b1c20f0090bcf8e149f22224b0 Alexey Zhokhov <alexey@zhokhov.com> 1792734048 +0700	commit: feat(runtime): add event-local wheel hit-stack routing
+4dde217f4f34b1b1c20f0090bcf8e149f22224b0 ee582e2a7e1a0d6e23645c8be2750a5900ab21de Alexey Zhokhov <alexey@zhokhov.com> 1792734458 +0700	commit: test(runtime): prove disabled hit-stack sibling filtering
+ee582e2a7e1a0d6e23645c8be2750a5900ab21de 60d24bd0891c9fba8635c70124b33b0d665c65e5 Alexey Zhokhov <alexey@zhokhov.com> 1792734624 +0700	rebase (finish): refs/heads/recovery/generic-wheel-event-local-20261023 onto b3691cd99f8eb95d9685abc9df5ee3d806eb58fb

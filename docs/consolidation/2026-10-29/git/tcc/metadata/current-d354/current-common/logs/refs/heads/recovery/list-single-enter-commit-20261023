@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 0c7f09eb2c9d09a57cd1098be065e4f32b17afb0 Alexey Zhokhov <alexey@zhokhov.com> 1792741665 +0700	branch: Created from origin/parity/termrock-visual-baseline
+0c7f09eb2c9d09a57cd1098be065e4f32b17afb0 7c314085aa5478249ad9fa169a5ec2c0f0fa7df0 Alexey Zhokhov <alexey@zhokhov.com> 1792742962 +0700	commit: fix(navigation): commit single activation choice

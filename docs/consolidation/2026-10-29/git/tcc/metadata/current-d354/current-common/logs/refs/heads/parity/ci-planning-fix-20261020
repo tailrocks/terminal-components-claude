@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 b0504717c280a4bb141cc6043b35fce6664f8a6a Alexey Zhokhov <alexey@zhokhov.com> 1792493848 +0700	branch: Created from origin/parity/termrock-visual-baseline
+b0504717c280a4bb141cc6043b35fce6664f8a6a 445c7e9af00bdbc5f9a2de86172b3e91b31eab74 Alexey Zhokhov <alexey@zhokhov.com> 1792494112 +0700	commit: ci: exclude standalone frozen CLI helper from discovery
+445c7e9af00bdbc5f9a2de86172b3e91b31eab74 8beaf2865b922fbea0ae082f914367d1fed64609 Alexey Zhokhov <alexey@zhokhov.com> 1792495823 +0700	commit: ci: generate GitHub Claude instructions as symlink

@@ -1,0 +1,371 @@
+{
+  "reviewer": "/root/button_theme_contract_review",
+  "role": "independent read-only Rust/runtime, API, UI and test evidence reviewer",
+  "candidate": "2d66ea9be9b55b3f3a3b3c960b9acfeeff9c566e",
+  "before_series": "913a74b879039fcf115318edee303c02d395869f",
+  "fixed_references": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "design": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+    "tuiscotti": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+  },
+  "decision": "Changes include useful real shared Button adoption, but require changes; no full Button, Showcase or product acceptance.",
+  "findings": [
+    {
+      "priority": "P1",
+      "new_regression": true,
+      "path": "crates/showcase-demos/src/pages/buttons.rs:119; crates/termrock-controls/src/button.rs:445",
+      "problem": "Removing the private toggle-dot repaint exposes Mono shared CHECKED marker fallback: initially checked Verbose displays checkmark instead of frozen dot.",
+      "proof": "Byte-identical mono_showcase.rs passes before913a and fails candidate2d66 (actual ✓, expected ●). Real page click/Enter/Space probe also fails Mono custom DotOn=x while other three profiles pass.",
+      "repair": "Shared Button/theme marker resolution must use DotOn while preserving explicit marker Set/Clear/slot precedence. Do not restore application repaint or alter other widget families.",
+      "owner": "Parent assigned button_mono_marker_writer separately."
+    },
+    {
+      "priority": "P1",
+      "new_regression": false,
+      "path": "crates/termrock-theme/src/builtin/mod.rs; crates/termrock-theme/src/builtin/junie.rs; crates/termrock-theme/src/palettes.rs (shared Button body recipes)",
+      "problem": "All 16 frozen background ladder contexts across Primary/Secondary/Subtle/Danger and four color profiles fail.",
+      "proof": "Primary four failures reproduced before-series and candidate unchanged probes. Other twelve exact frozen-source-qualified public Button render probes fail candidate. Production palettes unchanged by series; no fresh pre-series run for those twelve.",
+      "repair": "Repair semantic component-context recipes/provenance using frozen ladder source; do not equate scalar AccentPressed ANSI16 Green with actual Button pressed LightGreen."
+    },
+    {
+      "priority": "P2",
+      "new_regression": false,
+      "path": "crates/termrock-controls/src/button.rs:343 and :367",
+      "problem": "Disabled reference with focus flags paints focus gutter; actual pointer-focused busy Button with Always policy loses gutter across all four profiles.",
+      "proof": "Both unchanged public probes fail before913a and candidate. Frozen disabled interactive recipe returns blank gutter; frozen Always focus recipe does not suppress busy focus.",
+      "repair": "Preserve actual FOCUSED for binding/custom styles while correcting default visible-focus recipe and explicit Always policy."
+    },
+    {
+      "priority": "P2",
+      "new_regression": true,
+      "path": "crates/termrock-theme/src/glyph.rs:49",
+      "problem": "New unused SwitchOff role has Unicode ○ even after ascii_glyphs. No production consumer of role found.",
+      "proof": "Public ASCII assertion fails. Existing 41-entry GlyphSet constructor and prior discriminants remain compatible.",
+      "repair": "Either defer unused public role or add actual consumer, ASCII fallback and capability coverage."
+    },
+    {
+      "priority": "P3",
+      "path": "docs/audits/2026-10-20-button-contract.md",
+      "problem": "Audit describes retained two-lane default and FOCUSED-only default gutter; actual default Replace is single lane and visible-focus default uses FOCUS_VISIBLE.",
+      "repair": "Correct or explicitly supersede historical claims without reverting agreed focus-visible behavior."
+    }
+  ],
+  "primary_ladders": {
+    "TrueColor": {
+      "actual": [
+        "Rgb(72,224,84)",
+        "Rgb(58,179,67)",
+        "Rgb(43,134,50)"
+      ],
+      "frozen": [
+        "Rgb(72,224,84)",
+        "Rgb(58,179,67)",
+        "Rgb(46,154,56)"
+      ]
+    },
+    "Ansi256": {
+      "actual": [
+        78,
+        77,
+        238
+      ],
+      "frozen": [
+        78,
+        71,
+        65
+      ]
+    },
+    "Ansi16": {
+      "actual": [
+        "LightGreen",
+        "Green",
+        "Green"
+      ],
+      "frozen": [
+        "LightGreen",
+        "Green",
+        "LightGreen"
+      ]
+    },
+    "Mono": {
+      "actual": [
+        "Gray",
+        "DarkGray",
+        "White"
+      ],
+      "frozen": [
+        "White",
+        "White",
+        "White"
+      ]
+    }
+  },
+  "other_ladders": [
+    {
+      "case": "subtle_256",
+      "actual_rest_hover_pressed": "[Indexed(16), Indexed(232), Indexed(231)]",
+      "frozen_expected_rest_hover_pressed": "[Indexed(16), Indexed(234), Indexed(236)]"
+    },
+    {
+      "case": "subtle_mono",
+      "actual_rest_hover_pressed": "[Black, Black, White]",
+      "frozen_expected_rest_hover_pressed": "[Black, Black, Black]"
+    },
+    {
+      "case": "secondary_256",
+      "actual_rest_hover_pressed": "[Indexed(235), Indexed(237), Indexed(231)]",
+      "frozen_expected_rest_hover_pressed": "[Indexed(235), Indexed(238), Indexed(240)]"
+    },
+    {
+      "case": "secondary_16",
+      "actual_rest_hover_pressed": "[DarkGray, DarkGray, White]",
+      "frozen_expected_rest_hover_pressed": "[DarkGray, DarkGray, DarkGray]"
+    },
+    {
+      "case": "danger_16",
+      "actual_rest_hover_pressed": "[DarkGray, DarkGray, LightRed]",
+      "frozen_expected_rest_hover_pressed": "[DarkGray, DarkGray, Red]"
+    },
+    {
+      "case": "secondary_mono",
+      "actual_rest_hover_pressed": "[Black, DarkGray, White]",
+      "frozen_expected_rest_hover_pressed": "[DarkGray, DarkGray, DarkGray]"
+    },
+    {
+      "case": "subtle_16",
+      "actual_rest_hover_pressed": "[Black, Black, White]",
+      "frozen_expected_rest_hover_pressed": "[Black, DarkGray, Black]"
+    },
+    {
+      "case": "danger_truecolor",
+      "actual_rest_hover_pressed": "[Rgb(39, 39, 42), Rgb(63, 63, 70), Rgb(228, 69, 69)]",
+      "frozen_expected_rest_hover_pressed": "[Rgb(39, 39, 42), Rgb(55, 55, 61), Rgb(158, 36, 36)]"
+    },
+    {
+      "case": "secondary_truecolor",
+      "actual_rest_hover_pressed": "[Rgb(39, 39, 42), Rgb(63, 63, 70), Rgb(255, 255, 255)]",
+      "frozen_expected_rest_hover_pressed": "[Rgb(39, 39, 42), Rgb(55, 55, 61), Rgb(74, 74, 82)]"
+    },
+    {
+      "case": "subtle_truecolor",
+      "actual_rest_hover_pressed": "[Rgb(0, 0, 0), Rgb(17, 17, 17), Rgb(255, 255, 255)]",
+      "frozen_expected_rest_hover_pressed": "[Rgb(0, 0, 0), Rgb(28, 28, 31), Rgb(48, 48, 54)]"
+    },
+    {
+      "case": "danger_256",
+      "actual_rest_hover_pressed": "[Indexed(235), Indexed(237), Indexed(167)]",
+      "frozen_expected_rest_hover_pressed": "[Indexed(235), Indexed(238), Indexed(88)]"
+    },
+    {
+      "case": "danger_mono",
+      "actual_rest_hover_pressed": "[Black, DarkGray, White]",
+      "frozen_expected_rest_hover_pressed": "[DarkGray, DarkGray, Gray]"
+    }
+  ],
+  "frozen_source": {
+    "extraction": "/private/tmp/theme-416-integrity.rs",
+    "ranges": [
+      "488-568 constants",
+      "783-795 truecolor ladders",
+      "967-980 ANSI256 ladders",
+      "984-986 black/grey ladders",
+      "1037-1051 ANSI16 ladders",
+      "1097-1111 Mono ladders",
+      "1413-1415 variant plane",
+      "1510-1518 press ladder choice"
+    ],
+    "button_marker": "Frozen src/widgets/button.rs:211-228 uses dot_on; Mono does not replace glyph set."
+  },
+  "positive_bounded_evidence": [
+    "Real Button is used by interactive page and inert matrix; private toggle dot, legacy gutter and pressed repaint removed.",
+    "Matrix probe verifies 24 visible Label specimens and no matrix hit/focus registrations in all four profiles.",
+    "16 unchanged public mechanics/provenance/inert/glyph/custom-Mono-scrollbar tests pass.",
+    "Controlled busy animation uses shared runtime cache/update scheduling; drawing reads cache.",
+    "Existing GlyphSet constructor41 and existing role discriminants preserved; new role appended.",
+    "No new captured-frame import, fixture/color/exact-viewport selector found in changed Button/page paths."
+  ],
+  "checks": {
+    "native_nextest": "327 passed, zero skipped at exact2d66; NOT current3be and NOT frozen product proof. Includes six unsupported inherited all73 expectation overrides subsequently removed by separate restoration.",
+    "clippy_controls_theme": "strict all-targets passed",
+    "clippy_showcase": "failed three unchanged-source lints: grid.rs608 manual_is_multiple_of; grid.rs704 too_many_arguments; settings.rs224 if_same_then_else. No before strict run; files byte-identical vs913a.",
+    "fmt": "scoped Controls/Theme/Showcase passed",
+    "diff_check": "series relevant paths passed"
+  },
+  "historical_cli_evidence": {
+    "root": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/buttons-reference-proof-88/live-paired",
+    "candidate": "60138e17c6a16814039fd3cd84074b5ab0f4b895",
+    "exact_current_candidate": false,
+    "reports": [
+      {
+        "path": "1792504701822170000-6db31d0ee0cb/report.json",
+        "sha256": "78b22a0dd243ea23a60a5aec3c8de4641eaa8fecc5cd8115b2ec2a641841da45",
+        "cell_differences": 2982
+      },
+      {
+        "path": "1792504855167429000-c3b271d5741d/report.json",
+        "sha256": "b669cd79068a2a4328d9c5f5036fffbf88e03d4145084814c3fea9da152629d7",
+        "cell_differences": 2978
+      },
+      {
+        "path": "1792504891689246000-9dfd450d18ee/report.json",
+        "sha256": "522d03bf79d6928468f49e05086434451b3ef04fe24b0d56861e6782cffdf06a",
+        "cell_differences": 2982
+      }
+    ],
+    "verification": "Parsed reports and independently compared complete frame cells/cursor JSON. Baseline capture/replay succeeded ordered checkpoint; candidate failed. Cursor invisible Bar baseline vs Block historical candidate. Relevant Button/page/theme blobs differ from2d66. Historical RED only; cannot transfer as exact2d66 gate."
+  },
+  "remaining_gaps": [
+    "No fresh paired real CLI run at exact2d66 or complete twice-run inventory.",
+    "Baseline Buttons toolbar/button-row/icon/options/screens/flows not restored; current page playground/matrix incomplete.",
+    "Ordinary application composition still uses raw geometry/painting.",
+    "Known narrow Unicode ellipsis gap not cleared.",
+    "Full combination state coverage beyond bounded public tests incomplete.",
+    "Unsupported universal palette oracle was separately audited; native green here is not semantic approval."
+  ],
+  "custody": {
+    "candidate_copy": "/private/tmp/termrock-button-9cf76-review",
+    "known_preexisting_deletions": "1301 tracked files under crates/termrock-conformance/target; not staged, restored, attributed or altered by reviewer.",
+    "product_edits": false,
+    "helpers_spawned": false,
+    "writer_copies_touched": false
+  },
+  "evidence_logs": [
+    {
+      "path": "/private/tmp/button-2d66-public.log",
+      "sha256": "387541de4e09537fa1b19aa785ab9cef6f12e9398c5c7abff29c8d1b75e32aa9",
+      "run_ids": [
+        "34f8aac4-c4a8-421d-aa83-18a0c5728460"
+      ],
+      "summaries": [
+        "     Summary [   0.161s] 20 tests run: 16 passed, 4 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-2d66-variant-ladders.log",
+      "sha256": "7039532d0ec74d216f01ca164444fd0375fc679f148ffca4ba1c9506d4bab78e",
+      "run_ids": [
+        "9a411a50-a220-4664-8fa0-8089edaff0d6"
+      ],
+      "summaries": [
+        "     Summary [   0.026s] 12 tests run: 0 passed, 12 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-2d66-combinations-final.log",
+      "sha256": "dd8cd7e93f47a9d5133be8b0bea92854bf90e0f629f162c52169efd74b572a88",
+      "run_ids": [
+        "297345d1-093d-45b5-bb8a-b5dc630197d5"
+      ],
+      "summaries": [
+        "     Summary [   0.015s] 3 tests run: 0 passed, 3 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-2d66-before.log",
+      "sha256": "4a0e105e355bbfb842023d43d21ac0ba3245fbef4c798f4bc15f105017a865d0",
+      "run_ids": [
+        "70a1edb2-12f2-47d9-b3af-ec199b1de287"
+      ],
+      "summaries": [
+        "     Summary [   0.009s] 6 tests run: 0 passed, 6 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-2d66-showcase-live-profile.log",
+      "sha256": "5108df719a717bd529cf1349f7b39ae4a88d00e3e3e50e2dc413bc8fbbe8a296",
+      "run_ids": [
+        "d8e1271b-96dc-447b-83be-8899cc8078cd"
+      ],
+      "summaries": [
+        "     Summary [   0.136s] 1 test run: 0 passed, 1 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-2d66-before-mono.log",
+      "sha256": "14f387927ce4bcf57ba5fa6dd90656f87774c133a9508544f49bcbacff4c5fd5",
+      "run_ids": [
+        "63d731be-e899-48a8-8c24-7d04d310a56e"
+      ],
+      "summaries": [
+        "     Summary [   0.020s] 1 test run: 1 passed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-2d66-mono-and-matrix.log",
+      "sha256": "41424e576bb1d1da5ef0bc44bcd0d90b073f8b907fa043f842a43a04c8ad321d",
+      "run_ids": [
+        "8c601c52-7511-47e5-99da-10f5b03b78fd"
+      ],
+      "summaries": [
+        "     Summary [   0.063s] 2 tests run: 1 passed, 1 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-2d66-native.log",
+      "sha256": "a9369580d82e3c22186710cef6a798499464196aa64139414a63be1ba55d1720",
+      "run_ids": [
+        "17eceed1-8784-4097-adee-442a32e4bbd3"
+      ],
+      "summaries": [
+        "     Summary [   2.939s] 327 tests run: 327 passed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-2d66-strict-controls-theme.log",
+      "sha256": "46eb6706ce381ba0b0ae9ceea7073e63d3faab6e54c1c0e2e7d793dc170f0e53",
+      "run_ids": [],
+      "summaries": []
+    },
+    {
+      "path": "/private/tmp/button-2d66-strict-showcase.log",
+      "sha256": "150fc25f78b456c9083601afdd5d670d65e3661a8d793456e80656dffa14f280",
+      "run_ids": [],
+      "summaries": []
+    },
+    {
+      "path": "/private/tmp/button-2d66-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run_ids": [],
+      "summaries": []
+    }
+  ],
+  "public_probe_sources": [
+    {
+      "path": "/private/tmp/button-2d66-independent-probes/tests/contract.rs",
+      "sha256": "4c55067b315b66a08cdf668cbf13f999aa638a1451d0b0312fb8195b51aabdd3"
+    },
+    {
+      "path": "/private/tmp/button-2d66-independent-probes/tests/frozen_other_variants.rs",
+      "sha256": "07c27634907b8a57dd8a7f649880fbbd9f662e350ef0c1dab90f185b1738cc11"
+    },
+    {
+      "path": "/private/tmp/button-2d66-independent-probes/tests/frozen_primary.rs",
+      "sha256": "a3cae84882ecc98d8d54aa13360d4d2702c948ff16960757fd53ac3763e5df64"
+    },
+    {
+      "path": "/private/tmp/button-2d66-independent-probes/tests/glyph.rs",
+      "sha256": "8ab9da26247dde1ef21accb8b3501ea9f45c14d97fb10a4dc0fa55378196aa33"
+    },
+    {
+      "path": "/private/tmp/button-2d66-independent-probes/tests/matrix_inert.rs",
+      "sha256": "eba612d2885505fb026477b0f323a8f859d4e9c7e7970b1d37223a685ea289c6"
+    },
+    {
+      "path": "/private/tmp/button-2d66-independent-probes/tests/mono_showcase.rs",
+      "sha256": "81e6da0f1b6fb187e72e904c494c3e60686c0ed8cb8d17245cea4c561ad601eb"
+    },
+    {
+      "path": "/private/tmp/button-2d66-independent-probes/tests/scrollbar.rs",
+      "sha256": "22a1aaf9e0775f46cff97258caf333be4e61b50d197322bb65eeea0e1a14a925"
+    },
+    {
+      "path": "/private/tmp/button-2d66-independent-probes/tests/showcase_live.rs",
+      "sha256": "9e65284192994b02c4b0a8013797b15240d62a676adbc4a84bbe42cd8095d494"
+    },
+    {
+      "path": "/private/tmp/button-2d66-independent-probes/tests/state_combinations.rs",
+      "sha256": "2f0a79876e3a57cd66b07ca0fbfb1c06834cc4b3d75cc0a504cf9b5fc8e1734a"
+    }
+  ]
+}

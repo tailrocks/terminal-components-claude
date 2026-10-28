@@ -1,0 +1,93 @@
+{
+  "ci_integration": {
+    "constraints": [
+      "The CI ledger/reporting architecture has independent test-plan ACCEPT at R4; implementation and runtime proof remain pending.",
+      "The native required BuildTask, Mise task, discovery exclusion, and generated workflow are not yet configured or verified.",
+      "The paired adapter must export once, prepare pinned patched engines, build both application sides, and run matching Nextest selections; this is a plan, not a completed CI result.",
+      "The suite Cargo.lock still records the pre-refresh engine graph for tui-test 0.2.1; locked metadata verification must pass before execution.",
+      "No export, engine preparation, paired build, Nextest listing/run, hosted workflow, or Common-suite acceptance is currently claimed."
+    ],
+    "export_command_template": "python3 tools/functional-suite/scripts/export-source.py <absolute-suite-export> --forbid-root <app-worktree-1> --forbid-root <app-worktree-2>",
+    "export_destination": "caller-supplied new absolute path outside both app worktrees",
+    "export_helper": "tools/functional-suite/scripts/export-source.py",
+    "generator": "Velnor Actions 0.1.67",
+    "integration_target": "functional",
+    "lockfile_sha256": "88822e5c44bf9660fb3586a8a8c52eed861fb46386b8cb99f40bdde88a9d9d76",
+    "required_setup": "python3 <exported-suite>/scripts/prepare-engines.py",
+    "runtime_directories": [
+      "TERMROCK_PARITY_BIN_DIR",
+      "TERMROCK_PARITY_OUT_DIR"
+    ],
+    "status": "pending",
+    "suite_manifest_path": "tools/functional-suite/Cargo.toml",
+    "adapter_plan": "PR38-CI-RUN-LEDGER-TP1-R4",
+    "adapter_plan_sha256": "578da771c7080481a51c1ef5ab84d653bdbb093a2cedfdc8e4bf1d2056cb095d"
+  },
+  "schema_version": 2,
+  "tuiscotti": {
+    "checkout": "complete_non_sparse_tracked_tree",
+    "commit": "d8d54155947f6303a41dfd6079b53c0abc16f29a",
+    "pixel_gap_patch_file": "engine-patches/tuiscotti-ac5f70d-to-pixel-gap.patch",
+    "pixel_gap_patch_sha256": "ed4c9ac1d03b6aac8347e7018311aebad100d37a1a8fea400378ee434038955d",
+    "pixel_gap_review_artifact": "/private/tmp/pr38-tuiscotti-pixel-gap-review-20261028-ac5f70d",
+    "pixel_gap_review_status": "required 40-character pin corrected from truncated value; exact preimage verification and retained patch application at this base are pending",
+    "preimage_sha256": {
+      "crates/tuiscotti/docs/check.md": "942547de7dde6cf55381b98b5add5cd2d2c814a48a25e9ab9b08d55211acde6f",
+      "crates/tuiscotti/docs/report.md": "2ec26a547a229d22253f46d3bc302931855203db41dcc852245d023a72e75a15",
+      "crates/tuiscotti/src/check.rs": "46ec68cc48f41f7a8c77f1c1dfb06b88d21e0d07c55792e7a3824d2a742ccd3e",
+      "crates/tuiscotti/src/report.rs": "8951da08666d25b5fff24ee1521a4b0a9b041872b35d1ec3492a72af03ee5fc0"
+    },
+    "repository": "https://github.com/tailrocks/tuiscotti.git",
+    "source_sha256": {
+      "crates/tuiscotti/docs/check.md": "5a815750b8e6afe35ac81d4444a5e8c57f4c06d9853a196b8150612f35b8aff7",
+      "crates/tuiscotti/docs/report.md": "6925ecd1a32d9396107a6f4047b9bd9f2a5a1561ce0bb05daf749a1560d16845",
+      "crates/tuiscotti/src/check.rs": "0967287b8344e1157b9d7154d4d93375e02f3cc378a6ca371ca16e5b85d07475",
+      "crates/tuiscotti/src/report.rs": "4b5e256a601a75ded80d684795e200d93148ddaea7d736dc5d6294955a80d6bb"
+    },
+    "package_version": "0.4.0",
+    "package_manifest_sha256": "dfc1de82a84ef528ac0f5f1e83f0401556633fa6b7ab4c6aeb617b296b4f8f45",
+    "workspace_manifest_sha256": "e999ca1e347e598dc79e13f8f86ef84d73c020638334a79819b0b5b528e7b86a"
+  },
+  "tuiscotti_tui_test": {
+    "base_commit": "7abeac8478aa9c05ec7bef93afb10209cc348bec",
+    "checkout": "complete_non_sparse_tracked_tree",
+    "draft_manifest_sha256": "c892539e25095f65b4e3509c3272d5f00ae1ae036f8d1e2d83e4b55142441d15",
+    "draft_packet": "tui-test-capture-v7",
+    "patch_file": "engine-patches/tui-test-rs-base-to-v7.patch",
+    "patch_sha256": "1c827f5074a28a8d129fa93308c1a39e57a163bfb405d2d440d6b1494a9a399d",
+    "preimage_git_blob_sha1": {
+      "crates/tui-test/src/engine.rs": "c6dc2bc515805ec62e3c3c3b770746955eb79a46",
+      "crates/tui-test/src/launch.rs": "536a5e9e17c209029901a0980ed84a6dedbc3396",
+      "crates/tui-test/src/lib.rs": "b8050bf01a78cab314d6eacf81f605456a5ec0f9",
+      "crates/tui-test/src/record.rs": "a91d18a81718814b73c5fdac310be4f408de579c",
+      "crates/tui-test/src/record/worker.rs": "40221d882705aa96290acbd6cc47707f7f0cfba5",
+      "crates/tui-test/src/runtime.rs": "5334423aac882def008e16dbc98c91d5ce40dd5a",
+      "crates/tui-test/src/session.rs": "e36c6355080ff380807e0017d01fb181a35a54d2",
+      "crates/tui-test/src/snapshot.rs": "5437c6f9e43fb54921eba7a597d62ea04dfdc614",
+      "crates/tui-test/src/terminal/alacritty.rs": "26906140f5d7a4111abf1399906fd52e8164543c",
+      "crates/tui-test/src/terminal/emu.rs": "d6141ed3aafe5126edabecc73b23e39880deb1e8",
+      "crates/tui-test/src/terminal/pty.rs": "b96f08bf3dbb59cff539170b89c45f1ef80f9772"
+    },
+    "repository": "https://github.com/tailrocks/tui-test.git",
+    "review_packet": "tui-test-capture-fork-v7",
+    "source_sha256": {
+      "crates/tui-test/src/engine.rs": "6069be1efd3cf2348963d5340cdcc55d82020845e1d98d395f339f0283a1e5a9",
+      "crates/tui-test/src/launch.rs": "853b6696e695c5ee7dd83fffe62f97b01f6a9dd5a25aba4440881b6714876338",
+      "crates/tui-test/src/lib.rs": "c76c5cc80f8cd2a7fd30344de2bb972a409563c202f3151c424cc33855958605",
+      "crates/tui-test/src/record.rs": "d1b331e67cf2c4f94475ad2d027329fe1cc85bafd05ec6d3fabe15d0952cc20d",
+      "crates/tui-test/src/record/worker.rs": "3924617ecafc30181508d640c87326e2c78e3bac6d7131496daab56be751ac19",
+      "crates/tui-test/src/runtime.rs": "4b7fc69126af112bd36047fdc0cca475f88ef98df9440a91e37e70a247753bae",
+      "crates/tui-test/src/session.rs": "f987d9b5d36f6a4c9729b0c912c604f6fdde9ff0716eb166a81b091ce8456344",
+      "crates/tui-test/src/snapshot.rs": "733cb8ea64c2648958738fa64e58884e5585520e7b185fa54dcf8d86af93ea76",
+      "crates/tui-test/src/terminal/alacritty.rs": "3fd191f86333c86094fb1b5377506cc0db11cd4fd78ede6b1b86bac7d0c5cebe",
+      "crates/tui-test/src/terminal/emu.rs": "5e419a3df9448600dc1a741c5081155cb6a284636af0a78fddc715c9a430b8e9",
+      "crates/tui-test/src/terminal/pty.rs": "22be21b2219882d35cc0b82264be1accd7dcff9edd745f3116d56fb61f194309"
+    },
+    "package_name": "tuiscotti-tui-test",
+    "package_version": "0.2.1",
+    "library_name": "tui_test",
+    "registry_archive_sha256": "abf5d46cc52d4337da1e141a5abd0175c461be323b6f0b4068644089d565f8b9",
+    "package_manifest_sha256": "3b8f4766bd4d0933cdb1b157332783f003749f6a7d694643876ccbc78deff031",
+    "workspace_manifest_sha256": "13fd343284f7cf73745c1c109aec5c25e2a6a5b5fe8ff3eeec4756ce36d7278a"
+  }
+}

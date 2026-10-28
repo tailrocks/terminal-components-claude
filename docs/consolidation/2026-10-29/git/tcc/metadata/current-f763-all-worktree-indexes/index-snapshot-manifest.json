@@ -1,0 +1,741 @@
+{
+  "candidate_head": "f763df0de068ef19077da841709ccc386baa98c3",
+  "capture_kind": "exact raw bytes of currently available common-repository index files and index.lock files",
+  "common_git_dir": "/Users/donbeave/Projects/terminal-components-claude/.git",
+  "inputs": [
+    {
+      "admin_gitdir_pointer": null,
+      "admin_worktree_id": "main-worktree",
+      "archive_path": "main/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508059115747,
+        "sha256": "57536517800d59d057d5d25380ef9313b8a74e4694bc8b843878f0056b446ac8",
+        "size_bytes": 1737114,
+        "uid": 501
+      },
+      "common_git_relative_path": "index",
+      "kind": "main",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792921791056185208,
+        "sha256": "57536517800d59d057d5d25380ef9313b8a74e4694bc8b843878f0056b446ac8",
+        "size_bytes": 1737114,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-ab7ed10be68472967/.git",
+      "admin_worktree_id": "agent-ab7ed10be68472967",
+      "archive_path": "worktrees/agent-ab7ed10be68472967/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508060929215,
+        "sha256": "3ff520141e1db8ead5250740ae65aa6440666546cc466aeb9f4dbe6f6adf6576",
+        "size_bytes": 1806661,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/agent-ab7ed10be68472967/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792349555109907370,
+        "sha256": "3ff520141e1db8ead5250740ae65aa6440666546cc466aeb9f4dbe6f6adf6576",
+        "size_bytes": 1806661,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-ab7ed10be68472967",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-afe6ef9c21f4d29d6/.git",
+      "admin_worktree_id": "agent-afe6ef9c21f4d29d6",
+      "archive_path": "worktrees/agent-afe6ef9c21f4d29d6/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508062688058,
+        "sha256": "ffa5d176274a66924bfadd387a90b74218b8afc7b875b7cdd6d0f316e6d7cfff",
+        "size_bytes": 1806485,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/agent-afe6ef9c21f4d29d6/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792350221560275519,
+        "sha256": "ffa5d176274a66924bfadd387a90b74218b8afc7b875b7cdd6d0f316e6d7cfff",
+        "size_bytes": 1806485,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-afe6ef9c21f4d29d6",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/base-design/.git",
+      "admin_worktree_id": "base-design",
+      "archive_path": "worktrees/base-design/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508064473525,
+        "sha256": "87c4f643c207acb6ae751407d816b63b71ca50d2fb5b2940cf1406572bbc267a",
+        "size_bytes": 1737114,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/base-design/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792911555911719128,
+        "sha256": "87c4f643c207acb6ae751407d816b63b71ca50d2fb5b2940cf1406572bbc267a",
+        "size_bytes": 1737114,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/base-design",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/base-parity/.git",
+      "admin_worktree_id": "base-parity",
+      "archive_path": "worktrees/base-parity/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508067395832,
+        "sha256": "26b2df86bb4430da861696b6e1e9dcd67409cac13bcf04a72bb2ea8b629f00f2",
+        "size_bytes": 12865208,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/base-parity/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792911850703124991,
+        "sha256": "26b2df86bb4430da861696b6e1e9dcd67409cac13bcf04a72bb2ea8b629f00f2",
+        "size_bytes": 12865208,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/base-parity",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/base-parity2/.git",
+      "admin_worktree_id": "base-parity2",
+      "archive_path": "worktrees/base-parity2/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508078129263,
+        "sha256": "4c300ec34f11901f3553aa7f9df43d126c99422ca280be8a1a3b934f714c296a",
+        "size_bytes": 12865432,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/base-parity2/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793052996815652772,
+        "sha256": "4c300ec34f11901f3553aa7f9df43d126c99422ca280be8a1a3b934f714c296a",
+        "size_bytes": 12865432,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/base-parity2",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/digest-base-20261021/.git",
+      "admin_worktree_id": "digest-base-20261021",
+      "archive_path": "worktrees/digest-base-20261021/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508088597859,
+        "sha256": "545052ce1c2d3a075947eacd61ed1eb6be7564de828280e8d19475dc99cfe3ef",
+        "size_bytes": 11371119,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/digest-base-20261021/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792617366398478648,
+        "sha256": "545052ce1c2d3a075947eacd61ed1eb6be7564de828280e8d19475dc99cfe3ef",
+        "size_bytes": 11371119,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/digest-base-20261021",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/empty-diagnostic-20261022-approved-tests/.git",
+      "admin_worktree_id": "empty-diagnostic-20261022-approved-tests",
+      "archive_path": "worktrees/empty-diagnostic-20261022-approved-tests/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508098458036,
+        "sha256": "4b7108f5b303179e643c2ddbcd53b8c7222cc04d4e3e25ebc40b708c4c2f0041",
+        "size_bytes": 12856193,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/empty-diagnostic-20261022-approved-tests/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792763474203707052,
+        "sha256": "4b7108f5b303179e643c2ddbcd53b8c7222cc04d4e3e25ebc40b708c4c2f0041",
+        "size_bytes": 12856193,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/empty-diagnostic-20261022-approved-tests",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/empty-diagnostic-20261022-current/.git",
+      "admin_worktree_id": "empty-diagnostic-20261022-current",
+      "archive_path": "worktrees/empty-diagnostic-20261022-current/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508108922590,
+        "sha256": "cdb02eea484e09da68a3df8e52fe3fd865947004d40a0e2e2960ac0d7a2dec67",
+        "size_bytes": 13161370,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/empty-diagnostic-20261022-current/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792666574550664160,
+        "sha256": "cdb02eea484e09da68a3df8e52fe3fd865947004d40a0e2e2960ac0d7a2dec67",
+        "size_bytes": 13161370,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/empty-diagnostic-20261022-current",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/empty-diagnostic-20261022-f08/.git",
+      "admin_worktree_id": "empty-diagnostic-20261022-f08",
+      "archive_path": "worktrees/empty-diagnostic-20261022-f08/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508119634312,
+        "sha256": "8bd5ae4f09397aaee1d5aea20aa3a64d0fce8608802f660215851af5b2c82bc7",
+        "size_bytes": 12962263,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/empty-diagnostic-20261022-f08/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792667421030660097,
+        "sha256": "8bd5ae4f09397aaee1d5aea20aa3a64d0fce8608802f660215851af5b2c82bc7",
+        "size_bytes": 12962263,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/empty-diagnostic-20261022-f08",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/empty-diagnostic-20261022-historical/.git",
+      "admin_worktree_id": "empty-diagnostic-20261022-historical",
+      "archive_path": "worktrees/empty-diagnostic-20261022-historical/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508130841787,
+        "sha256": "e4822f80ec76b5a7ef46ba2fdd6bcb643e9acbf0862ed0dcf1b11f396ce0a43b",
+        "size_bytes": 13034596,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/empty-diagnostic-20261022-historical/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792666575728732719,
+        "sha256": "e4822f80ec76b5a7ef46ba2fdd6bcb643e9acbf0862ed0dcf1b11f396ce0a43b",
+        "size_bytes": 13034596,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/empty-diagnostic-20261022-historical",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/integ-design/.git",
+      "admin_worktree_id": "integ-design",
+      "archive_path": "worktrees/integ-design/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508140591088,
+        "sha256": "a2fdd9cc31fa4fdc8d0025878cf25c8fb0b9cd98919f56e7a9a39722fb0c87de",
+        "size_bytes": 1737114,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/integ-design/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793052982928925167,
+        "sha256": "a2fdd9cc31fa4fdc8d0025878cf25c8fb0b9cd98919f56e7a9a39722fb0c87de",
+        "size_bytes": 1737114,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/integ-design",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/integ-parity/.git",
+      "admin_worktree_id": "integ-parity",
+      "archive_path": "worktrees/integ-parity/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508143824980,
+        "sha256": "108c6232d9977253ffca5ef0eae51b9421796acf191acfd9bed5e7324d0cf0d9",
+        "size_bytes": 12865841,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/integ-parity/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793053003049705231,
+        "sha256": "108c6232d9977253ffca5ef0eae51b9421796acf191acfd9bed5e7324d0cf0d9",
+        "size_bytes": 12865841,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/integ-parity",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/pr38-docs-integration-3568d40-20261028/.git",
+      "admin_worktree_id": "pr38-docs-integration-3568d40-20261028",
+      "archive_path": "worktrees/pr38-docs-integration-3568d40-20261028/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508153117987,
+        "sha256": "b4886a15860ae45af75541be946594087c328101861a593a285140088e4969e0",
+        "size_bytes": 460262,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/pr38-docs-integration-3568d40-20261028/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793154631825055634,
+        "sha256": "b4886a15860ae45af75541be946594087c328101861a593a285140088e4969e0",
+        "size_bytes": 460262,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/pr38-docs-integration-3568d40-20261028",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/pr38-holla-successor12-publish-20261028-d0e44166/.git",
+      "admin_worktree_id": "pr38-holla-successor12-publish-20261028-d0e44166",
+      "archive_path": "worktrees/pr38-holla-successor12-publish-20261028-d0e44166/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508153739823,
+        "sha256": "0091abbdad31bf89217eae02f1ee2b2034194bf9fb870beb045eaffe25442a1a",
+        "size_bytes": 462864,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/pr38-holla-successor12-publish-20261028-d0e44166/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793195547835353220,
+        "sha256": "0091abbdad31bf89217eae02f1ee2b2034194bf9fb870beb045eaffe25442a1a",
+        "size_bytes": 462864,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/pr38-holla-successor12-publish-20261028-d0e44166",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/tabs-item-closability-20261023/.git",
+      "admin_worktree_id": "tabs-item-closability-20261023",
+      "archive_path": "worktrees/tabs-item-closability-20261023/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508155842543,
+        "sha256": "0807199e1da456611a9a4791c8285bcff26a89a799ce945a1e397dd51357d339",
+        "size_bytes": 12868851,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/tabs-item-closability-20261023/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793020111182836590,
+        "sha256": "0807199e1da456611a9a4791c8285bcff26a89a799ce945a1e397dd51357d339",
+        "size_bytes": 12868851,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/tabs-item-closability-20261023",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/terminal-components-recovery-verify-20261022/.git",
+      "admin_worktree_id": "terminal-components-recovery-verify-20261022",
+      "archive_path": "worktrees/terminal-components-recovery-verify-20261022/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508166849058,
+        "sha256": "6bee0027bef35912c6da6abdf5249fced4baae43dbbe86fefea4ca7b2668f069",
+        "size_bytes": 12854873,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/terminal-components-recovery-verify-20261022/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792769859047614509,
+        "sha256": "6bee0027bef35912c6da6abdf5249fced4baae43dbbe86fefea4ca7b2668f069",
+        "size_bytes": 12854873,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-recovery-verify-20261022",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/termrock-approved-integration-20261026/.git",
+      "admin_worktree_id": "termrock-approved-integration-20261026",
+      "archive_path": "worktrees/termrock-approved-integration-20261026/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508177587364,
+        "sha256": "982c2adfe2ee453bcfd4f824f0c13df00e826e3a0670200fa94e23d9e4e52ebf",
+        "size_bytes": 12870212,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-approved-integration-20261026/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793067480580275632,
+        "sha256": "982c2adfe2ee453bcfd4f824f0c13df00e826e3a0670200fa94e23d9e4e52ebf",
+        "size_bytes": 12870212,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/termrock-approved-integration-20261026",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/termrock-conformance-cleanup-20261022/.git",
+      "admin_worktree_id": "termrock-conformance-cleanup-20261022",
+      "archive_path": "worktrees/termrock-conformance-cleanup-20261022/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508187937293,
+        "sha256": "a7f8d17d0c2854cd3d66310f7c09547e92bd842c859af1dd7d9a6eee5e09b977",
+        "size_bytes": 13161982,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-conformance-cleanup-20261022/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792668643867914640,
+        "sha256": "a7f8d17d0c2854cd3d66310f7c09547e92bd842c859af1dd7d9a6eee5e09b977",
+        "size_bytes": 13161982,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/termrock-conformance-cleanup-20261022",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/termrock-hidden-cursor-defect-20261020/.git",
+      "admin_worktree_id": "termrock-hidden-cursor-defect-20261020",
+      "archive_path": "worktrees/termrock-hidden-cursor-defect-20261020/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508197438426,
+        "sha256": "cff29594dd6873f153ebe72971a7c6686a82d425ffb07c39fe1b1b9e04d54705",
+        "size_bytes": 1735075,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-hidden-cursor-defect-20261020/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792496790657524325,
+        "sha256": "cff29594dd6873f153ebe72971a7c6686a82d425ffb07c39fe1b1b9e04d54705",
+        "size_bytes": 1735075,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/termrock-hidden-cursor-defect-20261020",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/termrock-integration/.git",
+      "admin_worktree_id": "termrock-integration",
+      "archive_path": "worktrees/termrock-integration/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508200238774,
+        "sha256": "530b6b4de8e1a255f1d7cc305613800208fd8e377c65f284de6b089160f6bab9",
+        "size_bytes": 11371119,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-integration/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792588901218286871,
+        "sha256": "530b6b4de8e1a255f1d7cc305613800208fd8e377c65f284de6b089160f6bab9",
+        "size_bytes": 11371119,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/termrock-integration",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/termrock-lib-20261022/.git",
+      "admin_worktree_id": "termrock-lib-20261022",
+      "archive_path": "worktrees/termrock-lib-20261022/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508210023825,
+        "sha256": "4139b267147334e7ce397083696dbb48bb8431af476cbe5f1a22d5c21752cb4f",
+        "size_bytes": 13160850,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-lib-20261022/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792652732654887245,
+        "sha256": "4139b267147334e7ce397083696dbb48bb8431af476cbe5f1a22d5c21752cb4f",
+        "size_bytes": 13160850,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/termrock-lib-20261022",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/termrock-pr38-native-paired-build-20261028-c47412cc/.git",
+      "admin_worktree_id": "termrock-pr38-native-paired-build-20261028-c47412cc",
+      "archive_path": "worktrees/termrock-pr38-native-paired-build-20261028-c47412cc/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508219398957,
+        "sha256": "f013ab2612e8fd40f78d6ccee632765608d93c2248d8a15b2f4f982b289a8159",
+        "size_bytes": 460262,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-pr38-native-paired-build-20261028-c47412cc/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793144860692973509,
+        "sha256": "f013ab2612e8fd40f78d6ccee632765608d93c2248d8a15b2f4f982b289a8159",
+        "size_bytes": 460262,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/termrock-pr38-native-paired-build-20261028-c47412cc",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/termrock-pr38-shared-20261028/.git",
+      "admin_worktree_id": "termrock-pr38-shared-20261028",
+      "archive_path": "worktrees/termrock-pr38-shared-20261028/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508220061544,
+        "sha256": "1d908569f597cb496b2fa8e2cc8b3da011b8060ea3446f0dd7e7574a1f5a429f",
+        "size_bytes": 563644,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-pr38-shared-20261028/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222304142570392,
+        "sha256": "1d908569f597cb496b2fa8e2cc8b3da011b8060ea3446f0dd7e7574a1f5a429f",
+        "size_bytes": 563644,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/termrock-pr38-status-hints-production-20261028-d0e44166/.git",
+      "admin_worktree_id": "termrock-pr38-status-hints-production-20261028-d0e44166",
+      "archive_path": "worktrees/termrock-pr38-status-hints-production-20261028-d0e44166/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508220707922,
+        "sha256": "d4512d0a6e5bca4237c949bea3b3f1683c459c5eba2f8a08c25901e4d1c288f4",
+        "size_bytes": 460262,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-pr38-status-hints-production-20261028-d0e44166/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793155322397512503,
+        "sha256": "d4512d0a6e5bca4237c949bea3b3f1683c459c5eba2f8a08c25901e4d1c288f4",
+        "size_bytes": 460262,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/termrock-pr38-status-hints-production-20261028-d0e44166",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/termrock-pr38-velnor-0168-candidate-preview-20261029/.git",
+      "admin_worktree_id": "termrock-pr38-velnor-0168-candidate-preview-20261029",
+      "archive_path": "worktrees/termrock-pr38-velnor-0168-candidate-preview-20261029/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508221271925,
+        "sha256": "8c6ab8ade0321043083891644c2a9b253bcccaa6149beb5e7617998fca446023",
+        "size_bytes": 462864,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-pr38-velnor-0168-candidate-preview-20261029/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793212040265224801,
+        "sha256": "8c6ab8ade0321043083891644c2a9b253bcccaa6149beb5e7617998fca446023",
+        "size_bytes": 462864,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/termrock-pr38-velnor-0168-candidate-preview-20261029",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/termrock-push-audit.xeKwtF/.git",
+      "admin_worktree_id": "termrock-push-audit.xeKwtF",
+      "archive_path": "worktrees/termrock-push-audit.xeKwtF/index-lock.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508221858261,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-push-audit.xeKwtF/index.lock",
+      "kind": "index-lock",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792620880774231881,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/termrock-push-audit.xeKwtF",
+      "worktree_path_exists": false
+    },
+    {
+      "admin_gitdir_pointer": "/Users/donbeave/Projects/termrock-recovery-verify-20261027/.git",
+      "admin_worktree_id": "termrock-recovery-verify-20261027",
+      "archive_path": "worktrees/termrock-recovery-verify-20261027/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508222084721,
+        "sha256": "4e92bc50541e4d893938dac43bd19f20b122eaa1b9cd790749bf5666ac496aa5",
+        "size_bytes": 460262,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-recovery-verify-20261027/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793138496659991764,
+        "sha256": "4e92bc50541e4d893938dac43bd19f20b122eaa1b9cd790749bf5666ac496aa5",
+        "size_bytes": 460262,
+        "uid": 501
+      },
+      "worktree_path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027",
+      "worktree_path_exists": true
+    },
+    {
+      "admin_gitdir_pointer": "/private/tmp/termrock-settings-old-control-20261022/.git",
+      "admin_worktree_id": "termrock-settings-old-control-20261022",
+      "archive_path": "worktrees/termrock-settings-old-control-20261022/index.raw",
+      "archived": {
+        "gid": 0,
+        "mode_octal": "0o644",
+        "mtime_ns": 1793222508224557609,
+        "sha256": "cf246a119a171d51fa876adc80cddc91e50ea169399e573c9bda76ae707d7bcb",
+        "size_bytes": 12846705,
+        "uid": 501
+      },
+      "common_git_relative_path": "worktrees/termrock-settings-old-control-20261022/index",
+      "kind": "index",
+      "source": {
+        "gid": 20,
+        "mode_octal": "0o644",
+        "mtime_ns": 1792675722763287307,
+        "sha256": "cf246a119a171d51fa876adc80cddc91e50ea169399e573c9bda76ae707d7bcb",
+        "size_bytes": 12846705,
+        "uid": 501
+      },
+      "worktree_path": "/private/tmp/termrock-settings-old-control-20261022",
+      "worktree_path_exists": true
+    }
+  ],
+  "invariants": [
+    "No Git command that writes/refreshes indexes was run.",
+    "Each source file hash/size/stat metadata matched immediately before and after copy.",
+    "This is a current post-f763 snapshot; it does not supply missing f629/c337 raw index preimages.",
+    "Index-lock files, if any, are preserved as separate transient state and are not treated as active index contents."
+  ],
+  "schema_version": 1,
+  "snapshot_epoch": "post-f763df0de068ef19077da841709ccc386baa98c3",
+  "worktree_list_sha256": "cda48c19078fa9de20208b18cfbb06d02ef15d0ec33d66e2e3880e1327884c7c"
+}

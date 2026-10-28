@@ -4,16 +4,13 @@ pub(crate) use termrock_core as event;
 pub(crate) use termrock_core as id;
 pub(crate) use termrock_core as intent;
 pub(crate) use termrock_core as response;
-#[cfg(test)]
-pub(crate) use termrock_core::diagnostics;
+
 pub(crate) use termrock_layout as layout;
 pub(crate) use termrock_layout as measure;
 pub(crate) use termrock_runtime as ui;
-#[cfg(test)]
-pub(crate) use termrock_runtime as runtime;
+
 pub(crate) use termrock_runtime as focus;
-#[cfg(test)]
-pub(crate) use termrock_runtime as hit;
+
 pub(crate) use termrock_runtime as keymap;
 pub(crate) use termrock_runtime as layer;
 pub(crate) use termrock_text as text;
@@ -29,24 +26,31 @@ pub(crate) use termrock_runtime::{
     Acc, PartStyle, SlotFn, cell_at, first_row, overlay_chrome, paint_pressed_bracket, shift,
 };
 
+pub mod cancel_card;
 pub mod completion;
 pub mod dialog;
 pub mod help;
+pub mod info_card;
 pub mod menu;
+pub mod notice_reveal;
 pub mod picker;
 pub mod picker_chain;
 pub mod select;
 pub mod select_field;
 
 pub use completion::{
-    Completion, CompletionAction, CompletionCmd, CompletionController, CompletionState,
+    COMPLETION_DETAILS_CHORD, Completion, CompletionAction, CompletionCmd, CompletionController,
+    CompletionState,
 };
 pub use dialog::{Dialog, DialogAction, DialogCmd, DialogState};
 pub use help::{HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection};
-pub use menu::{ContextMenu, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState};
+pub use menu::{
+    ContextMenu, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuCmd, MenuItem, MenuState,
+};
+pub use notice_reveal::NoticeReveal;
 pub use picker::{
-    AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerState,
-    ScopeKey,
+    AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerLayout,
+    PickerState, ScopeKey,
 };
 pub use picker_chain::{
     PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,

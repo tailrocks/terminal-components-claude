@@ -1,0 +1,2488 @@
+{
+  "schema_version": 1,
+  "extension_id_prefix": "termrock_extensions::showcase::table_sort::",
+  "journeys": [
+    {
+      "id": "owner_asc_desc_clear",
+      "title": "Owner header click cycles ascending, descending, then unsorted",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "changes_asc_desc_clear",
+      "title": "Changes header click cycles ascending, descending, then unsorted",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "keyboard_cycle",
+      "title": "Focused table sort key cycles ascending, descending, then unsorted",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "hscroll_then_sort",
+      "title": "Horizontal wheel reveals Changes header, then sorts",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "sort_then_hover_stable_id",
+      "title": "Owner sort keeps stable row ID targetable for hover",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "sort_then_activate_result",
+      "title": "Owner sort preserves row activation result",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    }
+  ],
+  "sizes": [
+    {
+      "cols": 72,
+      "rows": 20,
+      "allow_narrow_fallback": false
+    },
+    {
+      "cols": 80,
+      "rows": 24,
+      "allow_narrow_fallback": false
+    },
+    {
+      "cols": 100,
+      "rows": 30,
+      "allow_narrow_fallback": false
+    },
+    {
+      "cols": 120,
+      "rows": 40,
+      "allow_narrow_fallback": false
+    },
+    {
+      "cols": 160,
+      "rows": 50,
+      "allow_narrow_fallback": false
+    },
+    {
+      "cols": 40,
+      "rows": 12,
+      "allow_narrow_fallback": true
+    },
+    {
+      "cols": 60,
+      "rows": 18,
+      "allow_narrow_fallback": true
+    }
+  ],
+  "color_modes": [
+    "truecolor",
+    "256",
+    "16",
+    "none",
+    "nocolor"
+  ],
+  "generated_cases": [
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::72x20::truecolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::72x20::256",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::72x20::16",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::72x20::none",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::72x20::nocolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::80x24::truecolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::80x24::256",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::80x24::16",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::80x24::none",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::80x24::nocolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::100x30::truecolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::100x30::256",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::100x30::16",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::100x30::none",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::100x30::nocolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::120x40::truecolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::120x40::256",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::120x40::16",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::120x40::none",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::120x40::nocolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::160x50::truecolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::160x50::256",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::160x50::16",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::160x50::none",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::160x50::nocolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::40x12::truecolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::40x12::nocolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::60x18::truecolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::owner_asc_desc_clear::60x18::nocolor",
+      "journey_id": "owner_asc_desc_clear",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::72x20::truecolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::72x20::256",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::72x20::16",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::72x20::none",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::72x20::nocolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::80x24::truecolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::80x24::256",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::80x24::16",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::80x24::none",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::80x24::nocolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::100x30::truecolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::100x30::256",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::100x30::16",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::100x30::none",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::100x30::nocolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::120x40::truecolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::120x40::256",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::120x40::16",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::120x40::none",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::120x40::nocolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::160x50::truecolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::160x50::256",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::160x50::16",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::160x50::none",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::160x50::nocolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::40x12::truecolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::40x12::nocolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::60x18::truecolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::changes_asc_desc_clear::60x18::nocolor",
+      "journey_id": "changes_asc_desc_clear",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "changes_scroll_1",
+        "changes_scroll_2",
+        "ascending",
+        "descending",
+        "cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::72x20::truecolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::72x20::256",
+      "journey_id": "keyboard_cycle",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::72x20::16",
+      "journey_id": "keyboard_cycle",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::72x20::none",
+      "journey_id": "keyboard_cycle",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::72x20::nocolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::80x24::truecolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::80x24::256",
+      "journey_id": "keyboard_cycle",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::80x24::16",
+      "journey_id": "keyboard_cycle",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::80x24::none",
+      "journey_id": "keyboard_cycle",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::80x24::nocolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::100x30::truecolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::100x30::256",
+      "journey_id": "keyboard_cycle",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::100x30::16",
+      "journey_id": "keyboard_cycle",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::100x30::none",
+      "journey_id": "keyboard_cycle",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::100x30::nocolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::120x40::truecolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::120x40::256",
+      "journey_id": "keyboard_cycle",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::120x40::16",
+      "journey_id": "keyboard_cycle",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::120x40::none",
+      "journey_id": "keyboard_cycle",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::120x40::nocolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::160x50::truecolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::160x50::256",
+      "journey_id": "keyboard_cycle",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::160x50::16",
+      "journey_id": "keyboard_cycle",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::160x50::none",
+      "journey_id": "keyboard_cycle",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::160x50::nocolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::40x12::truecolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::40x12::nocolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::60x18::truecolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::keyboard_cycle::60x18::nocolor",
+      "journey_id": "keyboard_cycle",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "keyboard_ascending",
+        "keyboard_descending",
+        "keyboard_cleared"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::72x20::truecolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::72x20::256",
+      "journey_id": "hscroll_then_sort",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::72x20::16",
+      "journey_id": "hscroll_then_sort",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::72x20::none",
+      "journey_id": "hscroll_then_sort",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::72x20::nocolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::80x24::truecolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::80x24::256",
+      "journey_id": "hscroll_then_sort",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::80x24::16",
+      "journey_id": "hscroll_then_sort",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::80x24::none",
+      "journey_id": "hscroll_then_sort",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::80x24::nocolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::100x30::truecolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::100x30::256",
+      "journey_id": "hscroll_then_sort",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::100x30::16",
+      "journey_id": "hscroll_then_sort",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::100x30::none",
+      "journey_id": "hscroll_then_sort",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::100x30::nocolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::120x40::truecolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::120x40::256",
+      "journey_id": "hscroll_then_sort",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::120x40::16",
+      "journey_id": "hscroll_then_sort",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::120x40::none",
+      "journey_id": "hscroll_then_sort",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::120x40::nocolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::160x50::truecolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::160x50::256",
+      "journey_id": "hscroll_then_sort",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::160x50::16",
+      "journey_id": "hscroll_then_sort",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::160x50::none",
+      "journey_id": "hscroll_then_sort",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::160x50::nocolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::40x12::truecolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::40x12::nocolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::60x18::truecolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::hscroll_then_sort::60x18::nocolor",
+      "journey_id": "hscroll_then_sort",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "horizontally_scrolled_1",
+        "horizontally_scrolled_2",
+        "scrolled_changes_ascending"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::72x20::truecolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::72x20::256",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::72x20::16",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::72x20::none",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::72x20::nocolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::80x24::truecolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::80x24::256",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::80x24::16",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::80x24::none",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::80x24::nocolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::100x30::truecolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::100x30::256",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::100x30::16",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::100x30::none",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::100x30::nocolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::120x40::truecolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::120x40::256",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::120x40::16",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::120x40::none",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::120x40::nocolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::160x50::truecolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::160x50::256",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::160x50::16",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::160x50::none",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::160x50::nocolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::40x12::truecolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::40x12::nocolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::60x18::truecolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_hover_stable_id::60x18::nocolor",
+      "journey_id": "sort_then_hover_stable_id",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "owner_sorted",
+        "stable_id_hovered"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::72x20::truecolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::72x20::256",
+      "journey_id": "sort_then_activate_result",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::72x20::16",
+      "journey_id": "sort_then_activate_result",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::72x20::none",
+      "journey_id": "sort_then_activate_result",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::72x20::nocolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 72,
+      "rows": 20,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::80x24::truecolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::80x24::256",
+      "journey_id": "sort_then_activate_result",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::80x24::16",
+      "journey_id": "sort_then_activate_result",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::80x24::none",
+      "journey_id": "sort_then_activate_result",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::80x24::nocolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 80,
+      "rows": 24,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::100x30::truecolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::100x30::256",
+      "journey_id": "sort_then_activate_result",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::100x30::16",
+      "journey_id": "sort_then_activate_result",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::100x30::none",
+      "journey_id": "sort_then_activate_result",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::100x30::nocolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 100,
+      "rows": 30,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "table_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::120x40::truecolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::120x40::256",
+      "journey_id": "sort_then_activate_result",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::120x40::16",
+      "journey_id": "sort_then_activate_result",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::120x40::none",
+      "journey_id": "sort_then_activate_result",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::120x40::nocolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 120,
+      "rows": 40,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::160x50::truecolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::160x50::256",
+      "journey_id": "sort_then_activate_result",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "256",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::160x50::16",
+      "journey_id": "sort_then_activate_result",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "16",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::160x50::none",
+      "journey_id": "sort_then_activate_result",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "none",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::160x50::nocolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 160,
+      "rows": 50,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::40x12::truecolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::40x12::nocolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 40,
+      "rows": 12,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::60x18::truecolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "truecolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    },
+    {
+      "id": "termrock_extensions::showcase::table_sort::sort_then_activate_result::60x18::nocolor",
+      "journey_id": "sort_then_activate_result",
+      "cols": 60,
+      "rows": 18,
+      "color_mode": "nocolor",
+      "checkpoints": [
+        "initial",
+        "narrow_revealed_120x40",
+        "owner_sorted",
+        "result_activated"
+      ]
+    }
+  ]
+}

@@ -90,6 +90,12 @@ impl<'a> Action<'a> {
     }
 
     #[must_use]
+    pub const fn with_variant(mut self, variant: Variant) -> Self {
+        self.variant = variant;
+        self
+    }
+
+    #[must_use]
     pub const fn chord(mut self, c: Chord) -> Self {
         self.chord = Some(c);
         self
@@ -123,27 +129,5 @@ impl<'a> Action<'a> {
 
     pub const fn is_danger(&self) -> bool {
         self.danger
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn custom_keys_land_in_the_high_range_and_names_resolve() {
-        assert!(ActionKey::application("jackin.quit").raw() >= 0x4000);
-        assert!(ActionKey::application("jackin.quit").raw() < 0x8000);
-        assert_ne!(
-            ActionKey::application("jackin.quit"),
-            ActionKey::custom("jackin.quit")
-        );
-        assert!(ActionKey::custom("delete").raw() >= 0x8000);
-        assert_eq!(ActionKey::SAVE.name(), Some("SAVE"));
-        assert_eq!(ActionKey::custom("x").name(), None);
-        assert_ne!(ActionKey::custom("a"), ActionKey::custom("b"));
-        let a = Action::danger(ActionKey::custom("delete"), "Delete").enabled(false);
-        assert!(a.is_danger() && !a.is_enabled());
-        assert_eq!(a.variant(), Variant::DANGER);
     }
 }

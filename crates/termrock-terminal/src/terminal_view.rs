@@ -409,22 +409,45 @@ impl<'a> TerminalView<'a> {
                     }
                 }
                 Intent::Pointer {
-                    phase: Phase::Press | Phase::Click,
+                    phase: phase @ (Phase::Press | Phase::Click),
                     pos,
                     ..
                 } => {
                     let rel_y = (pos.y.saturating_sub(area.y)) as usize + state.scroll.offset();
                     let rel_x = (pos.x.saturating_sub(area.x)) as usize;
 
+                    let completed_drag = phase == Phase::Click
+                        && state.selection.is_some_and(|selection| {
+                            let (start_line, start_col, end_line, end_col) = selection.normalized();
+                            (start_line, start_col) != (end_line, end_col)
+                                && state.selection_anchor != Some((rel_y, rel_x))
+                        });
+                    if completed_drag {
+                        state.selecting = false;
+                        continue;
+                    }
+
                     if let Some(resolver) = self.link_resolver
                         && let Some(key) = resolver(rel_y, rel_x)
                     {
-                        acc.action(TerminalAction::OpenLink { key });
-                        return acc.finish(self.id);
+                        if phase == Phase::Click {
+                            acc.action(TerminalAction::OpenLink { key });
+                            return acc.finish(self.id);
+                        }
+
+                        state.selecting = false;
+                        state.selection_anchor = Some((rel_y, rel_x));
+                        continue;
                     }
 
                     if self.interaction.allows_selection() {
-                        state.selecting = true;
+                        if phase == Phase::Click {
+                            state.selecting = false;
+                        } else {
+                            let _ = cx.capture(self.id, PartRef::of(Part::CONTAINER));
+                            state.selecting = true;
+                        }
+
                         state.selection_anchor = Some((rel_y, rel_x));
                         state.selection = Some(
                             TerminalSelection::new(rel_y, rel_x, rel_y, rel_x)
@@ -459,6 +482,7 @@ impl<'a> TerminalView<'a> {
                     ..
                 } => {
                     state.selecting = false;
+                    cx.release_capture();
                 }
                 Intent::Key(k) => {
                     if k.code == KeyCode::PageUp {
@@ -498,16 +522,27 @@ impl<'a> TerminalView<'a> {
         }
 
         if !ui.is_inert() {
-            ui.register_control(self.id, clipped, Focusability::Focusable);
+            match self.interaction {
+                TerminalInteraction::Interactive => ui.register_editor(
+                    self.id,
+                    clipped,
+                    Focusability::Focusable,
+                    StateFlags::EDITING,
+                ),
+                TerminalInteraction::ReadOnly => {
+                    ui.register_control(self.id, clipped, Focusability::FocusableReadOnly)
+                }
+                TerminalInteraction::SelectionOnly => {
+                    ui.register_control(self.id, clipped, Focusability::Focusable)
+                }
+            }
             ui.register_part(self.id, PartRef::of(Part::CONTAINER), clipped);
         }
 
-        let is_focused = ui.state(self.id).contains(StateFlags::FOCUSED);
         let src_size = self.source.size();
         let scroll_offset = state.scroll.offset();
         let rev = self.source.revision();
 
-        let mut cursor_loc = None;
         if state.cursor_visible
             && let Some(cursor) = self.source.cursor()
             && cursor.visible
@@ -520,7 +555,6 @@ impl<'a> TerminalView<'a> {
                     let cursor_abs_x = clipped.x + cur_col as u16;
                     let cursor_abs_y = clipped.y + view_row as u16;
                     ui.set_cursor(self.id, Position::new(cursor_abs_x, cursor_abs_y));
-                    cursor_loc = Some((cursor_abs_x, cursor_abs_y));
                 }
             }
         }
@@ -589,18 +623,6 @@ impl<'a> TerminalView<'a> {
 
                     buf_cell.set_style(style);
                 }
-            }
-        }
-
-        if let Some((cursor_abs_x, cursor_abs_y)) = cursor_loc
-            && cursor_abs_x < buf.area().width
-            && cursor_abs_y < buf.area().height
-        {
-            let cell = &mut buf[(cursor_abs_x, cursor_abs_y)];
-            if is_focused {
-                cell.modifier.insert(Modifier::REVERSED);
-            } else {
-                cell.modifier.insert(Modifier::UNDERLINED);
             }
         }
 

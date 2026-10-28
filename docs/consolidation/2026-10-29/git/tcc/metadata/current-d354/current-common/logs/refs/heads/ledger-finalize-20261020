@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 072fc24d6dd4f53dbd544485174e39aff2c92f43 Alexey Zhokhov <alexey@zhokhov.com> 1792513303 +0700	branch: Created from FETCH_HEAD
+072fc24d6dd4f53dbd544485174e39aff2c92f43 6a3150213f118feb442528ff077f8db6569f1061 Alexey Zhokhov <alexey@zhokhov.com> 1792513425 +0700	commit: docs: record branch integration and cleanup status
+6a3150213f118feb442528ff077f8db6569f1061 2ba23ae88d602e276b71390a132b26414f06a9e9 Alexey Zhokhov <alexey@zhokhov.com> 1792513602 +0700	commit: docs: record verified branch cleanup and delivery evidence
+2ba23ae88d602e276b71390a132b26414f06a9e9 01ef14ddccd8ed85e16a661cd030b484c541272e Alexey Zhokhov <alexey@zhokhov.com> 1792513648 +0700	rebase (finish): refs/heads/ledger-finalize-20261020 onto fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f
+01ef14ddccd8ed85e16a661cd030b484c541272e f86c17d0c686d9c2547d96dfad1264280dea2974 Alexey Zhokhov <alexey@zhokhov.com> 1792514032 +0700	rebase (finish): refs/heads/ledger-finalize-20261020 onto f86c17d0c686d9c2547d96dfad1264280dea2974
+f86c17d0c686d9c2547d96dfad1264280dea2974 2d9eb4cc667e8948501b0400572f8bd1f0a5f488 Alexey Zhokhov <alexey@zhokhov.com> 1792514089 +0700	commit: docs: record runtime delivery and CLI guard cleanup

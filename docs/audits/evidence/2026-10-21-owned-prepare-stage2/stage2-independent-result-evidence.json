@@ -1,0 +1,297 @@
+{
+  "schema": "termrock.stage3d.stage2-operational-result.independent-evidence.v1",
+  "artifacts": {
+    "event": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v12-parent-v12-stage2-20261021-0425-stage-02-event.json",
+      "sha256": "e8d22eebf16dfb578ef7d701dba46919b50317a87f3fcceba659b6ab78fd0817"
+    },
+    "log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v12-parent-v12-stage2-20261021-0425-stage-02.log",
+      "sha256": "e87bbc54cc7bb34d65feb9e3a28740aa4aeba90853272f119ff8350d4e0ffd18"
+    },
+    "fresh-plan-stage3d-atomic-supervisor-v12-stage2-20261021.py": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v12-stage2-20261021.py",
+      "sha256": "12a3dd78de61bd38a95dfe3b44ed43804380aa8df039b89168f666c7a231e5f9"
+    },
+    "stage3d-supervisor-v12-stage2-independent-review-20261021.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v12-stage2-independent-review-20261021.json",
+      "sha256": "6ff4c1015c4b51fa666da014eeac3c2eb85ba174268cafe684a4002c66858fb5"
+    },
+    "canonical-stage2-independent-review-4e04be07/tools/frozen_baseline.py": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07/tools/frozen_baseline.py",
+      "sha256": "e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80"
+    }
+  },
+  "manifest": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/live-source.json",
+    "sha256": "8fc52aa144847276fd9df62b133f7d8815995c50ba9a0cc0001b6b5da46ad75a"
+  },
+  "frozen_source_digest": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+  "live_source_digest": "74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430",
+  "changed_files": [
+    "tests/visual_baseline/frozen_cli_extensions.json",
+    "tests/visual_baseline/frozen_cli_extensions.rs",
+    "tests/visual_baseline/frozen_cli_pair.rs",
+    "tests/visual_baseline/main.rs",
+    "tests/visual_baseline/scenarios/interact.rs",
+    "tests/visual_baseline/scenarios/mod.rs",
+    "tests/visual_baseline/support.rs"
+  ],
+  "source_files": 1152,
+  "live_source_files": 1155,
+  "matching_source_symlink_targets": {
+    ".github/CLAUDE.md": "AGENTS.md",
+    "CLAUDE.md": "AGENTS.md",
+    "docs/refactoring-plan/evidence/host-bootstrap-fixture/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/001/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-fixture/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/002/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/003/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/004/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/005/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/006/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/007/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/008/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/009/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/010/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/011/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/012/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/013/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/014/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/015/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/016/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/017/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/018/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/019/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/020/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/021/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/022/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/023/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/024/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/025/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/026/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/027/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/028/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/029/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/030/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/031/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/032/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/033/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/034/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/035/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/036/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/037/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/038/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/039/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/040/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/041/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/042/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/043/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/044/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/045/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/046/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/047/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/048/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/049/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/050/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/051/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/052/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/053/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/054/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/055/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/056/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/057/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/058/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/059/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/060/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/061/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/062/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/063/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/064/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/065/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/066/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/067/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/068/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/069/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/070/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/070/trusted/proof-bootstrap/host-bootstrap-fixture/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/071/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/071/trusted/proof-bootstrap/host-bootstrap-fixture/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/072/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/072/trusted/proof-bootstrap/host-bootstrap-fixture/CLAUDE.md": "AGENTS.md",
+    "refactoring-tasks/terminal-components/completion/073/CLAUDE.md": "AGENTS.md"
+  },
+  "snapshots_metadata_only": {
+    "source": {
+      "files": 12625,
+      "bytes": 3100617792,
+      "writable_files": 12625,
+      "symlink_files": 0
+    },
+    "live-source": {
+      "files": 12625,
+      "bytes": 3100617792,
+      "writable_files": 0,
+      "symlink_files": 0
+    }
+  },
+  "snapshot_hashes_from_canonical_manifest": {
+    "frozen": "6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8",
+    "live": "6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8"
+  },
+  "harness_input_hashes": {
+    "docs/audits/2026-10-21-fresh-baseline-capture-eligibility.json": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+    "docs/audits/2026-10-21-fresh-baseline-capture-evidence-index.json": "7333d762ddbbc25f7fafbc78fd49fe016358b787123dbfdabce422172121ba2c",
+    "docs/audits/2026-10-21-fresh-capture-resumable-runner-contract.json": "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb",
+    "tools/frozen-cli-frame-support/src/lib.rs": "d656a3aea96f17ed6e31b237fabdc138d4732a209d3cc4944b08cfcb4681571c",
+    "tools/frozen_cli_build_cohort_reviews.json": "65d1343138d5c817186bbd9486e6149ef554fc0fd4b3a96bf70cb916f0883718",
+    "tools/frozen_cli_build_cohorts.json": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+    "tools/frozen_cli_extensions.json": "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8",
+    "tools/frozen_cli_extensions.rs": "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9",
+    "tools/frozen_cli_pair.patch": "17de30ad69fea9c7f514cd6530727283637d090958020ebe13a311aad4506ff4"
+  },
+  "binary_checks": {
+    "showcase": {
+      "sha256": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+      "identity": {
+        "device": 16777229,
+        "inode": 1345489779,
+        "mode": 33133,
+        "size": 20826552,
+        "mtime_ns": 1792522609416263270,
+        "ctime_ns": 1792522762299545418
+      }
+    },
+    "tablepro": {
+      "sha256": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+      "identity": {
+        "device": 16777229,
+        "inode": 1345489775,
+        "mode": 33133,
+        "size": 12634296,
+        "mtime_ns": 1792522605012523020,
+        "ctime_ns": 1792522762282883952
+      }
+    },
+    "jackin-preview": {
+      "sha256": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+      "identity": {
+        "device": 16777229,
+        "inode": 1345489772,
+        "mode": 33133,
+        "size": 15499328,
+        "mtime_ns": 1792522607551519756,
+        "ctime_ns": 1792522762274651574
+      }
+    },
+    "holla": {
+      "sha256": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf",
+      "identity": {
+        "device": 16777229,
+        "inode": 1345489777,
+        "mode": 33133,
+        "size": 16997832,
+        "mtime_ns": 1792522609231743637,
+        "ctime_ns": 1792522762290233200
+      }
+    }
+  },
+  "tool_hashes": {
+    "tools.invocation_tools.cargo": "9cfafb636d06f397aa5c48a68ac7755865d424f7acafe075e6fce3bcaa723843",
+    "tools.invocation_tools.cargo_nextest": "aac4a0d9109efcfb4d83ec729c6e3204d5c15bf16ff554b5ee4476f6c5f60b37",
+    "tools.invocation_tools.python": "75146f6f98972d4de8ea82fc9189a98df4a1113af442ec7db2d45a33283f9dac",
+    "tools.invocation_tools.rustc_path_entry": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+    "tools.selected_toolchain.cargo_path_entry": "9cfafb636d06f397aa5c48a68ac7755865d424f7acafe075e6fce3bcaa723843",
+    "tools.selected_toolchain.cargo_selected_toolchain": "6d576d8058f8ca643e8fce55b64ee3c614ba64c9da2e536bae843e6a2e1f3951",
+    "tools.selected_toolchain.cc": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+    "tools.selected_toolchain.clang": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+    "tools.selected_toolchain.linker": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+    "tools.selected_toolchain.rustc_selected_toolchain": "1ba7bb8e273bd64125f4048d2ecce530e0a6470e565ab1b3aecf0b82b532f7b1",
+    "tools.selected_toolchain.rustc_sysroot_identity_files[0]": "1d4d24a7194aea5e759695758088efb81cff49b963edd683df64638a467e08aa",
+    "tools.selected_toolchain.rustc_sysroot_identity_files[1]": "48419307eb32e389a25ac360b6bccd4d196f3c4f35ce9d67a223319eff017c6c",
+    "tools.selected_toolchain.rustup": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+    "tools.selected_toolchain.xcode_select": "49cf1e59551a8a401d86ac444aa6b2a9ab7ec6d3882c98c004dab02a0e484e53",
+    "tools.selected_toolchain.xcrun": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9"
+  },
+  "tool_observations_match_old_plan": true,
+  "environment_changed_keys": [
+    "CARGO_TARGET_DIR"
+  ],
+  "inventory_from_anchored_old_plan": {
+    "sha256": "f98b90a93e3d45438be49eca4962ebbdbd83624ba7738ad448d783bb3046135f",
+    "visual": 29069,
+    "ordinary": 20,
+    "fresh_nextest_invocation_by_reviewer": false,
+    "new_manifest_matches_exact_inventory_digest": true
+  },
+  "old_journal": [
+    {
+      "ordinal": 0,
+      "sha256": "4cfadf3ce45982129085d290ad66ab63c4ddfaf24f57f27798a9e16473f78d8a",
+      "checkpoints": 32
+    },
+    {
+      "ordinal": 1,
+      "sha256": "91cf2eba3e12176c12edeed0fde67cd7d1e5529c767c712b0cd956b3c7470cb3",
+      "checkpoints": 32
+    },
+    {
+      "ordinal": 2,
+      "sha256": "42dabdc941ffd7b975d52e9cb0cafba7e810851aca427180b6095f7fe96bb1e1",
+      "checkpoints": 32
+    },
+    {
+      "ordinal": 3,
+      "sha256": "9bdf6d2dbdef0476b1e9075f61f42a0640d9090a52f72d94c07829e1023bedd0",
+      "checkpoints": 32
+    },
+    {
+      "ordinal": 4,
+      "sha256": "7744670ad33d8e85f3696882ebf05a89fe15bf96458da37e774912d4b876dcd8",
+      "checkpoints": 32
+    },
+    {
+      "ordinal": 5,
+      "sha256": "5715cc586c0dc978590c653fe79570900f74984d7c81d9c30f04e4961378045f",
+      "checkpoints": 32
+    },
+    {
+      "ordinal": 6,
+      "sha256": "12ca4d1d1002daa136ce11212b8ee5576bf7268bde307619549980fe486979f2",
+      "checkpoints": 32
+    },
+    {
+      "ordinal": 7,
+      "sha256": "4a607ffd7b6070be6f1c1f8dec49b7eea1515b840b47639f4d4ecb23bc70d6a1",
+      "checkpoints": 32
+    },
+    {
+      "ordinal": 8,
+      "sha256": "1d3025733b77c05ac540718492b070b48896c7994087905cd4d542ef92f2b122",
+      "checkpoints": 32
+    }
+  ],
+  "old_plan_external_hash": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+  "old_key_accessed": false,
+  "new_outputs_absent": [
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/fresh-capture-plan.json",
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/fresh-runs",
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-atomic-run-key-custody",
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/.live-source.json.tmp"
+  ],
+  "root_entries": [
+    "live-source",
+    "live-source.json",
+    "live-target",
+    "provenance.json",
+    "source"
+  ],
+  "review_elapsed_seconds": 1.243,
+  "scope_limits": [
+    "No new snapshot content hash pass: metadata and admitted/canonical manifest hashes only.",
+    "No old captured frame or failed partial rehash; only preserved old plan and nine receipt envelopes checked.",
+    "No key bytes read; no new HMAC authentication.",
+    "No preflight, prepare, CLI inventory, application, capture, replay, or candidate command invoked by reviewer."
+  ],
+  "method_note": "An initial read-only probe rejected all source symlinks, including legitimate .github/CLAUDE.md. That exploratory assumption was corrected to mirror the canonical digest algorithm and compare source/live symlink targets; no source was modified."
+}

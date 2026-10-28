@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 8d143340d4b8b7e1c5de9e7b01569579c2c6712b Alexey Zhokhov <alexey@zhokhov.com> 1792531307 +0700	branch: Created from origin/parity/termrock-visual-baseline
+8d143340d4b8b7e1c5de9e7b01569579c2c6712b 800321ec98474a30b08564eb420cfc002f40c6f2 Alexey Zhokhov <alexey@zhokhov.com> 1792531742 +0700	commit: feat: add composable numbered steps metadata
+800321ec98474a30b08564eb420cfc002f40c6f2 c0408f34fe86d03802c59f961c3781aa7215558a Alexey Zhokhov <alexey@zhokhov.com> 1792531753 +0700	rebase (finish): refs/heads/wip/steps-shared-contract-20261021 onto 1a34e019c0666780cec58ab8c187477569e68242
+c0408f34fe86d03802c59f961c3781aa7215558a 17841c8228c81250d8e457422b12f7c1233283ec Alexey Zhokhov <alexey@zhokhov.com> 1792532484 +0700	commit: fix(steps): measure intrinsic width from live items
+17841c8228c81250d8e457422b12f7c1233283ec 8ac27e4307cf545efdb24ea5db05b831a7b44669 Alexey Zhokhov <alexey@zhokhov.com> 1792533319 +0700	commit: fix(steps): preserve custom non-display rows
+8ac27e4307cf545efdb24ea5db05b831a7b44669 ddecfb5afc1d874bd048a4845bae22e981a074ba Alexey Zhokhov <alexey@zhokhov.com> 1792533782 +0700	commit: fix(steps): measure default display labels
+ddecfb5afc1d874bd048a4845bae22e981a074ba 04a37e1bb63583a34948620897655dd057d7dd86 Alexey Zhokhov <alexey@zhokhov.com> 1792533798 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

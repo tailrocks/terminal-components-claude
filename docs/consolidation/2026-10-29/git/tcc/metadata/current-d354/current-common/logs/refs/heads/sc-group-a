@@ -1,0 +1,16 @@
+0000000000000000000000000000000000000000 106a2646340a7221173bddcb530f267b3e7d26af Alexey Zhokhov <alexey@zhokhov.com> 1792164176 +0700	branch: Created from HEAD
+106a2646340a7221173bddcb530f267b3e7d26af 30201761d7ccb566e3bca372bb9ec84201c18af2 Alexey Zhokhov <alexey@zhokhov.com> 1792164223 +0700	rebase (finish): refs/heads/sc-group-a onto 30201761d7ccb566e3bca372bb9ec84201c18af2
+30201761d7ccb566e3bca372bb9ec84201c18af2 d89d3fea0da55d1f03c991b58404796cb4367b83 Alexey Zhokhov <alexey@zhokhov.com> 1792165408 +0700	commit: feat(showcase): Overview theme reference on the page template (SC3)
+d89d3fea0da55d1f03c991b58404796cb4367b83 fdb9d48ba6fda56d6dfa657bacb46bf4e70b0304 Alexey Zhokhov <alexey@zhokhov.com> 1792165408 +0700	rebase (finish): refs/heads/sc-group-a onto abaae3eea28d2056afffd58ce122832be7b71137
+fdb9d48ba6fda56d6dfa657bacb46bf4e70b0304 31bf1cd07ff663c0f29b6b9f5fd11a3e5c48f240 Alexey Zhokhov <alexey@zhokhov.com> 1792165489 +0700	commit (amend): feat(showcase): Overview theme reference on the page template (SC3)
+31bf1cd07ff663c0f29b6b9f5fd11a3e5c48f240 4229b40b35479f802884e6156091b81e4d85e39b Alexey Zhokhov <alexey@zhokhov.com> 1792165736 +0700	commit: test(visual): overview re-approval
+4229b40b35479f802884e6156091b81e4d85e39b 037c6572a047ba7507f8d1a0e7090aec13a81c71 Alexey Zhokhov <alexey@zhokhov.com> 1792166209 +0700	rebase (finish): refs/heads/sc-group-a onto cf21436e4d48a426a4cb0d3c9ec8e0bcc16d8189
+037c6572a047ba7507f8d1a0e7090aec13a81c71 2d8642b58acaf2954ac720495d9054db91888e83 Alexey Zhokhov <alexey@zhokhov.com> 1792166253 +0700	commit: fixup! feat(showcase): Overview theme reference on the page template (SC3)
+2d8642b58acaf2954ac720495d9054db91888e83 1679f6c4973b269e91af9345bdc32a3391f647f0 Alexey Zhokhov <alexey@zhokhov.com> 1792166254 +0700	rebase (finish): refs/heads/sc-group-a onto cf21436e4d48a426a4cb0d3c9ec8e0bcc16d8189
+1679f6c4973b269e91af9345bdc32a3391f647f0 ec60c6dbaa2b69dc0d28042ac3d0a6d928879533 Alexey Zhokhov <alexey@zhokhov.com> 1792167549 +0700	commit: feat(showcase): Chrome and Status & hints on the page template (SC4)
+ec60c6dbaa2b69dc0d28042ac3d0a6d928879533 4b7519d20b403e004bcdf05b20d56bc7dc104199 Alexey Zhokhov <alexey@zhokhov.com> 1792167558 +0700	commit: test(visual): chrome re-approval
+4b7519d20b403e004bcdf05b20d56bc7dc104199 9f4b7356d3f1cb222ffb7163441d98ea9038bf17 Alexey Zhokhov <alexey@zhokhov.com> 1792168033 +0700	commit: feat(showcase): Text utilities page (SC26)
+9f4b7356d3f1cb222ffb7163441d98ea9038bf17 e49236ba24bae8c9a091d05024395984371b12c3 Alexey Zhokhov <alexey@zhokhov.com> 1792168109 +0700	rebase (finish): refs/heads/sc-group-a onto e69a21374a3cdddb267099cf9f3ab92ced534148
+e49236ba24bae8c9a091d05024395984371b12c3 f8aa4ab71bf283ebbd0ac5c5dad6a13694d78a2c Alexey Zhokhov <alexey@zhokhov.com> 1792168171 +0700	commit: fix(showcase): chrome and text-utility nav options offer vim
+f8aa4ab71bf283ebbd0ac5c5dad6a13694d78a2c 55a636fa84badc2c607efdd158dfa076af4d5105 Alexey Zhokhov <alexey@zhokhov.com> 1792168353 +0700	commit: fixup! feat(showcase): Chrome and Status & hints on the page template (SC4)
+55a636fa84badc2c607efdd158dfa076af4d5105 87ae53c037d78691bb877c75e62e663b96e818da Alexey Zhokhov <alexey@zhokhov.com> 1792168353 +0700	rebase (finish): refs/heads/sc-group-a onto e69a21374a3cdddb267099cf9f3ab92ced534148

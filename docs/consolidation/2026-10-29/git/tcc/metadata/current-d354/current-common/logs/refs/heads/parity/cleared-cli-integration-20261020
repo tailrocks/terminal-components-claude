@@ -1,0 +1,28 @@
+0000000000000000000000000000000000000000 b3e87ec3e866867d4937ec0dd3bbeac1d12901ca Alexey Zhokhov <alexey@zhokhov.com> 1792491530 +0700	branch: Created from origin/parity/termrock-visual-baseline
+b3e87ec3e866867d4937ec0dd3bbeac1d12901ca 79aaa68a577fd6650e3e52aa8955ad21422eb9d3 Alexey Zhokhov <alexey@zhokhov.com> 1792491530 +0700	cherry-pick: feat(picker): expose baseline rendering policies
+79aaa68a577fd6650e3e52aa8955ad21422eb9d3 e7b398ae3dc6dad2d41be4c35eb0e5cdca5749be Alexey Zhokhov <alexey@zhokhov.com> 1792491530 +0700	cherry-pick: test(picker): cover cursor and metadata policies
+e7b398ae3dc6dad2d41be4c35eb0e5cdca5749be 208a1d80d4cd2a515e8d4cf044d6c73dec66a4a2 Alexey Zhokhov <alexey@zhokhov.com> 1792491530 +0700	cherry-pick: fix: preserve picker style and metadata overrides
+208a1d80d4cd2a515e8d4cf044d6c73dec66a4a2 671f278af5516e735ab6910d6b90802ebe989c96 Alexey Zhokhov <alexey@zhokhov.com> 1792491530 +0700	cherry-pick: fix(session): discard input queued before startup
+671f278af5516e735ab6910d6b90802ebe989c96 b14d6ef5f683842801c0a57b676fde6bf8aadf30 Alexey Zhokhov <alexey@zhokhov.com> 1792491530 +0700	cherry-pick: feat(editors): support completion splicing
+b14d6ef5f683842801c0a57b676fde6bf8aadf30 86ecd2637450f2bb69b164280715169f9e98eb7a Alexey Zhokhov <alexey@zhokhov.com> 1792491530 +0700	cherry-pick: test(jackin): correct frozen mono failure probe
+86ecd2637450f2bb69b164280715169f9e98eb7a 6be270e76c9916c7aded6fbd6a76391e5103185f Alexey Zhokhov <alexey@zhokhov.com> 1792491530 +0700	cherry-pick: docs: record independent workspace validation gaps
+6be270e76c9916c7aded6fbd6a76391e5103185f e0d7918a6d7a1a8103b2bd285a1218a1af9fc1bd Alexey Zhokhov <alexey@zhokhov.com> 1792491530 +0700	cherry-pick: fix: run isolation check against both binaries
+e0d7918a6d7a1a8103b2bd285a1218a1af9fc1bd eeeaf82c5e3a6ccaa7e54d9e1ae967735d50adfd Alexey Zhokhov <alexey@zhokhov.com> 1792491587 +0700	cherry-pick: style: format showcase list and scroll helpers
+eeeaf82c5e3a6ccaa7e54d9e1ae967735d50adfd 0ac740c88f2915b440b994a49d6df1577f643d1d Alexey Zhokhov <alexey@zhokhov.com> 1792491599 +0700	commit: docs: record cleared and deferred parity checks
+0ac740c88f2915b440b994a49d6df1577f643d1d 240d75bd7d6d83595dd36f89f3023d46ef5d3301 Alexey Zhokhov <alexey@zhokhov.com> 1792491669 +0700	commit: docs: record identical runner checks and native gaps
+240d75bd7d6d83595dd36f89f3023d46ef5d3301 548e2edd57421f20973f66300cdd4609df20c2b0 Alexey Zhokhov <alexey@zhokhov.com> 1792491963 +0700	cherry-pick: feat(editors): compose code completion
+548e2edd57421f20973f66300cdd4609df20c2b0 61d40e7a2af04de056025de7fdcea656d70c1f8a Alexey Zhokhov <alexey@zhokhov.com> 1792491963 +0700	cherry-pick: fix(editors): preserve completion outcomes
+61d40e7a2af04de056025de7fdcea656d70c1f8a ef13e89aa3ce740c8c9240643ade611e5d1b69da Alexey Zhokhov <alexey@zhokhov.com> 1792491963 +0700	cherry-pick: test(editors): cover completion focus and dismissal
+ef13e89aa3ce740c8c9240643ade611e5d1b69da bda78fe435fdf53e23033a0c46606559e60096e9 Alexey Zhokhov <alexey@zhokhov.com> 1792491963 +0700	cherry-pick: fix(editors): resolve completion editor shortcuts
+bda78fe435fdf53e23033a0c46606559e60096e9 3d51fbceef012d314547ce97197a606f7475c8b1 Alexey Zhokhov <alexey@zhokhov.com> 1792491993 +0700	commit: docs: record completion demonstration gap
+3d51fbceef012d314547ce97197a606f7475c8b1 7a0615c401eb6e0bf82caadafc727c782efd8a63 Alexey Zhokhov <alexey@zhokhov.com> 1792492041 +0700	rebase (finish): refs/heads/parity/cleared-cli-integration-20261020 onto 5d9f5b1772e733dad4940c84fb9a06b3baaae0ce
+7a0615c401eb6e0bf82caadafc727c782efd8a63 8cb6f66dd9e3e4f862585ba3557c01307ab85d4b Alexey Zhokhov <alexey@zhokhov.com> 1792492473 +0700	cherry-pick: fix(editors): scope manual completion to composite
+8cb6f66dd9e3e4f862585ba3557c01307ab85d4b d616c3a466d2052d508c8ac060729663b34ff07d Alexey Zhokhov <alexey@zhokhov.com> 1792492473 +0700	cherry-pick: fix: preserve menu title hover boundaries
+d616c3a466d2052d508c8ac060729663b34ff07d 3dbafafcb578dbb53664c492f9ad5d3ace15359b Alexey Zhokhov <alexey@zhokhov.com> 1792492474 +0700	cherry-pick: fix: scope hover styling to menu bar titles
+3dbafafcb578dbb53664c492f9ad5d3ace15359b 4b3ab3488f45cbcd2b131c635c573d65ff99040f Alexey Zhokhov <alexey@zhokhov.com> 1792492474 +0700	cherry-pick: fix: preserve menu title style overrides
+4b3ab3488f45cbcd2b131c635c573d65ff99040f 4536e4f87b8c0ac613d5dfa1b250d4ed7be54306 Alexey Zhokhov <alexey@zhokhov.com> 1792492474 +0700	cherry-pick: fix: keep menu bar default rendering compatible
+4536e4f87b8c0ac613d5dfa1b250d4ed7be54306 645a5af2d66a82e345dc3cef2aef0a909577bc4d Alexey Zhokhov <alexey@zhokhov.com> 1792492474 +0700	cherry-pick: test: preserve menu bar title overrides in both hover scopes
+645a5af2d66a82e345dc3cef2aef0a909577bc4d 1f1837856318f932de2a6cc93733341648e8c689 Alexey Zhokhov <alexey@zhokhov.com> 1792492474 +0700	cherry-pick: fix: preserve menu bar title padding defaults
+1f1837856318f932de2a6cc93733341648e8c689 ab3c73602a6718fc8b97eeb89c45bf3e9827a7e5 Alexey Zhokhov <alexey@zhokhov.com> 1792492474 +0700	cherry-pick: docs(audit): record default menu parity pilot
+ab3c73602a6718fc8b97eeb89c45bf3e9827a7e5 3de0a41d8e6c3417007b3e884c364f17511d554c Alexey Zhokhov <alexey@zhokhov.com> 1792493093 +0700	rebase (finish): refs/heads/parity/cleared-cli-integration-20261020 onto c92930d095962244af4ad1ca8f681b1ef646701b
+3de0a41d8e6c3417007b3e884c364f17511d554c e7c4be2e52bc9877ba5edc9930235cceab19a336 Alexey Zhokhov <alexey@zhokhov.com> 1792493139 +0700	commit (cherry-pick): fix(editors): retain manual completion binding

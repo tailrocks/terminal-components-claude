@@ -1,6 +1,7 @@
 use core::cell::Cell;
 use core::fmt;
 use core::ops::Range;
+use std::sync::Arc;
 
 use ratatui_core::layout::Position;
 
@@ -86,6 +87,7 @@ impl fmt::Debug for Intent<'_> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
     Move,
+    Middle,
     Press,
     Release,
     Click,
@@ -103,6 +105,30 @@ pub enum FocusVia {
     Pointer,
     Programmatic,
     Restore,
+}
+
+#[derive(Clone)]
+pub struct LayerIntentToken {
+    owner: Id,
+    marker: Arc<()>,
+}
+
+impl fmt::Debug for LayerIntentToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("LayerIntentToken(..)")
+    }
+}
+
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LayerIntentClaim {
+    Claimed,
+
+    AlreadyClaimed,
+
+    NotPending,
+
+    Mismatch,
 }
 
 #[derive(Debug)]
@@ -129,7 +155,11 @@ enum Stored {
     },
     FocusIn(FocusVia),
     FocusOut(Option<Id>),
-    Layer(LayerEvent),
+    Layer {
+        event: LayerEvent,
+        claimed: Cell<bool>,
+        marker: Option<Arc<()>>,
+    },
     Cancel,
 }
 
@@ -149,8 +179,6 @@ pub struct IntentQueue {
     used: usize,
     table: [Option<(u64, u16)>; TABLE],
     overflow: bool,
-    #[cfg(feature = "testing")]
-    probes: Cell<usize>,
 }
 
 impl Default for IntentQueue {
@@ -167,14 +195,7 @@ impl IntentQueue {
             used: 0,
             table: [None; TABLE],
             overflow: false,
-            #[cfg(feature = "testing")]
-            probes: Cell::new(0),
         }
-    }
-
-    #[cfg(feature = "testing")]
-    pub fn probes(&self) -> usize {
-        self.probes.get()
     }
 
     pub fn clear(&mut self) {
@@ -197,8 +218,6 @@ impl IntentQueue {
     }
 
     fn bucket_index(&self, owner: Id) -> Option<usize> {
-        #[cfg(feature = "testing")]
-        self.probes.set(self.probes.get().saturating_add(1));
         if self.overflow {
             return self.live().iter().position(|b| b.owner == owner);
         }
@@ -322,7 +341,90 @@ impl IntentQueue {
     }
 
     pub fn layer(&mut self, owner: Id, ev: LayerEvent) {
-        self.push(owner, Stored::Layer(ev));
+        self.push(
+            owner,
+            Stored::Layer {
+                event: ev,
+                claimed: Cell::new(false),
+                marker: None,
+            },
+        );
+    }
+
+    pub fn layer_tracked(&mut self, owner: Id, event: LayerEvent) -> LayerIntentToken {
+        let marker = Arc::new(());
+        self.push(
+            owner,
+            Stored::Layer {
+                event,
+                claimed: Cell::new(false),
+                marker: Some(Arc::clone(&marker)),
+            },
+        );
+        LayerIntentToken { owner, marker }
+    }
+
+    pub fn claim_next_layer_event(&self, owner: Id, expected: LayerEvent) -> bool {
+        let Some(bucket) = self.bucket_index(owner).and_then(|i| self.live().get(i)) else {
+            return false;
+        };
+        let claimed = bucket.items.iter().find_map(|stored| match stored {
+            Stored::Layer { event, claimed, .. } if !claimed.get() => Some((event, claimed)),
+            _ => None,
+        });
+        let Some((event, claimed)) = claimed else {
+            return false;
+        };
+        if *event != expected {
+            return false;
+        }
+        claimed.set(true);
+        if bucket.items.iter().all(|stored| match stored {
+            Stored::Binding { claimed, .. } | Stored::Layer { claimed, .. } => claimed.get(),
+            _ => false,
+        }) {
+            bucket.drained.set(true);
+        }
+        true
+    }
+
+    pub fn claim_layer_event_token(
+        &self,
+        token: &LayerIntentToken,
+        expected_event: LayerEvent,
+    ) -> LayerIntentClaim {
+        let Some(bucket) = self
+            .bucket_index(token.owner)
+            .and_then(|index| self.live().get(index))
+        else {
+            return LayerIntentClaim::NotPending;
+        };
+        let exact = bucket.items.iter().find_map(|stored| match stored {
+            Stored::Layer {
+                event,
+                claimed,
+                marker: Some(marker),
+            } if Arc::ptr_eq(marker, &token.marker) => Some((*event, claimed)),
+            _ => None,
+        });
+        let Some((event, claimed)) = exact else {
+            return LayerIntentClaim::NotPending;
+        };
+        if event != expected_event {
+            return LayerIntentClaim::Mismatch;
+        }
+        if claimed.get() {
+            return LayerIntentClaim::AlreadyClaimed;
+        }
+
+        claimed.set(true);
+        if bucket.items.iter().all(|stored| match stored {
+            Stored::Binding { claimed, .. } | Stored::Layer { claimed, .. } => claimed.get(),
+            _ => false,
+        }) {
+            bucket.drained.set(true);
+        }
+        LayerIntentClaim::Claimed
     }
 
     pub fn cancel(&mut self, owner: Id) {
@@ -332,7 +434,15 @@ impl IntentQueue {
     pub fn undrained(&self) -> impl Iterator<Item = Id> + '_ {
         self.live()
             .iter()
-            .filter(|b| !b.drained.get() && !b.items.is_empty())
+            .filter(|b| {
+                !b.drained.get()
+                    && b.items.iter().any(|stored| match stored {
+                        Stored::Binding { claimed, .. } | Stored::Layer { claimed, .. } => {
+                            !claimed.get()
+                        }
+                        _ => true,
+                    })
+            })
             .map(|b| b.owner)
     }
 
@@ -341,23 +451,11 @@ impl IntentQueue {
             .and_then(|i| self.live().get(i))
             .is_some_and(|b| {
                 b.items.iter().any(|s| {
-                    matches!(
-                        s,
-                        Stored::Binding { .. }
-                            | Stored::Layer(_)
-                            | Stored::Cancel
-                            | Stored::FocusIn(_)
-                            | Stored::FocusOut(_)
-                    )
+                    matches!(s, Stored::Cancel | Stored::FocusIn(_) | Stored::FocusOut(_))
+                        || matches!(s, Stored::Binding { claimed, .. } if !claimed.get())
+                        || matches!(s, Stored::Layer { claimed, .. } if !claimed.get())
                 })
             })
-    }
-
-    #[cfg(test)]
-    pub(crate) fn was_drained(&self, owner: Id) -> bool {
-        self.bucket_index(owner)
-            .and_then(|i| self.live().get(i))
-            .is_some_and(|b| b.drained.get())
     }
 
     pub fn iter(&self, owner: Id) -> IntentIter<'_> {
@@ -430,7 +528,7 @@ impl IntentQueue {
             },
             Stored::FocusIn(via) => Intent::FocusIn { via: *via },
             Stored::FocusOut(to) => Intent::FocusOut { to: *to },
-            Stored::Layer(ev) => Intent::Layer(*ev),
+            Stored::Layer { event, .. } => Intent::Layer(*event),
             Stored::Cancel => Intent::Cancel,
         }
     }
@@ -446,8 +544,6 @@ impl fmt::Debug for IntentQueue {
             .field("used", &self.used)
             .field("table", &self.table)
             .field("overflow", &self.overflow);
-        #[cfg(feature = "testing")]
-        debug.field("probes", &self.probes);
         debug.finish()
     }
 }
@@ -478,111 +574,11 @@ impl<'f> Iterator for IntentIter<'f> {
         loop {
             let s = b.items.get(self.pos)?;
             self.pos = self.pos.wrapping_add(1);
-            if matches!(s, Stored::Binding { claimed, .. } if claimed.get()) {
+            if matches!(s, Stored::Binding { claimed, .. } | Stored::Layer { claimed, .. } if claimed.get())
+            {
                 continue;
             }
             return Some(self.queue.materialize(s));
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::event::{Chord, KeyCode};
-
-    #[test]
-    fn paste_reaches_only_an_editing_owner() {
-        let mut q = IntentQueue::new();
-        let a = Id::root("a");
-        let b = Id::root("b");
-        q.paste(a, "hello");
-        let got: Vec<Intent<'_>> = q.iter(a).collect();
-        assert_eq!(got, vec![Intent::Paste("hello")]);
-        assert_eq!(q.iter(b).count(), 0);
-        assert!(q.was_drained(a));
-        assert!(!q.was_drained(b));
-    }
-
-    #[test]
-    fn paste_debug_output_redacts_payload_and_queue_arena() {
-        let mut q = IntentQueue::new();
-        let owner = Id::root("debug");
-        q.paste(owner, "hunter2");
-        let intent = q.iter(owner).next().expect("paste intent");
-        assert!(!format!("{intent:?}").contains("hunter2"));
-        assert!(!format!("{q:?}").contains("hunter2"));
-        q.clear();
-        assert!(!format!("{q:?}").contains("hunter2"));
-    }
-
-    #[test]
-    fn empty_queue_probe_is_a_bool_check_and_owners_hash_into_the_table() {
-        let mut q = IntentQueue::new();
-        assert!(q.is_empty());
-        assert_eq!(q.iter(Id::root("x")).count(), 0);
-        for i in 0..40usize {
-            q.key(
-                Id::root("o").index(i),
-                Key {
-                    code: KeyCode::Enter,
-                    mods: KeyModifiers::NONE,
-                },
-            );
-        }
-        assert!(q.overflow);
-        for i in 0..40usize {
-            assert_eq!(q.iter(Id::root("o").index(i)).count(), 1);
-        }
-        assert_eq!(q.undrained().count(), 0);
-        q.clear();
-        assert!(q.is_empty() && !q.overflow);
-        assert_eq!(
-            q.iter(Id::root("o").index(3)).count(),
-            0,
-            "cleared buckets deliver nothing"
-        );
-    }
-
-    #[test]
-    fn undrained_buckets_are_reported() {
-        let mut q = IntentQueue::new();
-        let a = Id::root("a");
-        q.cancel(a);
-        assert_eq!(q.undrained().collect::<Vec<_>>(), vec![a]);
-        let _ = q.iter(a);
-        assert_eq!(q.undrained().count(), 0);
-    }
-
-    #[test]
-    fn binding_claim_marks_only_a_successful_exact_chord_and_preserves_order() {
-        let mut q = IntentQueue::new();
-        let owner = Id::root("claim");
-        let enter = Chord::key(KeyCode::Enter);
-        q.binding(owner, ActionKey::CONFIRM, enter);
-        q.key(
-            owner,
-            Key {
-                code: KeyCode::Char('x'),
-                mods: KeyModifiers::NONE,
-            },
-        );
-        assert_eq!(
-            q.claim_binding_chord(owner, Chord::key(KeyCode::Char(' '))),
-            None
-        );
-        assert!(!q.was_drained(owner));
-        assert_eq!(
-            q.claim_binding_chord(owner, enter),
-            Some(ActionKey::CONFIRM)
-        );
-        assert!(q.was_drained(owner));
-        assert_eq!(
-            q.iter(owner).collect::<Vec<_>>(),
-            vec![Intent::Key(Key {
-                code: KeyCode::Char('x'),
-                mods: KeyModifiers::NONE,
-            })]
-        );
     }
 }

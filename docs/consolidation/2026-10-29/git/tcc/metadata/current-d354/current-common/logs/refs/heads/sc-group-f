@@ -1,0 +1,20 @@
+0000000000000000000000000000000000000000 87ae53c037d78691bb877c75e62e663b96e818da Alexey Zhokhov <alexey@zhokhov.com> 1792168908 +0700	branch: Created from HEAD
+87ae53c037d78691bb877c75e62e663b96e818da 4e62194f1c06f64cfb4fd258ad0df3c8a09fdc15 Alexey Zhokhov <alexey@zhokhov.com> 1792170232 +0700	commit: feat(showcase): Progress and Empty & error pages (SC21)
+4e62194f1c06f64cfb4fd258ad0df3c8a09fdc15 c78af7493e475b56681e93f69eff94bbcc4a3be8 Alexey Zhokhov <alexey@zhokhov.com> 1792170256 +0700	commit: test(visual): progress re-approval
+c78af7493e475b56681e93f69eff94bbcc4a3be8 e56cd3751a546c302e1207e6c0625ff833eb44f3 Alexey Zhokhov <alexey@zhokhov.com> 1792170665 +0700	commit: feat(showcase): Splits & stacks page (SC23)
+e56cd3751a546c302e1207e6c0625ff833eb44f3 7b6067b03174a45fdf9344a5b0c9b7c3318e6d20 Alexey Zhokhov <alexey@zhokhov.com> 1792171081 +0700	rebase (finish): refs/heads/sc-group-f onto 30cce2a55e02a8d9f1bafd449338f68ef1f03bdf
+7b6067b03174a45fdf9344a5b0c9b7c3318e6d20 618bc65c45d46a3411cbfb604d71c148909a17fc Alexey Zhokhov <alexey@zhokhov.com> 1792171229 +0700	commit (amend): feat(showcase): Splits & stacks page (SC23)
+618bc65c45d46a3411cbfb604d71c148909a17fc 40071bad445a5b0b859583bb82418822f56ce328 Alexey Zhokhov <alexey@zhokhov.com> 1792171966 +0700	commit: feat(showcase): Code editor options, find and states (SC24)
+40071bad445a5b0b859583bb82418822f56ce328 56f9733f8228eb9d607fae13a2a73207195d9836 Alexey Zhokhov <alexey@zhokhov.com> 1792172000 +0700	commit: test(visual): code editor re-approval
+56f9733f8228eb9d607fae13a2a73207195d9836 b1bc4c5b1ca6f675d2adbdd21b0841a267282ff4 Alexey Zhokhov <alexey@zhokhov.com> 1792172011 +0700	rebase (finish): refs/heads/sc-group-f onto d2bcdd17fc33b9d8452dc4c14608389fdd5e7aa5
+b1bc4c5b1ca6f675d2adbdd21b0841a267282ff4 d267c9736867c3d4ee7a7e8fbc5526b46f4068e0 Alexey Zhokhov <alexey@zhokhov.com> 1792172320 +0700	rebase (finish): refs/heads/sc-group-f onto c7eeba65bb3df1ced37b9e88858e7e1920b15cd5
+d267c9736867c3d4ee7a7e8fbc5526b46f4068e0 1ddf3a71a9cb453aabfdf70a29a3a3ca2b4845cd Alexey Zhokhov <alexey@zhokhov.com> 1792173000 +0700	commit: feat(showcase): Diff and Terminal on the template (SC25)
+1ddf3a71a9cb453aabfdf70a29a3a3ca2b4845cd cc240b3f236fd4fea3ffe0fd7ce4acd659b73528 Alexey Zhokhov <alexey@zhokhov.com> 1792173570 +0700	commit: test(visual): terminal re-approval
+cc240b3f236fd4fea3ffe0fd7ce4acd659b73528 1ddf3a71a9cb453aabfdf70a29a3a3ca2b4845cd Alexey Zhokhov <alexey@zhokhov.com> 1792173575 +0700	reset: moving to HEAD~1
+1ddf3a71a9cb453aabfdf70a29a3a3ca2b4845cd 440036cfc2988a8a20da2fac4b123ffbed682a2d Alexey Zhokhov <alexey@zhokhov.com> 1792173576 +0700	commit (amend): feat(showcase): Diff and Terminal on the template (SC25)
+440036cfc2988a8a20da2fac4b123ffbed682a2d 6d68152d36a0b87df7737323d154f016630e80f6 Alexey Zhokhov <alexey@zhokhov.com> 1792173590 +0700	commit: test(visual): terminal re-approval
+6d68152d36a0b87df7737323d154f016630e80f6 faa8b4ab75652d6d23d4da0a00cd3ea1bb0c99fa Alexey Zhokhov <alexey@zhokhov.com> 1792173599 +0700	commit: docs(plan): SC25 visual notes
+faa8b4ab75652d6d23d4da0a00cd3ea1bb0c99fa d25e2ca2b64f640668a913515801c16c77e7b0a0 Alexey Zhokhov <alexey@zhokhov.com> 1792173605 +0700	commit (amend): docs(plan): SC24 and SC25 visual notes
+d25e2ca2b64f640668a913515801c16c77e7b0a0 a4876b7f3dbf354f951498f990e9ac8281999849 Alexey Zhokhov <alexey@zhokhov.com> 1792174464 +0700	rebase (finish): refs/heads/sc-group-f onto 1ec63b73794283be6cbb88564e48c1f9a5da2b40
+a4876b7f3dbf354f951498f990e9ac8281999849 308cd7201cd6fda614eb1a576698535563cb5703 Alexey Zhokhov <alexey@zhokhov.com> 1792175022 +0700	rebase (finish): refs/heads/sc-group-f onto ed1519e0bf446a8b5ad0471b40d4986e2d1893fd
+308cd7201cd6fda614eb1a576698535563cb5703 dd07b59b25bb8245123fdde032b0857bd562fad8 Alexey Zhokhov <alexey@zhokhov.com> 1792175233 +0700	commit: test(showcase): the no-States case uses a stub page

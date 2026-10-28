@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 2b9ab242d6b399b3650e3b1087f47a9ad8f57f01 Alexey Zhokhov <alexey@zhokhov.com> 1792623009 +0700	branch: Created from origin/parity/termrock-visual-baseline
+2b9ab242d6b399b3650e3b1087f47a9ad8f57f01 59ea69ba43368ce059055bdc89ed372ed40e8b27 Alexey Zhokhov <alexey@zhokhov.com> 1792629294 +0700	commit: fix(showcase): keep the pages on the approved frame
+59ea69ba43368ce059055bdc89ed372ed40e8b27 7868df0c4766633a4e48dce6368a27cd1e75d319 Alexey Zhokhov <alexey@zhokhov.com> 1792631240 +0700	rebase (finish): refs/heads/wip/showcase-page-fixes-20261022 onto 823474e2fbc6d392262687439bc4d140464e86ef
+7868df0c4766633a4e48dce6368a27cd1e75d319 e2015b881437a1714af56a9570d99361610040a2 Alexey Zhokhov <alexey@zhokhov.com> 1792634856 +0700	rebase (finish): refs/heads/wip/showcase-page-fixes-20261022 onto 1bf630ec459023a863e45c851951e84b1a9402ba

@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 42f0b372e2db531b251a5287058556dbc65dc44b Alexey Zhokhov <alexey@zhokhov.com> 1792207673 +0700	branch: Created from HEAD
+42f0b372e2db531b251a5287058556dbc65dc44b f9aa0495105eb4cfd8a61310207af0ae24ab2383 Alexey Zhokhov <alexey@zhokhov.com> 1792208134 +0700	commit: build(tools): pin developer tools in mise.toml
+f9aa0495105eb4cfd8a61310207af0ae24ab2383 ba7b6ab4586d38d9fc1ad04306f130db0f63bcf9 Alexey Zhokhov <alexey@zhokhov.com> 1792208134 +0700	commit: docs(tools): install developer tools with mise
+ba7b6ab4586d38d9fc1ad04306f130db0f63bcf9 942b869d7b719773870687d5bc39f164110bfd59 Alexey Zhokhov <alexey@zhokhov.com> 1792208145 +0700	rebase (finish): refs/heads/mise-tools onto 315a39522ae97857ec45a1b981da831e7a118706

@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 300a97bf8ef78b079cc79acc948894029dbefc3b Alexey Zhokhov <alexey@zhokhov.com> 1792582107 +0700	branch: Created from 300a97bf8ef78b079cc79acc948894029dbefc3b
+300a97bf8ef78b079cc79acc948894029dbefc3b 661cac58e9bd1241a491b7937e978f7d50ac55f9 Alexey Zhokhov <alexey@zhokhov.com> 1792584195 +0700	commit: refactor(showcase): own the shell body split with the shared layout plan
+661cac58e9bd1241a491b7937e978f7d50ac55f9 50a6eeb5128d024541d5c7a63ffa1b7218feaea2 Alexey Zhokhov <alexey@zhokhov.com> 1792584979 +0700	commit: chore(xtask): drop the stale showcase editor ownership exceptions
+50a6eeb5128d024541d5c7a63ffa1b7218feaea2 d9968601420e3f8d7d2612a2f3ac7b01cda62431 Alexey Zhokhov <alexey@zhokhov.com> 1792585160 +0700	commit: test(showcase): pin the shell chrome hit regions

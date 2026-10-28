@@ -1,0 +1,103 @@
+{
+  "detector_rules": [
+    "private_key_pem",
+    "github_token",
+    "openai_token",
+    "aws_access_key",
+    "jwt",
+    "credential_url",
+    "bearer_literal"
+  ],
+  "groups": [
+    {
+      "decoded_loose_object_bytes": 0,
+      "decoded_loose_object_files": 0,
+      "exact_file_set_and_hashes": true,
+      "files": 52,
+      "group": "ODB-GROUP-001-plan-root",
+      "high_confidence_findings": [],
+      "provenance": "/Users/donbeave/termrock-pr38-plan",
+      "raw_configs_and_hooks_in_payload": false,
+      "raw_git_pack_files": 1,
+      "receipt_sha256": "242204ac55754ffd1a0ba0ab9cb120ce5a35caa3a0bdaa6bb3209f9dc490c87c",
+      "root": "/private/tmp/pr38-consolidation-staging-20261029/git-stores/ODB-GROUP-001-plan-root",
+      "scope_decision": "ELIGIBLE",
+      "stored_bytes": 766691,
+      "sums_sha256": "fec3c964ed0a51420ff62d298da3c24566eccbfcae71a3cf292c81bd091e729d"
+    },
+    {
+      "decoded_loose_object_bytes": 0,
+      "decoded_loose_object_files": 0,
+      "exact_file_set_and_hashes": true,
+      "files": 118,
+      "group": "source-preimages-v2",
+      "high_confidence_findings": [],
+      "provenance": "source-preimages",
+      "raw_configs_and_hooks_in_payload": false,
+      "raw_git_pack_files": 0,
+      "receipt_sha256": "0b4e3fdfa6540860f4273eb7be123fca36cd43f2c92a66a5299ffa0ec3341536",
+      "root": "/private/tmp/pr38-consolidation-staging-20261029/git-stores/source-preimages-v2",
+      "scope_decision": "ELIGIBLE",
+      "stored_bytes": 34641658,
+      "sums_sha256": "15587cd64720a630a70f0924107499d2c15e3d0d22933783d803e3cc702386a7"
+    },
+    {
+      "decoded_loose_object_bytes": 0,
+      "decoded_loose_object_files": 0,
+      "exact_file_set_and_hashes": true,
+      "files": 90,
+      "group": "termrock-product-rust-cargo",
+      "high_confidence_findings": [],
+      "provenance": "https://github.com/tailrocks/termrock (Cargo.toml repository field)",
+      "raw_configs_and_hooks_in_payload": false,
+      "raw_git_pack_files": 5,
+      "receipt_sha256": "d709c80c071f3a75e1f3f40a90454e2c721efd1966cbfff5cf1cc84c29efc430",
+      "root": "/private/tmp/pr38-consolidation-staging-20261029/git-stores/termrock-product-rust-cargo",
+      "scope_decision": "ELIGIBLE",
+      "stored_bytes": 91914417,
+      "sums_sha256": "e4daa1bc7862b6f9680a10b66b8cfaf3e08188895617fa6705f4be7cd5f8c550"
+    },
+    {
+      "decoded_loose_object_bytes": 112,
+      "decoded_loose_object_files": 7,
+      "exact_file_set_and_hashes": true,
+      "files": 43,
+      "group": "t01-bare-fixtures",
+      "high_confidence_findings": [],
+      "provenance": "T01-bare-fixtures",
+      "raw_configs_and_hooks_in_payload": false,
+      "raw_git_pack_files": 2,
+      "receipt_sha256": "41dec2fd7919cfee9075d24c8ec140e4f56f73744bfaa3a5efdf7394c8061c44",
+      "root": "/private/tmp/pr38-consolidation-staging-20261029/git-stores/t01-bare-fixtures",
+      "scope_decision": "ELIGIBLE",
+      "stored_bytes": 61981280,
+      "sums_sha256": "177b3605e3158155559bd9f896adefb5d49f61246c887d230daca357a3606863"
+    },
+    {
+      "decoded_loose_object_bytes": 0,
+      "decoded_loose_object_files": 0,
+      "exact_file_set_and_hashes": true,
+      "files": 22,
+      "group": "jm2recon-working-tree",
+      "high_confidence_findings": [],
+      "provenance": "/Users/donbeave/tmp/termrock-jm2recon",
+      "raw_configs_and_hooks_in_payload": false,
+      "raw_git_pack_files": 0,
+      "receipt_sha256": "09f230e868ead5f8aeceb05779c477dd65eb90645f778a93fddd948ce1a748b9",
+      "root": "/private/tmp/pr38-consolidation-staging-20261029/git-stores/jm2recon-working-tree",
+      "scope_decision": "ELIGIBLE",
+      "stored_bytes": 20904122,
+      "sums_sha256": "cf121a68f7b63d90384d57abfa3a24b6e10bf36d6ef8251e23b702efbf2da1e3"
+    }
+  ],
+  "limits": [
+    "Raw Git packs were verified by exact stored-byte hashes and project provenance; no exhaustive manual semantic review of historical objects.",
+    "T01 target fixture remains incomplete; publication is raw-custody transport only, not complete source closure.",
+    "New tc-claude tmp_pack_1quA7Q is outside these groups and is not cleared.",
+    "Remote reconstruction and final all-work custody/deletion gates remain pending."
+  ],
+  "review_id": "PR38-NON-TCC-PUBLICATION-PREFLIGHT-v1",
+  "reviewed_utc": "2026-10-28T21:07:00.278329+00:00",
+  "reviewer": "/root/consolidate_safety_and_remote_review",
+  "scope": "Exact five staged group directories and SHA256SUMS maps; source history/data transport under explicit user request. No upload, source mutation, candidate execution, or deletion."
+}

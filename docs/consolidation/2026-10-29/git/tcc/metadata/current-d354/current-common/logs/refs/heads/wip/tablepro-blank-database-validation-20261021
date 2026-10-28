@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 4f40bb294da89bbfcb2a6716c88a3158427aa0b2 Alexey Zhokhov <alexey@zhokhov.com> 1792550294 +0700	branch: Created from 4f40bb294da89bbfcb2a6716c88a3158427aa0b2
+4f40bb294da89bbfcb2a6716c88a3158427aa0b2 31a7049d41bc54ddce4065db4996108cc9a61283 Alexey Zhokhov <alexey@zhokhov.com> 1792550297 +0700	cherry-pick: fix(tablepro): start new connection drafts blank
+31a7049d41bc54ddce4065db4996108cc9a61283 8992262f4c75c7eadf6730f7fa270385ad6003aa Alexey Zhokhov <alexey@zhokhov.com> 1792550439 +0700	commit: fix(tablepro): allow blank connection databases

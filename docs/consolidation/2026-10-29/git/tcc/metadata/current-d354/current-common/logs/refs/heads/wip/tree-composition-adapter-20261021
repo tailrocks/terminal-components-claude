@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 48c5fc33b81626925d67facb278c7656e625b887 Alexey Zhokhov <alexey@zhokhov.com> 1792562292 +0700	branch: Created from FETCH_HEAD
+48c5fc33b81626925d67facb278c7656e625b887 9791a3110800a51eae29f641500c18a671bc5a57 Alexey Zhokhov <alexey@zhokhov.com> 1792562556 +0700	commit: feat(composition): adapt shared tree widget
+9791a3110800a51eae29f641500c18a671bc5a57 12e011659e1f55a727de85fc6e6cfc17074bd35a Alexey Zhokhov <alexey@zhokhov.com> 1792562573 +0700	rebase (finish): refs/heads/wip/tree-composition-adapter-20261021 onto 25d2a36137be15e5aba140e280becbd918427bb9
+12e011659e1f55a727de85fc6e6cfc17074bd35a 45fbf69f8ff75d5b8cb40fd72a2449cde5dddbc4 Alexey Zhokhov <alexey@zhokhov.com> 1792563187 +0700	commit: docs(audit): clarify tree adapter provenance
+45fbf69f8ff75d5b8cb40fd72a2449cde5dddbc4 92c4ac9b712e2b81214048adacf5472f286ef3ea Alexey Zhokhov <alexey@zhokhov.com> 1792563197 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

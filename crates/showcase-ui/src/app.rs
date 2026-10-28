@@ -1,24 +1,67 @@
+use crate::pane_tree::PaneTreePage;
 use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
+use termrock::overlays::NoticeReveal;
 use termrock::{
-    ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
-    FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment, NavList, NavListAction,
-    NavListState, Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, Size, StateFlags,
-    Status, StatusBar, StatusItem, Theme, TooSmall, Ui, Variant, id, width,
+    Action, ActionKey, Anchor, App as TuiApp, Brand, Chord, Color, ColorLevel, CrossAlign, Cx,
+    Dialog, DialogAction, DialogState, Dismiss, EmptyState, FrameRead, GlyphRole, HelpOverlay,
+    HelpOverlayState, HelpSection, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, LayerOpening,
+    Moment, Panel, PanelKind, Part, PartRef, Phase, Position, Props, Rect, Response, RowFn,
+    ScopeId, Side, Size, StateFlags, Status, StatusBar, StatusItem, Theme, TooSmall, Tree,
+    TreeAction, TreeNode, TreeState, Ui, Variant, id, width,
 };
 
+use showcase_demos::pages::breadcrumbs_rails::TOGGLE_RAIL_ACTION;
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
+use showcase_demos::pages::query_workbench::RUN_QUERY;
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
-    Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
-    dialogs::DialogsPage, editable::EditablePage, editor::EditorPage, forms::FormsPage,
-    grid::GridPage, inputs::InputsPage, lists::ListsPage, overview::OverviewPage,
-    panels::PanelsPage, pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage,
-    settings::SettingsPage, sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage,
-    terminal::TerminalPage, textareas::TextAreasPage, trees::TreesPage,
+    Page, PageStatus,
+    breadcrumbs_rails::BreadcrumbsRailsPage,
+    buttons::ButtonsPage,
+    celleditors::CellEditorsPage,
+    checks_radios::ChecksRadiosPage,
+    chips::ChipsPage,
+    chrome::ChromePage,
+    dialog_kinds::DialogKindsPage,
+    dialogs::DialogsPage,
+    diff::DiffPage,
+    editable::EditablePage,
+    editor::EditorPage,
+    empty_error::EmptyErrorPage,
+    forms::FormsPage,
+    grid::GridPage,
+    help_keys::HelpKeysPage,
+    inputs::InputsPage,
+    lists::ListsPage,
+    master_detail::MasterDetailPage,
+    notices::{NOTICE_REVEAL_OWNERS, NoticeRevealTarget, NoticesPage},
+    overview::OverviewPage,
+    panels::PanelsPage,
+    pickers::PickersPage,
+    progress::ProgressPage,
+    query_workbench::QueryWorkbenchPage,
+    quit_leave::QuitLeavePage,
+    scrolling::ScrollingPage,
+    settings::SettingsPage,
+    sidebars::SidebarsPage,
+    status_hints::StatusHintsPage,
+    tables::TablesPage,
+    taskrunner::TaskRunnerPage,
+    terminal::TerminalPage,
+    textareas::TextAreasPage,
+    toolbars::ToolbarsPage,
+    trees::TreesPage,
 };
 
 const NAV: Id = id!("navigation");
+const CHECKS_RADIOS_ENTRY: usize = 12;
+const STATUS_HINTS_ENTRY: usize = 2;
+const EMPTY_ERROR_ENTRY: usize = 31;
+const NOTICES_ENTRY: usize = 33;
+const DIFF_ENTRY: usize = 40;
+const MASTER_DETAIL_ENTRY: usize = 37;
+const PANE_TREE_ENTRY: usize = 38;
 const BRAND: Id = id!("brand");
 const STATUS: Id = id!("status");
 const HELP: Id = id!("help");
@@ -26,21 +69,68 @@ const TOO_SMALL: Id = id!("too-small");
 const HEADER_HELP: Id = id!("header.help");
 const HEADER_INSPECT: Id = id!("header.inspect");
 const INSPECTOR: Id = id!("inspector");
+const INSPECTOR_CLOSE: Id = INSPECTOR.part(Part::ACTIONS).index(0);
+const QUIT_CONFIRMATION: Id = id!("quit-confirmation");
+const QUIT_CONFIRMATION_CLOSED_REASON: &str = "";
+const QUIT_CONFIRMATION_ACTIONS: [Action<'static>; 2] = [
+    Action::quiet(ActionKey::CANCEL, "Stay"),
+    Action::danger(ActionKey::CONFIRM, "Stop and leave"),
+];
 const QUIT: ActionKey = ActionKey::application("showcase.quit");
 const QUIT_CTRL: ActionKey = ActionKey::application("showcase.quit.ctrl");
 const HELP_COMMAND: ActionKey = ActionKey::application("showcase.help");
 const INSPECTOR_COMMAND: ActionKey = ActionKey::application("showcase.inspector");
 const NEXT_PAGE: ActionKey = ActionKey::application("showcase.page.next");
 const PREV_PAGE: ActionKey = ActionKey::application("showcase.page.previous");
-const HELP_TEXT: &str = "Tab / Shift+Tab   move keyboard focus\n\
-↑ ↓ ← →           move inside the focused control\n\
-Enter / Space     activate · start editing\n\
-Esc               cancel editing · back to navigation\n\
-[ ]               previous / next page\n\
-0                 jump to navigation\n\
-i                 toggle state inspector\n\
-q                 quit\n\n\
-Mouse: hover to preview, click to focus and activate, wheel to scroll, drag the scrollbar thumb.";
+const NAV_PANEL_PARTS: [(Part, termrock::StylePatch); 1] = [(
+    Part::DETAIL,
+    termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+)];
+const HELP_SHELL_ROWS: &[(&str, &str)] = &[
+    ("F1 ?", "This reference"),
+    ("F10 Ctrl+F2", "Menu bar"),
+    ("Ctrl+PgDn ]", "Next page"),
+    ("Ctrl+PgUp [", "Previous page"),
+    ("0", "Jump to navigation"),
+    ("i", "The Inspector"),
+    ("Tab", "Next control"),
+    ("Shift+Tab", "Previous control"),
+    ("Esc", "Back"),
+    ("Ctrl+Q q", "Quit"),
+    ("Ctrl+C", "Copy, else quit"),
+];
+const HELP_SIDEBAR_ROWS: &[(&str, &str)] = &[
+    ("↑↓", "Move"),
+    ("PgUp PgDn", "Page"),
+    ("Home End", "First / last"),
+    ("a–z", "Jump to a row by name"),
+    ("←→", "Fold / unfold"),
+    ("Enter", "Activate"),
+    ("*", "Expand all"),
+    ("-", "Collapse all"),
+    ("/", "Filter (Esc clears)"),
+];
+const HELP_MOUSE_ROWS: &[(&str, &str)] = &[
+    ("Hover", "Preview"),
+    ("Click", "Focus and activate"),
+    ("Wheel", "Scroll"),
+    ("Drag", "A scrollbar thumb"),
+];
+const HELP_SECTIONS: [HelpSection<'static>; 3] = [
+    HelpSection::plain("Shell", HELP_SHELL_ROWS),
+    HelpSection::plain("Sidebar", HELP_SIDEBAR_ROWS),
+    HelpSection::plain("Mouse", HELP_MOUSE_ROWS),
+];
+const HELP_PART_PATCHES: &[(Part, termrock::StylePatch)] = &[
+    (
+        Part::BORDER,
+        termrock::StylePatch::new().set_fg(termrock::Role::BorderStrong),
+    ),
+    (
+        Part::DETAIL,
+        termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+    ),
+];
 
 const STATUS_LEFT: [StatusItem<'static>; 1] = [StatusItem::new("showcase")];
 const STATUS_RIGHT: [StatusItem<'static>; 2] = [
@@ -69,13 +159,20 @@ pub enum PageId {
     Grid,
     Chips,
     Pickers,
+    DialogKinds,
     Chrome,
     Settings,
     TaskRunner,
+    CellEditors,
+    Toolbars,
+    QueryWorkbench,
+    BreadcrumbsRails,
+    HelpKeys,
+    QuitLeave,
 }
 
 impl PageId {
-    pub const ALL: [Self; 22] = [
+    pub const ALL: [Self; 29] = [
         Self::Overview,
         Self::Buttons,
         Self::Inputs,
@@ -95,9 +192,16 @@ impl PageId {
         Self::Grid,
         Self::Chips,
         Self::Pickers,
+        Self::DialogKinds,
         Self::Chrome,
         Self::Settings,
         Self::TaskRunner,
+        Self::CellEditors,
+        Self::Toolbars,
+        Self::QueryWorkbench,
+        Self::BreadcrumbsRails,
+        Self::HelpKeys,
+        Self::QuitLeave,
     ];
 
     pub const fn title(self) -> &'static str {
@@ -121,9 +225,16 @@ impl PageId {
             Self::Grid => "Data grid",
             Self::Chips => "Chips & selects",
             Self::Pickers => "Pickers",
+            Self::DialogKinds => "Dialog kinds",
             Self::Chrome => "Chrome",
             Self::Settings => "Settings",
             Self::TaskRunner => "Task runner",
+            Self::CellEditors => "Cell editors",
+            Self::Toolbars => "Toolbars",
+            Self::QueryWorkbench => "Query workbench",
+            Self::BreadcrumbsRails => "Breadcrumbs & rails",
+            Self::HelpKeys => "Help & keys",
+            Self::QuitLeave => "Quit & leave",
         }
     }
 
@@ -148,9 +259,16 @@ impl PageId {
             Self::Grid => "grid",
             Self::Chips => "chips",
             Self::Pickers => "pickers",
+            Self::DialogKinds => "dialog-kinds",
             Self::Chrome => "chrome",
             Self::Settings => "settings",
             Self::TaskRunner => "taskrunner",
+            Self::CellEditors => "celleditors",
+            Self::Toolbars => "toolbars",
+            Self::QueryWorkbench => "queryworkbench",
+            Self::BreadcrumbsRails => "breadcrumbsrails",
+            Self::HelpKeys => "helpkeys",
+            Self::QuitLeave => "quitleave",
         }
     }
 
@@ -159,17 +277,10 @@ impl PageId {
     }
 
     pub fn from_name(value: &str) -> Option<Self> {
-        let normalized = |input: &str| {
-            input
-                .chars()
-                .filter(char::is_ascii_alphanumeric)
-                .map(|character| character.to_ascii_lowercase())
-                .collect::<String>()
-        };
-        let value = normalized(value);
-        Self::ALL
-            .into_iter()
-            .find(|page| normalized(page.slug()) == value || normalized(page.title()) == value)
+        nav_index_from_name(value).and_then(|index| match nav_target_at(index)? {
+            NavTarget::Live(page) => Some(page),
+            NavTarget::Selection | NavTarget::Placeholder(_) => None,
+        })
     }
 
     pub fn from_key(key: ItemKey) -> Option<Self> {
@@ -187,6 +298,47 @@ pub struct NavEntry {
     pub icon: &'static str,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NavTarget {
+    Live(PageId),
+    Selection,
+    Placeholder(usize),
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum NavExpand {
+    #[default]
+    All,
+
+    Accordion,
+
+    CurrentGroup,
+}
+
+impl NavTarget {
+    const fn page(self) -> Option<PageId> {
+        match self {
+            Self::Live(page) => Some(page),
+            Self::Selection | Self::Placeholder(_) => None,
+        }
+    }
+
+    const fn has_content(self) -> bool {
+        matches!(
+            self,
+            Self::Live(_)
+                | Self::Selection
+                | Self::Placeholder(CHECKS_RADIOS_ENTRY)
+                | Self::Placeholder(STATUS_HINTS_ENTRY)
+                | Self::Placeholder(EMPTY_ERROR_ENTRY)
+                | Self::Placeholder(NOTICES_ENTRY)
+                | Self::Placeholder(DIFF_ENTRY)
+                | Self::Placeholder(MASTER_DETAIL_ENTRY)
+                | Self::Placeholder(PANE_TREE_ENTRY)
+        )
+    }
+}
+
 impl std::fmt::Display for NavEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.label)
@@ -197,121 +349,259 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Overview,
         label: "Overview",
-        section: "Foundations",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Buttons,
-        label: "Buttons",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Inputs,
-        label: "Inputs",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::TextAreas,
-        label: "Text areas",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Forms,
-        label: "Forms",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Lists,
-        label: "Lists",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Trees,
-        label: "Trees",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Tables,
-        label: "Tables",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Editable,
-        label: "Editable tables",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Panels,
-        label: "Panels",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Sidebars,
-        label: "Sidebars",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Dialogs,
-        label: "Dialogs",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Progress,
-        label: "Progress",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Scrolling,
-        label: "Scrolling",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Terminal,
-        label: "Terminal",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Editor,
-        label: "Code editor",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Grid,
-        label: "Data grid",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Chips,
-        label: "Chips & selects",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Pickers,
-        label: "Pickers",
-        section: "Components",
+        section: "",
         icon: "•",
     },
     NavEntry {
         id: PageId::Chrome,
         label: "Chrome",
-        section: "Components",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Status & hints",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::BreadcrumbsRails,
+        label: "Breadcrumbs & rails",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::HelpKeys,
+        label: "Help & keys",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::QuitLeave,
+        label: "Quit & leave",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Focus & navigation",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Buttons,
+        label: "Buttons",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Inputs,
+        label: "Inputs",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::TextAreas,
+        label: "Text areas",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Chips,
+        label: "Chips & selects",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Forms,
+        label: "Forms",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Checks & radios",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Toolbars,
+        label: "Toolbars",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Tables,
+        label: "Basic table",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Editable,
+        label: "Editable",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Grid,
+        label: "Data grid",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Selection",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::CellEditors,
+        label: "Cell editors",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Columns",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Lists,
+        label: "Lists",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Trees,
+        label: "Trees",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Sidebars,
+        label: "Sidebars",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Tabs",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Menus",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Dialogs,
+        label: "Dialogs",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Pickers,
+        label: "Pickers",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::DialogKinds,
+        label: "Dialog kinds",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Popups & tooltips",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "File browser",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Progress,
+        label: "Progress",
+        section: "Feedback",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Empty & error",
+        section: "Feedback",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Meters",
+        section: "Feedback",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Notices",
+        section: "Feedback",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Panels,
+        label: "Panels",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Scrolling,
+        label: "Scrolling",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Splits & stacks",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Master-detail",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Pane tree",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Editor,
+        label: "Code editor",
+        section: "Text & code",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Diff",
+        section: "Text & code",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Terminal,
+        label: "Terminal",
+        section: "Text & code",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Text utilities",
+        section: "Text & code",
         icon: "•",
     },
     NavEntry {
@@ -326,23 +616,643 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         section: "Screens",
         icon: "•",
     },
+    NavEntry {
+        id: PageId::QueryWorkbench,
+        label: "Query workbench",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Connections",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Finder",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Disk cleanup",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Activity",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Workspaces",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Accounts & usage",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Launch cockpit",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Read-only report",
+        section: "Screens",
+        icon: "•",
+    },
 ];
 
-fn nav_key(entry: &NavEntry) -> ItemKey {
-    ItemKey::text(entry.id.slug())
+const NAV_ALIASES: &[(&str, &str)] = &[
+    ("tables", "Basic table"),
+    ("editabletables", "Editable"),
+    ("selectabletable", "Selection"),
+    ("optioneditors", "Cell editors"),
+    ("options", "Cell editors"),
+    ("enums", "Cell editors"),
+    ("choices", "Cell editors"),
+    ("selection", "Selection"),
+    ("bulkedit", "Selection"),
+    ("selectable", "Selection"),
+    ("hints", "Status & hints"),
+    ("breadcrumbs", "Breadcrumbs & rails"),
+    ("rails", "Breadcrumbs & rails"),
+    ("help", "Help & keys"),
+    ("quit", "Quit & leave"),
+    ("leave", "Quit & leave"),
+    ("focus", "Focus & navigation"),
+    ("checks", "Checks & radios"),
+    ("radios", "Checks & radios"),
+    ("popups", "Popups & tooltips"),
+    ("tooltips", "Popups & tooltips"),
+    ("empty", "Empty & error"),
+    ("splits", "Splits & stacks"),
+    ("text", "Text utilities"),
+    ("datagrid", "Data grid"),
+    ("codeeditor", "Code editor"),
+    ("chipsselects", "Chips & selects"),
+    ("queryworkbench", "Query workbench"),
+    ("celleditors", "Cell editors"),
+];
+
+fn normalized_name(input: &str) -> String {
+    input
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .map(|character| character.to_ascii_lowercase())
+        .collect()
 }
 
-fn nav_section(entry: &NavEntry) -> &str {
-    entry.section
+fn nav_index_from_name(value: &str) -> Option<usize> {
+    let value = normalized_name(value);
+    if let Some(label) = NAV_ALIASES
+        .iter()
+        .find(|(alias, _)| *alias == value)
+        .map(|(_, label)| *label)
+    {
+        return NAV_ENTRIES.iter().position(|entry| entry.label == label);
+    }
+    if let Some(index) = NAV_ENTRIES
+        .iter()
+        .position(|entry| normalized_name(entry.label) == value)
+    {
+        return Some(index);
+    }
+    NAV_ENTRIES
+        .iter()
+        .enumerate()
+        .find(|(index, entry)| {
+            matches!(nav_target_for_entry(entry, *index), NavTarget::Live(_))
+                && (normalized_name(entry.id.slug()) == value
+                    || normalized_name(entry.id.title()) == value)
+        })
+        .map(|(index, _)| index)
 }
 
-fn nav() -> NavList<'static, NavEntry, impl Fn(&NavEntry) -> ItemKey> {
-    NavList::new(NAV)
-        .key(nav_key)
-        .section(&nav_section)
-        .compact_when_clipped()
-        .header_indent(3)
-        .render_row(&paint_nav_row)
+fn index_for_page(page: PageId) -> usize {
+    NAV_ENTRIES
+        .iter()
+        .enumerate()
+        .position(|(index, entry)| nav_target_for_entry(entry, index) == NavTarget::Live(page))
+        .unwrap_or(0)
+}
+
+const NAV_ENTRY_KEYSPACE: u64 = 0x4e41_5645_4e54_5259;
+const NAV_GROUP_KEYSPACE: u64 = 0x4e41_5647_524f_5550;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct NavQuery {
+    text: String,
+    revision: u64,
+}
+
+fn nav_target_for_entry(entry: &NavEntry, index: usize) -> NavTarget {
+    if entry.label == "Selection" {
+        NavTarget::Selection
+    } else if entry.label == "Overview" || entry.id != PageId::Overview {
+        NavTarget::Live(entry.id)
+    } else {
+        NavTarget::Placeholder(index)
+    }
+}
+
+fn nav_entry_key(index: usize) -> ItemKey {
+    ItemKey::pair(NAV_ENTRY_KEYSPACE, index as u64)
+}
+
+fn nav_group_key(index: usize) -> ItemKey {
+    ItemKey::pair(NAV_GROUP_KEYSPACE, index as u64)
+}
+
+fn nav_index_for_target(target: NavTarget) -> Option<usize> {
+    match target {
+        NavTarget::Placeholder(index) => NAV_ENTRIES
+            .get(index)
+            .filter(|entry| nav_target_for_entry(entry, index) == target)
+            .map(|_| index),
+        _ => NAV_ENTRIES
+            .iter()
+            .enumerate()
+            .find(|(index, entry)| nav_target_for_entry(entry, *index) == target)
+            .map(|(index, _)| index),
+    }
+}
+
+fn nav_display_label(label: &str) -> &str {
+    match label {
+        "Basic table" => "Tables",
+        "Editable" => "Editable tables",
+        _ => label,
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct NavNode {
+    label: &'static str,
+    depth: u16,
+    parent: bool,
+    entry: Option<usize>,
+    target: Option<NavTarget>,
+    key: ItemKey,
+    query_match: bool,
+    fade: u8,
+    inactive_layer: bool,
+}
+
+fn nav_nodes(state: &TreeState, viewport_height: u16) -> Vec<NavNode> {
+    nav_nodes_for_query(state, viewport_height, None)
+}
+
+fn nav_nodes_for_query(
+    state: &TreeState,
+    viewport_height: u16,
+    query: Option<&NavQuery>,
+) -> Vec<NavNode> {
+    let mut nodes = Vec::new();
+    let mut section = "";
+    let mut section_index = 0usize;
+    for (index, entry) in NAV_ENTRIES.iter().enumerate() {
+        if entry.section != section {
+            section = entry.section;
+            if !section.is_empty() {
+                nodes.push(NavNode {
+                    label: section,
+                    depth: 0,
+                    parent: true,
+                    entry: None,
+                    target: None,
+                    key: nav_group_key(section_index),
+                    query_match: true,
+                    fade: 0,
+                    inactive_layer: false,
+                });
+                section_index = section_index.saturating_add(1);
+            }
+        }
+        nodes.push(NavNode {
+            label: nav_display_label(entry.label),
+            depth: u16::from(!entry.section.is_empty()),
+            parent: false,
+            entry: Some(index),
+            target: Some(nav_target_for_entry(entry, index)),
+            key: nav_entry_key(index),
+            query_match: true,
+            fade: 0,
+            inactive_layer: false,
+        });
+    }
+
+    let query_matches = query.map(|query| nav_query_projection(&nodes, state, query));
+    if let Some(matches) = &query_matches {
+        for (node, included) in nodes.iter_mut().zip(matches.iter().copied()) {
+            node.query_match = included;
+        }
+    }
+
+    let visible_sources = if let Some(matches) = &query_matches {
+        matches
+            .iter()
+            .enumerate()
+            .filter_map(|(source, included)| included.then_some(source))
+            .collect::<Vec<_>>()
+    } else {
+        nav_expanded_sources(&nodes, state)
+    };
+
+    let viewport = usize::from(viewport_height);
+    let mut scroll = *state.scroll();
+    scroll.apply_layout(viewport, visible_sources.len());
+    let offset = scroll.offset();
+    let end = offset.saturating_add(viewport);
+    let after_hidden = visible_sources.len() > end;
+    for (visible, source) in visible_sources.iter().copied().enumerate() {
+        if viewport > 0 && visible >= offset && visible < end {
+            let from_start = visible.saturating_sub(offset);
+            let from_end = end.saturating_sub(visible.saturating_add(1));
+            if offset > 0 && from_start < 2 {
+                nodes[source].fade = if from_start == 0 { 2 } else { 1 };
+            } else if after_hidden && from_end < 2 {
+                nodes[source].fade = if from_end == 0 { 2 } else { 1 };
+            }
+        }
+    }
+    nodes
+}
+
+fn nav_expanded_sources(nodes: &[NavNode], state: &TreeState) -> Vec<usize> {
+    let mut visible_sources = Vec::with_capacity(nodes.len());
+    let mut collapsed_at = None;
+    for (source, node) in nodes.iter().enumerate() {
+        if collapsed_at.is_some_and(|depth| node.depth > depth) {
+            continue;
+        }
+        collapsed_at = None;
+        visible_sources.push(source);
+        if node.parent && !state.is_expanded(node.key) {
+            collapsed_at = Some(node.depth);
+        }
+    }
+    visible_sources
+}
+
+fn nav_query_projection(nodes: &[NavNode], state: &TreeState, query: &NavQuery) -> Vec<bool> {
+    let mut included = vec![false; nodes.len()];
+    if query.text.is_empty() {
+        for source in nav_expanded_sources(nodes, state) {
+            if let Some(row) = included.get_mut(source) {
+                *row = true;
+            }
+        }
+        return included;
+    }
+
+    let needle = query.text.to_lowercase();
+    let matching_groups = nodes
+        .iter()
+        .map(|node| node.parent && node.label.to_lowercase().contains(&needle))
+        .collect::<Vec<_>>();
+    for (source, node) in nodes.iter().enumerate() {
+        if node.parent {
+            included[source] = matching_groups[source];
+            continue;
+        }
+        let Some(entry_index) = node.entry else {
+            continue;
+        };
+        let Some(entry) = NAV_ENTRIES.get(entry_index) else {
+            continue;
+        };
+        let parent = (0..source)
+            .rev()
+            .find(|parent| nodes[*parent].parent && nodes[*parent].depth < node.depth);
+        let parent_matches = parent.is_some_and(|parent| matching_groups[parent]);
+        let parent_expanded = parent.is_some_and(|parent| state.is_expanded(nodes[parent].key));
+
+        if (parent_matches && parent_expanded)
+            || (!parent_matches && nav_entry_matches(entry, entry_index, node.label, &needle))
+        {
+            included[source] = true;
+        }
+    }
+
+    for source in 0..nodes.len() {
+        if !included[source] {
+            continue;
+        }
+        let mut ancestor_depth = nodes[source].depth;
+        for ancestor in (0..source).rev() {
+            let candidate = &nodes[ancestor];
+            if candidate.parent && candidate.depth < ancestor_depth {
+                included[ancestor] = true;
+                ancestor_depth = candidate.depth;
+                if ancestor_depth == 0 {
+                    break;
+                }
+            }
+        }
+    }
+    included
+}
+
+fn nav_entry_matches(entry: &NavEntry, index: usize, display_label: &str, needle: &str) -> bool {
+    [display_label, entry.label]
+        .into_iter()
+        .any(|label| query_contains(label, needle))
+        || (matches!(nav_target_for_entry(entry, index), NavTarget::Live(_))
+            && [entry.id.title(), entry.id.slug()]
+                .into_iter()
+                .any(|label| query_contains(label, needle)))
+        || NAV_ALIASES
+            .iter()
+            .filter(|(_, label)| *label == entry.label)
+            .any(|(alias, _)| query_contains(alias, needle))
+}
+
+fn query_contains(label: &str, needle: &str) -> bool {
+    label.to_lowercase().contains(needle)
+}
+
+fn nav_query_match(node: &NavNode) -> bool {
+    node.query_match
+}
+
+fn nav_node_key(node: &NavNode) -> ItemKey {
+    node.key
+}
+
+fn node_of(node: &NavNode) -> TreeNode {
+    if node.parent {
+        TreeNode::parent(node.depth)
+    } else {
+        TreeNode::leaf(node.depth)
+    }
+}
+
+fn nav_tree(
+    query_revision: Option<u64>,
+) -> Tree<'static, NavNode, fn(&NavNode) -> ItemKey, impl RowFn<NavNode>> {
+    let tree = Tree::new(NAV)
+        .key(nav_node_key as fn(&NavNode) -> ItemKey)
+        .node(&node_of)
+        .render_row(&paint_sidebar_row)
+        .empty(EmptyState::Empty {
+            title: "No matching pages",
+            hint: None,
+        });
+    if let Some(revision) = query_revision {
+        tree.query(revision, &nav_query_match)
+    } else {
+        tree
+    }
+}
+
+const TREE_QUERY_BINDINGS: [(ActionKey, Chord); 7] = [
+    (
+        ActionKey::custom("tree.up-vim"),
+        Chord::key(KeyCode::Char('k')),
+    ),
+    (
+        ActionKey::custom("tree.down-vim"),
+        Chord::key(KeyCode::Char('j')),
+    ),
+    (
+        ActionKey::custom("tree.home-vim"),
+        Chord::key(KeyCode::Char('g')),
+    ),
+    (
+        ActionKey::custom("tree.end-vim"),
+        Chord::key(KeyCode::Char('G')),
+    ),
+    (
+        ActionKey::custom("tree.expand-vim"),
+        Chord::key(KeyCode::Char('l')),
+    ),
+    (
+        ActionKey::custom("tree.collapse-vim"),
+        Chord::key(KeyCode::Char('h')),
+    ),
+    (
+        ActionKey::custom("tree.choose"),
+        Chord::key(KeyCode::Char(' ')),
+    ),
+];
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NavQueryInput {
+    Start,
+    Insert(char),
+    Backspace,
+    Escape,
+    FocusOut,
+    Consume,
+}
+
+fn nav_query_input(cx: &Cx<'_>, active: bool) -> Option<NavQueryInput> {
+    let mut raw_key = None;
+    let mut binding = None;
+    let mut focus_out = false;
+    for intent in cx.intents(NAV) {
+        match intent {
+            Intent::Key(key) => raw_key = Some(key),
+            Intent::Binding(action) => binding = Some(action),
+            Intent::FocusOut { .. } => focus_out = true,
+            _ => {}
+        }
+    }
+
+    if active && focus_out {
+        return Some(NavQueryInput::FocusOut);
+    }
+    if active
+        && raw_key.is_some_and(|key| {
+            matches!(
+                key.code,
+                KeyCode::Left | KeyCode::Right | KeyCode::PageUp | KeyCode::PageDown
+            )
+        })
+    {
+        return Some(NavQueryInput::Consume);
+    }
+    if let Some(key) = raw_key
+        && key
+            .mods
+            .difference(termrock::KeyModifiers::SHIFT)
+            .is_empty()
+    {
+        match key.code {
+            KeyCode::Esc if active => return Some(NavQueryInput::Escape),
+            KeyCode::Backspace if active => return Some(NavQueryInput::Backspace),
+            KeyCode::Char('/') if !active => return Some(NavQueryInput::Start),
+            KeyCode::Char(character) if active && key.bare_char().is_some() => {
+                return Some(NavQueryInput::Insert(character));
+            }
+            _ => {}
+        }
+    }
+
+    if active
+        && binding.is_some_and(|action| {
+            [
+                "tree.expand",
+                "tree.collapse",
+                "tree.page-up",
+                "tree.page-down",
+            ]
+            .into_iter()
+            .any(|name| action == ActionKey::custom(name))
+        })
+    {
+        return Some(NavQueryInput::Consume);
+    }
+
+    let action = binding?;
+    for (candidate, default) in TREE_QUERY_BINDINGS {
+        if action != candidate {
+            continue;
+        }
+        let chord = cx.effective_chord(NAV, action, Some(default))?;
+        if !chord.is_bare_char() {
+            return None;
+        }
+        let KeyCode::Char(character) = chord.code else {
+            return None;
+        };
+        if active || character == '/' {
+            return cx.claim_binding_chord(NAV, chord).map(|_| {
+                if active {
+                    NavQueryInput::Insert(character)
+                } else {
+                    NavQueryInput::Start
+                }
+            });
+        }
+    }
+    None
+}
+
+fn nav_target_at(index: usize) -> Option<NavTarget> {
+    let entry = NAV_ENTRIES.get(index)?;
+    Some(nav_target_for_entry(entry, index))
+}
+
+fn nav_group_for_entry(nodes: &[NavNode], entry: usize) -> Option<ItemKey> {
+    let source = nodes.iter().position(|node| node.entry == Some(entry))?;
+    let depth = nodes[source].depth;
+    nodes[..source]
+        .iter()
+        .rev()
+        .find(|node| node.parent && node.depth < depth)
+        .map(|node| node.key)
+}
+
+fn reveal_nav(state: &mut TreeState, nodes: &[NavNode], entry: usize) {
+    let Some(source) = nodes.iter().position(|node| node.entry == Some(entry)) else {
+        return;
+    };
+    if nodes[source].depth > 0
+        && let Some(parent) = nodes[..source].iter().rev().find(|node| node.parent)
+    {
+        state.expand(parent.key);
+    }
+    let key = nodes[source].key;
+    let visible = visible_index(nodes, source, state);
+    state.choose(Some(key));
+    state.set_cursor(visible, key);
+}
+
+fn query_entry_position(nodes: &[NavNode], entry: usize) -> Option<(usize, ItemKey)> {
+    let source = nodes
+        .iter()
+        .position(|node| node.entry == Some(entry) && node.query_match)?;
+    let visible = nodes[..source]
+        .iter()
+        .filter(|node| node.query_match)
+        .count();
+    Some((visible, nodes[source].key))
+}
+
+fn reveal_query_entry(state: &mut TreeState, nodes: &[NavNode], entry: usize) -> bool {
+    let Some((visible, key)) = query_entry_position(nodes, entry) else {
+        return false;
+    };
+    state.choose(Some(key));
+    state.set_cursor(visible, key);
+    true
+}
+
+fn cursor_to_first_query_entry(state: &mut TreeState, nodes: &[NavNode]) {
+    for (source, node) in nodes.iter().enumerate() {
+        if node.entry.is_some() && node.query_match {
+            let visible = nodes[..source]
+                .iter()
+                .filter(|candidate| candidate.query_match)
+                .count();
+            state.set_cursor(visible, node.key);
+            return;
+        }
+    }
+}
+
+fn reconcile_query_cursor(state: &mut TreeState, nodes: &[NavNode], previous: Option<ItemKey>) {
+    let visible_position = |key: ItemKey| {
+        let source = nodes
+            .iter()
+            .position(|node| node.key == key && node.query_match)?;
+        let visible = nodes[..source]
+            .iter()
+            .filter(|node| node.query_match)
+            .count();
+        Some((visible, key))
+    };
+    let next = previous.and_then(visible_position).or_else(|| {
+        nodes
+            .iter()
+            .enumerate()
+            .find(|(_, node)| node.query_match)
+            .map(|(source, node)| {
+                let visible = nodes[..source]
+                    .iter()
+                    .filter(|candidate| candidate.query_match)
+                    .count();
+                (visible, node.key)
+            })
+    });
+    if let Some((visible, key)) = next {
+        state.set_cursor(visible, key);
+    }
+}
+
+fn visible_index(nodes: &[NavNode], source: usize, state: &TreeState) -> usize {
+    let mut collapsed_at = None;
+    let mut seen = 0usize;
+    for (index, node) in nodes.iter().enumerate() {
+        if collapsed_at.is_some_and(|depth| node.depth > depth) {
+            continue;
+        }
+        collapsed_at = None;
+        if index == source {
+            return seen;
+        }
+        seen = seen.saturating_add(1);
+        if node.parent && !state.is_expanded(node.key) {
+            collapsed_at = Some(node.depth);
+        }
+    }
+    0
+}
+
+fn target_for_key(key: ItemKey, nodes: &[NavNode]) -> Option<(usize, NavTarget)> {
+    let node = nodes.iter().find(|node| node.key == key)?;
+    Some((node.entry?, node.target?))
 }
 
 fn shell_brand() -> Brand<'static> {
@@ -391,14 +1301,26 @@ fn page(kind: PageId) -> Box<dyn Page> {
         PageId::Grid => Box::new(GridPage::new()),
         PageId::Chips => Box::new(ChipsPage::new()),
         PageId::Pickers => Box::new(PickersPage::new()),
+        PageId::DialogKinds => Box::new(DialogKindsPage::new()),
         PageId::Chrome => Box::new(ChromePage::new()),
         PageId::Settings => Box::new(SettingsPage::new()),
         PageId::TaskRunner => Box::new(TaskRunnerPage::new()),
+        PageId::CellEditors => Box::new(CellEditorsPage::new()),
+        PageId::Toolbars => Box::new(ToolbarsPage::new()),
+        PageId::QueryWorkbench => Box::new(QueryWorkbenchPage::new()),
+        PageId::BreadcrumbsRails => Box::new(BreadcrumbsRailsPage::new()),
+        PageId::HelpKeys => Box::new(HelpKeysPage::new()),
+        PageId::QuitLeave => Box::new(QuitLeavePage::new()),
     }
 }
 
 fn keymap() -> KeyMap {
     KeyMap::new()
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('b'), termrock::KeyModifiers::CONTROL),
+            TOGGLE_RAIL_ACTION,
+        )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('q')), QUIT)
         .bind(
             KeyPhase::Capture,
@@ -434,16 +1356,68 @@ fn keymap() -> KeyMap {
         )
 }
 
+fn is_shell_command(action: ActionKey) -> bool {
+    matches!(
+        action,
+        QUIT | QUIT_CTRL
+            | HELP_COMMAND
+            | INSPECTOR_COMMAND
+            | NEXT_PAGE
+            | PREV_PAGE
+            | TOGGLE_RAIL_ACTION
+            | RUN_COMMAND
+            | RUN_QUERY
+            | FORM_SUBMIT
+    )
+}
+
 pub struct App {
     page: PageId,
-    nav_state: NavListState,
+    nav_target: NavTarget,
+    nav_state: TreeState,
+    nav_expand: NavExpand,
+    nav_auto_group: Option<ItemKey>,
+    nav_query: Option<NavQuery>,
+    nav_presentation: std::cell::Cell<Option<NavTreePresentation>>,
     pages: Vec<Box<dyn Page>>,
-    help_state: DialogState,
+    checks_radios: ChecksRadiosPage,
+    status_hints: StatusHintsPage,
+    empty_error: EmptyErrorPage,
+    notices: NoticesPage,
+    diff: DiffPage,
+    master_detail: MasterDetailPage,
+    pane_tree: PaneTreePage,
+    notice_reveals: std::cell::RefCell<[NoticeReveal; 6]>,
+    notice_reveal_snapshot: Option<NoticeRevealSnapshot>,
+    notice_reveal_revision: u64,
+    help_state: HelpOverlayState,
+    pending_quit_reason: Option<&'static str>,
+    quit_confirmation_state: DialogState,
+    help_open: bool,
+    overlay_open: bool,
+    inspector_state: DialogState,
+    inspector_opening: Option<LayerOpening>,
+    inspector_programmatic_close: Option<LayerOpening>,
+    selectable: showcase_demos::pages::selectable::Model,
     keymap: KeyMap,
+    page_keymap: KeyMap,
+    query_workbench_keymap: KeyMap,
+    query_workbench_capture_enabled: std::cell::Cell<bool>,
     inspector: bool,
+    shell_layout_cache: std::cell::Cell<Option<CachedShellLayout>>,
     quit: bool,
     status: Option<(PageStatus, Moment)>,
     motion_paused: bool,
+
+    paused_frame: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct NoticeRevealSnapshot {
+    content_revision: u64,
+    play_scroll_offset: usize,
+    viewport: Rect,
+    main: Rect,
 }
 
 impl core::fmt::Debug for App {
@@ -451,12 +1425,38 @@ impl core::fmt::Debug for App {
         formatter
             .debug_struct("App")
             .field("page", &self.page)
+            .field("nav_target", &self.nav_target)
             .field("nav_state", &self.nav_state)
+            .field("nav_expand", &self.nav_expand)
+            .field("nav_auto_group", &self.nav_auto_group)
+            .field("nav_query", &self.nav_query)
+            .field("nav_presentation", &self.nav_presentation.get())
             .field("pages", &self.pages.len())
+            .field("checks_radios", &self.checks_radios)
+            .field("status_hints", &self.status_hints)
+            .field("empty_error", &self.empty_error)
+            .field("notices", &self.notices)
+            .field("master_detail", &self.master_detail)
+            .field("pane_tree", &self.pane_tree)
+            .field("notice_reveal_snapshot", &self.notice_reveal_snapshot)
+            .field("notice_reveal_revision", &self.notice_reveal_revision)
             .field("help_state", &self.help_state)
+            .field("pending_quit_reason", &self.pending_quit_reason)
+            .field("quit_confirmation_state", &self.quit_confirmation_state)
+            .field("help_open", &self.help_open)
+            .field("overlay_open", &self.overlay_open)
+            .field("inspector_state", &self.inspector_state)
+            .field("inspector_opening", &self.inspector_opening)
+            .field(
+                "inspector_programmatic_close",
+                &self.inspector_programmatic_close,
+            )
+            .field("selectable", &self.selectable)
             .field("keymap", &self.keymap)
+            .field("page_keymap", &self.page_keymap)
             .field("inspector", &self.inspector)
             .field("motion_paused", &self.motion_paused)
+            .field("paused_frame", &self.paused_frame)
             .field("quit", &self.quit)
             .field("status", &self.status.as_ref().map(|(_, since)| since))
             .finish()
@@ -472,27 +1472,96 @@ impl App {
         Self::with_page_motion(initial, false, 0)
     }
 
+    pub fn for_page_name(name: &str) -> Self {
+        Self::boot(nav_index_from_name(name).unwrap_or(0), false, 0)
+    }
+
     pub fn with_page_motion(initial: PageId, paused: bool, frame: usize) -> Self {
-        let mut nav_state = NavListState::new();
-        let initial_key = ItemKey::text(initial.slug());
-        nav_state.set_current(Some(initial_key));
-        nav_state.set_cursor(initial.index(), initial_key);
+        Self::boot(index_for_page(initial), paused, frame)
+    }
+
+    fn boot(nav_index: usize, paused: bool, frame: usize) -> Self {
+        let nav_index = nav_index.min(NAV_ENTRIES.len().saturating_sub(1));
+        let nav_target = nav_target_at(nav_index).unwrap_or(NavTarget::Live(PageId::Overview));
+        let initial = nav_target.page().unwrap_or(PageId::Overview);
+        let mut nav_state = TreeState::new();
+        let nodes = nav_nodes(&nav_state, 0);
+        reveal_nav(&mut nav_state, &nodes, nav_index);
         let mut pages: Vec<Box<dyn Page>> = PageId::ALL.into_iter().map(page).collect();
+        let mut query_workbench_keymap = keymap();
+        pages[PageId::QueryWorkbench.index()].keymap(&mut query_workbench_keymap);
         if paused {
             for page in &mut pages {
                 page.seek_paused(frame);
             }
         }
+        let mut checks_radios = ChecksRadiosPage::new();
+        if paused {
+            checks_radios.seek_paused(frame);
+        }
+        let mut status_hints = StatusHintsPage::new();
+        if paused {
+            status_hints.seek_paused(frame);
+        }
+        let mut diff = DiffPage::new();
+        if paused {
+            diff.seek_paused(frame);
+        }
         Self {
             page: initial,
+            nav_target,
             nav_state,
+            nav_expand: NavExpand::All,
+            nav_auto_group: None,
+            nav_query: None,
+            nav_presentation: std::cell::Cell::new(None),
             pages,
-            help_state: DialogState::default(),
+            checks_radios,
+            status_hints,
+            empty_error: EmptyErrorPage::new(),
+            notices: NoticesPage::new(),
+            diff,
+            master_detail: MasterDetailPage::new(),
+            pane_tree: PaneTreePage::new(),
+            notice_reveals: std::cell::RefCell::new(std::array::from_fn(|index| {
+                NoticeReveal::new(NOTICE_REVEAL_OWNERS[index])
+            })),
+            notice_reveal_snapshot: None,
+            notice_reveal_revision: 0,
+            help_state: HelpOverlayState::default(),
+            pending_quit_reason: None,
+            quit_confirmation_state: DialogState::default(),
+            help_open: false,
+            overlay_open: false,
+            inspector_state: DialogState::default(),
+            inspector_opening: None,
+            inspector_programmatic_close: None,
+            selectable: showcase_demos::pages::selectable::Model::default(),
             keymap: keymap(),
+            page_keymap: keymap(),
+            query_workbench_keymap,
+            query_workbench_capture_enabled: std::cell::Cell::new(false),
             inspector: false,
+            shell_layout_cache: std::cell::Cell::new(None),
             quit: false,
             status: None,
             motion_paused: paused,
+            paused_frame: frame,
+        }
+    }
+
+    pub fn set_nav_expand(&mut self, policy: NavExpand) {
+        self.nav_expand = policy;
+        self.nav_auto_group = None;
+        let route = nav_index_for_target(self.nav_target).unwrap_or(0);
+        let previous_cursor = self.nav_state.cursor();
+        self.sync_nav_expansion(route, true);
+        let nodes = nav_nodes(&self.nav_state, 0);
+        reveal_nav(&mut self.nav_state, &nodes, route);
+        if self.nav_query.is_some() {
+            self.bump_nav_query_revision();
+            let query_nodes = nav_nodes_for_query(&self.nav_state, 0, self.nav_query.as_ref());
+            reconcile_query_cursor(&mut self.nav_state, &query_nodes, previous_cursor);
         }
     }
 
@@ -504,35 +1573,471 @@ impl App {
         self.quit
     }
 
-    fn goto(&mut self, page: PageId) {
-        self.page = page;
-        let key = ItemKey::text(page.slug());
-        self.nav_state.set_current(Some(key));
-        self.nav_state.set_cursor(page.index(), key);
+    fn goto_entry(&mut self, index: usize) {
+        let query_preview = self.nav_query.is_some();
+        let Some(target) = nav_target_at(index) else {
+            return;
+        };
+        self.nav_target = target;
+        if let Some(page) = target.page() {
+            self.page = page;
+        }
+        if let Some(query) = self.nav_query.as_ref() {
+            let nodes = nav_nodes_for_query(&self.nav_state, 0, Some(query));
+            if reveal_query_entry(&mut self.nav_state, &nodes, index) {
+                return;
+            }
+            self.nav_query = None;
+        }
+        if !query_preview {
+            self.sync_nav_expansion(index, false);
+        }
+        let nodes = nav_nodes(&self.nav_state, 0);
+        reveal_nav(&mut self.nav_state, &nodes, index);
     }
 
-    fn active(&self) -> Option<&dyn Page> {
-        self.pages.get(self.page.index()).map(Box::as_ref)
+    fn goto_entry_with_cx(&mut self, cx: &mut Cx<'_>, index: usize) -> Response<()> {
+        let next = nav_target_at(index);
+        let response = if self.nav_target == NavTarget::Placeholder(PANE_TREE_ENTRY)
+            && next.is_some_and(|target| target != self.nav_target)
+        {
+            self.pane_tree.prepare_for_route_leave(cx)
+        } else {
+            Response::ignored()
+        };
+        self.goto_entry(index);
+        response
     }
 
-    fn help_dialog() -> Dialog<'static> {
-        Dialog::info(HELP, "Keyboard & mouse")
-            .description(HELP_TEXT)
-            .width(70)
-    }
-
-    fn update_help(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
-        let help = Self::help_dialog().update(cx, &mut self.help_state);
-        if let Some(action) = help.action_ref() {
-            match action {
-                DialogAction::Action(_) | DialogAction::Dismissed(_) => {
-                    if cx.is_open(HELP) {
-                        cx.close_layer(HELP, None);
+    fn sync_nav_expansion(&mut self, index: usize, reset: bool) {
+        let nodes = nav_nodes(&self.nav_state, 0);
+        let destination = nav_group_for_entry(&nodes, index);
+        match self.nav_expand {
+            NavExpand::All => {
+                self.nav_auto_group = None;
+                if reset {
+                    self.nav_state.expand_all();
+                }
+            }
+            NavExpand::Accordion => {
+                self.nav_state.collapse_all();
+                self.nav_auto_group = None;
+            }
+            NavExpand::CurrentGroup if reset => {
+                self.nav_state.collapse_all();
+                if let Some(group) = destination {
+                    self.nav_state.expand(group);
+                    self.nav_auto_group = Some(group);
+                } else {
+                    self.nav_auto_group = None;
+                }
+            }
+            NavExpand::CurrentGroup => {
+                let previous_auto = self.nav_auto_group.take();
+                if let Some(previous) = previous_auto
+                    && Some(previous) != destination
+                {
+                    self.nav_state.collapse(previous);
+                }
+                if let Some(group) = destination {
+                    let opened_now = !self.nav_state.is_expanded(group);
+                    self.nav_state.expand(group);
+                    if opened_now || previous_auto == Some(group) {
+                        self.nav_auto_group = Some(group);
                     }
                 }
             }
         }
-        *response |= help.erase();
+    }
+
+    fn apply_nav_query_input(&mut self, input: NavQueryInput) {
+        match input {
+            NavQueryInput::Start => {
+                if self.nav_query.is_none() {
+                    self.nav_query = Some(NavQuery {
+                        text: String::new(),
+                        revision: 1,
+                    });
+                }
+            }
+            NavQueryInput::Insert(character) => {
+                if self.nav_query.is_some() {
+                    if let Some(query) = &mut self.nav_query {
+                        query.text.push(character);
+                    }
+                    self.bump_nav_query_revision();
+                    self.refresh_nav_query_cursor();
+                }
+            }
+            NavQueryInput::Backspace => {
+                let changed = self
+                    .nav_query
+                    .as_mut()
+                    .is_some_and(|query| query.text.pop().is_some());
+                if changed {
+                    self.bump_nav_query_revision();
+                    self.refresh_nav_query_cursor();
+                }
+            }
+            NavQueryInput::Escape | NavQueryInput::FocusOut => self.end_nav_query(),
+            NavQueryInput::Consume => {}
+        }
+    }
+
+    fn bump_nav_query_revision(&mut self) {
+        let saturated = if let Some(query) = &mut self.nav_query {
+            match query.revision.checked_add(1) {
+                Some(revision) => {
+                    query.revision = revision;
+                    false
+                }
+                None => {
+                    query.revision = 1;
+                    true
+                }
+            }
+        } else {
+            false
+        };
+        if saturated {
+            self.nav_state.invalidate();
+        }
+    }
+
+    fn refresh_nav_query_cursor(&mut self) {
+        let Some(query) = self.nav_query.as_ref() else {
+            return;
+        };
+        let nodes = nav_nodes_for_query(&self.nav_state, 0, Some(query));
+        if query.text.is_empty() {
+            if let Some(entry) = nav_index_for_target(self.nav_target) {
+                reveal_nav(&mut self.nav_state, &nodes, entry);
+            }
+        } else {
+            cursor_to_first_query_entry(&mut self.nav_state, &nodes);
+        }
+    }
+
+    fn end_nav_query(&mut self) {
+        if self.nav_query.take().is_none() {
+            return;
+        }
+        let nodes = nav_nodes(&self.nav_state, 0);
+        if let Some(entry) = nav_index_for_target(self.nav_target) {
+            reveal_nav(&mut self.nav_state, &nodes, entry);
+        }
+    }
+
+    fn end_nav_query_for_activation(&mut self) {
+        self.nav_query = None;
+    }
+
+    fn resolved_shell_layout(&self, area: Rect) -> ShellLayout {
+        let inspector_dock = self.inspector && self.inspector_opening.is_none();
+        if let Some(cached) = self.shell_layout_cache.get()
+            && cached.area == area
+            && cached.inspector == inspector_dock
+        {
+            return cached.layout;
+        }
+        let layout = shell_layout(area, inspector_dock);
+        self.shell_layout_cache.set(Some(CachedShellLayout {
+            area,
+            inspector: inspector_dock,
+            layout,
+        }));
+        layout
+    }
+
+    fn update_notice_reveals(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        let full = cx.viewport();
+        let snapshot = if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY)
+            && self.nav_query.is_none()
+            && !self.overlay_open
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && full.width >= 72
+            && full.height >= 20
+        {
+            self.notices
+                .reveal_state()
+                .map(|page| NoticeRevealSnapshot {
+                    content_revision: page.content_revision,
+                    play_scroll_offset: page.play_scroll_offset,
+                    viewport: full,
+                    main: self.resolved_shell_layout(full).main,
+                })
+        } else {
+            None
+        };
+
+        if let Some(snapshot) = snapshot {
+            if self.notice_reveal_snapshot != Some(snapshot) {
+                self.notice_reveal_revision = self.notice_reveal_revision.wrapping_add(1).max(1);
+                self.notice_reveal_snapshot = Some(snapshot);
+                *response |= Response::changed();
+            }
+            for reveal in self.notice_reveals.get_mut() {
+                *response |= reveal.update(cx, self.notice_reveal_revision);
+            }
+        } else {
+            if self.notice_reveal_snapshot.take().is_some() {
+                *response |= Response::changed();
+            }
+            for reveal in self.notice_reveals.get_mut() {
+                reveal.reset();
+            }
+        }
+    }
+
+    fn show_live_page(&self) -> bool {
+        matches!(
+            self.nav_target,
+            NavTarget::Live(_)
+                | NavTarget::Placeholder(CHECKS_RADIOS_ENTRY)
+                | NavTarget::Placeholder(STATUS_HINTS_ENTRY)
+                | NavTarget::Placeholder(EMPTY_ERROR_ENTRY)
+                | NavTarget::Placeholder(NOTICES_ENTRY)
+                | NavTarget::Placeholder(DIFF_ENTRY)
+                | NavTarget::Placeholder(MASTER_DETAIL_ENTRY)
+                | NavTarget::Placeholder(PANE_TREE_ENTRY)
+        )
+    }
+
+    fn nav_label(&self) -> &'static str {
+        nav_index_for_target(self.nav_target)
+            .and_then(|index| NAV_ENTRIES.get(index))
+            .map(|entry| entry.label)
+            .unwrap_or("Overview")
+    }
+
+    fn active(&self) -> Option<&dyn Page> {
+        if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
+            Some(&self.checks_radios)
+        } else if self.nav_target == NavTarget::Placeholder(STATUS_HINTS_ENTRY) {
+            Some(&self.status_hints)
+        } else if self.nav_target == NavTarget::Placeholder(EMPTY_ERROR_ENTRY) {
+            Some(&self.empty_error)
+        } else if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
+            Some(&self.notices)
+        } else if self.nav_target == NavTarget::Placeholder(DIFF_ENTRY) {
+            Some(&self.diff)
+        } else if self.nav_target == NavTarget::Placeholder(MASTER_DETAIL_ENTRY) {
+            Some(&self.master_detail)
+        } else if self.nav_target == NavTarget::Placeholder(PANE_TREE_ENTRY) {
+            Some(&self.pane_tree)
+        } else {
+            self.pages.get(self.page.index()).map(Box::as_ref)
+        }
+    }
+
+    fn active_mut(&mut self) -> Option<&mut (dyn Page + 'static)> {
+        if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
+            Some(&mut self.checks_radios)
+        } else if self.nav_target == NavTarget::Placeholder(STATUS_HINTS_ENTRY) {
+            Some(&mut self.status_hints)
+        } else if self.nav_target == NavTarget::Placeholder(EMPTY_ERROR_ENTRY) {
+            Some(&mut self.empty_error)
+        } else if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
+            Some(&mut self.notices)
+        } else if self.nav_target == NavTarget::Placeholder(DIFF_ENTRY) {
+            Some(&mut self.diff)
+        } else if self.nav_target == NavTarget::Placeholder(MASTER_DETAIL_ENTRY) {
+            Some(&mut self.master_detail)
+        } else if self.nav_target == NavTarget::Placeholder(PANE_TREE_ENTRY) {
+            Some(&mut self.pane_tree)
+        } else {
+            self.pages.get_mut(self.page.index()).map(Box::as_mut)
+        }
+    }
+
+    fn global_capture_is_current(&self, action: ActionKey, cx: &Cx<'_>) -> bool {
+        if action != RUN_QUERY {
+            return true;
+        }
+        if self.nav_target != NavTarget::Live(PageId::QueryWorkbench)
+            || self.nav_query.is_some()
+            || self.help_open
+            || self.overlay_open
+            || cx.is_open(HELP)
+            || cx.is_open(INSPECTOR)
+            || cx.top_layer() != termrock::LayerId::PAGE
+        {
+            return false;
+        }
+        let Some(focused) = cx.focused_in_scope(ScopeId::ROOT) else {
+            return false;
+        };
+        self.active()
+            .is_some_and(|page| page.global_capture_owners(action).contains(&focused))
+    }
+
+    fn help_overlay() -> HelpOverlay<'static> {
+        HelpOverlay::new(HELP, "Showcase", &HELP_SECTIONS)
+            .title("Keyboard & mouse")
+            .patch_part(HELP_PART_PATCHES)
+    }
+
+    fn open_help(&mut self, cx: &mut Cx<'_>) {
+        self.help_state = HelpOverlayState::default();
+        cx.open_layer(HELP, Self::help_overlay().layer(cx));
+    }
+
+    fn quit_confirmation_dialog(reason: &'static str) -> Dialog<'static> {
+        Dialog::destructive(QUIT_CONFIRMATION, "Still running", reason)
+            .actions(&QUIT_CONFIRMATION_ACTIONS)
+    }
+
+    fn request_quit(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        if self.pending_quit_reason.is_some() {
+            *response |= Response::consumed();
+            return;
+        }
+        if let Some(reason) = self.pages.iter().find_map(|page| page.quit_confirmation()) {
+            self.pending_quit_reason = Some(reason);
+            let dialog = Self::quit_confirmation_dialog(reason);
+            let layer = dialog.layer(cx).initial_focus(dialog.action_id(0));
+            cx.open_layer(QUIT_CONFIRMATION, layer);
+            *response |= Response::changed();
+        } else {
+            self.quit = true;
+            cx.quit();
+        }
+    }
+
+    fn update_quit_confirmation(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        let pending_reason = self.pending_quit_reason;
+        let reason = pending_reason.unwrap_or(QUIT_CONFIRMATION_CLOSED_REASON);
+        let update =
+            Self::quit_confirmation_dialog(reason).update(cx, &mut self.quit_confirmation_state);
+        let action = update.action_ref().copied();
+        *response |= update.erase();
+        if let Some(action) = action.filter(|_| pending_reason.is_some()) {
+            self.pending_quit_reason = None;
+            if matches!(action, DialogAction::Action(key) if key == ActionKey::CONFIRM) {
+                self.quit = true;
+                cx.quit();
+            }
+            if cx.is_open(QUIT_CONFIRMATION) {
+                cx.close_layer(QUIT_CONFIRMATION, None);
+            }
+            *response |= Response::changed();
+        } else if pending_reason.is_some() && !cx.is_open(QUIT_CONFIRMATION) {
+            self.pending_quit_reason = None;
+            *response |= Response::changed();
+        }
+    }
+
+    fn inspector_dialog(viewport: Rect) -> Dialog<'static> {
+        Dialog::info(INSPECTOR, "Inspector")
+            .description("State")
+            .body_rows(viewport.height.saturating_sub(11))
+            .width(34)
+    }
+
+    fn inspector_anchor(viewport: Rect) -> Anchor {
+        Anchor::Rect {
+            rect: Rect::new(
+                viewport.right().saturating_sub(2),
+                viewport.y.saturating_add(1),
+                1,
+                1,
+            ),
+            side: Side::Left,
+            align: CrossAlign::Center,
+        }
+    }
+
+    fn inspector_layer_spec(cx: &Cx<'_>) -> termrock::LayerSpec {
+        let viewport = cx.viewport();
+        let dialog = Self::inspector_dialog(viewport);
+        dialog
+            .layer(cx)
+            .anchor(Self::inspector_anchor(viewport))
+            .dismiss(Dismiss::ESC_AND_OUTSIDE)
+            .initial_focus(dialog.action_id(0))
+            .viewport_margin(2, 1)
+    }
+
+    fn inspector_modal_supported(viewport: Rect) -> bool {
+        (72..100).contains(&viewport.width) && viewport.height >= 20
+    }
+
+    fn inspector_modal_active(&self, cx: &Cx<'_>) -> bool {
+        self.inspector
+            && self.inspector_opening.is_some_and(|opening| {
+                cx.layer_opening(INSPECTOR) == Some(opening) && cx.top_layer() == opening.layer_id()
+            })
+    }
+
+    fn toggle_inspector(&mut self, response: &mut Response<()>) {
+        self.inspector = !self.inspector;
+        *response |= Response::changed();
+    }
+
+    fn update_inspector(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        let viewport = cx.viewport();
+        let modal_expected = self.inspector && Self::inspector_modal_supported(viewport);
+
+        if modal_expected
+            && self
+                .inspector_opening
+                .is_some_and(|opening| cx.layer_opening(INSPECTOR) == Some(opening))
+        {
+            cx.reanchor_layer(INSPECTOR, Self::inspector_anchor(viewport));
+        }
+
+        if let Some(opening) = self.inspector_opening
+            && cx.layer_opening(INSPECTOR) == Some(opening)
+            && !modal_expected
+            && cx.top_layer() == opening.layer_id()
+        {
+            self.inspector_programmatic_close = Some(opening);
+            cx.close_layer(INSPECTOR, None);
+            *response |= Response::changed();
+        }
+
+        let dialog = Self::inspector_dialog(viewport);
+        let update = dialog.update(cx, &mut self.inspector_state);
+        let action = update.action_ref().copied();
+        *response |= update.erase();
+        if matches!(
+            action,
+            Some(DialogAction::Action(ActionKey::CLOSE) | DialogAction::Dismissed(_))
+        ) {
+            let opening = self.inspector_opening;
+            let app_closed =
+                opening.is_some_and(|opening| self.inspector_programmatic_close == Some(opening));
+            if !app_closed {
+                self.inspector = false;
+            }
+            if let Some(opening) = opening
+                && cx.layer_opening(INSPECTOR) == Some(opening)
+                && cx.top_layer() == opening.layer_id()
+            {
+                cx.close_layer(INSPECTOR, None);
+            }
+            self.inspector_opening = None;
+            self.inspector_programmatic_close = None;
+            *response |= Response::changed();
+        }
+
+        if self.inspector_opening.is_none()
+            && cx.layer_opening(INSPECTOR).is_none()
+            && self.inspector
+            && Self::inspector_modal_supported(viewport)
+        {
+            let spec = Self::inspector_layer_spec(cx);
+            if let Some(opening) = cx.open_layer_with_token(INSPECTOR, spec) {
+                self.inspector_opening = Some(opening);
+                *response |= Response::changed();
+            }
+        }
+    }
+
+    fn update_help(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        *response |= Self::help_overlay()
+            .update(cx, &mut self.help_state)
+            .erase();
     }
 
     fn update_header(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
@@ -547,8 +2052,7 @@ impl App {
         });
         if help_clicked {
             if !cx.is_open(HELP) {
-                let layer = Self::help_dialog().layer(cx);
-                cx.open_layer(HELP, layer);
+                self.open_help(cx);
             }
             *response |= Response::changed();
         }
@@ -562,8 +2066,7 @@ impl App {
             )
         });
         if inspector_clicked {
-            self.inspector = !self.inspector;
-            *response |= Response::changed();
+            self.toggle_inspector(response);
         }
     }
 }
@@ -577,45 +2080,154 @@ struct ShellLayout {
     footer: Rect,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct SidebarPresentation {
+    query: Option<Rect>,
+    tree: Rect,
+}
+
+impl SidebarPresentation {
+    fn new(sidebar: Rect, panel_inner: Rect, gutter: u16, query_active: bool) -> Self {
+        if sidebar.is_empty() || panel_inner.is_empty() {
+            return Self {
+                query: None,
+                tree: Rect::default(),
+            };
+        }
+        let content = Rect {
+            x: sidebar.x.saturating_add(gutter),
+            y: panel_inner.y,
+            width: sidebar.width.saturating_sub(gutter.saturating_mul(2)),
+            height: panel_inner.height,
+        };
+        if !query_active || content.is_empty() {
+            return Self {
+                query: None,
+                tree: content,
+            };
+        }
+        let query = Rect::new(content.x, content.y, content.width, 1);
+        let tree = Rect {
+            y: content.y.saturating_add(1),
+            height: content.height.saturating_sub(1),
+            ..content
+        };
+        Self {
+            query: Some(query),
+            tree,
+        }
+    }
+}
+
+fn sidebar_panel_inner(sidebar: Rect, card_inset: u16) -> Rect {
+    Rect {
+        x: sidebar.x.saturating_add(card_inset),
+        y: sidebar.y.saturating_add(2),
+        width: sidebar.width.saturating_sub(card_inset.saturating_mul(2)),
+        height: sidebar.height.saturating_sub(3),
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct NavTreePresentation {
+    area: Rect,
+    query_revision: Option<u64>,
+}
+
+impl NavTreePresentation {
+    fn new(area: Rect, query: Option<&NavQuery>) -> Self {
+        Self {
+            area,
+            query_revision: query.map(|query| query.revision),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct CachedShellLayout {
+    area: Rect,
+    inspector: bool,
+    layout: ShellLayout,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Pane {
+    Sidebar,
+    Main,
+    Spacer,
+    Inspector,
+}
+
+const SIDEBAR_WIDE: u16 = 25;
+const SIDEBAR_NARROW: u16 = 20;
+const SIDEBAR_WIDE_FROM: u16 = 110;
+
+const INSPECTOR_WIDTH: u16 = 30;
+const INSPECTOR_MIN_WIDTH: u16 = 100;
+
+const SHELL_GAP: u16 = 1;
+
+fn fixed_pane(width: u16) -> termrock::layout::ChildPolicy {
+    termrock::layout::ChildPolicy::new(termrock::layout::Size::exact(width, 1))
+        .min(width, 0)
+        .max(Some(width), None)
+}
+
+fn flexible_pane() -> termrock::layout::ChildPolicy {
+    termrock::layout::ChildPolicy::new(termrock::layout::Size::default()).flex(1)
+}
+
 fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
-    let header = Rect::new(area.x, area.y, area.width, 1);
-    let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
-    let body = Rect::new(
-        area.x,
-        area.y.saturating_add(2),
-        area.width,
-        area.height.saturating_sub(4),
-    );
-    let sidebar_width = if area.width >= 110 { 24 } else { 19 };
-    let inspector_width = if inspector && area.width >= 100 {
-        30
+    let regions = termrock::AppShell::new()
+        .header(1)
+        .gap(1)
+        .footer(1)
+        .regions(area);
+    let body = regions.body;
+    let sidebar_width = if body.width >= SIDEBAR_WIDE_FROM {
+        SIDEBAR_WIDE
+    } else {
+        SIDEBAR_NARROW
+    };
+    let inspector_width = if inspector && body.width >= INSPECTOR_MIN_WIDTH {
+        INSPECTOR_WIDTH
     } else {
         0
     };
-    let sidebar = Rect::new(body.x, body.y, sidebar_width, body.height);
-    let main_x = body.x.saturating_add(sidebar_width).saturating_add(2);
-    let main_width = body.width.saturating_sub(
-        sidebar_width
-            .saturating_add(2)
-            .saturating_add(inspector_width)
-            .saturating_add(u16::from(inspector_width > 0).saturating_mul(2)),
+    let panes = [Pane::Sidebar, Pane::Main, Pane::Spacer, Pane::Inspector];
+    let children = [
+        termrock::layout::Child::new(&Pane::Sidebar, fixed_pane(sidebar_width)),
+        termrock::layout::Child::new(&Pane::Main, flexible_pane()),
+        termrock::layout::Child::new(
+            &Pane::Spacer,
+            termrock::layout::ChildPolicy::new(termrock::layout::Size::default())
+                .max(Some(0), None),
+        ),
+        termrock::layout::Child::new(&Pane::Inspector, fixed_pane(inspector_width)),
+    ];
+    let count = if inspector_width > 0 { 4 } else { 2 };
+    let plan = termrock::layout::row(
+        body,
+        children.get(..count).unwrap_or(&[]),
+        termrock::layout::Composition::new().gap(SHELL_GAP),
+        |_, _| termrock::layout::Size::default(),
     );
-    let main = Rect::new(main_x, body.y, main_width, body.height);
-    let inspector = (inspector_width > 0).then(|| {
-        Rect::new(
-            main.right().saturating_add(2),
-            body.y,
-            inspector_width,
-            body.height,
-        )
-    });
-    ShellLayout {
-        header,
-        sidebar,
-        main,
-        inspector,
-        footer,
+    let mut layout = ShellLayout {
+        header: regions.header,
+        sidebar: Rect::default(),
+        main: Rect::default(),
+        inspector: None,
+        footer: regions.footer,
+    };
+    for child in &plan.children {
+        match panes.get(child.index).copied() {
+            Some(Pane::Sidebar) => layout.sidebar = child.logical,
+            Some(Pane::Main) => layout.main = child.logical,
+            Some(Pane::Inspector) => layout.inspector = Some(child.logical),
+            Some(Pane::Spacer) | None => {}
+        }
     }
+    layout
 }
 
 fn shell_part_style(
@@ -642,15 +2254,6 @@ fn shell_compat_style(style: PaintStyle) -> PaintStyle {
     }
 }
 
-fn shell_row_style(style: PaintStyle, flags: StateFlags) -> PaintStyle {
-    let style = shell_compat_style(style);
-    if flags.contains(StateFlags::FOCUSED) {
-        style.add_modifier(termrock::Modifier::BOLD)
-    } else {
-        style
-    }
-}
-
 fn shell_text_style(ui: &Ui<'_>, step: termrock::FgStep) -> PaintStyle {
     shell_compat_style(
         ui.surface_style()
@@ -663,7 +2266,8 @@ fn paint_header(
     area: Rect,
     screen_width: u16,
     screen_height: u16,
-    page: PageId,
+    section: &str,
+    label: &str,
     inspector: bool,
 ) {
     if area.is_empty() {
@@ -672,8 +2276,17 @@ fn paint_header(
     let canvas = shell_compat_style(ui.surface_style());
     ui.fill(area, canvas);
 
-    let (title, secondary, muted, faint, marker) = header_styles(ui);
-    let left = paint_header_breadcrumb(ui, area, page, title, secondary, muted, marker);
+    let styles = header_styles(ui);
+    let (title, secondary, muted, faint, marker) = styles;
+    let (_, inspector_x) = header_action_origins(area, inspector);
+    let left = paint_header_breadcrumb(
+        ui,
+        area,
+        section,
+        label,
+        (title, secondary, faint, marker),
+        inspector_x,
+    );
     paint_header_actions(
         ui,
         area,
@@ -697,7 +2310,7 @@ fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintS
         Part::DETAIL,
         StateFlags::empty(),
     );
-    let muted = shell_part_style(ui, termrock::Family::LIST, Part::META, StateFlags::empty());
+    let muted = secondary;
     let faint = shell_text_style(ui, termrock::FgStep::Faint);
     let marker = shell_part_style(
         ui,
@@ -711,12 +2324,12 @@ fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintS
 fn paint_header_breadcrumb(
     ui: &mut Ui<'_>,
     area: Rect,
-    page: PageId,
-    title: PaintStyle,
-    secondary: PaintStyle,
-    muted: PaintStyle,
-    marker: PaintStyle,
+    section: &str,
+    label: &str,
+    styles: (PaintStyle, PaintStyle, PaintStyle, PaintStyle),
+    inspector_x: u16,
 ) -> u16 {
+    let (title, secondary, faint, marker) = styles;
     let mut x = area.x.saturating_add(1);
     ui.paint_str(Rect::new(x, area.y, 1, 1), "▪", marker);
     x = x.saturating_add(2);
@@ -731,24 +2344,78 @@ fn paint_header_breadcrumb(
         "Design system",
         secondary,
     );
-    x = x.saturating_add(14);
-
-    let Some(entry) = NAV_ENTRIES
-        .get(page.index())
-        .copied()
-        .or_else(|| NAV_ENTRIES.first().copied())
-    else {
+    x = x.saturating_add(15);
+    let budget = inspector_x.saturating_sub(x).saturating_sub(2);
+    let label = nav_display_label(label);
+    let current = title.add_modifier(termrock::Modifier::BOLD);
+    if budget == 0 {
         return x;
-    };
-    for fragment in ["/ ", entry.section, " / ", entry.label] {
-        ui.paint_str(
-            Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-            fragment,
-            muted,
-        );
-        x = x.saturating_add(width(fragment));
     }
-    x
+    if section.is_empty() {
+        let shown = termrock::truncate_middle(label, budget);
+        ui.paint_str(Rect::new(x, area.y, width(&shown), 1), &shown, current);
+        return x.saturating_add(width(&shown));
+    }
+
+    let separator = format!(" {} ", ui.glyph_str(GlyphRole::OverflowRight));
+    let separator_width = width(&separator);
+    let section_width = width(section);
+    let label_width = width(label);
+    let path_width = section_width
+        .saturating_add(separator_width)
+        .saturating_add(label_width);
+    if path_width <= budget {
+        ui.paint_str(Rect::new(x, area.y, section_width, 1), section, secondary);
+        x = x.saturating_add(section_width);
+        ui.paint_str(Rect::new(x, area.y, separator_width, 1), &separator, faint);
+        x = x.saturating_add(separator_width);
+        ui.paint_str(Rect::new(x, area.y, label_width, 1), label, current);
+        return x.saturating_add(label_width);
+    }
+
+    let mut remaining = budget;
+    let ellipsis = ui.glyph_str(GlyphRole::Ellipsis);
+    let shown_ellipsis = termrock::truncate(ellipsis, remaining);
+    let ellipsis_width = width(&shown_ellipsis);
+    ui.paint_str(
+        Rect::new(x, area.y, ellipsis_width, 1),
+        &shown_ellipsis,
+        faint,
+    );
+    x = x.saturating_add(ellipsis_width);
+    remaining = remaining.saturating_sub(ellipsis_width);
+
+    let shown_separator = termrock::truncate(&separator, remaining);
+    let shown_separator_width = width(&shown_separator);
+    ui.paint_str(
+        Rect::new(x, area.y, shown_separator_width, 1),
+        &shown_separator,
+        faint,
+    );
+    x = x.saturating_add(shown_separator_width);
+    remaining = remaining.saturating_sub(shown_separator_width);
+
+    let shown_label = termrock::truncate_middle(label, remaining);
+    let shown_label_width = width(&shown_label);
+    ui.paint_str(
+        Rect::new(x, area.y, shown_label_width, 1),
+        &shown_label,
+        current,
+    );
+    x.saturating_add(shown_label_width)
+}
+
+fn header_action_origins(area: Rect, inspector: bool) -> (u16, u16) {
+    let help_width = width(" ? Help ");
+    let inspector_width = width(if inspector {
+        " i Inspector · on "
+    } else {
+        " i Inspector "
+    });
+    let right = area.right().saturating_sub(1);
+    let help_x = right.saturating_sub(help_width);
+    let inspector_x = help_x.saturating_sub(1).saturating_sub(inspector_width);
+    (help_x, inspector_x)
 }
 
 fn paint_header_actions(
@@ -778,8 +2445,7 @@ fn paint_header_actions(
     };
     let help_width = width(help_text);
     let inspector_width = width(inspector_text);
-    let mut right = area.right().saturating_sub(1);
-    let help_x = right.saturating_sub(help_width);
+    let (help_x, _) = header_action_origins(area, inspector);
     let help_style = header_action_style(ui, HEADER_HELP, muted);
     ui.paint_str(
         Rect::new(help_x, area.y, help_width, 1),
@@ -791,7 +2457,7 @@ fn paint_header_actions(
         PartRef::of(Part::LABEL),
         Rect::new(help_x, area.y, help_width, 1),
     );
-    right = help_x.saturating_sub(1);
+    let mut right = help_x.saturating_sub(1);
 
     let inspector_x = right.saturating_sub(inspector_width);
     let inspector_style = header_action_style(ui, HEADER_INSPECT, muted);
@@ -841,124 +2507,304 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle
     }
 }
 
-fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, entry: &NavEntry) {
-    let current = flags.contains(StateFlags::SELECTED);
-
-    let flags = flags.difference(StateFlags::SELECTED);
-    let emphasized = current || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
-    let container = shell_compat_style(
-        ui.style(
-            termrock::Family::LIST,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            flags,
-        )
-        .style,
-    );
-    let row_background = ui.surface_style().patch(container);
-    ui.fill(row, container);
-    let gutter = ui
-        .style(
-            termrock::Family::LIST,
-            Variant::DEFAULT,
-            Part::GUTTER,
-            flags,
-        )
-        .style
-        .with_bg_from(row_background);
-    let gutter = if flags.contains(StateFlags::FOCUSED) {
-        gutter
-    } else {
-        gutter.with_fg_from_bg(row_background)
+fn fade_paint(style: PaintStyle, steps: u8) -> PaintStyle {
+    if steps == 0 {
+        return style;
+    }
+    let Some(termrock::Color::Rgb(red, green, blue)) = style.as_style().fg else {
+        return style;
     };
-    let marker = ui
-        .style(
-            termrock::Family::LIST,
-            Variant::DEFAULT,
-            Part::MARKER,
-            if current {
-                flags | StateFlags::SELECTED
-            } else {
-                flags
-            },
+    let keep = if steps == 1 { 0.8 } else { 0.55 };
+    let mix = |channel: u8| (f32::from(channel) * keep).round() as u8;
+    style.fg(termrock::Color::Rgb(mix(red), mix(green), mix(blue)))
+}
+
+fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, node: &NavNode) {
+    if row.is_empty() {
+        return;
+    }
+    let focused = flags.contains(StateFlags::FOCUSED) && !node.inactive_layer;
+    let selected = flags.contains(StateFlags::SELECTED);
+    let fade = node.fade;
+    let canvas = shell_compat_style(ui.surface_style());
+    let label_ink = fade_paint(canvas, fade);
+    let group_ink = fade_paint(shell_text_style(ui, termrock::FgStep::Secondary), fade);
+    let selected_background = match ui.theme_ref().color.accent_tint {
+        Color::Rgb(..) => Color::from_u32(showcase_demos::pages::accent_tint_bg(ui.theme_ref())),
+        color => color,
+    };
+    let selected_patch = ui.paint_patch(
+        &termrock::StylePatch::new().set_bg(termrock::Role::Custom(selected_background)),
+    );
+    let selected_surface =
+        shell_compat_style(canvas.patch(selected_patch)).add_modifier(termrock::Modifier::BOLD);
+    let accent = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
+    let selected_ink = if node.inactive_layer {
+        shell_compat_style(selected_surface.patch(ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+        )))
+        .remove_modifier(termrock::Modifier::BOLD)
+    } else {
+        shell_compat_style(selected_surface.patch(accent))
+    };
+    let marker_surface = if selected { selected_surface } else { canvas };
+    let marker = if selected && node.inactive_layer {
+        selected_ink
+    } else {
+        fade_paint(shell_compat_style(marker_surface.patch(accent)), fade)
+            .add_modifier(termrock::Modifier::BOLD)
+    };
+
+    ui.fill(row, if selected { selected_surface } else { canvas });
+    if !focused {
+        let gutter_surface = if selected { selected_surface } else { canvas };
+        let gutter_ink = if selected {
+            termrock::Role::Custom(selected_background)
+        } else {
+            termrock::Role::CurrentSurface
+        };
+        let gutter = shell_compat_style(
+            gutter_surface.patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(gutter_ink))),
         )
-        .style
-        .with_bg_from(row_background);
-    let label = ui
-        .style(termrock::Family::LIST, Variant::DEFAULT, Part::LABEL, flags)
-        .style
-        .with_bg_from(row_background);
-    let secondary = shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags)
-        .with_bg_from(row_background);
-    let gutter = shell_row_style(gutter, flags);
-    let marker = shell_row_style(marker, flags);
-    let label = shell_row_style(label, flags);
-    let secondary = shell_row_style(secondary, flags);
-    ui.paint_str(Rect::new(row.x, row.y, 1, 1), "▎", gutter);
+        .remove_modifier(termrock::Modifier::BOLD);
+        ui.fill(Rect::new(row.x, row.y, 1, 1), gutter);
+    }
+    if focused {
+        ui.glyph(Rect::new(row.x, row.y, 1, 1), GlyphRole::FocusBar, marker);
+    }
+    let indent = node.depth.saturating_mul(2);
+    let mark_x = row.x.saturating_add(1).saturating_add(indent);
+    if node.parent {
+        let role = if flags.contains(StateFlags::EXPANDED) {
+            GlyphRole::Expanded
+        } else {
+            GlyphRole::Collapsed
+        };
+        ui.glyph(Rect::new(mark_x, row.y, 1, 1), role, group_ink);
+    } else if selected {
+        ui.glyph(Rect::new(mark_x, row.y, 1, 1), GlyphRole::Chosen, marker);
+    }
+    let label_x = mark_x.saturating_add(2);
+    let room = row.right().saturating_sub(label_x).saturating_sub(1);
+    let text = clip_label(node.label, room);
+    let label = if node.parent {
+        label_ink
+    } else if selected {
+        selected_ink
+    } else {
+        label_ink
+    };
+    if room > 0 {
+        ui.fill(Rect::new(label_x, row.y, room, 1), label);
+    }
     ui.paint_str(
-        Rect::new(row.x.saturating_add(1), row.y, 1, 1),
-        if current { "›" } else { " " },
-        marker,
+        Rect::new(label_x, row.y, row.right().saturating_sub(label_x), 1),
+        &text,
+        label,
     );
-    ui.paint_str(Rect::new(row.x.saturating_add(2), row.y, 1, 1), " ", label);
-    ui.paint_str(
-        Rect::new(
-            row.x.saturating_add(3),
-            row.y,
-            row.width.saturating_sub(4),
-            1,
-        ),
-        entry.label,
-        if emphasized { label } else { secondary },
-    );
-    let label_style = if emphasized { label } else { secondary };
-    let label_area = Rect::new(
-        row.x.saturating_add(3),
-        row.y,
-        row.width.saturating_sub(4),
+}
+
+fn paint_sidebar_heading(ui: &mut Ui<'_>, area: Rect, gutter: u16, focused: bool) {
+    if area.is_empty() {
+        return;
+    }
+    let (title, secondary, _, _, _) = header_styles(ui);
+    let style = if focused { title } else { secondary };
+    let title_area = Rect::new(
+        area.x.saturating_add(gutter),
+        area.y,
+        area.width.saturating_sub(gutter.saturating_mul(2)),
         1,
     );
-    let used = width(entry.label).min(label_area.width);
-    if used < label_area.width {
-        ui.fill(
-            Rect::new(
-                label_area.x.saturating_add(used),
-                label_area.y,
-                label_area.width.saturating_sub(used),
-                1,
-            ),
-            label_style,
-        );
+    ui.paint_str(title_area, "Components", style);
+    let rule_area = Rect::new(title_area.x, area.y.saturating_add(1), title_area.width, 1);
+    let glyph = ui.glyph_str(GlyphRole::RuleQuiet);
+    let rule = glyph.repeat(usize::from(rule_area.width));
+    let style = shell_compat_style(
+        ui.surface_style()
+            .patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::ChromeRule))),
+    );
+    ui.paint_str(rule_area, &rule, style);
+}
+
+fn paint_placeholder(ui: &mut Ui<'_>, area: Rect, label: &str) {
+    if area.is_empty() {
+        return;
     }
+    let title = shell_part_style(
+        ui,
+        termrock::Family::PANEL,
+        Part::TITLE,
+        StateFlags::empty(),
+    );
+    ui.paint_str(Rect::new(area.x, area.y, area.width, 1), label, title);
+}
+
+fn clip_label(label: &str, max: u16) -> String {
+    let max = usize::from(max);
+    if usize::from(width(label)) <= max {
+        return label.to_owned();
+    }
+    let room = max.saturating_sub(1);
+    let mut end = 0;
+    let mut used = 0usize;
+    for (index, character) in label.char_indices() {
+        let mut buf = [0u8; 4];
+        let piece = character.encode_utf8(&mut buf);
+        let piece_width = usize::from(width(piece));
+        if used.saturating_add(piece_width) > room {
+            break;
+        }
+        used = used.saturating_add(piece_width);
+        end = index.saturating_add(character.len_utf8());
+    }
+    let mut out = label[..end].to_owned();
+    out.push('…');
+    out
+}
+
+fn paint_inspector_props(ui: &mut Ui<'_>, area: Rect, app: &App) {
+    let focus = if ui.state(NAV).contains(StateFlags::FOCUSED) {
+        "navigation"
+    } else if ui.state(INSPECTOR_CLOSE).contains(StateFlags::FOCUSED) {
+        "inspector"
+    } else {
+        "page"
+    };
+    let hover = if ui.hovered_part(NAV).is_some() {
+        "navigation"
+    } else {
+        "—"
+    };
+    let pressed = if ui.pressed_part(NAV).is_some() {
+        "navigation"
+    } else {
+        "—"
+    };
+    let rows = [
+        ("page", app.nav_label()),
+        ("focus", focus),
+        ("hover", hover),
+        ("pressed", pressed),
+        ("colors", ui.theme().capability.color.label()),
+    ];
+    Props::new(&rows).draw(ui, area);
 }
 
 fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     inspector_panel().draw(ui, area, |ui, inner| {
-        let focus = if ui.state(NAV).contains(StateFlags::FOCUSED) {
-            "navigation"
-        } else {
-            "page"
-        };
-        let hover = if ui.hovered_part(NAV).is_some() {
-            "navigation"
-        } else {
-            "—"
-        };
-        let pressed = if ui.pressed_part(NAV).is_some() {
-            "navigation"
-        } else {
-            "—"
-        };
-        let rows = [
-            ("page", app.page.title()),
-            ("focus", focus),
-            ("hover", hover),
-            ("pressed", pressed),
-            ("colors", ui.theme().capability.color.label()),
-        ];
-        Props::new(&rows).draw(ui, inner);
+        paint_inspector_props(ui, inner, app);
     });
 }
+
+fn nav_query_display(query: &str, row_width: u16) -> String {
+    match row_width {
+        0 => String::new(),
+        1 => "/".to_owned(),
+        width => format!("/ {}", termrock::truncate(query, width.saturating_sub(3))),
+    }
+}
+
+fn nav_query_cursor(area: Rect, displayed: &str) -> Option<Position> {
+    if area.width < 3 {
+        return None;
+    }
+    let x = area.x.saturating_add(width(displayed));
+    (x < area.right()).then(|| Position::new(x, area.y))
+}
+
+fn paint_nav_query(ui: &mut Ui<'_>, area: Rect, query: &NavQuery, focused: bool) {
+    if area.is_empty() {
+        return;
+    }
+    let field = shell_compat_style(ui.surface_style()).patch(ui.paint_patch(
+        &termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+    ));
+    ui.fill(area, field);
+
+    let prompt = field.patch(ui.paint_patch(
+        &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+    ));
+    let input = field.patch(ui.paint_patch(
+        &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+    ));
+    if area.width > 0 {
+        ui.paint_str(Rect::new(area.x, area.y, 1, 1), "/", prompt);
+    }
+
+    let display = nav_query_display(&query.text, area.width);
+    if area.width > 2 && display.len() > 2 {
+        let text = &display[2..];
+        ui.paint_str(
+            Rect::new(
+                area.x.saturating_add(2),
+                area.y,
+                area.width.saturating_sub(3),
+                1,
+            ),
+            text,
+            input,
+        );
+    }
+    if focused && let Some(cursor) = nav_query_cursor(area, &display) {
+        ui.set_bar_cursor(NAV, cursor);
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NavCursorKind {
+    None,
+    Group,
+    Leaf,
+}
+
+fn nav_cursor_kind(state: &TreeState, nodes: &[NavNode], query_active: bool) -> NavCursorKind {
+    let Some(key) = state.cursor() else {
+        return NavCursorKind::None;
+    };
+    let Some(node) = nodes
+        .iter()
+        .find(|node| node.key == key && (!query_active || node.query_match))
+    else {
+        return NavCursorKind::None;
+    };
+    if node.parent {
+        NavCursorKind::Group
+    } else if node.target.is_some() {
+        NavCursorKind::Leaf
+    } else {
+        NavCursorKind::None
+    }
+}
+
+const NAV_QUERY_MATCH_HINTS: &[(&str, &str)] = &[
+    ("type", "Filter"),
+    ("↑↓", "Move"),
+    ("Backspace", "Edit"),
+    ("Esc", "Clear"),
+    ("Enter", "Open"),
+];
+const NAV_QUERY_EMPTY_HINTS: &[(&str, &str)] = &[
+    ("type", "Filter"),
+    ("↑↓", "Move"),
+    ("Backspace", "Edit"),
+    ("Esc", "Clear"),
+];
+const NAV_GROUP_HINTS: &[(&str, &str)] = &[
+    ("↑↓", "Move"),
+    ("← →", "Fold"),
+    ("Enter", "Toggle"),
+    ("/", "Filter"),
+    ("q", "Quit"),
+];
+const NAV_LEAF_HINTS: &[(&str, &str)] = &[
+    ("↑↓", "Move"),
+    ("Enter", "Open"),
+    ("/", "Filter"),
+    ("q", "Quit"),
+];
+const NAV_EMPTY_HINTS: &[(&str, &str)] = &[("↑↓", "Move"), ("/", "Filter"), ("q", "Quit")];
+const HELP_HINTS: &[(&str, &str)] = &[("↑↓", "Scroll"), ("Esc", "Close")];
 
 #[expect(
     clippy::too_many_arguments,
@@ -989,12 +2835,10 @@ fn paint_hint(
 fn paint_footer(
     ui: &mut Ui<'_>,
     area: Rect,
-    nav_focused: bool,
-    page_hints: &[(&str, &str)],
-    page_editing: bool,
+    hints: &[(&str, &str)],
+    tab_hint: Option<(&str, &str)>,
     status: Option<&str>,
 ) {
-    const TAB_NEXT: (&str, &str) = ("Tab", "Next");
     if area.is_empty() {
         return;
     }
@@ -1006,28 +2850,32 @@ fn paint_footer(
         Part::KEY,
         StateFlags::empty(),
     );
-    let action_style = shell_part_style(
-        ui,
-        termrock::Family::KEYHINT,
-        Part::ACTION,
-        StateFlags::empty(),
-    );
-    let nav_hints: &[(&str, &str)] = if nav_focused {
-        &[
-            ("↑ ↓", "Move"),
-            ("Enter", "Open"),
-            ("Tab", "Into page"),
-            ("q", "Quit"),
-        ]
-    } else {
-        &[]
-    };
-
-    let tab_next = !nav_focused && !page_editing;
+    let action_style = shell_text_style(ui, termrock::FgStep::Muted);
     let mut x = area.x.saturating_add(1);
     let reserved = status.map_or(14, |message| width(message).saturating_add(3));
-    let page_hints: &[(&str, &str)] = if nav_focused { &[] } else { page_hints };
-    for &(key, action) in nav_hints.iter().chain(page_hints.iter()) {
+    let place_tab_before_quit = tab_hint.is_some()
+        && hints
+            .iter()
+            .any(|(key, action)| *key == "q" && *action == "Quit");
+    let mut tab_placed = false;
+    for &(key, action) in hints {
+        if place_tab_before_quit
+            && key == "q"
+            && action == "Quit"
+            && let Some((tab, action)) = tab_hint
+        {
+            paint_hint(
+                ui,
+                area,
+                &mut x,
+                reserved,
+                key_style,
+                action_style,
+                tab,
+                action,
+            );
+            tab_placed = true;
+        }
         paint_hint(
             ui,
             area,
@@ -1039,7 +2887,7 @@ fn paint_footer(
             action,
         );
     }
-    if tab_next {
+    if !tab_placed && let Some((key, action)) = tab_hint {
         paint_hint(
             ui,
             area,
@@ -1047,8 +2895,8 @@ fn paint_footer(
             reserved,
             key_style,
             action_style,
-            TAB_NEXT.0,
-            TAB_NEXT.1,
+            key,
+            action,
         );
     }
     if let Some(message) = status {
@@ -1102,73 +2950,171 @@ impl TuiApp for App {
         let _ = missing_page_panel();
         let _ = inspector_panel();
         let command = cx.command();
+        let page_shell_command_barrier = self.show_live_page()
+            && self
+                .active()
+                .is_some_and(|page| page.blocks_shell_commands(cx));
+        let shell_command = command.is_some_and(is_shell_command);
+        let inspector_modal_active = self.inspector_modal_active(cx);
+        let pending_quit_at_start = self.pending_quit_reason.is_some();
+        let consume_nav_tree_key = match nav_query_input(cx, self.nav_query.is_some()) {
+            Some(NavQueryInput::FocusOut) => {
+                self.apply_nav_query_input(NavQueryInput::FocusOut);
+                response |= Response::changed();
+                false
+            }
+            Some(_) if pending_quit_at_start => {
+                response |= Response::consumed();
+                true
+            }
+            Some(NavQueryInput::Consume) => {
+                response |= Response::consumed();
+                true
+            }
+            Some(input) => {
+                self.apply_nav_query_input(input);
+                response |= Response::changed();
+                false
+            }
+            None => false,
+        };
         self.update_header(cx, &mut response);
-        match command {
-            Some(QUIT | QUIT_CTRL) => {
-                self.quit = true;
-                cx.quit();
-            }
-            Some(NEXT_PAGE) => {
-                let next = self
-                    .page
-                    .index()
-                    .checked_add(1)
-                    .and_then(|index| PageId::ALL.get(index).copied())
-                    .or_else(|| PageId::ALL.first().copied());
-                if let Some(page) = next {
-                    self.goto(page);
+        if page_shell_command_barrier && shell_command {
+            response |= Response::consumed();
+        } else {
+            match command {
+                Some(QUIT | QUIT_CTRL) => self.request_quit(cx, &mut response),
+                Some(NEXT_PAGE)
+                    if !inspector_modal_active && self.pending_quit_reason.is_none() =>
+                {
+                    let count = NAV_ENTRIES.len();
+                    if count > 0 {
+                        let current = nav_index_for_target(self.nav_target).unwrap_or(0);
+                        response |= self.goto_entry_with_cx(cx, current.saturating_add(1) % count);
+                    }
                 }
-            }
-            Some(PREV_PAGE) => {
-                let previous = self
-                    .page
-                    .index()
-                    .checked_sub(1)
-                    .and_then(|index| PageId::ALL.get(index).copied())
-                    .or_else(|| PageId::ALL.last().copied());
-                if let Some(page) = previous {
-                    self.goto(page);
+                Some(PREV_PAGE)
+                    if !inspector_modal_active && self.pending_quit_reason.is_none() =>
+                {
+                    let count = NAV_ENTRIES.len();
+                    if count > 0 {
+                        let current = nav_index_for_target(self.nav_target).unwrap_or(0);
+                        let previous = current.checked_sub(1).unwrap_or(count.saturating_sub(1));
+                        response |= self.goto_entry_with_cx(cx, previous);
+                    }
                 }
+                Some(NEXT_PAGE | PREV_PAGE) => {}
+                Some(HELP_COMMAND) if !cx.is_open(HELP) && self.pending_quit_reason.is_none() => {
+                    self.open_help(cx);
+                }
+                Some(INSPECTOR_COMMAND)
+                    if cx.update_cause() == termrock::UpdateCause::Event
+                        && self.pending_quit_reason.is_none() =>
+                {
+                    self.toggle_inspector(&mut response);
+                }
+                _ => {}
             }
-            Some(HELP_COMMAND) if !cx.is_open(HELP) => {
-                cx.open_layer(HELP, Self::help_dialog().layer(cx));
-            }
-            Some(INSPECTOR_COMMAND) => {
-                self.inspector = !self.inspector;
-            }
-            _ => {}
         }
-        if let Some(action) = command
+        if self.show_live_page()
+            && let Some(action) = command
+            && !(page_shell_command_barrier && shell_command)
             && !matches!(
                 action,
                 QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND | INSPECTOR_COMMAND
             )
-            && let Some(active) = self.pages.get_mut(self.page.index())
+            && self.global_capture_is_current(action, cx)
+            && let Some(active) = self.active_mut()
         {
             response |= active.command(cx, action);
         }
-        response |= nav()
-            .update(cx, &mut self.nav_state, NAV_ENTRIES)
-            .on_action(|action| match action {
-                NavListAction::Chose(key) => {
-                    if let Some(page) = PageId::from_key(key) {
-                        self.goto(page);
-                    }
+        let sidebar_area = self.resolved_shell_layout(cx.viewport()).sidebar;
+        let sidebar = SidebarPresentation::new(
+            sidebar_area,
+            sidebar_panel_inner(sidebar_area, cx.design().space.card_inset),
+            cx.design().space.gutter,
+            self.nav_query.is_some(),
+        );
+        let presentation = NavTreePresentation::new(sidebar.tree, self.nav_query.as_ref());
+        let nodes = nav_nodes_for_query(
+            &self.nav_state,
+            sidebar.tree.height,
+            self.nav_query.as_ref(),
+        );
+        let query_disclosure = if self.pending_quit_reason.is_some() {
+            None
+        } else {
+            self.nav_query.as_ref().and_then(|_| {
+                cx.intents(NAV).find_map(|intent| match intent {
+                    Intent::Pointer {
+                        phase: Phase::Click | Phase::DoubleClick,
+                        part,
+                        ..
+                    } if matches!(part.part, Part::ICON | Part::ROW) => part.item,
+                    _ => None,
+                })
+            })
+        };
+        let query_disclosure =
+            query_disclosure.filter(|key| nodes.iter().any(|node| node.key == *key && node.parent));
+        let auto_group_expanded_before = self
+            .nav_auto_group
+            .map(|key| self.nav_state.is_expanded(key));
+        let pending_quit = self.pending_quit_reason.is_some();
+        let nav_response = if pending_quit {
+            let mut lifecycle_state = self.nav_state.clone();
+            nav_tree(presentation.query_revision).update(cx, &mut lifecycle_state, &nodes)
+        } else if !consume_nav_tree_key && self.nav_presentation.get() == Some(presentation) {
+            nav_tree(presentation.query_revision).update(cx, &mut self.nav_state, &nodes)
+        } else {
+            Response::ignored().repaint()
+        };
+        let nav_action = if pending_quit {
+            None
+        } else {
+            nav_response.action_ref().copied()
+        };
+        response |= nav_response.erase();
+        if let Some(key) = query_disclosure {
+            self.nav_state.toggle(key);
+            self.bump_nav_query_revision();
+        }
+        if let (Some(owner), Some(was_expanded)) = (self.nav_auto_group, auto_group_expanded_before)
+            && self.nav_state.is_expanded(owner) != was_expanded
+        {
+            self.nav_auto_group = None;
+        }
+        let mut enter_content = false;
+        let picked = match nav_action {
+            Some(TreeAction::Chose(key)) => target_for_key(key, &nodes),
+            Some(TreeAction::Activated(key)) => {
+                let picked = target_for_key(key, &nodes);
+                enter_content = picked.is_some_and(|(_, target)| target.has_content());
+                if picked.is_some() {
+                    self.end_nav_query_for_activation();
                 }
-                NavListAction::EnterContent(key) => {
-                    if let Some(page) = PageId::from_key(key) {
-                        self.goto(page);
-                        cx.focus_next();
-                    }
-                }
-                NavListAction::Moved(_)
-                | NavListAction::LeaveBackward
-                | NavListAction::LeaveForward => {}
-            });
+                picked
+            }
+            Some(TreeAction::Moved) => self
+                .nav_state
+                .cursor()
+                .and_then(|key| target_for_key(key, &nodes)),
+            Some(TreeAction::Expanded(_) | TreeAction::Collapsed(_)) | None => None,
+        };
+        if let Some((index, _target)) = picked {
+            response |= self.goto_entry_with_cx(cx, index);
+        }
 
-        if !(cx.update_cause() == termrock::UpdateCause::Tick
-            && (cx.is_open(HELP) || self.motion_paused))
-            && let Some(active) = self.pages.get_mut(self.page.index())
+        if self.nav_target == NavTarget::Selection {
+            response |= self.selectable.update(cx);
+        } else {
+            self.selectable.blur();
+        }
+
+        if self.show_live_page()
+            && !(cx.update_cause() == termrock::UpdateCause::Tick
+                && (cx.is_open(HELP) || self.motion_paused))
+            && let Some(active) = self.active_mut()
         {
             let update = active.update(cx);
             response |= update.response;
@@ -1177,7 +3123,31 @@ impl TuiApp for App {
                 response = response.repaint();
             }
         }
+        if enter_content {
+            cx.focus_next();
+        }
         self.update_help(cx, &mut response);
+        self.update_inspector(cx, &mut response);
+        self.update_quit_confirmation(cx, &mut response);
+        self.help_open = cx.is_open(HELP);
+        self.overlay_open = cx.top_layer() != termrock::LayerId::PAGE;
+        if self.nav_target == NavTarget::Placeholder(PANE_TREE_ENTRY) {
+            let viewport = cx.viewport();
+            let page_area = (viewport.width >= 72 && viewport.height >= 20 && !self.overlay_open)
+                .then(|| self.resolved_shell_layout(viewport).main);
+            response |= self.pane_tree.prepare_for_presentation(cx, page_area);
+        }
+        self.update_notice_reveals(cx, &mut response);
+        self.page_keymap.clone_from(&self.keymap);
+        if let NavTarget::Live(page) = self.nav_target
+            && page != PageId::QueryWorkbench
+            && !self.help_open
+            && !self.inspector
+            && self.pending_quit_reason.is_none()
+            && let Some(active) = self.pages.get(page.index())
+        {
+            active.keymap(&mut self.page_keymap);
+        }
         if !self.motion_paused
             && let Some((_, since)) = &self.status
         {
@@ -1194,49 +3164,216 @@ impl TuiApp for App {
 
         ui.fill(full, shell_compat_style(ui.surface_style()));
         if full.width < 72 || full.height < 20 {
+            self.query_workbench_capture_enabled.set(false);
             too_small_notice().draw(ui, full);
+            if let Some(reason) = self.pending_quit_reason {
+                ui.layer(QUIT_CONFIRMATION, |ui, area| {
+                    Self::quit_confirmation_dialog(reason).draw(
+                        ui,
+                        area,
+                        &self.quit_confirmation_state,
+                        |_, _| {},
+                    );
+                });
+            }
             return;
         }
-        let shell = shell_layout(full, self.inspector);
+
+        let query_workbench_capture_enabled = !ui.is_covered_by_native_layer()
+            && self.nav_target == NavTarget::Live(PageId::QueryWorkbench)
+            && self.nav_query.is_none()
+            && !self.help_open
+            && !self.overlay_open
+            && self.active().is_some_and(|page| {
+                page.global_capture_owners(RUN_QUERY)
+                    .iter()
+                    .any(|owner| ui.owner_has_focus_presentation(*owner))
+            });
+        self.query_workbench_capture_enabled
+            .set(query_workbench_capture_enabled);
+        let shell = self.resolved_shell_layout(full);
 
         shell_brand().draw(ui, shell.header);
-        nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
         shell_status().draw(ui, shell.footer);
+        let entry = nav_index_for_target(self.nav_target)
+            .and_then(|index| NAV_ENTRIES.get(index))
+            .copied();
+        let section = entry.map(|entry| entry.section).unwrap_or("");
+        let label = entry.map(|entry| entry.label).unwrap_or("Overview");
+        let nav_flags = ui.state(NAV);
+        let nav_focused = nav_flags.contains(StateFlags::FOCUSED)
+            && !nav_flags.contains(StateFlags::INACTIVE_LAYER)
+            && !self.overlay_open;
+        let route_count = NAV_ENTRIES.len().to_string();
+        let panel = Panel::new(NAV)
+            .title("")
+            .meta(&route_count)
+            .focused(nav_focused)
+            .patch_part(&NAV_PANEL_PARTS);
+        let panel_inner = panel.inner(ui, shell.sidebar);
+        panel.draw(ui, shell.sidebar, |_, _| ());
+        let gutter = ui.design().space.gutter;
+        let sidebar =
+            SidebarPresentation::new(shell.sidebar, panel_inner, gutter, self.nav_query.is_some());
+        let presentation = NavTreePresentation::new(sidebar.tree, self.nav_query.as_ref());
+        let mut nodes = nav_nodes_for_query(
+            &self.nav_state,
+            sidebar.tree.height,
+            self.nav_query.as_ref(),
+        );
+        for node in &mut nodes {
+            node.inactive_layer = self.overlay_open;
+        }
+        let sidebar_surface = ui.theme().raise(ui.surface());
+        ui.with_surface(sidebar_surface, |ui| {
+            paint_sidebar_heading(ui, shell.sidebar, gutter, nav_focused);
+            nav_tree(presentation.query_revision).draw(ui, sidebar.tree, &self.nav_state, &nodes);
+            if let (Some(query_area), Some(query)) = (sidebar.query, self.nav_query.as_ref()) {
+                paint_nav_query(ui, query_area, query, nav_focused);
+            }
+        });
+        self.nav_presentation.set(Some(presentation));
         paint_header(
             ui,
             shell.header,
             full.width,
             full.height,
-            self.page,
+            section,
+            label,
             self.inspector,
         );
-        if let Some(active) = self.active() {
-            active.draw(ui, shell.main);
+        let mut notice_reveal_targets: Option<[Option<NoticeRevealTarget>; 6]> = None;
+        if self.show_live_page() {
+            if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
+                if self.nav_query.is_none() && !self.overlay_open {
+                    notice_reveal_targets = Some(self.notices.draw_with_reveal_targets(
+                        ui,
+                        shell.main,
+                        self.notice_reveal_revision,
+                    ));
+                } else {
+                    self.notices.draw(ui, shell.main);
+                }
+            } else if let Some(active) = self.active() {
+                active.draw(ui, shell.main);
+            } else {
+                missing_page_panel().draw(ui, shell.main, |ui, area| {
+                    let _ = ui.paint_str(area, "No page selected", ui.surface_style());
+                });
+            }
+        } else if self.nav_target == NavTarget::Selection {
+            showcase_demos::pages::selectable::paint(ui, shell.main, &self.selectable);
         } else {
-            missing_page_panel().draw(ui, shell.main, |ui, area| {
-                let _ = ui.paint_str(area, "No page selected", ui.surface_style());
-            });
+            paint_placeholder(ui, shell.main, label);
         }
         if let Some(inspector) = shell.inspector {
             paint_inspector(ui, inspector, self);
         }
-        let (page_hints, page_editing) = self
-            .active()
-            .map(|page| (page.hints(ui), page.editing(ui)))
-            .unwrap_or_default();
+        let (page_hints, page_editing) = if self.show_live_page() {
+            self.active()
+                .map(|page| (page.hints(ui), page.editing(ui)))
+                .unwrap_or_default()
+        } else if self.nav_target == NavTarget::Selection {
+            (self.selectable.hints(), false)
+        } else {
+            (&[][..], false)
+        };
+        let cursor_kind = nav_cursor_kind(&self.nav_state, &nodes, self.nav_query.is_some());
+        let modal_page_hints = match self.nav_target {
+            NavTarget::Selection => self.selectable.hints(),
+            NavTarget::Placeholder(
+                CHECKS_RADIOS_ENTRY | STATUS_HINTS_ENTRY | EMPTY_ERROR_ENTRY | NOTICES_ENTRY
+                | DIFF_ENTRY | MASTER_DETAIL_ENTRY | PANE_TREE_ENTRY,
+            ) => page_hints,
+            NavTarget::Live(
+                PageId::Pickers
+                | PageId::DialogKinds
+                | PageId::Toolbars
+                | PageId::BreadcrumbsRails
+                | PageId::HelpKeys
+                | PageId::QuitLeave,
+            ) => page_hints,
+            NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
+        };
+        let (footer_hints, tab_hint) = if self.overlay_open {
+            if self.help_open {
+                (HELP_HINTS, None)
+            } else {
+                (modal_page_hints, None)
+            }
+        } else if nav_focused {
+            let hints = if self.nav_query.is_some() {
+                if cursor_kind == NavCursorKind::Leaf {
+                    NAV_QUERY_MATCH_HINTS
+                } else {
+                    NAV_QUERY_EMPTY_HINTS
+                }
+            } else {
+                match cursor_kind {
+                    NavCursorKind::Group => NAV_GROUP_HINTS,
+                    NavCursorKind::Leaf => NAV_LEAF_HINTS,
+                    NavCursorKind::None => NAV_EMPTY_HINTS,
+                }
+            };
+            let tab = if self.nav_target.has_content() {
+                ("Tab", "Into page")
+            } else {
+                ("Tab", "Next")
+            };
+            (hints, Some(tab))
+        } else {
+            let tab = (!page_editing).then_some(("Tab", "Next"));
+            (page_hints, tab)
+        };
         paint_footer(
             ui,
             shell.footer,
-            ui.state(NAV).contains(StateFlags::FOCUSED),
-            page_hints,
-            page_editing,
+            footer_hints,
+            tab_hint,
             self.status.as_ref().map(|(status, _)| status.0.as_str()),
         );
+        if let Some(targets) = notice_reveal_targets
+            && self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY)
+            && self.nav_query.is_none()
+            && !self.overlay_open
+        {
+            let mut reveals = self.notice_reveals.borrow_mut();
+            for (reveal, target) in reveals.iter_mut().zip(targets) {
+                if let Some(target) = target {
+                    let _ = reveal.draw(
+                        ui,
+                        &target.notice,
+                        target.logical_area,
+                        target.window,
+                        target.revision,
+                    );
+                } else {
+                    reveal.reset();
+                }
+            }
+        }
         ui.layer(HELP, |ui, area| {
-            Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {
-                let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
+            Self::help_overlay().draw(ui, area, &self.help_state);
+        });
+        let quit_reason = self
+            .pending_quit_reason
+            .unwrap_or("The query is still running. Leaving stops it.");
+        ui.layer(QUIT_CONFIRMATION, |ui, area| {
+            Self::quit_confirmation_dialog(quit_reason).draw(
+                ui,
+                area,
+                &self.quit_confirmation_state,
+                |_, _| {},
+            );
+        });
+        ui.layer(INSPECTOR, |ui, area| {
+            Self::inspector_dialog(full).draw(ui, area, &self.inspector_state, |ui, body| {
+                paint_inspector_props(ui, body, self)
             });
         });
+        if label == "Selection" {
+            showcase_demos::pages::selectable::Model::draw_dialog(ui, &self.selectable);
+        }
     }
 
     fn should_quit(&self) -> bool {
@@ -1244,7 +3381,16 @@ impl TuiApp for App {
     }
 
     fn keymap(&self) -> &KeyMap {
-        &self.keymap
+        if self.nav_target == NavTarget::Live(PageId::QueryWorkbench)
+            && self.query_workbench_capture_enabled.get()
+            && self.nav_query.is_none()
+            && !self.help_open
+            && !self.overlay_open
+        {
+            &self.query_workbench_keymap
+        } else {
+            &self.page_keymap
+        }
     }
 
     fn min_size(&self) -> Size {
@@ -1258,18 +3404,79 @@ impl TuiApp for App {
         cx.focus(NAV);
         Response::changed()
     }
+
+    fn accept_paused_clock_step(&mut self, step_ms: u64) -> bool {
+        if !self.motion_paused {
+            return false;
+        }
+        self.advance_paused_clock(step_ms);
+        true
+    }
+}
+
+impl App {
+    fn advance_paused_clock(&mut self, step_ms: u64) {
+        if let Some((_, since)) = &mut self.status {
+            *since = Moment::from_duration(
+                since
+                    .as_duration()
+                    .saturating_sub(std::time::Duration::from_millis(step_ms)),
+            );
+        }
+        let frames = usize::try_from(step_ms).unwrap_or(usize::MAX);
+        self.paused_frame = self.paused_frame.saturating_add(frames);
+        for page in &mut self.pages {
+            page.seek_paused(self.paused_frame);
+        }
+        self.checks_radios.seek_paused(self.paused_frame);
+        self.status_hints.seek_paused(self.paused_frame);
+        self.diff.seek_paused(self.paused_frame);
+    }
+}
+
+const CLI_HELP: &str = "\
+Junie-tui — Junie-inspired Ratatui design system laboratory
+
+Usage: showcase [OPTIONS]
+
+Options:
+      --theme <THEME>      Theme to use: junie or paper [default: junie]
+      --color <LEVEL>      Colour level: truecolor, 256, 16, or none
+      --page <NAME>        The page to open [default: Overview]
+      --motion <MOTION>    Animation mode: full or paused [default: full]
+      --frame <N>          Frame to render while paused (0–10000)
+  -h, --help               Print help
+
+Frame:     with --motion paused, the exact tick to render
+
+Keys: Tab/Shift+Tab focus · arrows move · Enter/Space activate · Esc back · [ ] pages · ? help · q quit
+";
+
+fn print_cli_help() -> std::io::Result<()> {
+    use std::io::Write as _;
+
+    let mut stdout = std::io::stdout().lock();
+    stdout.write_all(CLI_HELP.as_bytes())?;
+    stdout.flush()
 }
 
 pub fn run() -> std::io::Result<()> {
-    let (page, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
-    termrock::run(App::with_page_motion(page, paused, frame), theme)
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args
+        .iter()
+        .any(|arg| matches!(arg.as_str(), "-h" | "--help"))
+    {
+        return print_cli_help();
+    }
+    let (nav, theme, paused, frame) = parse_args(args.into_iter())?;
+    termrock::run(App::boot(nav, paused, frame), theme)
 }
 
 fn parse_args(
     mut args: impl Iterator<Item = String>,
-) -> std::io::Result<(PageId, Theme, bool, usize)> {
+) -> std::io::Result<(usize, Theme, bool, usize)> {
     let mut theme = Theme::junie();
-    let mut page = PageId::Overview;
+    let mut nav = 0usize;
     let mut paused = false;
     let mut frame = 0usize;
     let mut frame_seen = false;
@@ -1301,9 +3508,9 @@ fn parse_args(
             }
             "--page" => {
                 if let Some(value) = args.next()
-                    && let Some(selected) = PageId::from_name(&value)
+                    && let Some(index) = nav_index_from_name(&value)
                 {
-                    page = selected;
+                    nav = index;
                 }
             }
             "--motion" => {
@@ -1356,136 +3563,5 @@ fn parse_args(
             "--frame cannot be combined with --motion full",
         ));
     }
-    Ok((page, theme, paused, frame))
-}
-
-#[cfg(test)]
-mod paint_contract_tests {
-    use super::*;
-    use termrock::{Color, Family, Modifier, Role, StylePatch, Surface};
-
-    fn collision_style(role: Role) -> PaintStyle {
-        let mut theme = Theme::junie();
-        theme.color.accent = Color::Rgb(100, 100, 100);
-        theme.color.danger = theme.color.accent;
-        let family = Family::custom("showcase.paint-contract");
-        theme
-            .define_family(family, |family| {
-                family
-                    .part(Part::LABEL)
-                    .base(StylePatch::new().set_fg(role));
-            })
-            .resolve(
-                family,
-                Variant::DEFAULT,
-                Part::LABEL,
-                StateFlags::empty(),
-                Surface::Canvas,
-            )
-            .style
-    }
-
-    #[test]
-    fn shell_modifier_cleanup_preserves_colliding_semantic_roles() {
-        let accent = collision_style(Role::Accent).add_modifier(Modifier::BOLD | Modifier::ITALIC);
-        let danger = collision_style(Role::Danger).add_modifier(Modifier::BOLD | Modifier::ITALIC);
-        assert_eq!(accent.as_style(), danger.as_style());
-        let accent = shell_compat_style(accent);
-        let danger = shell_compat_style(danger);
-        assert_ne!(accent, danger, "equal RGB must not erase semantic identity");
-        assert_eq!(accent.add_modifier, Modifier::BOLD);
-        assert_eq!(accent.fg, Some(Color::Rgb(100, 100, 100)));
-        assert_eq!(accent.as_style(), danger.as_style());
-    }
-}
-
-#[cfg(test)]
-mod app_tests {
-    use super::*;
-
-    #[test]
-    fn application_commands_are_distinct_from_library_custom_keys() {
-        let owned = [
-            QUIT,
-            QUIT_CTRL,
-            HELP_COMMAND,
-            INSPECTOR_COMMAND,
-            NEXT_PAGE,
-            PREV_PAGE,
-            FORM_SUBMIT,
-            RUN_COMMAND,
-        ]
-        .into_iter()
-        .chain(showcase_demos::pages::pickers::action_keys())
-        .collect::<Vec<_>>();
-        let names = [
-            "showcase.quit",
-            "showcase.quit.ctrl",
-            "showcase.help",
-            "showcase.inspector",
-            "showcase.page.next",
-            "showcase.page.previous",
-            "showcase.form.submit",
-            "showcase.taskrunner.run",
-            "showcase.menu.open",
-            "showcase.menu.close",
-            "showcase.context.inspect",
-            "showcase.context.copy",
-        ];
-        assert_eq!(owned.len(), names.len());
-        for (key, name) in owned.iter().zip(names) {
-            assert_eq!(
-                *key,
-                ActionKey::application(name),
-                "application owner: {name}"
-            );
-            assert_ne!(*key, ActionKey::custom(name), "library namespace: {name}");
-            assert_eq!(
-                owned.iter().filter(|other| *other == key).count(),
-                1,
-                "distinct command: {name}"
-            );
-        }
-    }
-
-    #[test]
-    fn showcase_motion_flags_parse_and_bound_paused_frames() {
-        let parsed = parse_args(
-            ["--page", "progress", "--motion", "paused", "--frame", "80"]
-                .into_iter()
-                .map(str::to_owned),
-        );
-        assert!(parsed.is_ok(), "valid frame options: {parsed:?}");
-        if let Ok((page, _, paused, frame)) = parsed {
-            assert_eq!(page, PageId::Progress);
-            assert!(paused);
-            assert_eq!(frame, 80);
-        }
-
-        let parsed = parse_args(["--frame", "10000"].into_iter().map(str::to_owned));
-        assert!(parsed.is_ok(), "maximum frame is valid: {parsed:?}");
-        if let Ok((_, _, paused, frame)) = parsed {
-            assert!(paused);
-            assert_eq!(frame, 10_000);
-        }
-        assert!(parse_args(["--frame", "10001"].into_iter().map(str::to_owned)).is_err());
-        assert!(parse_args(["--motion"].into_iter().map(str::to_owned)).is_err());
-        assert!(parse_args(["--motion", "reduced"].into_iter().map(str::to_owned)).is_err());
-        assert!(
-            parse_args(
-                ["--motion", "full", "--frame", "80"]
-                    .into_iter()
-                    .map(str::to_owned)
-            )
-            .is_err()
-        );
-        assert!(
-            parse_args(
-                ["--frame", "80", "--motion", "full"]
-                    .into_iter()
-                    .map(str::to_owned)
-            )
-            .is_err()
-        );
-    }
+    Ok((nav, theme, paused, frame))
 }

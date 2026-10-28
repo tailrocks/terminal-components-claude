@@ -1,0 +1,15 @@
+0000000000000000000000000000000000000000 e0dd924b0b8a107f0785fc004493399bd54e3dfd Alexey Zhokhov <alexey@zhokhov.com> 1792254623 +0700	branch: Created from HEAD
+e0dd924b0b8a107f0785fc004493399bd54e3dfd e01b89e85dd22170cef1a53aba87f4acd9c4ac7f Alexey Zhokhov <alexey@zhokhov.com> 1792255105 +0700	commit: fix(footer): the peek line never drops the primary hint
+e01b89e85dd22170cef1a53aba87f4acd9c4ac7f 06099f4340207e11922d192d2c4e4e39504c7944 Alexey Zhokhov <alexey@zhokhov.com> 1792255105 +0700	commit: docs(responsive): footer peek keeps the primary hint (R-apps-8 finding fixed)
+06099f4340207e11922d192d2c4e4e39504c7944 c03371e7a9c73993cbfc38e3e8897f28768cfc38 Alexey Zhokhov <alexey@zhokhov.com> 1792255832 +0700	commit: fix(holla): the finder's cursor row peeks only while the finder has focus
+c03371e7a9c73993cbfc38e3e8897f28768cfc38 8e0952a58638397ce60bd97334eaee564283371e Alexey Zhokhov <alexey@zhokhov.com> 1792255915 +0700	commit: test(visual): holla finder footers show the cursor row's peek line again
+8e0952a58638397ce60bd97334eaee564283371e 372b7f690b3a953622793687fdcc3f14fb977392 Alexey Zhokhov <alexey@zhokhov.com> 1792255925 +0700	commit: test(visual): jackin footers keep the Enter hint beside the peek line
+372b7f690b3a953622793687fdcc3f14fb977392 05b307922f125f34d8cb07ad5f8518b83b240047 Alexey Zhokhov <alexey@zhokhov.com> 1792255951 +0700	commit: docs(responsive): footer peek drops secondary hints first; finder peeks on focus
+05b307922f125f34d8cb07ad5f8518b83b240047 c03371e7a9c73993cbfc38e3e8897f28768cfc38 Alexey Zhokhov <alexey@zhokhov.com> 1792256253 +0700	reset: moving to c03371e7a
+c03371e7a9c73993cbfc38e3e8897f28768cfc38 a65c15cadd20cbc6f3abf348d659181bf216ddac Alexey Zhokhov <alexey@zhokhov.com> 1792256253 +0700	cherry-pick: docs(responsive): footer peek drops secondary hints first; finder peeks on focus
+a65c15cadd20cbc6f3abf348d659181bf216ddac 03b2ebb4676b43945a8ad44e54d832ad5c3b43db Alexey Zhokhov <alexey@zhokhov.com> 1792256284 +0700	commit: fix(footer): the peek line never costs a key hint
+03b2ebb4676b43945a8ad44e54d832ad5c3b43db d25c12245945b8392b4c439d7ab2f77da51d6254 Alexey Zhokhov <alexey@zhokhov.com> 1792256284 +0700	commit: docs(responsive): footer peek takes only the width every hint leaves
+d25c12245945b8392b4c439d7ab2f77da51d6254 b53a7cdaf50deb161d65dc64c6162c06badd88b3 Alexey Zhokhov <alexey@zhokhov.com> 1792256936 +0700	commit: test(visual): holla finder footers add the cursor row's peek line
+b53a7cdaf50deb161d65dc64c6162c06badd88b3 02578d15c1cbd493a61f713aeac583854cb5876c Alexey Zhokhov <alexey@zhokhov.com> 1792256948 +0700	commit: test(visual): jackin footers get their hints back from the peek line
+02578d15c1cbd493a61f713aeac583854cb5876c 3b6764c70a453d9758e84863db9411d3e6fb5e0f Alexey Zhokhov <alexey@zhokhov.com> 1792259175 +0700	rebase (finish): refs/heads/footer-peek onto 395b175a9b0f57e982cde410b56cb8043b7b75bf
+3b6764c70a453d9758e84863db9411d3e6fb5e0f 3018e067bb6f495a46f2f30e3e17c9bb86cd01e3 Alexey Zhokhov <alexey@zhokhov.com> 1792259804 +0700	commit: test(holla): the finder peek test holds where Alt+Enter is delivered

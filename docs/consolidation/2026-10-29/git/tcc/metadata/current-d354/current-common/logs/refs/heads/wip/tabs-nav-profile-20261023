@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 e63fe6e99012903bef4ee9786719c103ec10586c Alexey Zhokhov <alexey@zhokhov.com> 1792755722 +0700	branch: Created from origin/parity/termrock-visual-baseline
+e63fe6e99012903bef4ee9786719c103ec10586c 03af936fab3a09eceebbc0d30d5273c8f2434302 Alexey Zhokhov <alexey@zhokhov.com> 1792756660 +0700	commit: feat(navigation): add Tabs adjacent-navigation profiles
+03af936fab3a09eceebbc0d30d5273c8f2434302 8a156d44361518a65eb817bbf7ae772e4e6b85bd Alexey Zhokhov <alexey@zhokhov.com> 1792759756 +0700	commit: test(viewport): cover scrollbar visibility contract
+8a156d44361518a65eb817bbf7ae772e4e6b85bd 5a7110f634ddfdc5a7d736ed127c2bd9d8e5e723 Alexey Zhokhov <alexey@zhokhov.com> 1792760232 +0700	commit: test(viewport): assert full scrollbar spill bounds

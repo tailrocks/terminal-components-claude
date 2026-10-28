@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 1d7b8eb291e37cb4806ce1369a8a0abab08a81ac Alexey Zhokhov <alexey@zhokhov.com> 1792509350 +0700	branch: Created from origin/parity/termrock-visual-baseline
+1d7b8eb291e37cb4806ce1369a8a0abab08a81ac d60c2bc68490d4f432419ffd4b23d37e15cd3056 Alexey Zhokhov <alexey@zhokhov.com> 1792509536 +0700	cherry-pick: fix(theme): align Junie ANSI-256 text palette
+d60c2bc68490d4f432419ffd4b23d37e15cd3056 cacbcff9209ae1ffc2f464a608baa90c954bedf7 Alexey Zhokhov <alexey@zhokhov.com> 1792509536 +0700	cherry-pick: fix(theme): match Junie mono faint palette
+cacbcff9209ae1ffc2f464a608baa90c954bedf7 b95074fd453557142ced0b6a9aaf14ed51ca4ce6 Alexey Zhokhov <alexey@zhokhov.com> 1792509714 +0700	cherry-pick: fix: preserve explicit shared component styles
+b95074fd453557142ced0b6a9aaf14ed51ca4ce6 e29a09073e26a80c5c2c5e2b334ff68a872726ae Alexey Zhokhov <alexey@zhokhov.com> 1792509714 +0700	cherry-pick: fix: preserve explicit theme style precedence
+e29a09073e26a80c5c2c5e2b334ff68a872726ae c927b3fb193bcfd35d44eea07f6ce68d3dbe968e Alexey Zhokhov <alexey@zhokhov.com> 1792509714 +0700	cherry-pick: fix: remove redundant help overlay width casts
+c927b3fb193bcfd35d44eea07f6ce68d3dbe968e d2d270314bea4279c7a132edf5948e986dca1a96 Alexey Zhokhov <alexey@zhokhov.com> 1792509715 +0700	cherry-pick: fix: preserve explicit dialog chrome styles
+d2d270314bea4279c7a132edf5948e986dca1a96 5a0a480e8f2b8db144cc998065df38c54aca95db Alexey Zhokhov <alexey@zhokhov.com> 1792509715 +0700	cherry-pick: docs: record current parity style integration evidence
+5a0a480e8f2b8db144cc998065df38c54aca95db b0a3bea5a486c4b67a83a10ec5463c690c590208 Alexey Zhokhov <alexey@zhokhov.com> 1792509982 +0700	commit: docs: record palette integration reference conflict

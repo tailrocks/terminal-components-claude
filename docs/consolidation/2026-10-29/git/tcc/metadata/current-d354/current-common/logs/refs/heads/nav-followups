@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 ed0f7e549c5507b044f2d9e949b0eb9d5018c94e Alexey Zhokhov <alexey@zhokhov.com> 1792170872 +0700	branch: Created from HEAD
+ed0f7e549c5507b044f2d9e949b0eb9d5018c94e c05c95605a4697c3e01a58adfa950b82c1e32539 Alexey Zhokhov <alexey@zhokhov.com> 1792171424 +0700	commit: fix(showcase): focus fallback defaults to the library's Nearest
+c05c95605a4697c3e01a58adfa950b82c1e32539 6202ca43dadc829a6309a9fdab93b5d89ea6d453 Alexey Zhokhov <alexey@zhokhov.com> 1792171499 +0700	commit: docs(plan): RowMenu into S22; Strategy B nav policies as S27 with SC57
+6202ca43dadc829a6309a9fdab93b5d89ea6d453 9805f4c0c2d734352d1fa5323c9a549639184a79 Alexey Zhokhov <alexey@zhokhov.com> 1792172941 +0700	commit: docs(plan): SC13 note: T3 and T2 are fixed
+9805f4c0c2d734352d1fa5323c9a549639184a79 1c3f4e887a46f111d0f93cfb0f201fa639ebe6dc Alexey Zhokhov <alexey@zhokhov.com> 1792172981 +0700	commit: feat(toolbar): overflow menu for items that do not fit
+1c3f4e887a46f111d0f93cfb0f201fa639ebe6dc 770d480e7195ff5162b738daa9b21f18255435a9 Alexey Zhokhov <alexey@zhokhov.com> 1792173665 +0700	rebase (finish): refs/heads/nav-followups onto 9ae6afc7ecd226bca34f87ab6db9ad9edb7b0590
+770d480e7195ff5162b738daa9b21f18255435a9 741fa8980f85bd2af0f544d8adf091070db35fc2 Alexey Zhokhov <alexey@zhokhov.com> 1792173685 +0700	commit (amend): feat(toolbar): overflow menu for items that do not fit
+741fa8980f85bd2af0f544d8adf091070db35fc2 9c0ab42c7626b6c7590e3e369570c4f05cada17f Alexey Zhokhov <alexey@zhokhov.com> 1792173942 +0700	commit: docs(agents): subagent cap, no idle waiting, 4-minute commands
+9c0ab42c7626b6c7590e3e369570c4f05cada17f 610d04b0e7c5211c06d5c29bc8daff92c95069f2 Alexey Zhokhov <alexey@zhokhov.com> 1792174506 +0700	rebase (finish): refs/heads/nav-followups onto 395e4d61f4e964e6a6644f1b87256f96c212c41d

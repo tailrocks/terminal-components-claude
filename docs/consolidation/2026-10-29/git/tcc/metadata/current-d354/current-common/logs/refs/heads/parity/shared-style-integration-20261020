@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 09df933dc31f8c92528e57ae6810c0377c83cfb6 Alexey Zhokhov <alexey@zhokhov.com> 1792507230 +0700	branch: Created from origin/parity/termrock-visual-baseline
+09df933dc31f8c92528e57ae6810c0377c83cfb6 1a44bd04a7c90aceb76453b1b9411159d75cb706 Alexey Zhokhov <alexey@zhokhov.com> 1792507237 +0700	cherry-pick: fix: preserve explicit shared component styles
+1a44bd04a7c90aceb76453b1b9411159d75cb706 8e9a7f59ee1072405aaee18a89f4d433485888ec Alexey Zhokhov <alexey@zhokhov.com> 1792507263 +0700	commit (cherry-pick): fix: preserve explicit theme style precedence
+8e9a7f59ee1072405aaee18a89f4d433485888ec 941061f45cd2f043e0ef9cf4bdd928f796c17b15 Alexey Zhokhov <alexey@zhokhov.com> 1792507263 +0700	cherry-pick: fix: remove redundant help overlay width casts
+941061f45cd2f043e0ef9cf4bdd928f796c17b15 b9fcaffd1e0350e07dec08e9cb5244acaecee8cc Alexey Zhokhov <alexey@zhokhov.com> 1792507337 +0700	commit: docs: record shared-style integration checks
+b9fcaffd1e0350e07dec08e9cb5244acaecee8cc e61c16a06d28e6f68e37055923b605de6cd44f16 Alexey Zhokhov <alexey@zhokhov.com> 1792507398 +0700	commit: docs: isolate shared-style comparison builds
+e61c16a06d28e6f68e37055923b605de6cd44f16 e72dbb15369d541ee86095f6caaee3f7e4680828 Alexey Zhokhov <alexey@zhokhov.com> 1792508105 +0700	commit: fix: preserve explicit dialog chrome styles

@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 e63fe6e99012903bef4ee9786719c103ec10586c Alexey Zhokhov <alexey@zhokhov.com> 1792755384 +0700	branch: Created from HEAD
+e63fe6e99012903bef4ee9786719c103ec10586c bee36338657b721179dd37c21150064b0e9a5d3d Alexey Zhokhov <alexey@zhokhov.com> 1792756795 +0700	commit: fix(controls): honor explicit clear gutter styles
+bee36338657b721179dd37c21150064b0e9a5d3d 7d9b089e8a8505019dc0885d1b2a2c5e62ec2de4 Alexey Zhokhov <alexey@zhokhov.com> 1792759293 +0700	cherry-pick: feat(navigation): add Tabs adjacent-navigation profiles
+7d9b089e8a8505019dc0885d1b2a2c5e62ec2de4 ab4d505b7751eda2c04e26c9b5346b885d4bdcb2 Alexey Zhokhov <alexey@zhokhov.com> 1792759523 +0700	cherry-pick: docs: preserve historical design and safety indexes
+ab4d505b7751eda2c04e26c9b5346b885d4bdcb2 855f34f127c7ea457e801f0c9505bae242de0894 Alexey Zhokhov <alexey@zhokhov.com> 1792759902 +0700	cherry-pick: fix(navigation): add focus-only list settling
+855f34f127c7ea457e801f0c9505bae242de0894 05e52ac58cbb69d803e23854edad0f6e3de15632 Alexey Zhokhov <alexey@zhokhov.com> 1792759910 +0700	cherry-pick: test(navigation): cover mixed focus settle fallback
+05e52ac58cbb69d803e23854edad0f6e3de15632 6990305caac86bf01ada20bf92026154b4f2665f Alexey Zhokhov <alexey@zhokhov.com> 1792760526 +0700	cherry-pick: test(viewport): cover scrollbar visibility contract
+6990305caac86bf01ada20bf92026154b4f2665f 8d3ad9e0c2041af0b172ffbe7071e7e0d72b59d1 Alexey Zhokhov <alexey@zhokhov.com> 1792760533 +0700	cherry-pick: test(viewport): assert full scrollbar spill bounds
+8d3ad9e0c2041af0b172ffbe7071e7e0d72b59d1 0715b1645882e7a64b7d532040a9c008cfe3a87b Alexey Zhokhov <alexey@zhokhov.com> 1792761227 +0700	commit: docs: restore operation-local safety comments
+0715b1645882e7a64b7d532040a9c008cfe3a87b f1fbd446a12e7861fad29f304760b5cf137ba06c Alexey Zhokhov <alexey@zhokhov.com> 1792763474 +0700	commit: feat(feedback): add clipped accounts drawer rows

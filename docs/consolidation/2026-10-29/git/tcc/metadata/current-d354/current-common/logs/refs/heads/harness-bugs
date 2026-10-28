@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 ab6631d90db142dc0b620ffb3bbafffaa4639be2 Alexey Zhokhov <alexey@zhokhov.com> 1792153643 +0700	branch: Created from HEAD
+ab6631d90db142dc0b620ffb3bbafffaa4639be2 3073208926745a7135af24a163cc6c277bae19d2 Alexey Zhokhov <alexey@zhokhov.com> 1792153823 +0700	commit: fix(tablepro): quit on Ctrl+Q through the shared quit keys
+3073208926745a7135af24a163cc6c277bae19d2 c77e7cde56dabc03437a1beeff6c3588a17bda40 Alexey Zhokhov <alexey@zhokhov.com> 1792154127 +0700	commit: fix(holla): idle screens stop redrawing every tick under reduced motion
+c77e7cde56dabc03437a1beeff6c3588a17bda40 bacae024f8fcfaaddccdce3182872ab0a25c15e7 Alexey Zhokhov <alexey@zhokhov.com> 1792154462 +0700	commit: fix(fields): editing text controls pass unbound chords on
+bacae024f8fcfaaddccdce3182872ab0a25c15e7 c60d791e30b845bf1d2527468c5c7a502fcc189a Alexey Zhokhov <alexey@zhokhov.com> 1792154622 +0700	rebase (finish): refs/heads/harness-bugs onto f13463b78c17898b6d1a7bbb742f7eaaa6ab987b
+c60d791e30b845bf1d2527468c5c7a502fcc189a bd298bd1550a25ac6cb85fb7e73911a2443d4b21 Alexey Zhokhov <alexey@zhokhov.com> 1792155357 +0700	commit: fix(runtime): deliver resizes crossterm drops or misses at startup
+bd298bd1550a25ac6cb85fb7e73911a2443d4b21 b42374cd2bf5009f1f58098fcdeeb89a212dfd35 Alexey Zhokhov <alexey@zhokhov.com> 1792155364 +0700	rebase (finish): refs/heads/harness-bugs onto bc3a9cfa91cbf20324a6077e2690cb43f51772a6
+b42374cd2bf5009f1f58098fcdeeb89a212dfd35 45bc3b2241bd4c388db3ed4d6d2e45d36ad031a7 Alexey Zhokhov <alexey@zhokhov.com> 1792155536 +0700	rebase (finish): refs/heads/harness-bugs onto 9e9d5b248f0fd5eb87aced8e9cb61a466fb4b51f

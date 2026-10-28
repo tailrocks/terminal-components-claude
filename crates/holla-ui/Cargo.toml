@@ -12,9 +12,8 @@ holla-plan.workspace = true
 holla-sim.workspace = true
 termrock.workspace = true
 ratatui.workspace = true
-clap.workspace = true
 unicode-width.workspace = true
 unicode-segmentation.workspace = true
 
-[dev-dependencies]
-termrock-test-support.workspace = true
+[lib]
+doctest = false

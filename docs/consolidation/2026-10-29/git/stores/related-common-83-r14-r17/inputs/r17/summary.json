@@ -1,0 +1,50 @@
+{
+  "counts": {
+    "common_dirs": 83,
+    "config_files_key-inventoried": 83,
+    "custom_non_template_hooks": 0,
+    "empty_store_missing_ref_oids_in_downloads_tcc_metadata": 44,
+    "empty_store_ref_only_rows": 46,
+    "markers": 83,
+    "raw_configs_copied": 0,
+    "raw_payloads_total_unique_bytes": 1653362,
+    "raw_payloads_unique_sha256": 129,
+    "raw_source_paths_discovered": 387,
+    "snapshot_errors_or_races": 0,
+    "snapshot_map_rows": 387,
+    "snapshot_sources_changed_since_r14": 0,
+    "snapshot_sources_matching_r14_expected_hash": 387,
+    "snapshot_sources_without_r14_hash": 0,
+    "unique_missing_oids_absent_from_canonical_tcc": 30
+  },
+  "created_utc": "2026-10-28T21:37:28.940735+00:00",
+  "files": {
+    "config_field_exclusions": "config-field-exclusions.jsonl",
+    "empty_ref_only_store_full_oids": "empty-ref-only-store-full-oids.jsonl",
+    "oidset_overlap": "oidset-overlap-with-baselines.jsonl",
+    "raw_admin_payloads": "raw-admin-payloads/<sha256>",
+    "raw_admin_source_to_payload_map": "raw-admin-source-to-payload-map.jsonl"
+  },
+  "inputs": {
+    "r14_checksums_sha256": "e3cc00f81b64d4ebf86a6b7798756d1f997879c6a18e1c1825c21131eaed0f02",
+    "r15_checksums_sha256": "1bf835fb3b165b747ba7aaf59d0a37cb71a5339ff90f48300c7bb47d57341dad"
+  },
+  "privacy": {
+    "FETCH_HEAD_and_alternates_files_are_static_screen_required": true,
+    "config_file_bytes_excluded_because_values_may_contain_credentials": true,
+    "config_values_copied_or_emitted": false,
+    "hooks_executed": false,
+    "index_paths_and_conflict_stage_metadata_must_remain_recoverable": true,
+    "normalized_exact_config_field_classes_recorded_in_config-field-exclusions.jsonl": true,
+    "payloads_mode": "0600 under mode-0700 inventory directory",
+    "raw_index_files_copied": true,
+    "raw_reflog_messages_copied_inertly": true,
+    "reflogs_require_static_privacy_screen_before_publication": true
+  },
+  "revision": "global-addendum-r17-20261029",
+  "scope": "Read-only current raw admin/index/ref/reflog byte snapshots for the 83 non-TCC Git common dirs, with restricted local staging. No Git/source/cache mutation. Raw config values are never copied.",
+  "snapshot_errors": [],
+  "unresolved": [
+    "The empty unlisted-pr38-source-cc9e store has zero local object OIDs but 46 refs; retain exact refs/admin state and the source worktree. Its 30 unique referenced OIDs absent from canonical TCC appear in Downloads-TCC ref/reflog metadata, but physical presence in that Downloads ODB remains pending the repository-owner census."
+  ]
+}

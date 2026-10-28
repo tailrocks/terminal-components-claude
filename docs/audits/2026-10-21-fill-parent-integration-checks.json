@@ -1,0 +1,70 @@
+{
+  "source_commit": "79667c8355884ac8761579f00d08d5adfd263cdb",
+  "merge_commit": "1fac27d0fc44387eb8fe78236693f1286417e198",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "testing",
+        "--status-level",
+        "fail",
+        "--final-status-level",
+        "fail"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-fill-79667-0.log",
+      "sha256": "3b868e50958746b892f35e7c88618204dae59f3271d26f66e1aad82a1ea8705c"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "testing",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-fill-79667-1.log",
+      "sha256": "42c0d69dc714e489dc0a3dd843976f7dbbabf5ed8aae6bf4c89ee1f34b13869f"
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "termrock-runtime",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-fill-79667-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-fill-79667-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "nextest": {
+    "passed": 358,
+    "skipped": 3,
+    "failed": 0
+  },
+  "acceptance": "Bounded shared fill provenance only; no full application or architecture approval."
+}

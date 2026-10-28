@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 a848219fd858ed6352fcb403b2cc5d5953083e6f Alexey Zhokhov <alexey@zhokhov.com> 1792500632 +0700	branch: Created from HEAD
+a848219fd858ed6352fcb403b2cc5d5953083e6f 2a01a32e986e9f4b1a0a2fa35d66886496ad099d Alexey Zhokhov <alexey@zhokhov.com> 1792500648 +0700	commit: docs: audit replay-origin production paths
+2a01a32e986e9f4b1a0a2fa35d66886496ad099d a7f95822e92dc2f799ca247bfef5702610fe8d2e Alexey Zhokhov <alexey@zhokhov.com> 1792500995 +0700	commit: docs: correct replay source inventory counts
+a7f95822e92dc2f799ca247bfef5702610fe8d2e 55824ec3ba5d62aa2a743be3d83f9ef5d98e61ee Alexey Zhokhov <alexey@zhokhov.com> 1792500999 +0700	rebase (finish): refs/heads/audit/replay-origin-current-source-20261020 onto 99b719d85a0714c88484240dbc9184f110b518d4

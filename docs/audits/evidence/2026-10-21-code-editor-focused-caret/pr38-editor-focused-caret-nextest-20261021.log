@@ -1,0 +1,163 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling libc v0.2.191
+   Compiling unicode-segmentation v1.13.3
+   Compiling cfg-if v1.0.5
+   Compiling rustversion v1.0.23
+   Compiling foldhash v0.2.0
+   Compiling equivalent v1.0.3
+   Compiling allocator-api2 v0.2.21
+   Compiling thiserror v2.0.21
+   Compiling ident_case v1.0.1
+   Compiling bitflags v2.13.2
+   Compiling strsim v0.11.1
+   Compiling either v1.19.0
+   Compiling heck v0.5.0
+   Compiling unicode-width v0.2.2
+   Compiling static_assertions v1.1.0
+   Compiling ryu v1.0.23
+   Compiling itoa v1.0.18
+   Compiling parking_lot_core v0.9.12
+   Compiling signal-hook v0.3.18
+   Compiling critical-section v1.2.0
+   Compiling smallvec v1.16.3
+   Compiling indoc v2.0.8
+   Compiling scopeguard v1.2.0
+   Compiling log v0.4.34
+   Compiling rustix v1.1.5
+   Compiling lock_api v0.4.14
+   Compiling litrs v1.0.1
+   Compiling time-core v0.1.9
+   Compiling itertools v0.14.0
+   Compiling powerfmt v0.2.1
+   Compiling num-conv v0.2.2
+   Compiling deranged v0.5.9
+   Compiling hashbrown v0.17.1
+   Compiling line-clipping v0.3.8
+   Compiling convert_case v0.10.0
+   Compiling document-features v0.2.12
+   Compiling castaway v0.2.4
+   Compiling compact_str v0.9.1
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+   Compiling lru v0.18.5
+   Compiling errno v0.3.14
+   Compiling mio v1.2.4
+   Compiling num_threads v0.1.8
+   Compiling time v0.3.55
+   Compiling signal-hook-registry v1.4.8
+   Compiling parking_lot v0.12.5
+   Compiling signal-hook-mio v0.2.5
+   Compiling unicode-truncate v2.0.1
+   Compiling strum_macros v0.28.0
+   Compiling derive_more-impl v2.1.1
+   Compiling darling_core v0.24.1
+   Compiling derive_more v2.1.1
+   Compiling crossterm v0.29.0
+   Compiling strum v0.28.0
+   Compiling thiserror-impl v2.0.21
+   Compiling darling_macro v0.24.1
+   Compiling kasuari v0.4.13
+   Compiling ratatui-core v0.1.2
+   Compiling darling v0.24.1
+   Compiling instability v0.3.14
+   Compiling ratatui-crossterm v0.1.2
+   Compiling ratatui-widgets v0.3.2
+   Compiling termrock-core v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-core)
+   Compiling termrock-theme v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-theme)
+   Compiling ratatui-macros v0.7.2
+   Compiling ratatui v0.30.2
+   Compiling termrock-layout v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-layout)
+   Compiling termrock-text v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-text)
+   Compiling termrock-render v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-render)
+   Compiling termrock-collections v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-collections)
+   Compiling termrock-runtime v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-runtime)
+   Compiling termrock-controls v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-controls)
+   Compiling termrock-fields v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-fields)
+   Compiling termrock-feedback v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-feedback)
+   Compiling termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-viewport)
+   Compiling termrock-navigation v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-navigation)
+   Compiling termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+   Compiling termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-editors)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 50.05s
+────────────
+ Nextest run ID a2145ac5-6b22-41ef-86d8-7bb702a58c9b with nextest profile: default
+    Starting 75 tests across 5 binaries
+        PASS [   0.014s] ( 1/75) termrock-editors code::tests::captured_highlighter_and_segmenter_are_supported
+        PASS [   0.016s] ( 2/75) termrock-editors code::tests::edit_counter_invalidates_the_highlight_cache
+        PASS [   0.016s] ( 3/75) termrock-editors code::tests::editing_empty_line_keeps_placeholder_underline_and_position
+        PASS [   0.016s] ( 4/75) termrock-editors code::tests::backtab_selection_ending_at_next_line_start_excludes_that_line
+        PASS [   0.018s] ( 5/75) termrock-editors code::tests::completion_splice_clamps_to_document_start_and_keeps_diagnostics
+        PASS [   0.021s] ( 6/75) termrock-editors code::tests::completion_splice_replaces_bytes_before_cursor_and_preserves_suffix
+        PASS [   0.023s] ( 7/75) termrock-editors code::tests::backtab_dedents_attached_combining_graphemes_on_cursor_line
+        PASS [   0.023s] ( 8/75) termrock-editors code::tests::completion_splice_uses_byte_lengths_and_grapheme_safe_ranges
+        PASS [   0.024s] ( 9/75) termrock-editors code::tests::backtab_without_selection_dedents_cursor_line_and_keeps_unicode_cursor
+        PASS [   0.025s] (10/75) termrock-editors code::tests::draw_cannot_commit_or_change_the_state
+        PASS [   0.025s] (11/75) termrock-editors code::tests::code_gutter_defaults_keep_block_semantics_and_same_value_author_patches
+        PASS [   0.027s] (12/75) termrock-editors code::tests::backtab_respects_read_only_disabled_and_leave_configuration
+        PASS [   0.028s] (13/75) termrock-editors code::tests::cursor_is_only_returned_inside_nonempty_text_area
+        PASS [   0.029s] (14/75) termrock-editors code::tests::backtab_noop_indent_zero_and_tab_prefix_are_consumed_without_edits
+        PASS [   0.015s] (15/75) termrock-editors code::tests::explicit_cancel_commits_even_when_blur_retains_editing
+        PASS [   0.031s] (16/75) termrock-editors code::tests::backtab_dedents_selected_lines_and_preserves_reversed_selection
+        PASS [   0.034s] (17/75) termrock-editors code::tests::disabled_highlighting_keeps_the_disabled_text_style
+        PASS [   0.018s] (18/75) termrock-editors code::tests::fill_height_measurement_obeys_tight_loose_and_zero_constraints_without_state_effects
+        PASS [   0.035s] (19/75) termrock-editors code::tests::backtab_dedents_attached_combining_graphemes_in_reversed_selection
+        PASS [   0.014s] (20/75) termrock-editors code::tests::read_only_blocks_document_commands_even_if_state_is_editing
+        PASS [   0.026s] (21/75) termrock-editors code::tests::editing_style_comes_only_from_the_real_edit_state
+        PASS [   0.015s] (22/75) termrock-editors code::tests::text_hit_coordinates_are_relative_to_the_text_part
+        PASS [   0.022s] (23/75) termrock-editors code::tests::find_input_routes_text_backspace_enter_and_escape
+        PASS [   0.025s] (24/75) termrock-editors code::tests::editor_override_takes_precedence_over_app_edit_entry_policy
+        PASS [   0.017s] (25/75) termrock-editors code::tests::immediate_focus_entry_keeps_the_first_i_as_document_text
+        PASS [   0.019s] (26/75) termrock-editors code::tests::focus_out_commits_by_default_but_can_preserve_the_edit_session
+        PASS [   0.023s] (27/75) termrock-editors code::tests::focus_entry_is_effective_but_bare_state_and_text_replacement_stay_unedited
+        PASS [   0.013s] (28/75) termrock-editors diff::tests::reference_mode_makes_the_composed_viewport_inert
+        PASS [   0.016s] (29/75) termrock-editors code::tests::type_to_edit_does_not_enter_read_only_editor
+        PASS [   0.018s] (30/75) termrock-editors code::tests::type_to_edit_app_policy_inserts_the_first_focused_character
+        PASS [   0.013s] (31/75) termrock-editors diff::tests::source_revision_and_review_width_key_the_runtime_cache
+        PASS [   0.016s] (32/75) termrock-editors diff::tests::review_pairs_columns_and_emphasises_the_change
+        PASS [   0.025s] (33/75) termrock-editors code::tests::saturation_never_reuses_stale_highlights
+        PASS [   0.022s] (34/75) termrock-editors diff::tests::counts_and_headers
+        PASS [   0.017s] (35/75) termrock-editors diff::tests::unified_lists_every_line_with_markers
+        PASS [   0.018s] (36/75) termrock-editors diff::tests::view_renders_and_scrolls_without_draw_mutation
+        PASS [   0.054s] (37/75) termrock-editors code::tests::authored_meta_channels_survive_focus_read_only_and_color_profiles
+        PASS [   0.016s] (38/75) termrock-editors::code_editor_fill_height fill_measurement_respects_zero_and_tight_constraints_without_mutating_state
+        PASS [   0.017s] (39/75) termrock-editors::code_editor_fill_height public_fill_height_uses_allocation_for_measure_draw_focus_and_pointer_hits
+        PASS [   0.017s] (40/75) termrock-editors::completing_code_editor bare_code_editor_ctrl_space_does_not_trigger_completions
+        PASS [   0.019s] (41/75) termrock-editors::code_editor_fill_height row_limit_remains_default_and_fill_can_be_turned_off
+        PASS [   0.023s] (42/75) termrock-editors::code_editor_external_find find_exposes_live_unicode_cursor_and_match_state_and_reopens_without_editing_document
+        PASS [   0.021s] (43/75) termrock-editors::code_editor_fill_height empty_document_still_uses_fill_allocation_safely
+        PASS [   0.021s] (44/75) termrock-editors::completing_code_editor completion_controller_closes_and_reopens_the_same_popup_owner
+        PASS [   0.022s] (45/75) termrock-editors::completing_code_editor cursor_motion_refreshes_only_an_open_completion
+        PASS [   0.020s] (46/75) termrock-editors::completing_code_editor draw_focus_and_ticks_do_not_request_completion
+        PASS [   0.030s] (47/75) termrock-editors::code_editor_external_find keyboard_and_real_button_open_same_find_state_and_focus
+        PASS [   0.030s] (48/75) termrock-editors::code_editor_external_find opening_find_dismisses_completion_and_disabled_editor_ignores_request
+        PASS [   0.022s] (49/75) termrock-editors::completing_code_editor empty_and_noop_acceptance_close_without_reopening
+        PASS [   0.016s] (50/75) termrock-editors::completing_code_editor manual_completion_is_ignored_while_find_is_typing
+        PASS [   0.022s] (51/75) termrock-editors::completing_code_editor escape_dismisses_first_then_commits_editor
+        PASS [   0.022s] (52/75) termrock-editors::completing_code_editor f6_commits_and_moves_focus_in_both_directions
+        PASS [   0.026s] (53/75) termrock-editors::completing_code_editor disabled_suggestion_cannot_be_accepted
+        PASS [   0.028s] (54/75) termrock-editors::completing_code_editor default_manual_completion_remains_available_while_popup_is_open
+        PASS [   0.018s] (55/75) termrock-editors::completing_code_editor remapped_focus_binding_works_while_completion_is_open
+        PASS [   0.025s] (56/75) termrock-editors::completing_code_editor focus_loss_dismisses_completion_but_preserves_configured_edit_session
+        PASS [   0.026s] (57/75) termrock-editors::completing_code_editor find_shortcut_closes_completion_before_find_keys_are_used
+        PASS [   0.015s] (58/75) termrock-editors::completing_code_editor typing_opens_completion_tab_accepts_then_next_tab_indents_two_spaces
+        PASS [   0.024s] (59/75) termrock-editors::completing_code_editor printable_remapped_command_matches_with_completion_open_or_closed
+        PASS [   0.024s] (60/75) termrock-editors::completing_code_editor remapped_manual_completion_uses_keymap_binding
+        PASS [   0.029s] (61/75) termrock-editors::completing_code_editor readonly_or_disabled_editor_dismisses_without_provider_call
+        PASS [   0.020s] (62/75) termrock-editors::completion_integration completion_controller_dismisses_on_editor_motion
+        PASS [   0.032s] (63/75) termrock-editors::completing_code_editor outside_pointer_and_focus_loss_dismiss_and_commit
+        PASS [   0.020s] (64/75) termrock-editors::completion_integration completion_controller_dismisses_when_editor_splice_reports_no_change
+        PASS [   0.020s] (65/75) termrock-editors::completion_integration editor_owned_completion_binding_honours_remap_and_remove
+        PASS [   0.027s] (66/75) termrock-editors::completion_integration completion_controller_accept_splices_and_dismisses_atomically
+        PASS [   0.020s] (67/75) termrock-editors::completion_integration focused_editor_down_moves_completion_not_editor
+        PASS [   0.022s] (68/75) termrock-editors::completion_integration distinct_insert_text_is_spliced
+        PASS [   0.026s] (69/75) termrock-editors::completion_integration completion_controller_accepts_through_editor_once_and_stays_dismissed
+        PASS [   0.020s] (70/75) termrock-editors::completion_integration focused_editor_tab_and_enter_accept_completion
+        PASS [   0.022s] (71/75) termrock-editors::completion_integration empty_completion_request_closes_an_existing_popup
+        PASS [   0.018s] (72/75) termrock-editors::completion_integration ordinary_text_remains_owned_by_the_editor
+        PASS [   0.019s] (73/75) termrock-editors::completion_integration none_insert_uses_label
+        PASS [   0.027s] (74/75) termrock-editors::completion_integration focused_editor_escape_dismisses_completion
+        PASS [   0.025s] (75/75) termrock-editors::completion_integration pointer_click_accepts_only_the_clicked_popup_row
+────────────
+     Summary [   0.106s] 75 tests run: 75 passed, 0 skipped

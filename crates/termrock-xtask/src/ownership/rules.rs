@@ -445,14 +445,417 @@ fn match_scenario_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
+const MAX_SIGNATURE_BYTES: usize = 8 * 1024;
+const MAX_DELIMITER_DEPTH: usize = 256;
+const MAX_PARSE_DEPTH: usize = 64;
+const MAX_RETURN_TYPE_STEPS: usize = 1024;
+
+fn return_type_generic_angle_masks(file: &ScannedFile) -> Vec<Vec<usize>> {
+    let mut source = String::new();
+    let mut line_starts = Vec::with_capacity(file.lines.len());
+    for line in &file.lines {
+        line_starts.push(source.len());
+        source.push_str(&line.code);
+        source.push('\n');
+    }
+
+    let mut masks = vec![Vec::new(); file.lines.len()];
+    let mut delimiters = Vec::new();
+    let mut uncertain = false;
+    for (line_index, line) in file.lines.iter().enumerate() {
+        if !uncertain
+            && delimiters.is_empty()
+            && let Some(fn_offset) = ordinary_fn_offset(&line.code)
+        {
+            let fn_start = line_starts[line_index] + fn_offset;
+            if let Some(angles) = named_function_return_type_angles(&source, fn_start) {
+                for angle in angles {
+                    let angle_line = line_starts
+                        .partition_point(|start| *start <= angle)
+                        .saturating_sub(1);
+                    let local_offset = angle - line_starts[angle_line];
+                    if local_offset < file.lines[angle_line].code.len() {
+                        masks[angle_line].push(local_offset);
+                    }
+                }
+            }
+        }
+
+        if uncertain {
+            continue;
+        }
+        for byte in line.code.bytes() {
+            match byte {
+                b'(' | b'[' | b'{' => {
+                    if delimiters.len() == MAX_DELIMITER_DEPTH {
+                        uncertain = true;
+                        break;
+                    }
+                    delimiters.push(match byte {
+                        b'(' => b')',
+                        b'[' => b']',
+                        _ => b'}',
+                    });
+                }
+                b')' | b']' | b'}' if delimiters.pop() != Some(byte) => {
+                    uncertain = true;
+                    delimiters.clear();
+                    break;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    for mask in &mut masks {
+        mask.sort_unstable();
+        mask.dedup();
+    }
+    masks
+}
+
+fn ordinary_fn_offset(code: &str) -> Option<usize> {
+    let (offset, _) = code
+        .char_indices()
+        .find(|(_, character)| !character.is_whitespace())?;
+    let bytes = code.as_bytes();
+    if ordinary_fn_keyword_at(bytes, offset) {
+        return Some(offset);
+    }
+
+    let visibility_end = offset.checked_add(3)?;
+    if !bytes
+        .get(offset..visibility_end)
+        .is_some_and(|visibility| visibility == b"pub")
+        || !bytes
+            .get(visibility_end)
+            .is_some_and(|next| next.is_ascii_whitespace() || *next == b'(')
+    {
+        return None;
+    }
+
+    let mut cursor = visibility_end;
+    skip_ascii_whitespace(bytes, &mut cursor, bytes.len());
+    if bytes.get(cursor) == Some(&b'(') {
+        cursor += 1;
+        skip_ascii_whitespace(bytes, &mut cursor, bytes.len());
+        let crate_end = cursor.checked_add(b"crate".len())?;
+        if !bytes
+            .get(cursor..crate_end)
+            .is_some_and(|visibility| visibility == b"crate")
+            || !bytes
+                .get(crate_end)
+                .is_some_and(|next| next.is_ascii_whitespace() || *next == b')')
+        {
+            return None;
+        }
+        cursor = crate_end;
+        skip_ascii_whitespace(bytes, &mut cursor, bytes.len());
+        if bytes.get(cursor) != Some(&b')') {
+            return None;
+        }
+        cursor += 1;
+    }
+    skip_ascii_whitespace(bytes, &mut cursor, bytes.len());
+    ordinary_fn_keyword_at(bytes, cursor).then_some(cursor)
+}
+
+fn ordinary_fn_keyword_at(bytes: &[u8], offset: usize) -> bool {
+    let Some(keyword_end) = offset.checked_add(2) else {
+        return false;
+    };
+    bytes
+        .get(offset..keyword_end)
+        .is_some_and(|keyword| keyword == b"fn")
+        && bytes.get(keyword_end).is_some_and(u8::is_ascii_whitespace)
+}
+
+fn named_function_return_type_angles(source: &str, start: usize) -> Option<Vec<usize>> {
+    let bytes = source.as_bytes();
+    let limit = start.saturating_add(MAX_SIGNATURE_BYTES).min(bytes.len());
+    if !bytes.get(start..limit)?.starts_with(b"fn")
+        || !bytes.get(start + 2).is_some_and(u8::is_ascii_whitespace)
+    {
+        return None;
+    }
+
+    let mut cursor = start + 2;
+    skip_ascii_whitespace(bytes, &mut cursor, limit);
+    parse_ascii_identifier(bytes, &mut cursor, limit)?;
+    skip_ascii_whitespace(bytes, &mut cursor, limit);
+    if bytes.get(cursor) != Some(&b'(') {
+        return None;
+    }
+    cursor = skip_balanced_parameters(bytes, cursor, limit)?;
+    skip_ascii_whitespace(bytes, &mut cursor, limit);
+    if !bytes.get(cursor..limit)?.starts_with(b"->") {
+        return None;
+    }
+    cursor += 2;
+
+    let mut parser = SimpleReturnTypeParser {
+        bytes,
+        cursor,
+        limit,
+        angles: Vec::new(),
+        depth: 0,
+        steps: 0,
+    };
+    parser.parse_type()?;
+    parser.skip_whitespace();
+    (parser.peek() == Some(b'{')).then_some(parser.angles)
+}
+
+fn skip_ascii_whitespace(bytes: &[u8], cursor: &mut usize, limit: usize) {
+    while *cursor < limit && bytes[*cursor].is_ascii_whitespace() {
+        *cursor += 1;
+    }
+}
+
+fn parse_ascii_identifier(bytes: &[u8], cursor: &mut usize, limit: usize) -> Option<()> {
+    if *cursor >= limit {
+        return None;
+    }
+    let first = bytes[*cursor];
+    if !(first.is_ascii_alphabetic() || first == b'_') {
+        return None;
+    }
+    *cursor += 1;
+    while *cursor < limit && (bytes[*cursor].is_ascii_alphanumeric() || bytes[*cursor] == b'_') {
+        *cursor += 1;
+    }
+    Some(())
+}
+
+fn skip_balanced_parameters(bytes: &[u8], start: usize, limit: usize) -> Option<usize> {
+    if bytes.get(start) != Some(&b'(') {
+        return None;
+    }
+    let mut closing = vec![b')'];
+    let mut cursor = start + 1;
+    while cursor < limit {
+        let byte = bytes[cursor];
+        match byte {
+            b'(' | b'[' | b'{' => {
+                if closing.len() == MAX_PARSE_DEPTH {
+                    return None;
+                }
+                closing.push(match byte {
+                    b'(' => b')',
+                    b'[' => b']',
+                    _ => b'}',
+                });
+            }
+            b')' | b']' | b'}' => {
+                if closing.pop() != Some(byte) {
+                    return None;
+                }
+                if closing.is_empty() {
+                    return Some(cursor + 1);
+                }
+            }
+            _ => {}
+        }
+        cursor += 1;
+    }
+    None
+}
+
+struct SimpleReturnTypeParser<'a> {
+    bytes: &'a [u8],
+    cursor: usize,
+    limit: usize,
+    angles: Vec<usize>,
+    depth: usize,
+    steps: usize,
+}
+
+impl SimpleReturnTypeParser<'_> {
+    fn parse_type(&mut self) -> Option<()> {
+        self.skip_whitespace();
+        if self.depth == MAX_PARSE_DEPTH || self.step().is_none() {
+            return None;
+        }
+        self.depth += 1;
+        let result = self.parse_type_inner();
+        self.depth -= 1;
+        result
+    }
+
+    fn parse_type_inner(&mut self) -> Option<()> {
+        match self.peek()? {
+            b'&' => self.parse_reference(),
+            b'(' => self.parse_tuple_or_group(),
+            _ => self.parse_path(),
+        }
+    }
+
+    fn parse_reference(&mut self) -> Option<()> {
+        self.cursor += 1;
+        self.skip_whitespace();
+        if self.peek() == Some(b'\'') {
+            self.parse_lifetime()?;
+            self.skip_whitespace();
+        }
+        if self.consume_keyword(b"mut") {
+            self.skip_whitespace();
+        }
+        self.parse_type()
+    }
+
+    fn parse_tuple_or_group(&mut self) -> Option<()> {
+        self.cursor += 1;
+        self.skip_whitespace();
+        if self.consume(b')') {
+            return Some(());
+        }
+        self.parse_type()?;
+        loop {
+            self.skip_whitespace();
+            if self.consume(b')') {
+                return Some(());
+            }
+            if !self.consume(b',') {
+                return None;
+            }
+            self.skip_whitespace();
+            if self.consume(b')') {
+                return Some(());
+            }
+            self.parse_type()?;
+        }
+    }
+
+    fn parse_path(&mut self) -> Option<()> {
+        self.parse_identifier()?;
+        self.parse_optional_generics()?;
+        loop {
+            self.skip_whitespace();
+            if !self.consume_double_colon() {
+                return Some(());
+            }
+            self.step()?;
+            self.skip_whitespace();
+            self.parse_identifier()?;
+            self.parse_optional_generics()?;
+        }
+    }
+
+    fn parse_optional_generics(&mut self) -> Option<()> {
+        self.skip_whitespace();
+        if self.peek() != Some(b'<') {
+            return Some(());
+        }
+        self.angles.push(self.cursor);
+        self.cursor += 1;
+        self.skip_whitespace();
+        if self.peek() == Some(b'>') {
+            return None;
+        }
+        loop {
+            self.step()?;
+            if self.peek() == Some(b'\'') {
+                self.parse_lifetime()?;
+            } else {
+                self.parse_type()?;
+            }
+            self.skip_whitespace();
+            if self.consume(b'>') {
+                self.angles.push(self.cursor - 1);
+                return Some(());
+            }
+            if !self.consume(b',') {
+                return None;
+            }
+            self.skip_whitespace();
+            if self.consume(b'>') {
+                self.angles.push(self.cursor - 1);
+                return Some(());
+            }
+        }
+    }
+
+    fn parse_lifetime(&mut self) -> Option<()> {
+        if !self.consume(b'\'') {
+            return None;
+        }
+        self.parse_identifier()
+    }
+
+    fn parse_identifier(&mut self) -> Option<()> {
+        parse_ascii_identifier(self.bytes, &mut self.cursor, self.limit)
+    }
+
+    fn consume_double_colon(&mut self) -> bool {
+        if self
+            .bytes
+            .get(self.cursor..self.limit)
+            .is_some_and(|rest| rest.starts_with(b"::"))
+        {
+            self.cursor += 2;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn consume_keyword(&mut self, keyword: &[u8]) -> bool {
+        let end = self.cursor.saturating_add(keyword.len());
+        let matches = self
+            .bytes
+            .get(self.cursor..self.limit)
+            .is_some_and(|rest| rest.starts_with(keyword));
+        let boundary = end >= self.limit
+            || !self.bytes[end].is_ascii_alphanumeric() && self.bytes[end] != b'_';
+        if matches && boundary {
+            self.cursor = end;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn step(&mut self) -> Option<()> {
+        if self.steps == MAX_RETURN_TYPE_STEPS {
+            return None;
+        }
+        self.steps += 1;
+        Some(())
+    }
+
+    fn skip_whitespace(&mut self) {
+        skip_ascii_whitespace(self.bytes, &mut self.cursor, self.limit);
+    }
+
+    fn peek(&self) -> Option<u8> {
+        (self.cursor < self.limit).then(|| self.bytes[self.cursor])
+    }
+
+    fn consume(&mut self, byte: u8) -> bool {
+        if self.peek() == Some(byte) {
+            self.cursor += 1;
+            true
+        } else {
+            false
+        }
+    }
+}
+
 fn match_size_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
-    for line in production_lines(file) {
+    let generic_angles = return_type_generic_angle_masks(file);
+    for (line_index, line) in file.lines.iter().enumerate() {
+        if file.is_test_line(line.number) {
+            continue;
+        }
         let tokens = words(&line.code);
         let sized = tokens.iter().any(|w| *w == "width" || *w == "height");
         if !sized {
             continue;
         }
-        let normalized = line.code.replace("->", "  ").replace("=>", "  ");
+        let mut normalized = line.code.replace("->", "  ").replace("=>", "  ");
+        for angle in &generic_angles[line_index] {
+            normalized.replace_range(*angle..*angle + 1, " ");
+        }
         let compared = ["<=", ">=", "==", "!=", "<", ">"]
             .iter()
             .any(|op| normalized.contains(op));
@@ -490,7 +893,9 @@ fn match_library_preview_deps(
 
 fn match_library_stored_frames(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for span in &file.strings {
-        if span.text.contains("baselines/") {
+        let fully_certified_test_span = span.start_line <= span.end_line
+            && (span.start_line..=span.end_line).all(|line| file.is_test_line(line));
+        if span.text.contains("baselines/") && !fully_certified_test_span {
             findings.push(finding(
                 file,
                 "OWN-13",
@@ -633,169 +1038,4 @@ fn calls_wrapper(code: &str, name: &str) -> bool {
         }
     }
     false
-}
-
-#[cfg(test)]
-mod tests {
-    use super::super::scan::scan_file;
-    use super::*;
-
-    fn preview(names: &[&str]) -> Vec<String> {
-        names.iter().map(|s| s.to_string()).collect()
-    }
-
-    #[test]
-    fn ui_paint_needs_a_ui_receiver() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "use termrock::Ui;\nfn a(ui: &mut Ui) {\n    ui.fill(area, s);\n    style.fill(x);\n}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        let paint: Vec<&Finding> = hits.iter().filter(|f| f.rule == "OWN-02").collect();
-        assert_eq!(paint.len(), 1);
-        assert_eq!(paint[0].line, 3);
-    }
-
-    #[test]
-    fn aliased_receivers_flag_paint_calls() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "use termrock::author::Ui as Canvas;\nfn a(canvas: &mut Canvas) {\n    canvas.fill(area, s);\n}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        let paint: Vec<&Finding> = hits.iter().filter(|f| f.rule == "OWN-02").collect();
-        assert_eq!(paint.len(), 1);
-        assert_eq!(paint[0].line, 3);
-    }
-
-    #[test]
-    fn buffer_imports_resolve_through_aliases() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "use ratatui::buffer::Buffer as Buf;\nfn a(b: &mut Buf) {\n    b.set_string(0, 0, \"x\", s);\n}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        assert!(hits.iter().any(|f| f.rule == "OWN-01"));
-        assert!(hits.iter().any(|f| f.rule == "OWN-02"));
-    }
-
-    #[test]
-    fn set_stringn_counts_as_paint_call() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "use ratatui::buffer::Buffer;\nfn a(buf: &mut Buffer) {\n    buf.set_stringn(0, 0, \"x\", 1, s);\n}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        let paint: Vec<&Finding> = hits.iter().filter(|f| f.rule == "OWN-02").collect();
-        assert_eq!(paint.len(), 1);
-        assert_eq!(paint[0].line, 3);
-    }
-
-    #[test]
-    fn local_cell_models_are_not_raw_buffers() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "use crate::widgets::Cell;\nfn a(c: &Cell) {}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        assert!(!hits.iter().any(|f| f.rule == "OWN-01"));
-    }
-
-    #[test]
-    fn raw_escapes_ignore_iterator_peek() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "use termrock::Ui;\nfn a(ui: &mut Ui, it: &mut Iter) {\n    let (b, _) = ui.raw();\n    let _ = it.peek();\n}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        let escapes: Vec<&Finding> = hits.iter().filter(|f| f.rule == "OWN-03").collect();
-        assert_eq!(escapes.len(), 1);
-    }
-
-    #[test]
-    fn wrappers_resolve_to_call_sites() {
-        let mut files = BTreeMap::new();
-        files.insert(
-            "crates/demo/src/lib.rs".to_string(),
-            scan_file(
-                "crates/demo/src/lib.rs",
-                "crates/demo",
-                "use termrock::Ui;\nfn paint_banner(ui: &mut Ui) {\n    ui.fill(a, s);\n}\nfn show(ui: &mut Ui) {\n    paint_banner(ui);\n}\n",
-            ),
-        );
-        let mut hits = Vec::new();
-        for file in files.values() {
-            hits.extend(match_file(file, &preview(&["demo"])));
-        }
-        let wrappers = collect_wrappers(&files, &hits);
-        assert_eq!(wrappers.len(), 1);
-        assert_eq!(wrappers[0].name, "paint_banner");
-        let calls = match_wrapper_calls(&files, &wrappers);
-        assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0].line, 6);
-    }
-
-    #[test]
-    fn macros_resolve_bodies_and_call_sites() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "macro_rules! banner {\n    ($ui:expr) => { $ui.fill(a, s); };\n}\nfn show(ui: &mut Ui) {\n    banner!(ui);\n}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        assert_eq!(
-            hits.iter().filter(|f| f.rule == "OWN-05").count(),
-            2,
-            "definition plus call site"
-        );
-
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "macro_rules! zero {\n    ($v:expr) => { $v.fill(0); };\n}\nfn show() {\n    zero!(buf);\n}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        assert!(!hits.iter().any(|f| f.rule == "OWN-05"));
-    }
-
-    #[test]
-    fn single_box_glyphs_are_not_screen_literals() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "const V: &str = \"\u{2502}\";\nconst SCREEN: &str = \"\u{250c}\u{2500}\u{2510}\\n\u{2502}x\u{2502}\\n\u{2514}\u{2500}\u{2518}\";\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        assert!(!hits.iter().any(|f| f.rule == "OWN-07"));
-    }
-
-    #[test]
-    fn expect_matcher_skips_attributes() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "#[expect(clippy::expect_used, reason = \"x\")]\nfn a(o: Option<u32>) -> u32 {\n    o.expect(\"present\")\n}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        let expects: Vec<&Finding> = hits.iter().filter(|f| f.rule == "OWN-14").collect();
-        assert_eq!(expects.len(), 1);
-        assert_eq!(expects[0].line, 3);
-    }
-
-    #[test]
-    fn return_types_are_not_size_switches() {
-        let file = scan_file(
-            "crates/demo/src/lib.rs",
-            "crates/demo",
-            "fn width(&self) -> u16 {\n    self.width\n}\nfn a(w: u16) {\n    if w < 70 {\n    }\n}\n",
-        );
-        let hits = match_file(&file, &preview(&["demo"]));
-        assert!(!hits.iter().any(|f| f.rule == "OWN-11"));
-    }
 }

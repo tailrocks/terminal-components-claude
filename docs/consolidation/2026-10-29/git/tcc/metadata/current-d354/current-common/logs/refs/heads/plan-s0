@@ -1,0 +1,17 @@
+0000000000000000000000000000000000000000 476a89f235cb1415eb7e203b7281749d9cb3af88 Alexey Zhokhov <alexey@zhokhov.com> 1792152395 +0700	branch: Created from HEAD
+476a89f235cb1415eb7e203b7281749d9cb3af88 70f3d3575a4cff5c67d52730e5dbf2c275fb0b1a Alexey Zhokhov <alexey@zhokhov.com> 1792152879 +0700	commit: feat(core): add Intent, Response, StateFlags and PartRef (S0 expand)
+70f3d3575a4cff5c67d52730e5dbf2c275fb0b1a a3e367e8f5f13cfd07992e00cef62f9687e5fc51 Alexey Zhokhov <alexey@zhokhov.com> 1792153050 +0700	rebase (finish): refs/heads/plan-s0 onto 733f31b91d53f84cdfe4629da83f973e23ab3cee
+a3e367e8f5f13cfd07992e00cef62f9687e5fc51 0ff844ede08a168036e6592e10be9b21688a46d2 Alexey Zhokhov <alexey@zhokhov.com> 1792153388 +0700	commit: refactor(widgets): rename key-map command enums XAction to XCmd (S0)
+0ff844ede08a168036e6592e10be9b21688a46d2 2f464dd33ce053e4a2d7bafd6a3164131772f8a7 Alexey Zhokhov <alexey@zhokhov.com> 1792153668 +0700	rebase (finish): refs/heads/plan-s0 onto ab6631d90db142dc0b620ffb3bbafffaa4639be2
+2f464dd33ce053e4a2d7bafd6a3164131772f8a7 be7379b0ff40e89651f4b7f2b6a19ec6019be20f Alexey Zhokhov <alexey@zhokhov.com> 1792153946 +0700	rebase (finish): refs/heads/plan-s0 onto 3073208926745a7135af24a163cc6c277bae19d2
+be7379b0ff40e89651f4b7f2b6a19ec6019be20f f69a4d39c67cd9c34eba25a863035c5fb6608781 Alexey Zhokhov <alexey@zhokhov.com> 1792154241 +0700	rebase (finish): refs/heads/plan-s0 onto c77e7cde56dabc03437a1beeff6c3588a17bda40
+f69a4d39c67cd9c34eba25a863035c5fb6608781 88324246d342375df6f006be74b81593104f3091 Alexey Zhokhov <alexey@zhokhov.com> 1792154521 +0700	rebase (finish): refs/heads/plan-s0 onto f13463b78c17898b6d1a7bbb742f7eaaa6ab987b
+88324246d342375df6f006be74b81593104f3091 43b7f841a473743673294d4d5388efa602953e94 Alexey Zhokhov <alexey@zhokhov.com> 1792154832 +0700	rebase (finish): refs/heads/plan-s0 onto c60d791e30b845bf1d2527468c5c7a502fcc189a
+43b7f841a473743673294d4d5388efa602953e94 0152fee3ef0f6df2977ee749751f7733b7cd8deb Alexey Zhokhov <alexey@zhokhov.com> 1792155034 +0700	rebase (finish): refs/heads/plan-s0 onto 8c03f15b5f8de11bc561383d503f9df958222e9d
+0152fee3ef0f6df2977ee749751f7733b7cd8deb bc3a9cfa91cbf20324a6077e2690cb43f51772a6 Alexey Zhokhov <alexey@zhokhov.com> 1792155237 +0700	branch: Reset to origin/design/interaction-polish
+bc3a9cfa91cbf20324a6077e2690cb43f51772a6 9e9d5b248f0fd5eb87aced8e9cb61a466fb4b51f Alexey Zhokhov <alexey@zhokhov.com> 1792155239 +0700	commit: refactor(widgets): rename key-map command enums XAction to XCmd (S0)
+9e9d5b248f0fd5eb87aced8e9cb61a466fb4b51f 3289e759c815bb77fbf2097480825af0f65ed6a9 Alexey Zhokhov <alexey@zhokhov.com> 1792155532 +0700	commit: refactor(widgets): rename widget output enums XEvent to XAction (S0)
+3289e759c815bb77fbf2097480825af0f65ed6a9 45bc3b2241bd4c388db3ed4d6d2e45d36ad031a7 Alexey Zhokhov <alexey@zhokhov.com> 1792155728 +0700	branch: Reset to origin/design/interaction-polish
+45bc3b2241bd4c388db3ed4d6d2e45d36ad031a7 a6343ba8ee5ee0cfa0e802e1746e5c55ffaf9663 Alexey Zhokhov <alexey@zhokhov.com> 1792155729 +0700	commit: refactor(widgets): rename widget output enums XEvent to XAction (S0)
+a6343ba8ee5ee0cfa0e802e1746e5c55ffaf9663 1560fc7d4111f0362e297228b8bd79597973f565 Alexey Zhokhov <alexey@zhokhov.com> 1792155962 +0700	commit: docs(plan): record S0 status, deviations and notes for S1 and S2
+1560fc7d4111f0362e297228b8bd79597973f565 697435886514a5f1de9e7517d00b339970393140 Alexey Zhokhov <alexey@zhokhov.com> 1792156128 +0700	rebase (finish): refs/heads/plan-s0 onto 441bb1ec69f6703598eee178a863011c053dfeb1

@@ -1,0 +1,39 @@
+{
+  "unchanged_helpers": [
+    "_cleanup_direct_child",
+    "_exclusive_json",
+    "_record_exception",
+    "_require_regular_hash",
+    "_run_finalizer",
+    "_safe_run_id",
+    "_sha256_file",
+    "_wait_for_direct_child",
+    "build_controlled_env",
+    "calculate_work_budget",
+    "compare_environment",
+    "environment_digest",
+    "remaining",
+    "run_supervised",
+    "supervisor_identity",
+    "validate_harness_inputs",
+    "verify_selected_tools",
+    "write_fd_bounded"
+  ],
+  "changed_helpers": [
+    "main",
+    "official_argv",
+    "run_stage",
+    "validate_pin"
+  ],
+  "added_helpers": [
+    "validate_admitted_stage2"
+  ],
+  "removed_helpers": [
+    "validate_admitted_stage1"
+  ],
+  "f82_executable_sha256": "e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257",
+  "f82_closes_stale_doc_limit": true,
+  "original_14bee_is_ancestor": true,
+  "f82_audit_decoded_json_sha256": "88e622a31fe286b142509ed481c600deec784c8919cbc0027990a0cf66fb427c",
+  "f82_audit_git_blob_sha256": "49c8991c2a8fd998080e68531e5f67be3690fbf83ecdd4a5aaa9985f5a0e7850"
+}

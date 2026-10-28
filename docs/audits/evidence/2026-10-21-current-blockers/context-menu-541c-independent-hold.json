@@ -1,0 +1,164 @@
+{
+  "reviewer": "/root/context_menu_live_contract_review",
+  "candidate_commit": "541c57fb7d87f6514e27b0fc75c6beb01db54b51",
+  "implementation_commit": "2b873e25b",
+  "before_commit": "6825b07e86bab75872866c6ed49e6877084db9bb",
+  "frozen_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "decision": "HOLD: five actionable issues. Additive hint and part anchoring are useful but required frozen geometry and resize contract are not satisfied. No application or product gate approval.",
+  "findings": [
+    {
+      "id": "CONTEXT-LIVE-1",
+      "severity": "P1",
+      "path": "crates/termrock-overlays/src/menu.rs:518",
+      "title": "Do not add a hint gap when a row has no hint or chord",
+      "evidence": "Unconditional +3 changes unhinted ten-cell menu natural width16 to19. A real MenuBar with thirty-cell unhinted label opens39 cells instead of frozen36, in TrueColor/Ansi256/Ansi16/Mono. Both direct and MenuBar probes pass parent and fail candidate. Frozen menu.rs:427-431 adds +3 only inside Some(shortcut).",
+      "fix": "Add gap only when a display hint or effective chord exists; retain measured frozen minimum and shared MenuBar behavior."
+    },
+    {
+      "id": "CONTEXT-LIVE-2",
+      "severity": "P1",
+      "path": "crates/termrock-overlays/src/menu.rs:861",
+      "title": "Restore label space when hints are absent or rejected",
+      "evidence": "At area width12, inner row width10, unhinted ABCDEFGHIJ now draws only ABCDE; unchanged parent draws ABCDEF. Frozen label width is rows.width\u22123 (menu.rs:711), permitting seven cells. All four profiles show regression. Current unconditional\u22125 still reserves two unnecessary cells even after hint admission rejects the hint.",
+      "fix": "Keep frozen row.width\u22123 label clip for no/rejected hint; use hint placement/admission to avoid overlap without reducing unhinted labels."
+    },
+    {
+      "id": "CONTEXT-LIVE-3",
+      "severity": "P2",
+      "path": "crates/termrock-overlays/src/menu.rs:743",
+      "title": "Do not subtract title inset twice",
+      "evidence": "shift(inner,2) already removes two cells; subtracting another2 yields inner.width\u22124. Width12 menu truncates seven-cell ABCDEFG title to ABCDEF in all four profiles. Frozen menu.rs:633-637 paints at inner.x+2 with inner.width\u22123. Parent clipping probe passes, candidate fails.",
+      "fix": "After inset2 retain a single trailing cell, matching frozen inner.width\u22123."
+    },
+    {
+      "id": "CONTEXT-LIVE-4",
+      "severity": "P1",
+      "path": "crates/termrock-overlays/src/menu.rs:877",
+      "title": "Preserve the frozen shortcut right inset",
+      "evidence": "Twenty-cell menu row has right19. Frozen menu.rs:742 positions one-cell o at17 (right\u2212width\u22121); candidate places it16 (right\u2212width\u22122). Unchanged chord probe passes parent and fails candidate across all four profiles. New display hints use the same incorrect position.",
+      "fix": "Use frozen right\u2212hint_width\u22121 position; test chord fallback and borrowed display hints through real rendering."
+    },
+    {
+      "id": "CONTEXT-LIVE-5",
+      "severity": "P1",
+      "path": "crates/termrock-overlays/src/menu.rs:651",
+      "related_paths": [
+        "crates/termrock-overlays/src/menu.rs:504",
+        "crates/termrock-runtime/src/ui/cx.rs:887",
+        "crates/termrock-runtime/src/runtime.rs:1717"
+      ],
+      "title": "Refresh part anchors after actual resize before the next input",
+      "evidence": "Public App renders real MenuBar owner at viewport.width/2. Open part-anchored ContextMenu at80x24: layer x41. Harness.resize(100,30) renders owner part x51, but open menu layer remains x41. Its reanchor occurs during update from previous-frame registry, before resized owner is drawn. Existing author test manually redraws then sends z and therefore does not test actual resize ordering.",
+      "fix": "Resolve anchor against refreshed layout/part registration before presenting or dispatching subsequent input. Preserve one resolved geometry for layer drawing/hits/focus; do not add application coordinate workarounds."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-overlays --lib -E test(menu::tests::) --no-fail-fast",
+      "cwd": "/private/tmp/context-menu-independent-after-20261021",
+      "exit": 0,
+      "result": "15 passed; 57 filtered/skipped by explicit scope, not a full overlay gate. Existing dynamic chord remap/remove/fallback test passes."
+    },
+    {
+      "command": "cargo nextest run --manifest-path <after>/Cargo.toml --tests --no-fail-fast",
+      "exit": 100,
+      "result": "9 run:3 passed,6 failed,0 skipped. Failures are four frozen direct geometry probes, real MenuBar dropdown width, actual resize. Passes: display-only hint rejects false key and pointer activates typed action; missing owner closes open real layer; zero/narrow regions do not panic."
+    },
+    {
+      "command": "cargo nextest run --manifest-path <before>/Cargo.toml --tests --no-fail-fast",
+      "exit": 100,
+      "result": "9 run:6 passed,3 failed,0 skipped. All five geometry probes and narrow safety pass before. Added-feature probes fail before: hint absent, removal does not close fixed fallback, resize does not reanchor. Before-only compatibility extension traits are no-op adapters for unavailable APIs; hint omitted from before static constructor because old API lacks const builder. These adapters do not change production source or geometry expectations."
+    }
+  ],
+  "isolated_builds": {
+    "after": "/private/tmp/context-menu-independent-after-target-20261021",
+    "before": "/private/tmp/context-menu-independent-before-target-20261021",
+    "native": "/private/tmp/context-menu-independent-native-target-20261021",
+    "note": "Separate detached sparse read-only product copies and separate per-revision target roots. Test artifacts only in external consumer packages. No product edits, captures, expected updates, helpers or borrowed binary targets."
+  },
+  "limits": [
+    "No complete application/Showcase adoption or real-CLI/frozen full-frame comparison approval.",
+    "No independent exhaustive key remapping-with-explicit-display-hint, Unicode submenu, reordered keyed owner, or clipping/removal-without-input matrix completed; findings already block source acceptance. Existing tests cover some of these only partially.",
+    "Frozen separator rule is inset one cell on each side (menu.rs:674), whereas current shared renderer fills entire inner row at menu.rs:777. This is inherited, not introduced by this diff, and remains a required layout gap; do not claim complete frozen menu geometry.",
+    "Current source introduces no fake cursor/control workaround; existing retain_visible_owner_cursor call and retained_cursor behavior unchanged by this increment.",
+    "Initial after consumer compile attempt had reviewer fixture errors Response::none and Size.width; corrected to existing public Response::ignored and Size.preferred.0. Retained initial log; final results above use corrected identical geometry probes."
+  ],
+  "artifacts": {
+    "after/Cargo.toml": {
+      "sha256": "513c3615c1bc78200697bd3467e377b625e8699479700b432114b526555f4208",
+      "bytes": 416
+    },
+    "after/src/lib.rs": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "after/tests/live.rs": {
+      "sha256": "9a7db4ea0246a6d1780fadb74f5eb0134a91ffe639a6ddda24cb1359736ff4ee",
+      "bytes": 2970
+    },
+    "after/tests/probes.rs": {
+      "sha256": "445b7715f10f1b26fb75d2b1bc087c5b4f848fca2fcbe5d1138de7497efc2aa9",
+      "bytes": 3500
+    },
+    "after-all-final.log": {
+      "sha256": "3b50dfd6caad6f4b85c457832fae9ed229af790a84a70e3fc58a6d81da12704d",
+      "bytes": 16754
+    },
+    "after-final.log": {
+      "sha256": "d5fdc0885cb313a36a36b9e7d7d3512152994e647f763a7adc39dbfbb0fb98e7",
+      "bytes": 14638
+    },
+    "after-profiles.log": {
+      "sha256": "c849c795b3ee8874b1ec1a9a3414791865b96d27207ace039ca4906da63f9886",
+      "bytes": 14832
+    },
+    "after.log": {
+      "sha256": "b9896084914e629c39927db81c6bf24b53f94a7509831a78c13d3cdfed1c0ef8",
+      "bytes": 7644
+    },
+    "before/Cargo.toml": {
+      "sha256": "7898deb8be8642f4303841d9b12fc382c23407aaa3f43b660de9c28a162a40a7",
+      "bytes": 419
+    },
+    "before/src/lib.rs": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "before/tests/live.rs": {
+      "sha256": "3cef8e7b85a2992e9384aab04b47b655b1e10ae87ddf433345e741be6b3a8b6c",
+      "bytes": 2953
+    },
+    "before/tests/probes.rs": {
+      "sha256": "445b7715f10f1b26fb75d2b1bc087c5b4f848fca2fcbe5d1138de7497efc2aa9",
+      "bytes": 3500
+    },
+    "before-all-final.log": {
+      "sha256": "93eab6c0bfe8248820567bde996c190a500d26cc93a6c82a01b8b993466436b8",
+      "bytes": 14226
+    },
+    "before-final.log": {
+      "sha256": "0ef533b9470c59deece6612ec83ba5d2b506b6015b258680787d5b8834b7ac34",
+      "bytes": 17951
+    },
+    "before-profiles.log": {
+      "sha256": "af83ad6a5203383bebeb1207b41d927e1b93a28a0456e4c751c6bfa29678581a",
+      "bytes": 13107
+    },
+    "frozen-menu-source.rs": {
+      "sha256": "8c2be838f11429e31ed91f596c55c2b133ffd9a2aa0bbeabd4db346824656649",
+      "bytes": 79910
+    },
+    "live.rs": {
+      "sha256": "ffec1707a832c6b84622977ed2147c6e87a96818f4771b401a9016280fc5e6c9",
+      "bytes": 2969
+    },
+    "native-menu.log": {
+      "sha256": "4ba709562ac4c69b5b2ae175e6bfc0f487c45badc562cc6cf770a79cad5c4e3b",
+      "bytes": 7068
+    },
+    "probes.rs": {
+      "sha256": "445b7715f10f1b26fb75d2b1bc087c5b4f848fca2fcbe5d1138de7497efc2aa9",
+      "bytes": 3500
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "artifact_note": "Read-only evidence only; cargo build artifacts were written to existing shared Cargo target cache, not source tree.",
+  "coverage_gaps": [
+    "No full generated GitHub Actions run.",
+    "No durable nextest inventory guard exists at reviewed commit.",
+    "No Velnor regeneration/output diff was produced; intended task deletion is not yet independently verified.",
+    "The empty-invocation conclusion is limited to exact source commit and inventoried docs; any source/docs change requires rerunning the guard."
+  ],
+  "decision": "NOT SAFE TO CHANGE MANIFESTS YET; content inventory supports removal of currently empty rustdoc invocations only after adding a durable nextest inventory guard and proving pinned Velnor regeneration removes only intended doctest tasks.",
+  "guard_and_regeneration": {
+    "durable_nextest_doc_inventory_guard_present": false,
+    "manifest_changes_made": false,
+    "pinned_velnor_regeneration_run": false,
+    "requirements_before_writer_changes": [
+      "Add a meaningful nextest guard that scans complete tracked Rust/docs inputs, rustdoc attributes/includes, package README paths, macro-generated docs and workspace-excluded paths; ensure future executable examples are either compiled/executed by normal tests or cause guard failure.",
+      "Run pinned Velnor 0.1.30 generation and inspect diff; only the proven empty doctest tasks may disappear. Keep nextest/clippy/docs and all 88 required Rust jobs and aggregation.",
+      "Re-run focused nextest inventory guard and applicable compile/consumer tests with zero skips."
+    ],
+    "workflow_changes_made": false
+  },
+  "inventory": {
+    "all_task_count": 518,
+    "cargo_metadata": "cargo metadata --no-deps --format-version 1 --locked: exit 0",
+    "excluded_discovery": "Eight workspace packages have no generated doctest task, including three libraries excluded by Velnor discovery (showcase-data, holla-catalog, holla-plan) and five binary/test-only packages; broad tracked-source scan included them.",
+    "generated_doctest_targets": 39,
+    "generated_doctest_tasks": 78,
+    "generated_tasks_per_target": [
+      "default",
+      "testing"
+    ],
+    "other_doc_findings": "No runnable, no_run, compile_fail, should_panic or indented Rustdoc examples; no #[doc = ...], doc(include=...), or doc=include_str! forms found. No macro-generated doc attributes identified. All 39 generated doctest package targets have readme=null. Markdown fences were inventoried but none is a Cargo package README or included through doc attributes.",
+    "rustdoc_findings": [
+      {
+        "assessment": "pseudo-code uses unresolved local names; not a runnable rustdoc example",
+        "executable": false,
+        "kind": "one explicitly ignored illustrative rustdoc fence",
+        "lines": "205-208",
+        "path": "crates/termrock-runtime/src/ui/paint.rs"
+      }
+    ],
+    "task_operation_counts": {
+      "clippy": 88,
+      "doc": 88,
+      "doctest": 78,
+      "nextest": 176,
+      "other": 88
+    },
+    "tracked_files_examined": 94910,
+    "tracked_markdown_files_examined": 70,
+    "tracked_rust_files_examined": 624,
+    "workflow_doctest_steps": 78,
+    "workspace_packages": 47,
+    "workspace_targets": 221
+  },
+  "review": "Independent read-only CI doctest policy verification",
+  "reviewer": "/root/fresh_plan_final_integrity_review",
+  "source": {
+    "commit": "7483ce5208e054291e9aebdfc12cf15a42bbb41d",
+    "key_hashes": {
+      ".github/velnor/task-execution-manifest-v1.json": "e5bc3d8d304c1ed6af5a1883db90ad600009433c7924152e40ef2f83c183c6c9",
+      ".github/workflows/ci.yml": "a1ef03148ee058f3e255054503b2b5fd71f7092271b99749923301f4feecea83",
+      ".velnor/config.toml": "1b2f3514147937011c78396e7a0068e8be5ad1c3dc821b9cefc9d41106ca4ed8",
+      "Cargo.toml": "929630ae623be3211aae63f71ae84925d6000e43622e5471bc83d0a1788f45eb",
+      "crates/termrock-runtime/src/ui/paint.rs": "12905be01ff8dccdbe942025bca783299833145da68d8a5231dc2d5ce5bb3d57"
+    },
+    "repository": "terminal-components-claude",
+    "tree": "83024e9ab2089aed575bc6f346de4e4c620cacdb",
+    "worktree": "/private/tmp/termrock-doctest-policy-independent-7483",
+    "worktree_status": "clean; source files/manifests/workflows were not modified"
+  },
+  "validation": {
+    "clippy": [
+      {
+        "command": "cargo clippy --locked --offline --manifest-path crates/termrock/Cargo.toml --package termrock --all-targets -- -D warnings",
+        "exit": 0,
+        "result": "compiles example targets including composition_consumer and file_catalogue_master_detail"
+      },
+      {
+        "command": "cargo clippy --locked --offline --manifest-path crates/termrock/Cargo.toml --package termrock --all-targets --no-default-features --features default,testing -- -D warnings",
+        "exit": 0,
+        "result": "compiles testing-feature example targets"
+      },
+      {
+        "command": "cargo clippy --locked --offline --manifest-path crates/termrock-forms/Cargo.toml --package termrock-forms --all-targets -- -D warnings",
+        "exit": 0,
+        "result": "compiles form_lanes_consumer; default/testing task argv are identical"
+      }
+    ],
+    "examples": [
+      "crates/termrock/examples/composition_consumer.rs",
+      "crates/termrock/examples/file_catalogue_master_detail.rs",
+      "crates/termrock-forms/examples/form_lanes.rs"
+    ],
+    "generated_rust_jobs": "All 88 nextest, 88 clippy, and 88 docs tasks are present in generated CI; required aggregation includes Rust jobs, plan and actionlint. No skipped Rust job observed in source manifest/workflow. This review did not run the full CI workflow.",
+    "nextest": [
+      {
+        "command": "cargo nextest run --profile ci --locked --offline --manifest-path crates/termrock/Cargo.toml --package termrock --no-tests fail",
+        "exit": 0,
+        "passed": 6,
+        "skipped": 0
+      },
+      {
+        "command": "cargo nextest run --profile ci --locked --offline --manifest-path crates/termrock/Cargo.toml --package termrock --no-default-features --features default,testing --no-tests fail",
+        "coverage": "includes master_detail_consumer; executes file_catalogue_master_detail via #[path], exercising repeated open/close, focus, resize and input",
+        "exit": 0,
+        "passed": 20,
+        "skipped": 0
+      },
+      {
+        "command": "cargo nextest run --profile ci --locked --offline --manifest-path crates/termrock-forms/Cargo.toml --package termrock-forms --no-tests fail",
+        "coverage": "includes nine form_lanes_consumer tests with different data",
+        "exit": 0,
+        "passed": 63,
+        "skipped": 0
+      }
+    ],
+    "no_cargo_test_used": true
+  }
+}

@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 bb3db3542933e1927376967c280fa920c92f8fdb Alexey Zhokhov <alexey@zhokhov.com> 1792585194 +0700	branch: Created from origin/parity/termrock-visual-baseline
+bb3db3542933e1927376967c280fa920c92f8fdb ed5bda4abb7873acf6b546ec45b2f35b8fbc1e63 Alexey Zhokhov <alexey@zhokhov.com> 1792585897 +0700	commit: feat(overlays): add reusable picker card layout policy
+ed5bda4abb7873acf6b546ec45b2f35b8fbc1e63 6cd63d2270b85dac30c63018070e00ed80510925 Alexey Zhokhov <alexey@zhokhov.com> 1792586659 +0700	commit: fix(overlays): honor picker zero-row footer policy

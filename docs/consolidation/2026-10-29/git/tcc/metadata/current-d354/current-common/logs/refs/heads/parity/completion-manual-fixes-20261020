@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 12e760e81ddf31d2956a2a05af567abfc64d7769 Alexey Zhokhov <alexey@zhokhov.com> 1792492542 +0700	branch: Created from 12e760e81ddf31d2956a2a05af567abfc64d7769
+12e760e81ddf31d2956a2a05af567abfc64d7769 1a150420b0faa8784f56ccdca3cda01d16d8778e Alexey Zhokhov <alexey@zhokhov.com> 1792492729 +0700	commit: fix(editors): retain manual completion binding

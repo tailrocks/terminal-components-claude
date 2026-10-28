@@ -1,0 +1,87 @@
+{
+  "schema": "termrock.canonical-owned-verify-live-source-audit",
+  "version": 1,
+  "status": "stage3-source-and-documentation-cleared-no-stage3-operation-admitted",
+  "source_base": "31fbae05c4978f8432443d93d1c6ef56b04050f0",
+  "branch": "wip/canonical-verify-owned-20261021",
+  "scope": [
+    "Add opt-in verify-live --owned-lifecycle and bounded --owned-budget flags.",
+    "Pass one PrepareExecution through verify_source, live/source/snapshot/cohort digests, tool observation, provenance comparisons, and final success output.",
+    "Preserve legacy verify-live behavior and reject --owned-budget without --owned-lifecycle.",
+    "Require the pinned reviewed capture cohort in the owned CLI path."
+  ],
+  "fixed_references": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tuiscotti_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "capture_cohort": "frozen-20261021-serial-nonincr-r1-r2"
+  },
+  "evidence": {
+    "focused_owned_suite": {
+      "command": "python3 -m unittest tools/test_frozen_baseline.py -k 'owned'",
+      "result": "28 tests passed",
+      "duration_seconds": 13.941
+    },
+    "python_compile": "python3 -m py_compile tools/frozen_baseline.py tools/test_frozen_baseline.py: passed",
+    "format": "cargo fmt --check, git diff --check, py_compile, and JSON parse: passed on corrected source",
+    "sha256": {
+      "tools/frozen_baseline.py": "e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257",
+      "tools/test_frozen_baseline.py": "0d0d4e636f80ad5c57ec0be79a580a743bc57823e7a50e84b3f6cfd280fb1b2b",
+      "docs/architecture/termrock-migration-matrix.md": "a00746f1a01dc2c14770a97c473710b243d2cfae0a02150fa16fff6e2ed57270"
+    },
+    "targeted_regressions": {
+      "command": "python3 -m unittest tools/test_frozen_baseline.py -k 'verify_live_owned'",
+      "result": "4 tests passed, including real PrepareExecution deadline and cancellation probes",
+      "duration_seconds": 2.151
+    },
+    "python_full_suite": {
+      "command": "python3 -m unittest tools/test_frozen_baseline.py",
+      "result": "109 tests passed, 0 failures, 0 skips",
+      "duration_seconds": 16.792,
+      "note": "One earlier full-suite attempt had a transient failure in test_fresh_advance_failed_child_and_timeout_keep_attempt_and_retry_same_ordinal (timeout subtest); the test passed alone and the subsequent full suite passed."
+    }
+  },
+  "limits": [
+    "The stage-three-only external supervisor remains pending independent review before any actual stage-three operation.",
+    "No actual verify-live or preflight command was run.",
+    "No new plan, key, capture, replay, ordinary CLI run, or candidate comparison was created or run.",
+    "This bounded source increment does not establish application parity or reusable-library acceptance.",
+    "Kernel-blocked filesystem or output syscalls can finish after the monotonic deadline; post-return checks fail closed. No universal hard completion guarantee is claimed."
+  ],
+  "previous_source_commit": "14bee2db097876479f005a82b04cafe4b09c7eeb",
+  "independent_review_hold": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-14bee2db-20261021.json",
+    "sha256": "2a810a71777d1b2f5ffcf986d6946d1a9daba2186dabef6ca7779abcea64d267",
+    "findings": {
+      "STAGE3-OWNED-1": "P1 held success output because the final write lacked flush and a post-write deadline/cancellation check.",
+      "STAGE3-OWNED-2": "P2 held owned path resolution because paths() ran before PrepareExecution.",
+      "STAGE3-OWNED-DOC-1": "P3 found stale stage-two wording after V12 stage-two result admission."
+    }
+  },
+  "corrections": [
+    "Owned paths() now runs inside PrepareExecution, with work checks immediately before and after path resolution; legacy path resolution stays outside the owned scope.",
+    "Owned success JSON is flushed inside PrepareExecution and followed by a deadline/cancellation check before scope exit.",
+    "Added real PrepareExecution CLI regressions for deadline expiry and SIGTERM during path resolution and final output.",
+    "Updated migration and audit status: V12 stage two and its actual prepare-live result are independently admitted; stage-three source and stage-three-only supervisor review remain required.",
+    "Closed STAGE3-OWNED-DOC-1: current limitations now reflect admitted V12 stage two and the actual remaining stage-three-only supervisor and result reviews."
+  ],
+  "stage2_admission": {
+    "v12_supervisor_source_sha256": "12a3dd78de61bd38a95dfe3b44ed43804380aa8df039b89168f666c7a231e5f9",
+    "v12_independent_source_review_sha256": "6ff4c1015c4b51fa666da014eeac3c2eb85ba174268cafe684a4002c66858fb5",
+    "actual_result_review_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage2-result-independent-review-20261021.json",
+    "actual_result_review_sha256": "37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994",
+    "admitted_scope": "stage-two live-source preparation only; no plan, key, capture, replay, candidate comparison, or product acceptance"
+  },
+  "required_next_gate": "Independently review the stage-three-only external supervisor before any actual stage-three operation. Any actual stage-three operation needs a separate independently reviewed result. Stage-four sealing waits for remaining owned plan/init/verify/advance lifecycle implementation.",
+  "corrected_source_commit": "c9adf3c2607efbbd8b36f5a4acdd7ea6d520863b",
+  "independent_review_clearance": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-5891c872-20261021.json",
+    "sha256": "21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20",
+    "decision": "Executable source SHA e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257 is CLEAR; the P3 documentation finding from this review is corrected in the current audit and migration record. No actual stage3 operation is admitted.",
+    "resolved_findings": [
+      "STAGE3-OWNED-1",
+      "STAGE3-OWNED-2",
+      "STAGE3-OWNED-DOC-1"
+    ]
+  }
+}

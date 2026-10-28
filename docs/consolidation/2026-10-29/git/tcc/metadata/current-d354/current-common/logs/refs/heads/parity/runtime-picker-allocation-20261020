@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 7c1a092ab7cfa37002f06e505cd4577f133750f4 Alexey Zhokhov <alexey@zhokhov.com> 1792513118 +0700	branch: Created from origin/parity/runtime-picker-allocation-20261020
+7c1a092ab7cfa37002f06e505cd4577f133750f4 2a526e647a2a1e2365350436467a3888771c2543 Alexey Zhokhov <alexey@zhokhov.com> 1792513502 +0700	commit (merge): merge: consolidate runtime query stack with PR38
+2a526e647a2a1e2365350436467a3888771c2543 ce81e0adee987812788effd39d70acd242b0e95b Alexey Zhokhov <alexey@zhokhov.com> 1792513520 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

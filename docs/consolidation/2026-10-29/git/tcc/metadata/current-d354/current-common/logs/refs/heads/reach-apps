@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 2d4262375cdedaf21af117f2eec49c0aff09fd5a Alexey Zhokhov <alexey@zhokhov.com> 1792260891 +0700	branch: Created from HEAD
+2d4262375cdedaf21af117f2eec49c0aff09fd5a e1d333e0f9637f60f502086462c110acb0f80b25 Alexey Zhokhov <alexey@zhokhov.com> 1792261351 +0700	commit: fix(dialog): the code preview joins the body scroll, no line summarised (R-apps-14)
+e1d333e0f9637f60f502086462c110acb0f80b25 6fb9e9d8d80e24a83bf4f1e101e1ce1d1ae74057 Alexey Zhokhov <alexey@zhokhov.com> 1792261989 +0700	commit: wip: R-apps-7 row_layout wraps
+6fb9e9d8d80e24a83bf4f1e101e1ce1d1ae74057 e1d333e0f9637f60f502086462c110acb0f80b25 Alexey Zhokhov <alexey@zhokhov.com> 1792261989 +0700	reset: moving to HEAD~1
+e1d333e0f9637f60f502086462c110acb0f80b25 00971b3fda1aa241f7d46c64e4d586a303b90f04 Alexey Zhokhov <alexey@zhokhov.com> 1792262745 +0700	commit: test(visual): re-approve dialogs whose code preview joins the body scroll (R-apps-14)
+00971b3fda1aa241f7d46c64e4d586a303b90f04 02c399ca552abf8c4904f861d6c2f6446a3e3b4b Alexey Zhokhov <alexey@zhokhov.com> 1792263188 +0700	commit: fix(button): row_layout wraps the buttons that do not fit instead of dropping them (R-apps-7)
+02c399ca552abf8c4904f861d6c2f6446a3e3b4b 6e19572c0aa1cf1655cdd0525a67e8c96ead627f Alexey Zhokhov <alexey@zhokhov.com> 1792263208 +0700	rebase (finish): refs/heads/reach-apps onto ed65b5b31ab08efe5bd48aa1a766d57213432f3d
+6e19572c0aa1cf1655cdd0525a67e8c96ead627f 5629775d9b70a119a7944c75925db9fe7f4302f0 Alexey Zhokhov <alexey@zhokhov.com> 1792263919 +0700	commit: test(visual): re-approve button rows that now wrap instead of dropping (R-apps-7)
+5629775d9b70a119a7944c75925db9fe7f4302f0 81be99a79c5158a27713d4f6f0ed06f6f4e1faf0 Alexey Zhokhov <alexey@zhokhov.com> 1792264151 +0700	commit: wip(R-apps-3): Tree/List fold a meta that has no column into the cut label; hand-rolled tables reveal dropped columns

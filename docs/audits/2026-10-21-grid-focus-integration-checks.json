@@ -1,0 +1,103 @@
+{
+  "fixture_source": "067a253d19714f23559f0907e9b3f48a9bbcd72f",
+  "grid_source": "5cd181530ba61781cf6a2c69d97895a9b0741275",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-grid",
+        "-p",
+        "termrock-fields",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing",
+        "--status-level",
+        "fail",
+        "--final-status-level",
+        "fail"
+      ],
+      "exit_code": 100,
+      "log": "/private/tmp/termrock-parent-grid-focus-dedicated-0.log",
+      "sha256": "44e349d48eb9db92547d0069935fa34831fe10c806fedfa48fc6bffb7b91a8f7"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-grid",
+        "-p",
+        "termrock-fields",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-grid-focus-dedicated-1.log",
+      "sha256": "20a1be6cb75316fcbcac7409ee098d149a941e32ce7f8a117a18b49d57e7c96c"
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "termrock-grid",
+        "-p",
+        "termrock-fields",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-runtime",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-grid-focus-dedicated-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "nextest": {
+    "run": 834,
+    "passed": 833,
+    "failed": 1,
+    "skipped": 3,
+    "failure": "all_73_junie_slots_match_reference_capability_output: semantic Ansi256 ColorTokens mismatch"
+  },
+  "earlier_build_failure": {
+    "logs": [
+      {
+        "path": "/private/tmp/termrock-parent-grid-focus-067a-0.log",
+        "sha256": "49257706da34781bec9b97e839a09f7fed169ec145868c310bb951e2e56b5bfa",
+        "exit_code": 101
+      },
+      {
+        "path": "/private/tmp/termrock-parent-grid-focus-067a-1.log",
+        "sha256": "ef263f3a85778f57d30fc4ff8eeecb52c99ee5d3cfc16e417c9bd603ebd2988c",
+        "exit_code": 101
+      }
+    ],
+    "error": "E0599 underline_cleared method absent in compiled PaintStyle, although present in exact source",
+    "action": "Reran unchanged source with a new dedicated target directory. Build succeeds and only the retained semantic palette test fails. Stop sharing target directories between different worktrees.",
+    "diagnosis_limit": "Artifact reuse is suspected; no source change was required. Earlier failed logs are preserved."
+  },
+  "full_acceptance": false
+}

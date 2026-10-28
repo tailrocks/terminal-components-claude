@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 7efe824fefeab1b26794b2fec9f749214d81041a Alexey Zhokhov <alexey@zhokhov.com> 1792527597 +0700	branch: Created from 7efe824fefeab1b26794b2fec9f749214d81041a
+7efe824fefeab1b26794b2fec9f749214d81041a c9357a9efbaaf995eee00390183d3c82631caa03 Alexey Zhokhov <alexey@zhokhov.com> 1792527826 +0700	commit: refactor(tablepro-domain): extract seeded history data

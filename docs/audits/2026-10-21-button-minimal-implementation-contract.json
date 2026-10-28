@@ -1,0 +1,25 @@
+{
+  "source": "8b41f488f76abc96d8339e1fcc861735f49de595",
+  "role": "Read-only architecture plan; product implementation must be assigned to a writer.",
+  "ownership": [
+    "crates/termrock-controls/src/button.rs",
+    "Focused Button public consumer tests and any required controls re-export; no runtime, Theme, Radio, Split or Showcase page edits in the first increment."
+  ],
+  "existing_reference_contract": "Ui::reference with ReferenceTarget::new(id,state) without a part selector sets owner-wide runtime state. Ui::state reads it, is_inert is true, and registration suppression is already implemented. Button resolves every part from the same live state. No second state/style engine or reference API extension is needed.",
+  "focus_visible": "Add a private Button option with public Always/KeyboardOnly builder. Frozen default Always is an intentional focus-visibility correction: promote existing eligible FOCUSED to FOCUS_VISIBLE; never manufacture focus or restore it under covered layers. KeyboardOnly uses runtime visibility. Carry the option through inherited-disabled cloning. If current recipes cannot honor these flags, report the exact missing recipe to the exclusive Theme writer rather than painting a gutter in controls or the application.",
+  "marker": "Use existing RadioOn/RadioOff glyph roles for checked fallback, preserving explicit MARKER Set/Clear/slot and custom ink. Busy wins over toggle marker as frozen Button does; measure and draw reserve one consistent prefix. Preserve other status/icon behavior and expose any overlapping status/icon case as a separate decision before changing it.",
+  "inert_specimen": "Use the real Button draw under owner-wide Ui::reference, with disabled/busy/checked props. No update, action, autofocus, binding, typing or cursor from specimens. Illustrative focus marker customization may use existing GUTTER part patch or slot owned by the reusable specimen component; do not repaint after the Button or change current focus. No new speculative public specimen framework in this first increment.",
+  "tests": [
+    "Before-change red proof for Always pointer focus versus KeyboardOnly, off/on markers and busy-plus-checked width/precedence.",
+    "Real Runtime pointer down, held draw, release activation and retained focus; keyboard Tab/Enter/Space; disabled and busy suppress actions; covered layers hide focus.",
+    "Different labels, Unicode wide/grapheme text, widths zero/one/two and clipping. Assert actual cells plus hit/focus/action geometry.",
+    "Owner-wide reference styles all five parts using deliberately distinct custom recipes; explicit glyph Clear and custom MARKER/GUTTER patches win. Confirm zero registry controls/bindings/cursor and no actions or domain effects.",
+    "Focused controls nextest, strict Clippy and scoped formatting. Commit and protect the coherent increment on a WIP branch under the shared push lock, then independent exact-commit review."
+  ],
+  "limits": "This is not a full Showcase migration, CLI parity proof, expected-data approval or reference decision. Existing stored Buttons audit conflict remains unresolved.",
+  "superseding_marker_correction": {
+    "status": "The earlier RadioOn/RadioOff fallback recommendation is superseded and must not be implemented.",
+    "source": "Current builtin/junie.rs113 uses three-cell (\u25cf)/(\u25cb) Radio roles. Frozen theme.rs2421-2422 uses one-cell Button dot_on/off \u25cf/\u25cb and ASCII2486-2487 */o.",
+    "required_contract": "Coordinate a semantic one-cell dot role extension with the Theme owner while preserving existing GlyphRole discriminants and GlyphSet::new signature. SwitchKnob alone supplies only on; do not crop a Radio glyph or hardcode app marker characters. Explicit marker glyph/slot overrides must continue to win."
+  }
+}

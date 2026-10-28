@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 4ae4cb9dd7feb17f8835f9588d80bcedac0497fd Alexey Zhokhov <alexey@zhokhov.com> 1792535123 +0700	branch: Created from HEAD
+4ae4cb9dd7feb17f8835f9588d80bcedac0497fd 2554d85b64da50be58e79cf3497832461483b481 Alexey Zhokhov <alexey@zhokhov.com> 1792535129 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+2554d85b64da50be58e79cf3497832461483b481 7b29faf7b87014b6f90752172f1df022ad89ed30 Alexey Zhokhov <alexey@zhokhov.com> 1792535132 +0700	merge origin/wip/textarea-fields-stage3-20261021: Merge made by the 'ort' strategy.
+7b29faf7b87014b6f90752172f1df022ad89ed30 9a7271bc480868687edcc991e5e7a4ce4dbf19f4 Alexey Zhokhov <alexey@zhokhov.com> 1792535760 +0700	merge 2b00bb6513627618ca98489c9118b3f7c4391d1d: Merge made by the 'ort' strategy.
+9a7271bc480868687edcc991e5e7a4ce4dbf19f4 caf65990b008c4939db2cfe2560fe2b58bc6e6ac Alexey Zhokhov <alexey@zhokhov.com> 1792535792 +0700	commit: fix(forms): preserve textarea source window when clipped
+caf65990b008c4939db2cfe2560fe2b58bc6e6ac f5b115ba481c4d310dc88572ac09f237e1128ac9 Alexey Zhokhov <alexey@zhokhov.com> 1792535815 +0700	merge 8a8e28300cfcbb455eb1b8872935c9743abe6277: Merge made by the 'ort' strategy.
+f5b115ba481c4d310dc88572ac09f237e1128ac9 ae32d3ff812aa436eb5d6c15eb155d9b8d59502a Alexey Zhokhov <alexey@zhokhov.com> 1792535836 +0700	commit: docs(audit): record form textarea window stage one

@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 f55fd2274197c0a235e0885e3cc5827062b887e1 Alexey Zhokhov <alexey@zhokhov.com> 1792249147 +0700	branch: Created from HEAD
+f55fd2274197c0a235e0885e3cc5827062b887e1 52bb1514d5f511c4473aabb283ecdf7a62cb087e Alexey Zhokhov <alexey@zhokhov.com> 1792249395 +0700	commit: feat(master-detail): a seam sized by the master's share (R-apps-2)
+52bb1514d5f511c4473aabb283ecdf7a62cb087e 81ce441483d4f64c62e626136e536a82d87eae59 Alexey Zhokhov <alexey@zhokhov.com> 1792249626 +0700	commit: fix(jackin): the variable card is a focus stop and a drawer when narrow (R-apps-2)
+81ce441483d4f64c62e626136e536a82d87eae59 ac8924627f3099466dd2be40243bcecfaff6c512 Alexey Zhokhov <alexey@zhokhov.com> 1792249846 +0700	commit: fix(tablepro): the connection card is a drawer when narrow (R-apps-2)
+ac8924627f3099466dd2be40243bcecfaff6c512 b674c6271b349aabf4aef08b035a4895fff21dc0 Alexey Zhokhov <alexey@zhokhov.com> 1792249902 +0700	commit: docs(responsive): R-apps-2 jackin variable card and tablepro connections on MasterDetail
+b674c6271b349aabf4aef08b035a4895fff21dc0 7e43fabec4c4b07f8dbfd57cd7da7454feb30f4e Alexey Zhokhov <alexey@zhokhov.com> 1792250319 +0700	rebase (finish): refs/heads/rapps-2b onto 0fad384c0850dd842ccc1db748a9303c3bbd9e4a
+7e43fabec4c4b07f8dbfd57cd7da7454feb30f4e 8599c962fb55c59c78b935ac79f770085e52f33f Alexey Zhokhov <alexey@zhokhov.com> 1792250385 +0700	commit: fixup! feat(master-detail): a seam sized by the master's share (R-apps-2)
+8599c962fb55c59c78b935ac79f770085e52f33f d2493943c80a491bb923bd68a6b928993e0615bb Alexey Zhokhov <alexey@zhokhov.com> 1792250388 +0700	rebase (finish): refs/heads/rapps-2b onto 0fad384c0850dd842ccc1db748a9303c3bbd9e4a

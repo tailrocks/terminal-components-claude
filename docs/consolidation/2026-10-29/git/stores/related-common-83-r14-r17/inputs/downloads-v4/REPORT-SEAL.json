@@ -1,0 +1,25 @@
+{
+  "created_utc": "2026-10-28T21:39:06.452667+00:00",
+  "directory": "/private/tmp/pr38-consolidation-inventory-20261029/downloads-tcc-common-store-closure-v4",
+  "file_count": 3,
+  "files": [
+    {
+      "bytes": 735,
+      "path": "README.md",
+      "sha256": "fbfe0a27bd2fdd65c49682ca6a0d6ad383c00689b9561c609800a69433e05e43"
+    },
+    {
+      "bytes": 52459,
+      "path": "empty-ref-only-store-46-reference-object-map.jsonl",
+      "sha256": "ebd00392ba25e9840af69a7312126832e83aff9370ac0bc93baaf3429c6c3628"
+    },
+    {
+      "bytes": 2151,
+      "path": "summary.json",
+      "sha256": "be3d6ac2def9b1ec8c3d27e6e4ee824174d5b2a7d488ed7f00d0b9691bd21145"
+    }
+  ],
+  "payload_bytes": 55345,
+  "schema": "pr38-empty-ref-only-tcc-store-closure-v1-seal",
+  "seal_sha256": "bf0ebec7a7d5bbd2b9427455a72821861dd3da64944b65e728f3d3b9799e57a6"
+}

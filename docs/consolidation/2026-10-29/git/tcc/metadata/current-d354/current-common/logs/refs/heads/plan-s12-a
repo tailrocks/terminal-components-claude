@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 cff6d79dec6b49daa329ee3819d61516d63140f9 Alexey Zhokhov <alexey@zhokhov.com> 1792223046 +0700	branch: Created from HEAD
+cff6d79dec6b49daa329ee3819d61516d63140f9 8bb7630661d445770f2a3d797122f36caf3d9efe Alexey Zhokhov <alexey@zhokhov.com> 1792223542 +0700	commit: feat(option_list): OptionList and Item, the one popup-list body (S12 expand)
+8bb7630661d445770f2a3d797122f36caf3d9efe 92c036bec45207030804b658d3de049dc81faa27 Alexey Zhokhov <alexey@zhokhov.com> 1792223779 +0700	commit: refactor(completion): Completion's body is an OptionList, its rows are Item (S12)
+92c036bec45207030804b658d3de049dc81faa27 b436c6ebf4317b4da84172c28587893d24804d8b Alexey Zhokhov <alexey@zhokhov.com> 1792223803 +0700	rebase (finish): refs/heads/plan-s12-a onto c2f845f692faab51be1d09142cff8c9be44da7d4

@@ -1,0 +1,180 @@
+{
+  "source_commit": "ce624ed2b378ee699d79898fbc2b808147252ffc",
+  "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design_commit": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "status": "Incomplete architecture and product parity. Read-only source review; no acceptance clearance.",
+  "since_3be8fb60": {
+    "changed_production_files": [
+      "crates/holla-ui/src/app.rs"
+    ],
+    "diff": "31 changed lines (19 additions, 12 deletions), only import/AppShell regions substitutions from 01ed92ca9. Home painters, simulation tag projections and input routing remain unchanged."
+  },
+  "findings": [
+    {
+      "id": "H1",
+      "priority": "P1",
+      "path": "crates/holla-ui/src/screens/home.rs:267",
+      "finding": "The scenario/tag view chain calls paint_parity_discovery and returns before NavList.draw. The rendered rows therefore do not use the NavListState or register the real list controls. update still runs NavList.update over HomeRow data at lines 186-208. The static TagRow.selected and preview data are independent of actual selection/filtering.",
+      "support": [
+        "crates/holla-ui/src/screens/home.rs:293",
+        "crates/holla-ui/src/screens/home.rs:706",
+        "crates/holla-ui/src/screens/home.rs:743",
+        "crates/holla-ui/src/screens/home.rs:802",
+        "crates/holla-sim/src/catalogue.rs:795",
+        "crates/holla-sim/src/catalogue.rs:1045"
+      ]
+    },
+    {
+      "id": "H2",
+      "priority": "P1",
+      "path": "crates/holla-sim/src/catalogue.rs:842",
+      "finding": "Nine production *_tag_frame selectors switch presentation/catalogue at scenario plus now_ms()==80, while parity_discovery uses scenario plus now_ms()>=80. FinderLine/TagRow/PreviewLine tables encode headings, blanks, chips, selected state, fixed metadata and preview values. This is a reference-screen projection in the simulation helper, not ordinary simulation source state. Remove these projection selectors/data after semantic catalogues generate the same outcomes. Do not move the tables into Termrock.",
+      "support": [
+        "crates/holla-sim/src/catalogue.rs:833",
+        "crates/holla-sim/src/catalogue.rs:852",
+        "crates/holla-sim/src/catalogue.rs:885",
+        "crates/holla-sim/src/catalogue.rs:898",
+        "crates/holla-sim/src/catalogue.rs:1055",
+        "crates/holla-sim/src/catalogue.rs:1191",
+        "crates/holla-sim/src/catalogue.rs:2615"
+      ]
+    },
+    {
+      "id": "H3",
+      "priority": "P1",
+      "path": "crates/holla-ui/src/app.rs:1348",
+      "finding": "Exact 80x24 and 100x30 plus tag-clock predicates select distinct activity bands; host/project/status/footer content also varies by tag predicates. MenuBar is repainted after shared rendering for disk-tag state. These are not general responsive policies.",
+      "support": [
+        "crates/holla-ui/src/app.rs:1306",
+        "crates/holla-ui/src/app.rs:1308",
+        "crates/holla-ui/src/app.rs:1316",
+        "crates/holla-ui/src/app.rs:1361",
+        "crates/holla-ui/src/app.rs:1432",
+        "crates/holla-ui/src/app.rs:1544",
+        "crates/holla-ui/src/app.rs:1994"
+      ]
+    },
+    {
+      "id": "H4",
+      "priority": "P1",
+      "path": "crates/holla-ui/src/screens/home.rs:318",
+      "finding": "Even the ordinary path supplies an application-owned raw row painter, draws its own focus gutter/column widths and then repaints section titles after the shared NavList has drawn. Header container and header text need independent shared styling; row content should use RowUi slots/columns.",
+      "support": [
+        "crates/holla-ui/src/screens/home.rs:321",
+        "crates/holla-ui/src/screens/home.rs:442",
+        "crates/holla-ui/src/screens/home.rs:464",
+        "crates/holla-ui/src/screens/home.rs:472",
+        "crates/termrock-navigation/src/nav_list.rs:923",
+        "crates/termrock-runtime/src/rowui.rs:523",
+        "crates/termrock-runtime/src/rowui.rs:809"
+      ]
+    },
+    {
+      "id": "H5",
+      "priority": "P1",
+      "path": "crates/holla-ui/src/screens/home.rs:684",
+      "finding": "Application-owned split_detail reproduces a master/detail calculation and private preview wrapping/scrollbar painting. Preview scrollbar creates a new ScrollState each draw, so it cannot own persistent scroll or drag interaction. Use the existing shared responsive master/detail and text/Props viewport contracts with one resolved layout.",
+      "support": [
+        "crates/holla-ui/src/screens/home.rs:878",
+        "crates/holla-ui/src/screens/home.rs:1072",
+        "crates/holla-ui/src/screens/home.rs:1095",
+        "crates/termrock/src/blocks/master_detail.rs:142",
+        "crates/termrock/src/blocks/master_detail.rs:193",
+        "crates/termrock/src/blocks/master_detail.rs:267"
+      ]
+    },
+    {
+      "id": "H6",
+      "priority": "P1",
+      "path": "crates/holla-ui/src/app.rs:1848",
+      "finding": "Application draw writes ESC[6 q directly to stdout when Home and terminal stdout are active. Cursor shape must be declared by the real visible input through runtime ownership, not terminal-dependent side effects during draw.",
+      "support": [
+        "crates/holla-ui/src/app.rs:1851",
+        "crates/holla-ui/src/app.rs:1854"
+      ]
+    },
+    {
+      "id": "H7",
+      "priority": "P2",
+      "path": "crates/holla-ui/src/app.rs:1708",
+      "finding": "App helper owns route/control/menu/modal sequencing, dynamic key binding mutation, activity strip hit registration and pointer activation. Shared widgets do provide some routing protection, so no background-interaction defect is asserted without execution, but the complete application dependency tree is not a thin composition consumer.",
+      "support": [
+        "crates/holla-ui/src/app.rs:1217",
+        "crates/holla-ui/src/app.rs:1245",
+        "crates/holla-ui/src/app.rs:1599",
+        "crates/holla-ui/src/app.rs:1719",
+        "crates/holla-ui/src/app.rs:1744",
+        "crates/holla-ui/src/app.rs:1909"
+      ]
+    }
+  ],
+  "legitimate_paths": [
+    {
+      "paths": [
+        "crates/holla-domain/src",
+        "crates/holla-plan/src",
+        "crates/holla-catalog/src/ranking.rs",
+        "crates/holla-ui/src/dispatch.rs"
+      ],
+      "retain": "Domain connection/task/Git/container data, ranking/business rules, dispatch and plan decisions stay application-owned."
+    },
+    {
+      "paths": [
+        "crates/holla-sim/src/world.rs:50",
+        "crates/holla-sim/src/world.rs:130",
+        "crates/holla-sim/src/world.rs:189",
+        "crates/holla-sim/src/fixtures.rs"
+      ],
+      "retain": "Discovery schedules, simulated outcomes and clock advancement are legitimate scenario data. Do not remove ordinary schedules merely because they contain times. The separate tag-frame presentation projections are the defect."
+    },
+    {
+      "paths": [
+        "crates/holla-ui/src/app.rs:3967"
+      ],
+      "retain": "historical_tests is cfg(test), not a production replay path."
+    },
+    {
+      "paths": [
+        "crates/holla-ui/src/screens/actions.rs:115",
+        "crates/holla-ui/src/screens/clone.rs:39",
+        "crates/holla-ui/src/screens/dialogs.rs:590",
+        "crates/holla-ui/src/screens/activity.rs:41",
+        "crates/holla-ui/src/screens/plan.rs:175"
+      ],
+      "retain": "Existing real Picker, Dialog, Props, TextViewport and List state/update/draw calls are useful. Preserve typed domain actions; migrate remaining manual component layout rather than restoring monolithic screens."
+    }
+  ],
+  "negative_search": "No fixed RUNS table, include_str!/include_bytes! snapshot import or std::fs/fs::read production replay was found in inspected crates/holla*/src. This is a bounded source-search result, not a build/resource-closure proof.",
+  "next_bounded_contract": {
+    "family": "Sectioned result-list row composition and header parts in existing termrock-navigation, reused by Holla and a different-data Showcase/public consumer.",
+    "production_ownership": [
+      "termrock-navigation owns header layout and separate header-container/header-label styling, stable item hit regions, focus/selection, scrolling and clipping. Preserve existing HEADER styling behavior by default.",
+      "Use existing NavList::row and RowUi leading/trailing/columns/meta/label interfaces for ordinary Holla action rows. Add only the missing distinct header-label styling part or equivalent named semantic content part; do not add an app-named variant or second list engine.",
+      "Holla retains HomeRow domain fields, stable action.id keys, section names, labels and typed activation mapping. No raw painter, gutter drawing, section coordinate calculation or corrective paint_section_titles after the list."
+    ],
+    "stages": [
+      "First write an external public-list regression reproducing different header fill/text ink plus scrolling and clipped section headers, and capture the current ordinary Holla row checkpoints as non-authoritative before/after preservation evidence.",
+      "Implement shared header content styling and migrate ordinary Home rows from render_row to RowUi slots/columns. Delete paint_action, section_header_rows, paint_section_titles and associated correction-only constants in the same increment. Retain legitimate semantic roles and configured spacing.",
+      "Compile and exercise a different-data public consumer and Showcase demonstration. Independently review exact source and tests before PR38 integration.",
+      "Then migrate the single Home result/preview workspace family through existing MasterDetail composition plus semantic catalogue projection. Replace the entire tag painter chain and *_tag_frame view generation in that change series; do not treat the first ordinary-row increment as false-parity removal completion."
+    ],
+    "regression_checks": [
+      "Real widget/runtime routing: hover, press/release, keyboard selection/activation, stable keys under reordered/filtered rows, disabled rows, section clipping, scrollbar drag and empty/large data.",
+      "All four supported color profiles; selected/focused/inactive-layer combinations; Unicode combining/wide labels; zero/narrow regions.",
+      "Baseline-paired real Holla CLI at frame/tick before, at and after the former 80ms selector, plus input while paused at that clock; 79/80/81 and 99/100/101 widths and adjacent heights, changed/reordered domain data, query edits, row activation, preview scrolling and repeated overlays.",
+      "Run Nextest only and bounded <=220s process groups; verify external probe fails before the actual shared fix. No candidate-derived expected reapproval."
+    ]
+  },
+  "frozen_contract_evidence": [
+    "4169783:src/bin/holla/screens/finder.rs:53 stores query, selected row, list/preview scroll and MasterDetail state.",
+    "4169783:src/bin/holla/screens/finder.rs:116 configures detail_share(34,34,48), summary_rows(1).",
+    "4169783:src/bin/holla/screens/finder.rs:338 reconciles selection by stable domain id and resets preview scroll on query/selection changes.",
+    "4169783:src/bin/holla/screens/finder.rs:1396 uses one MasterDetail result for live list, preview and narrow summary; selected item supplies preview. f4867e9 retains this contract. Recover behavior, not the old implementation."
+  ],
+  "verification_limits": [
+    "No edits to repository or references. Read-only source extraction into separate temporary source copy.",
+    "No Rust test, actual CLI capture, key read, expected-artifact update or candidate comparison performed.",
+    "Earlier three real-App probe failures and the 696 refreshed native hashes are context supplied by coordinator, not independently rerun here. They do not establish parity.",
+    "No application parity or whole-library acceptance approval."
+  ]
+}

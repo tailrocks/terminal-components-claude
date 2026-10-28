@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 9570530a3c6123269174311e20ca84dc3dfd6ac8 Alexey Zhokhov <alexey@zhokhov.com> 1792217431 +0700	branch: Created from HEAD
+9570530a3c6123269174311e20ca84dc3dfd6ac8 e7cf9ca3277ae80104d57cb01537e12ecef015a7 Alexey Zhokhov <alexey@zhokhov.com> 1792218327 +0700	commit: feat(clock): explicit clock steps for paused captures (V12)
+e7cf9ca3277ae80104d57cb01537e12ecef015a7 e06ec8298167830a475248207c41a4bb45711717 Alexey Zhokhov <alexey@zhokhov.com> 1792218333 +0700	commit: test(visual): OVERLAYS rows for the jackin layers opened by timed jobs (V12)
+e06ec8298167830a475248207c41a4bb45711717 3e94303df74b1570e18ed1619a2c8d28c0d532dd Alexey Zhokhov <alexey@zhokhov.com> 1792218548 +0700	commit: fix(clock): clock steps only with the test opt-in JUNIE_TUI_TEST_CLOCK=1
+3e94303df74b1570e18ed1619a2c8d28c0d532dd be87fce1844ebedc86d20fa76d3309b26c9e8185 Alexey Zhokhov <alexey@zhokhov.com> 1792218917 +0700	rebase (finish): refs/heads/v12-timed onto bc99a174950df15fbb675be5357e6523878587fe
+be87fce1844ebedc86d20fa76d3309b26c9e8185 08ea2acd74952d0c8fe697ac020f4e6383ff7ea1 Alexey Zhokhov <alexey@zhokhov.com> 1792219368 +0700	rebase (finish): refs/heads/v12-timed onto 35dcf56c1962e577ee9f4e2437336656d0fc76f6
+08ea2acd74952d0c8fe697ac020f4e6383ff7ea1 cff6d79dec6b49daa329ee3819d61516d63140f9 Alexey Zhokhov <alexey@zhokhov.com> 1792222280 +0700	rebase (finish): refs/heads/v12-timed onto cf601d283150273864cb1673ec1acaa55d9948b2

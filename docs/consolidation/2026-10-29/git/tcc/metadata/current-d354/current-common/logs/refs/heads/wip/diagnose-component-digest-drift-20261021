@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 ae193b855fc004944f390452f1338871b27cdfd7 Alexey Zhokhov <alexey@zhokhov.com> 1792597881 +0700	branch: Created from origin/parity/termrock-visual-baseline
+ae193b855fc004944f390452f1338871b27cdfd7 2249fc07781e2eff4b0ef8154cd317b967add234 opencode <opencode@local> 1792601631 +0700	commit: fix(theme,overlays): restore frozen SQL syntax ink and menu title identity
+2249fc07781e2eff4b0ef8154cd317b967add234 9555b6337d18d4f42aaa79566c98625effa69ad8 opencode <opencode@local> 1792608004 +0700	commit: fix(editors,docs): keep the caret with focus and register the doc examples
+9555b6337d18d4f42aaa79566c98625effa69ad8 3d7eb8bf8135f617b4ad6ccd8e92ad18005e68e9 Alexey Zhokhov <alexey@zhokhov.com> 1792608063 +0700	rebase (finish): refs/heads/wip/diagnose-component-digest-drift-20261021 onto a5bb410d47d3d8b795ee9d8aef5c3027bcdf0832
+3d7eb8bf8135f617b4ad6ccd8e92ad18005e68e9 62929846314dc7dc94e74f72089d41290f27b470 opencode <opencode@local> 1792611033 +0700	commit (amend): docs: record the component digest drift diagnosis and the doc inventory fix
+62929846314dc7dc94e74f72089d41290f27b470 fa5f100a46df89bf0348b114ce649b72c2f432af Alexey Zhokhov <alexey@zhokhov.com> 1792611136 +0700	merge origin/wip/diagnose-component-digest-drift-20261021: Merge made by the 'ort' strategy.

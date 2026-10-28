@@ -1,0 +1,49 @@
+{
+  "reviewed_commit": "59e691334559b62f4c9c6a7b3d80cb3ecf416e69",
+  "disposition": "Not cleared: public window input geometry truncates a valid logical track to u16.",
+  "finding": {
+    "severity": "P2",
+    "source": [
+      "crates/termrock-runtime/src/scroll_region.rs:159-168 prepare returns u16 rows",
+      "crates/termrock-runtime/src/scroll_region.rs:235-270 press/drag use usize::from(track_len)",
+      "crates/termrock-runtime/src/scroll_region.rs:347-352 draw facts clamp logical rows to u16",
+      "crates/termrock-runtime/src/scroll_region.rs:374-377 paint_bar uses the full usize window.logical_rows"
+    ],
+    "issue": "VerticalWindow accepts a usize logical body. A valid100000-row logical viewport paints its thumb from that logical interval, but pointer input uses a65535-row track. Pressing an already-visible thumb moves the scroll offset before any drag.",
+    "public_reproduction": "logical_rows100000, content_len1000000, offset450000, first_source_row45000, visible body Rect(2,3,10,4). Visible THUMB is correctly registered at(11,3,1,4). Pointer Down at(11,4) changes offset to636677 instead of retaining450000.",
+    "probe": "/private/tmp/scroll-window-59e-independent/src/lib.rs",
+    "log": "/tmp/scroll-window-59e-independent-all.log",
+    "fix": "When a window descriptor exists, use its full logical_rows for all track click, press and drag calculations. Preserve legacy u16 argument behavior only for the legacy no-window path. Keep a single ScrollState grab offset; do not add another drag cache. Audit the signed drag helper conversion for valid usize values beyond i64 as well; it must use checked/saturating offset arithmetic rather than silently ignoring a valid window."
+  },
+  "independent_public_results": {
+    "nextest_run": "3f4491cb-8129-49c1-be3c-7ad342fb52e4",
+    "summary": "5 run:4 passed,1 failed,0 skipped",
+    "passed": [
+      "Different-data37-row logical window retains original grab offset on clipped thumb drag and release.",
+      "A17-row logical end-window paints only the original end cap, not a clipped-window start cap.",
+      "A fully visible legacy THUMB painter inside a partially clipped TRACK remains supported and registered without diagnostics.",
+      "window_slot overrides a legacy slot and receives the original0..17 part interval and visible3..7 source interval."
+    ],
+    "failed": [
+      "Large logical visible-thumb press must not jump."
+    ]
+  },
+  "bounded_positive_source_review": [
+    "The two-path diff changes only ScrollRegion and a new Diagnostic variant; no editor focus policy, input queue lifecycle or cursor-retention source is replaced.",
+    "Diagnostic is already non_exhaustive; the added UnsupportedClippedComponentSlot uses the existing bounded Diagnostics store and has a cap regression.",
+    "Window slot context fields are private with read-only accessors. A partially clipped legacy part is diagnosed and not registered as a phantom part; a fully visible legacy part is still allowed.",
+    "Existing draw delegates to full-window geometry, and per-part theme/style resolution remains canonical; there is no new color or input engine.",
+    "Logical child viewport and scroll content length are retained in prepared LayoutFacts, while visible physical registrations are clipped by existing Ui."
+  ],
+  "required_followup_tests": [
+    "Run the unchanged failing public probe after repair. Add held drag outside the visible window, resize while held, release and cancel, and large logical interval round-trip tests.",
+    "Retain missing-layout fallback and zero/narrow window tests; verify capture is released when prepared geometry becomes unavailable.",
+    "Compare legacy unwindowed rendering and input against the actual parent commit, not merely draw() versus draw_window() when both share the same new implementation."
+  ],
+  "limits": "This is runtime stage2 only. TextArea source scrolling, selection, cursor, menus, Form parent reveal and real application parity remain unimplemented and unaccepted. No product edits or helpers used.",
+  "independent_native_results": {
+    "command": "cargo nextest run --locked -p termrock-runtime --lib scroll_region::tests --no-fail-fast",
+    "result": "15 passed;217 explicitly filtered out, not executed or waived.",
+    "log": "/tmp/scroll-window-59e-native.log"
+  }
+}

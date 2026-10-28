@@ -1,4 +1,5 @@
 use core::fmt;
+use core::num::NonZeroU16;
 
 use ratatui_core::layout::{Position, Rect};
 
@@ -10,29 +11,132 @@ use crate::field_control::FieldControl;
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
 use crate::input::{
-    BlurPolicy, EditPhase, EditorDraft, ErrorState, TextAction, TextCmd, TextTarget, byte_at_col,
-    discard_error,
+    BlurPolicy, EditCapabilities, EditMenuRequest, EditPhase, EditorDraft, ErrorState, FocusSelect,
+    TextAction, TextCmd, TextEditCommand, TextTarget, byte_at_col, discard_error,
 };
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::text::measure::graphemes;
+use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, width};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
+use termrock_core::EditEntry;
+use termrock_runtime::author::VerticalWindow;
+use termrock_runtime::layer::LayerOpening;
 use termrock_runtime::rowui::CellUi;
+use termrock_runtime::runtime::WheelRouteAttempt;
 use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_runtime::{UpdateCause, WheelRouteResult};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextAreaIdleHorizontalScroll {
+    Off,
+
+    Pan { step: NonZeroU16 },
+}
+
+impl TextAreaIdleHorizontalScroll {
+    pub const fn pan(step: NonZeroU16) -> Self {
+        Self::Pan { step }
+    }
+}
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 
+#[derive(Clone, Copy, Debug)]
+struct TextAreaGeometry {
+    window: VerticalWindow,
+    text: Rect,
+}
+
+impl TextAreaGeometry {
+    fn new(window: VerticalWindow, text: Rect) -> Option<Self> {
+        let text = text.intersection(window.visible_body());
+        (!text.is_empty()).then_some(Self { window, text })
+    }
+
+    fn document_point(
+        self,
+        pos: Position,
+        child_scroll: usize,
+        horizontal_scroll: usize,
+    ) -> Option<(usize, usize)> {
+        if !self.text.contains(pos) {
+            return None;
+        }
+        let source_row = self.window.source_row_for_physical(pos.y)?;
+        let line = child_scroll.checked_add(source_row)?;
+        let col = usize::from(pos.x.saturating_sub(self.text.x)).saturating_add(horizontal_scroll);
+        Some((line, col))
+    }
+
+    fn captured_document_point(
+        self,
+        pos: Position,
+        child_scroll: usize,
+        horizontal_scroll: usize,
+    ) -> Option<(usize, usize)> {
+        let logical_rows = self.window.logical_rows();
+        if logical_rows == 0 {
+            return None;
+        }
+        let visible_body = self.window.visible_body();
+        let physical_delta = usize::from(pos.y.saturating_sub(visible_body.y));
+        let source_row = self
+            .window
+            .first_source_row()
+            .saturating_add(physical_delta);
+        let line = child_scroll.checked_add(source_row)?;
+        let col = usize::from(pos.x.saturating_sub(self.text.x)).saturating_add(horizontal_scroll);
+        Some((line, col))
+    }
+
+    fn physical_row(self, document_row: usize, child_scroll: usize) -> Option<u16> {
+        let source_row = document_row.checked_sub(child_scroll)?;
+        let y = self.window.physical_row_for_source(source_row)?;
+        if y < self.text.y || y >= self.text.bottom() {
+            return None;
+        }
+        Some(y)
+    }
+
+    fn cursor_position(
+        self,
+        cursor: crate::text::CursorPos,
+        child_scroll: usize,
+        horizontal_scroll: usize,
+    ) -> Option<Position> {
+        let y = self.physical_row(cursor.line, child_scroll)?;
+        let x = self.text.x.checked_add(
+            u16::try_from(cursor.col.saturating_sub(horizontal_scroll)).unwrap_or(u16::MAX),
+        )?;
+        (x <= self.text.right()).then_some(Position::new(x, y))
+    }
+
+    fn logical_inner_width(self) -> u16 {
+        self.window.visible_body().width.saturating_sub(3)
+    }
+}
+
 const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
+    b_with_action(chord, cmd, label, label, visible)
+}
+
+const fn b_with_action(
+    chord: Chord,
+    cmd: TextCmd,
+    action: &'static str,
+    label: &'static str,
+    visible: bool,
+) -> Binding<TextCmd> {
     Binding {
-        action: ActionKey::custom(label),
+        action: ActionKey::custom(action),
         chord: Some(chord),
         cmd,
         label,
@@ -41,7 +145,28 @@ const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Bi
     }
 }
 
-const BINDINGS: &[Binding<TextCmd>] = &[
+const ESCAPE_CANCEL: Binding<TextCmd> = b_with_action(
+    Chord::key(KeyCode::Esc),
+    TextCmd::Cancel,
+    "Done",
+    "Cancel",
+    true,
+);
+const ENTER_BEGIN: Binding<TextCmd> = b_with_action(
+    Chord::key(KeyCode::Enter),
+    TextCmd::Newline,
+    "New line",
+    "Begin editing",
+    true,
+);
+const SELECT_ALL: Binding<TextCmd> = b(
+    Chord::with(KeyCode::Char('l'), CTRL),
+    TextCmd::SelectAll,
+    "Select all",
+    false,
+);
+
+const BASE_BINDINGS: [Binding<TextCmd>; 34] = [
     b(Chord::key(KeyCode::Esc), TextCmd::Commit, "Done", true),
     b(
         Chord::key(KeyCode::Enter),
@@ -223,12 +348,7 @@ const BINDINGS: &[Binding<TextCmd>] = &[
         "Delete word (Ctrl+W)",
         false,
     ),
-    b(
-        Chord::with(KeyCode::Char('l'), CTRL),
-        TextCmd::SelectAll,
-        "Select all",
-        false,
-    ),
+    SELECT_ALL,
     b(
         Chord::with(KeyCode::Char('b'), ALT),
         TextCmd::Move(Motion::WordLeft, Extend::No),
@@ -243,14 +363,36 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     ),
 ];
 
+const fn replace_escape(
+    mut bindings: [Binding<TextCmd>; 34],
+    escape: Binding<TextCmd>,
+) -> [Binding<TextCmd>; 34] {
+    bindings[0] = escape;
+    bindings
+}
+
+const BINDINGS: &[Binding<TextCmd>] = &BASE_BINDINGS;
+const CANCEL_BINDINGS_ARRAY: [Binding<TextCmd>; 34] = replace_escape(BASE_BINDINGS, ESCAPE_CANCEL);
+const CANCEL_BINDINGS: &[Binding<TextCmd>] = &CANCEL_BINDINGS_ARRAY;
+
+const TYPE_TO_EDIT_IDLE_BINDINGS: &[Binding<TextCmd>] = &[SELECT_ALL];
+const EXPLICIT_IDLE_BINDINGS: &[Binding<TextCmd>] = &[ENTER_BEGIN, SELECT_ALL];
+
 #[derive(Default)]
 pub struct TextAreaState {
     draft: EditorDraft,
     phase: EditPhase,
+    session_entry: Option<EditEntry>,
     scroll: ScrollState,
+    idle_horizontal_offset: usize,
+    idle_horizontal_revision: Option<u64>,
+    idle_horizontal_policy: Option<TextAreaIdleHorizontalScroll>,
     error: Option<ErrorState>,
     redacted_snapshot: bool,
     sensitivity: Option<bool>,
+    edit_menu_request: Option<EditMenuRequest>,
+    pointer_anchor: Option<usize>,
+    focus_continuation: Option<LayerOpening>,
 }
 
 impl Clone for TextAreaState {
@@ -258,10 +400,17 @@ impl Clone for TextAreaState {
         TextAreaState {
             draft: self.draft.clone_snapshot(),
             phase: self.phase,
+            session_entry: self.session_entry,
             scroll: self.scroll,
+            idle_horizontal_offset: self.idle_horizontal_offset,
+            idle_horizontal_revision: self.idle_horizontal_revision,
+            idle_horizontal_policy: self.idle_horizontal_policy,
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
             redacted_snapshot: self.is_sensitive(),
             sensitivity: self.sensitivity,
+            edit_menu_request: self.edit_menu_request,
+            pointer_anchor: self.pointer_anchor,
+            focus_continuation: self.focus_continuation,
         }
     }
 }
@@ -271,13 +420,25 @@ impl PartialEq for TextAreaState {
         if self.is_sensitive() || other.is_sensitive() {
             self.is_sensitive() == other.is_sensitive()
                 && self.phase == other.phase
+                && self.session_entry == other.session_entry
                 && self.scroll == other.scroll
+                && self.idle_horizontal_offset == other.idle_horizontal_offset
+                && self.idle_horizontal_revision == other.idle_horizontal_revision
+                && self.idle_horizontal_policy == other.idle_horizontal_policy
+                && self.pointer_anchor == other.pointer_anchor
+                && self.focus_continuation == other.focus_continuation
                 && self.error.as_ref().map(ErrorState::is_sensitive)
                     == other.error.as_ref().map(ErrorState::is_sensitive)
         } else {
             self.draft.same(&other.draft)
                 && self.phase == other.phase
+                && self.session_entry == other.session_entry
                 && self.scroll == other.scroll
+                && self.idle_horizontal_offset == other.idle_horizontal_offset
+                && self.idle_horizontal_revision == other.idle_horizontal_revision
+                && self.idle_horizontal_policy == other.idle_horizontal_policy
+                && self.pointer_anchor == other.pointer_anchor
+                && self.focus_continuation == other.focus_continuation
                 && match (&self.error, &other.error) {
                     (Some(left), Some(right)) => left.same(right),
                     (None, None) => true,
@@ -295,10 +456,16 @@ impl fmt::Debug for TextAreaState {
             .field("draft", &"[redacted]")
             .field("draft_len", &self.draft.text().len())
             .field("phase", &self.phase)
+            .field("session_entry", &self.session_entry)
             .field("scroll", &self.scroll)
+            .field("idle_horizontal_offset", &self.idle_horizontal_offset)
+            .field("idle_horizontal_revision", &self.idle_horizontal_revision)
+            .field("idle_horizontal_policy", &self.idle_horizontal_policy)
             .field("error", &self.error.as_ref().map(|_| "[redacted]"))
             .field("redacted_snapshot", &self.redacted_snapshot)
             .field("sensitivity", &self.sensitivity)
+            .field("pointer_anchor", &self.pointer_anchor)
+            .field("focus_continuation", &self.focus_continuation)
             .field("sensitive", &self.is_sensitive())
             .finish()
     }
@@ -314,6 +481,10 @@ impl TextAreaState {
 
     pub const fn is_editing(&self) -> bool {
         matches!(self.phase, EditPhase::Editing)
+    }
+
+    pub fn take_edit_menu_request(&mut self) -> Option<EditMenuRequest> {
+        self.edit_menu_request.take()
     }
 
     pub const fn phase(&self) -> EditPhase {
@@ -332,6 +503,69 @@ impl TextAreaState {
         &mut self.scroll
     }
 
+    pub const fn idle_horizontal_offset(&self) -> usize {
+        self.idle_horizontal_offset
+    }
+
+    fn idle_revision_accepts(&self, policy: TextAreaIdleHorizontalScroll, revision: u64) -> bool {
+        match (self.idle_horizontal_revision, self.idle_horizontal_policy) {
+            (None, None) => true,
+            (Some(current), Some(current_policy)) => {
+                revision > current || (revision == current && policy == current_policy)
+            }
+            _ => false,
+        }
+    }
+
+    fn prepare_idle_horizontal(
+        &mut self,
+        policy: TextAreaIdleHorizontalScroll,
+        revision: u64,
+        max_offset: usize,
+    ) -> Option<bool> {
+        if !self.idle_revision_accepts(policy, revision) {
+            return None;
+        }
+        let mut changed = false;
+        match self.idle_horizontal_revision {
+            None => {
+                self.idle_horizontal_revision = Some(revision);
+                self.idle_horizontal_policy = Some(policy);
+            }
+            Some(current) if revision > current => {
+                changed = self.idle_horizontal_offset != 0;
+                self.idle_horizontal_offset = 0;
+                self.idle_horizontal_revision = Some(revision);
+                self.idle_horizontal_policy = Some(policy);
+            }
+            Some(_) => {}
+        }
+        let next = if policy == TextAreaIdleHorizontalScroll::Off {
+            0
+        } else {
+            self.idle_horizontal_offset.min(max_offset)
+        };
+        changed |= self.idle_horizontal_offset != next;
+        self.idle_horizontal_offset = next;
+        Some(changed)
+    }
+
+    fn commit_idle_horizontal(
+        &mut self,
+        policy: TextAreaIdleHorizontalScroll,
+        revision: u64,
+        offset: usize,
+    ) {
+        if self
+            .idle_horizontal_revision
+            .is_none_or(|current| revision > current)
+        {
+            self.idle_horizontal_revision = Some(revision);
+            self.idle_horizontal_policy = Some(policy);
+        }
+        self.idle_horizontal_offset = offset;
+    }
+
     pub const fn error(&self) -> Option<&FieldError> {
         match &self.error {
             Some(error) => Some(error.as_ref()),
@@ -348,7 +582,9 @@ impl TextAreaState {
         self.draft.set_sensitive(sensitive);
         self.sensitivity = Some(sensitive);
         if changed {
+            self.idle_horizontal_offset = 0;
             self.phase = EditPhase::Idle;
+            self.session_entry = None;
             self.redacted_snapshot = false;
             if sensitive && pending_error {
                 self.redact_error();
@@ -388,12 +624,19 @@ impl TextAreaState {
     }
 
     pub fn begin(&mut self, current: &str) {
+        let _ = self.begin_with_entry(current, EditEntry::Immediate);
+    }
+
+    fn begin_with_entry(&mut self, current: &str, entry: EditEntry) -> bool {
         if self.is_editing() {
-            return;
+            return false;
         }
         self.redacted_snapshot = false;
+        self.idle_horizontal_offset = 0;
         self.draft.begin_multi(current);
         self.phase = EditPhase::Editing;
+        self.session_entry = Some(entry);
+        true
     }
 
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError> {
@@ -414,13 +657,17 @@ impl TextAreaState {
             value.set(self.draft.text(), self.is_sensitive());
         }
         self.phase = EditPhase::Idle;
+        self.session_entry = None;
         self.redacted_snapshot = false;
+        self.idle_horizontal_offset = 0;
         self.draft.zeroize();
     }
 
     pub fn cancel(&mut self) {
         self.phase = EditPhase::Idle;
+        self.session_entry = None;
         self.redacted_snapshot = false;
+        self.idle_horizontal_offset = 0;
         self.draft.zeroize();
         if self.is_sensitive() {
             self.clear_error();
@@ -459,6 +706,7 @@ impl TextAreaState {
     pub fn zeroize(&mut self) {
         self.draft.zeroize();
         self.clear_error();
+        self.idle_horizontal_offset = 0;
     }
 
     fn apply(&mut self, a: EditAction<'_>) -> EditOutcome {
@@ -495,7 +743,11 @@ pub struct TextArea<'a> {
     placeholder: Option<&'a str>,
     validate: Option<&'a dyn Validate>,
     blur: BlurPolicy,
+    edit_entry: EditEntry,
+    focus_select: FocusSelect,
+    esc_reverts: bool,
     secret: Option<SecretPolicy>,
+    idle_horizontal: Option<(TextAreaIdleHorizontalScroll, u64)>,
     read_only: bool,
     disabled: bool,
     status: termrock_runtime::Status,
@@ -510,7 +762,11 @@ impl fmt::Debug for TextArea<'_> {
             .field("value", &self.value.map(|_| "[redacted]"))
             .field("placeholder", &self.placeholder)
             .field("blur", &self.blur)
+            .field("edit_entry", &self.edit_entry)
+            .field("focus_select", &self.focus_select)
+            .field("esc_reverts", &self.esc_reverts)
             .field("secret", &self.secret)
+            .field("idle_horizontal", &self.idle_horizontal)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .field("status", &self.status)
@@ -540,7 +796,11 @@ impl<'a> TextArea<'a> {
             placeholder: None,
             validate: None,
             blur: BlurPolicy::Commit,
+            edit_entry: EditEntry::Immediate,
+            focus_select: FocusSelect::CaretEnd,
+            esc_reverts: false,
             secret: None,
+            idle_horizontal: None,
             read_only: false,
             disabled: false,
             status: termrock_runtime::Status::Ready,
@@ -573,8 +833,36 @@ impl<'a> TextArea<'a> {
     }
 
     #[must_use]
+    pub const fn edit_entry(mut self, policy: EditEntry) -> Self {
+        self.edit_entry = policy;
+        self
+    }
+
+    #[must_use]
+    pub const fn focus_select(mut self, policy: FocusSelect) -> Self {
+        self.focus_select = policy;
+        self
+    }
+
+    #[must_use]
+    pub const fn esc_reverts(mut self, enabled: bool) -> Self {
+        self.esc_reverts = enabled;
+        self
+    }
+
+    #[must_use]
     pub const fn secret(mut self, policy: SecretPolicy) -> Self {
         self.secret = Some(policy);
+        self
+    }
+
+    #[must_use]
+    pub const fn idle_horizontal_scroll(
+        mut self,
+        policy: TextAreaIdleHorizontalScroll,
+        source_revision: u64,
+    ) -> Self {
+        self.idle_horizontal = Some((policy, source_revision));
         self
     }
 
@@ -632,6 +920,22 @@ impl<'a> TextArea<'a> {
         !self.disabled && !self.read_only
     }
 
+    const fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        if self.disabled || inherited_disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        }
+    }
+
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
+    }
+
     const fn with_inherited_disabled(&self, inherited: bool) -> Self {
         TextArea {
             id: self.id,
@@ -640,7 +944,11 @@ impl<'a> TextArea<'a> {
             placeholder: self.placeholder,
             validate: self.validate,
             blur: self.blur,
+            edit_entry: self.edit_entry,
+            focus_select: self.focus_select,
+            esc_reverts: self.esc_reverts,
             secret: self.secret,
+            idle_horizontal: self.idle_horizontal,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
             status: self.status,
@@ -656,6 +964,40 @@ impl<'a> TextArea<'a> {
         Dyn(self.validate.unwrap_or(&NoValidate))
     }
 
+    fn begin_keyboard_session(&self, st: &mut TextAreaState, current: &str) -> bool {
+        if !st.begin_with_entry(current, self.edit_entry) {
+            return false;
+        }
+        match self.focus_select {
+            FocusSelect::CaretStart => {
+                let _ = st.apply(EditAction::Move(Motion::DocStart, Extend::No));
+            }
+            FocusSelect::CaretEnd => {}
+            FocusSelect::SelectAll => {
+                let _ = st.apply(EditAction::SelectAll);
+            }
+        }
+        true
+    }
+
+    fn effective_bindings(
+        &self,
+        editing: bool,
+        session_entry: Option<EditEntry>,
+    ) -> &'static [Binding<TextCmd>] {
+        if !editing {
+            match self.edit_entry {
+                EditEntry::Immediate => BINDINGS,
+                EditEntry::TypeToEdit => TYPE_TO_EDIT_IDLE_BINDINGS,
+                EditEntry::Explicit => EXPLICIT_IDLE_BINDINGS,
+            }
+        } else if self.esc_reverts && session_entry != Some(EditEntry::Explicit) {
+            CANCEL_BINDINGS
+        } else {
+            BINDINGS
+        }
+    }
+
     const fn body_rows(&self, area: Rect) -> u16 {
         if self.rows < area.height {
             self.rows
@@ -666,6 +1008,13 @@ impl<'a> TextArea<'a> {
 
     const fn inner_width(width: u16) -> u16 {
         width.saturating_sub(3)
+    }
+
+    fn prepared_geometry(cx: &Cx<'_>, id: Id) -> Option<TextAreaGeometry> {
+        cx.layout(id)
+            .and_then(|facts| facts.vertical_window)
+            .zip(cx.area_of_part(id, PartRef::of(Part::TEXT)))
+            .and_then(|(window, text)| TextAreaGeometry::new(window, text))
     }
 
     pub fn update(
@@ -686,6 +1035,133 @@ impl<'a> TextArea<'a> {
     ) -> Response<TextAction> {
         self.with_inherited_disabled(inherited_disabled)
             .update_target(cx, st, value)
+    }
+
+    pub fn service_idle_horizontal_wheel<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextAreaState,
+        value: &T,
+        attempt: WheelRouteAttempt,
+    ) -> Response<()> {
+        let Some((policy, revision)) = self.idle_horizontal else {
+            return Response::ignored();
+        };
+        if self.disabled
+            || attempt.owner() != self.id
+            || attempt.part() != PartRef::of(Part::TEXT)
+            || attempt.axis() != crate::event::Axis::H
+            || attempt.source_revision() != revision
+            || !st.idle_revision_accepts(policy, revision)
+            || cx.wheel_route_attempt(self.id, PartRef::of(Part::TEXT), crate::event::Axis::H)
+                != Some(attempt)
+        {
+            return Response::ignored();
+        }
+
+        match cx.update_cause() {
+            UpdateCause::Event if attempt.attempt_index() == 0 => {
+                let mut found = false;
+                for intent in cx.intents(self.id) {
+                    if let Intent::Wheel {
+                        axis,
+                        delta,
+                        part,
+                        pos,
+                    } = intent
+                        && axis == crate::event::Axis::H
+                    {
+                        if found
+                            || delta != attempt.delta()
+                            || part != attempt.part()
+                            || pos != attempt.position()
+                        {
+                            return Response::ignored();
+                        }
+                        found = true;
+                    }
+                }
+                if !found {
+                    return Response::ignored();
+                }
+            }
+            UpdateCause::ScrollRoute if attempt.attempt_index() > 0 => {
+                if cx.intents(self.id).next().is_some() {
+                    return Response::ignored();
+                }
+            }
+            _ => return Response::ignored(),
+        }
+
+        let Some(geometry) = Self::prepared_geometry(cx, self.id)
+            .filter(|geometry| geometry.text.contains(attempt.position()))
+            .filter(|geometry| !geometry.text.is_empty())
+        else {
+            return Response::ignored();
+        };
+        let secret = self.secret.or_else(|| {
+            (st.is_sensitive() || value.is_sensitive()).then_some(SecretPolicy::default())
+        });
+        let displayed = value.expose();
+        let content_cols = displayed_width(displayed, secret.is_some());
+        let view_cols = usize::from(geometry.text.width);
+        if view_cols == 0 {
+            return Response::ignored();
+        }
+        let max_offset = content_cols.saturating_sub(view_cols);
+        let base_offset = if st
+            .idle_horizontal_revision
+            .is_none_or(|current| revision > current)
+        {
+            0
+        } else {
+            st.idle_horizontal_offset.min(max_offset)
+        };
+
+        let (result, next_offset) = if st.is_editing()
+            || attempt.modifiers() != KeyModifiers::NONE
+            || attempt.unscaled_delta() == 0
+            || content_cols <= view_cols
+            || policy == TextAreaIdleHorizontalScroll::Off
+        {
+            (WheelRouteResult::Ignored, base_offset)
+        } else {
+            let TextAreaIdleHorizontalScroll::Pan { step } = policy else {
+                return Response::ignored();
+            };
+            let movement = usize::from(step.get())
+                .saturating_mul(usize::from(attempt.unscaled_delta().unsigned_abs()));
+            let next = if attempt.unscaled_delta() < 0 {
+                base_offset.saturating_sub(movement)
+            } else {
+                base_offset.saturating_add(movement).min(max_offset)
+            };
+            if next != base_offset {
+                (WheelRouteResult::Changed, next)
+            } else {
+                (WheelRouteResult::Consumed, base_offset)
+            }
+        };
+
+        let old_offset = st.idle_horizontal_offset;
+        let old_revision = st.idle_horizontal_revision;
+        let old_policy = st.idle_horizontal_policy;
+        if !cx.acknowledge_wheel_route(&attempt, result) {
+            return Response::ignored();
+        }
+        st.commit_idle_horizontal(policy, revision, next_offset);
+        let reconciled = old_offset != st.idle_horizontal_offset
+            || old_revision != st.idle_horizontal_revision
+            || old_policy != st.idle_horizontal_policy;
+        match result {
+            WheelRouteResult::Changed => Response::changed().for_id(self.id),
+            WheelRouteResult::Consumed => Response::consumed().for_id(self.id),
+            WheelRouteResult::Ignored if reconciled => {
+                Response::ignored().repaint().for_id(self.id)
+            }
+            WheelRouteResult::Ignored => Response::ignored(),
+            _ => Response::ignored(),
+        }
     }
 
     pub fn commit_in_form<T: TextTarget + ?Sized>(
@@ -710,67 +1186,175 @@ impl<'a> TextArea<'a> {
         st: &mut TextAreaState,
         value: &mut T,
     ) -> Response<TextAction> {
+        let displayed_scroll = st.scroll.offset();
+        let displayed_hscroll = cx
+            .layout(self.id)
+            .and_then(|layout| layout.horizontal_source_offset)
+            .unwrap_or_else(|| {
+                if st.is_editing() {
+                    usize::from(st.draft.hscroll())
+                } else {
+                    st.idle_horizontal_offset
+                }
+            });
         st.set_sensitive(self.secret.is_some() || value.is_sensitive());
         let mut acc = Acc::<TextAction>::new();
         let editable = self.editable();
+        st.edit_menu_request = None;
         let lines = if st.is_editing() {
             st.draft.line_count()
         } else {
             line_count(value.expose())
         };
         let scroll = self.scroll_region();
+        let geometry = Self::prepared_geometry(cx, self.id);
+        let active_horizontal_attempt =
+            cx.wheel_route_attempt(self.id, PartRef::of(Part::TEXT), crate::event::Axis::H);
+        if active_horizontal_attempt.is_none() {
+            if let Some((policy, revision)) = self.idle_horizontal {
+                if let Some(geometry) = geometry {
+                    let secret = self.secret.or_else(|| {
+                        (st.is_sensitive() || value.is_sensitive())
+                            .then_some(SecretPolicy::default())
+                    });
+                    let columns = displayed_width(value.expose(), secret.is_some());
+                    let max_offset = columns.saturating_sub(usize::from(geometry.text.width));
+                    match st.prepare_idle_horizontal(policy, revision, max_offset) {
+                        Some(true) => acc.changed(),
+                        Some(false) => {}
+                        None => {}
+                    }
+                }
+            } else if st.idle_horizontal_offset != 0 {
+                st.idle_horizontal_offset = 0;
+                acc.changed();
+            }
+        }
         let track_len = if self.disabled {
             None
         } else {
             Some(scroll.prepare(cx, &mut st.scroll, lines))
         };
         let page = st.scroll.viewport_len().max(1);
+        if let Some(attempt) = active_horizontal_attempt {
+            let wheel = self.service_idle_horizontal_wheel(cx, st, value, attempt);
+            acc.fold(&wheel);
+        }
         for it in cx.intents(self.id) {
-            if let Some(track_len) = track_len {
+            if !matches!(
+                &it,
+                Intent::Wheel {
+                    axis: crate::event::Axis::H,
+                    ..
+                }
+            ) && let Some(track_len) = track_len
+            {
                 let bar = scroll.handle_intent(cx, &mut st.scroll, track_len, it);
                 acc.fold(&bar);
             }
             match it {
-                Intent::FocusIn { .. } => {
-                    if editable {
-                        st.begin(value.expose());
+                Intent::FocusIn { via } => {
+                    if editable && self.edit_entry == EditEntry::Immediate {
+                        if matches!(
+                            via,
+                            crate::intent::FocusVia::Keyboard
+                                | crate::intent::FocusVia::Programmatic
+                                | crate::intent::FocusVia::Restore
+                        ) {
+                            self.begin_keyboard_session(st, value.expose());
+                        } else {
+                            let _ = st.begin_with_entry(value.expose(), self.edit_entry);
+                        }
                     }
                 }
-                Intent::FocusOut { .. } => {
+                Intent::FocusOut { to } => {
                     if st.is_editing() {
-                        let policy = self.blur;
-                        let _ = st.blur_target(value, &self.validator(), policy);
-                        match policy {
-                            BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
-                                acc.action(TextAction::Committed);
+                        if crate::edit::retain_focus_continuation(
+                            cx,
+                            self.id,
+                            to,
+                            &mut st.focus_continuation,
+                        ) {
+                            acc.consumed();
+                        } else {
+                            let policy = self.blur;
+                            let _ = st.blur_target(value, &self.validator(), policy);
+                            match policy {
+                                BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
+                                    acc.action(TextAction::Committed);
+                                }
+                                BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
+                                BlurPolicy::Keep => {}
                             }
-                            BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
-                            BlurPolicy::Keep => {}
                         }
                     }
                 }
                 Intent::Binding(action) if editable => {
-                    if let Some(cmd) = Binding::command(BINDINGS, action) {
-                        if !st.is_editing() && cmd != TextCmd::Commit {
-                            st.begin(value.expose());
-                        }
+                    let bindings = self.effective_bindings(st.is_editing(), st.session_entry);
+                    if let Some(cmd) = Binding::command(bindings, action) {
                         if st.is_editing() {
+                            self.edit_command(st, value, cmd, page, &mut acc);
+                        } else if cmd == TextCmd::SelectAll {
+                            self.begin_keyboard_session(st, value.expose());
+                            self.edit_command(st, value, cmd, page, &mut acc);
+                        } else if self.edit_entry == EditEntry::Explicit && cmd == TextCmd::Newline
+                        {
+                            self.begin_keyboard_session(st, value.expose());
+                            acc.changed();
+                        } else if self.edit_entry == EditEntry::Immediate && cmd != TextCmd::Commit
+                        {
+                            self.begin_keyboard_session(st, value.expose());
                             self.edit_command(st, value, cmd, page, &mut acc);
                         }
                     }
                 }
-                Intent::Key(k) if editable => {
-                    if !st.is_editing() {
-                        st.begin(value.expose());
+                Intent::Key(k)
+                    if !self.disabled
+                        && (k.code == KeyCode::Menu
+                            || (k.code == KeyCode::F(10)
+                                && k.mods.contains(KeyModifiers::SHIFT))) =>
+                {
+                    if let Some(anchor) = geometry.and_then(|g| {
+                        g.cursor_position(
+                            st.draft.cursor_pos(),
+                            st.scroll.offset(),
+                            usize::from(st.draft.hscroll()),
+                        )
+                    }) {
+                        st.edit_menu_request = Some(EditMenuRequest {
+                            owner: self.id,
+                            part: PartRef::of(Part::TEXT),
+                            anchor,
+                        });
                     }
-                    if let Some(c) = k.bare_char()
+                    acc.consumed();
+                }
+                Intent::Key(k) if editable => {
+                    let character = k.bare_char();
+                    let should_begin = !st.is_editing()
+                        && match self.edit_entry {
+                            EditEntry::Immediate => true,
+                            EditEntry::TypeToEdit => character.is_some(),
+                            EditEntry::Explicit => false,
+                        };
+                    if should_begin {
+                        self.begin_keyboard_session(st, value.expose());
+                    }
+                    if st.is_editing()
+                        && let Some(c) = character
                         && st.apply(EditAction::Insert(c)).changed()
                     {
                         self.live_validate(st);
                         acc.action(TextAction::Changed);
                     }
                 }
-                Intent::Paste(s) if editable && st.is_editing() => {
+                Intent::Paste(s)
+                    if editable
+                        && (st.is_editing() || self.edit_entry == EditEntry::TypeToEdit) =>
+                {
+                    if !st.is_editing() {
+                        self.begin_keyboard_session(st, value.expose());
+                    }
                     if st.apply(EditAction::Paste(s)).changed() {
                         self.live_validate(st);
                         acc.action(TextAction::Changed);
@@ -781,22 +1365,82 @@ impl<'a> TextArea<'a> {
                 Intent::Pointer { part, .. }
                     if part.part == Part::TRACK || part.part == Part::THUMB => {}
                 Intent::Pointer {
-                    phase: Phase::Press | Phase::Click,
-                    local,
+                    phase: Phase::Press,
+                    part,
+                    pos,
                     ..
-                } if editable => {
-                    if !st.is_editing() {
-                        st.begin(value.expose());
+                } if editable || (self.read_only && !self.disabled) => {
+                    if let Some((line, col)) = geometry.and_then(|geometry| {
+                        geometry.document_point(pos, displayed_scroll, displayed_hscroll)
+                    }) {
+                        if !st.is_editing() {
+                            let _ = st.begin_with_entry(value.expose(), self.edit_entry);
+                        }
+                        st.pointer_anchor = Some(st.draft.pointer_select(
+                            line.min(st.draft.line_count().saturating_sub(1)),
+                            col,
+                            cx.pointer_press_count(self.id, part).unwrap_or(1),
+                        ));
+                        acc.changed();
+                    } else {
+                        acc.consumed();
                     }
-                    let line = st
-                        .scroll
-                        .offset()
-                        .saturating_add(usize::from(local.y))
-                        .min(st.draft.line_count().saturating_sub(1));
-                    let col = usize::from(local.x.saturating_sub(2))
-                        .saturating_add(usize::from(st.draft.hscroll()));
-                    st.draft.set_cursor_line_col(line, col);
-                    acc.changed();
+                }
+                Intent::Pointer {
+                    phase: Phase::DragStart | Phase::Drag,
+                    pos,
+                    ..
+                } if st.is_editing() => {
+                    if let Some((line, col)) = geometry.and_then(|geometry| {
+                        geometry.captured_document_point(pos, displayed_scroll, displayed_hscroll)
+                    }) {
+                        if let Some(anchor) = st.pointer_anchor {
+                            let line = line.min(st.draft.line_count().saturating_sub(1));
+                            st.draft.pointer_extend(anchor, line, col);
+                            acc.changed();
+                        } else {
+                            acc.consumed();
+                        }
+                    } else {
+                        acc.consumed();
+                    }
+                }
+                Intent::Pointer {
+                    phase: Phase::Release | Phase::DragEnd,
+                    ..
+                } => {
+                    st.pointer_anchor = None;
+                    acc.consumed();
+                }
+                Intent::Pointer {
+                    phase: Phase::Secondary,
+                    part,
+                    pos,
+                    ..
+                } if !self.disabled => {
+                    if let Some((line, col)) = geometry.and_then(|geometry| {
+                        geometry.document_point(pos, displayed_scroll, displayed_hscroll)
+                    }) {
+                        if !st.is_editing() {
+                            let _ = st.begin_with_entry(value.expose(), self.edit_entry);
+                        }
+                        let changed = st
+                            .draft
+                            .pointer_point(line.min(st.draft.line_count().saturating_sub(1)), col);
+                        cx.focus(self.id);
+                        st.edit_menu_request = Some(EditMenuRequest {
+                            owner: self.id,
+                            part,
+                            anchor: pos,
+                        });
+                        if changed {
+                            acc.changed();
+                        } else {
+                            acc.consumed();
+                        }
+                    } else {
+                        acc.consumed();
+                    }
                 }
                 Intent::Pointer { .. } => acc.consumed(),
                 Intent::Cancel if st.is_editing() => {
@@ -812,11 +1456,102 @@ impl<'a> TextArea<'a> {
                 st.scroll.set_content(st.draft.line_count());
                 st.scroll.ensure_visible(cur.line);
             }
-            if let Some(a) = cx.area(self.id) {
-                st.draft.scroll_into_view(Self::inner_width(a.width));
+            if let Some(geometry) = geometry {
+                st.draft.scroll_into_view(geometry.logical_inner_width());
             }
         }
+        if let Some(opening) = st.focus_continuation
+            && let Some(outcome) = crate::edit::continuation_result(cx, self.id, opening)
+        {
+            st.focus_continuation = None;
+            let restored = outcome.restored_focus() == Some(self.id);
+            if !(outcome.continued() && restored) && st.is_editing() {
+                let policy = self.blur;
+                let _ = st.blur_target(value, &self.validator(), policy);
+                match policy {
+                    BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
+                        acc.action(TextAction::Committed);
+                    }
+                    BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
+                    BlurPolicy::Keep => {}
+                }
+                if restored && editable && self.edit_entry == EditEntry::Immediate {
+                    self.begin_keyboard_session(st, value.expose());
+                }
+            }
+            let _ = crate::edit::acknowledge_continuation_result(cx, self.id, opening);
+        }
         acc.finish(self.id)
+    }
+
+    pub fn edit_capabilities<T: TextTarget + ?Sized>(
+        &self,
+        st: &TextAreaState,
+        value: &T,
+    ) -> EditCapabilities {
+        let mut capabilities = crate::edit::capabilities(
+            &st.draft,
+            value.expose(),
+            st.is_editing(),
+            self.disabled,
+            self.editable(),
+            self.secret.is_some() || st.is_sensitive(),
+            value.is_sensitive(),
+        );
+        if self.edit_entry == EditEntry::Explicit && !st.is_editing() {
+            capabilities.can_paste = false;
+        }
+        capabilities
+    }
+
+    pub fn caret_source_row(&self, st: &TextAreaState) -> Option<usize> {
+        st.is_editing().then(|| {
+            st.draft
+                .cursor_pos()
+                .line
+                .saturating_sub(st.scroll.offset())
+        })
+    }
+
+    pub fn execute_edit_command<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextAreaState,
+        value: &mut T,
+        command: TextEditCommand,
+    ) -> bool {
+        if command == TextEditCommand::Paste
+            && self.edit_entry == EditEntry::Explicit
+            && !st.is_editing()
+        {
+            return false;
+        }
+        st.set_sensitive(self.secret.is_some() || value.is_sensitive());
+        if command == TextEditCommand::SelectAll && !st.is_editing() && !self.disabled {
+            self.begin_keyboard_session(st, value.expose());
+        }
+        if command == TextEditCommand::Paste
+            && self.editable()
+            && self.edit_entry != EditEntry::Explicit
+            && !st.is_editing()
+            && cx.clipboard_text().is_some()
+        {
+            self.begin_keyboard_session(st, value.expose());
+        }
+        let capabilities = self.edit_capabilities(st, value);
+        let applied = crate::edit::execute(cx, &mut st.draft, capabilities, command);
+        if applied && matches!(command, TextEditCommand::Cut | TextEditCommand::Paste) {
+            self.live_validate(st);
+        }
+        if applied {
+            let cursor = st.draft.cursor_pos();
+            st.scroll.set_content(st.draft.line_count());
+            st.scroll.ensure_visible(cursor.line);
+            if let Some(geometry) = Self::prepared_geometry(cx, self.id) {
+                st.draft.scroll_into_view(geometry.logical_inner_width());
+            }
+        }
+        applied
     }
 
     fn live_validate(&self, st: &mut TextAreaState) {
@@ -889,16 +1624,17 @@ impl<'a> TextArea<'a> {
         }
     }
 
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one pass over the body, the visible lines and the shared trailing cell"
-    )]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &TextAreaState) -> Rect {
         let rows = self.body_rows(area);
         let body = Rect {
             height: rows,
             ..area
         };
+        self.draw_window(ui, VerticalWindow::full(body), st)
+    }
+
+    pub fn draw_window(&self, ui: &mut Ui<'_>, window: VerticalWindow, st: &TextAreaState) -> Rect {
+        let body = window.visible_body();
         if body.is_empty() {
             return first_row(body);
         }
@@ -906,13 +1642,7 @@ impl<'a> TextArea<'a> {
         let validation_error = st.error.is_some();
         let status_error = matches!(self.status, termrock_runtime::Status::Error);
         let error = validation_error || status_error;
-        let focusability = if self.disabled {
-            Focusability::Disabled
-        } else if self.read_only {
-            Focusability::FocusableReadOnly
-        } else {
-            Focusability::Focusable
-        };
+        let focusability = self.form_focusability(false);
         let declared = if editing {
             StateFlags::EDITING
         } else {
@@ -952,16 +1682,41 @@ impl<'a> TextArea<'a> {
             self.value.unwrap_or("")
         };
         let lines = line_count(shown);
-        let content = self.scroll_region().draw(ui, body, &st.scroll, lines);
+        let content = self
+            .scroll_region()
+            .draw_window(ui, window, &st.scroll, lines);
         let inner = Rect {
             x: content.x.saturating_add(2),
             y: content.y,
             width: Self::inner_width(content.width),
             height: content.height,
         };
+        let visible_text = inner.intersection(ui.full());
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
+        let geometry = TextAreaGeometry::new(window, inner);
         ui.register_editor(self.id, body, focusability, declared);
-        ui.publish_bindings(self.id, live, BINDINGS);
+        if !self.disabled
+            && !shown.is_empty()
+            && !inner.is_empty()
+            && let Some((policy, revision)) = self.idle_horizontal
+            && st.idle_revision_accepts(policy, revision)
+        {
+            ui.register_hit_stack_wheel(
+                self.id,
+                PartRef::of(Part::TEXT),
+                inner,
+                termrock_runtime::Axes::H,
+                revision,
+            );
+        }
+        if !editing && self.edit_entry == EditEntry::TypeToEdit && self.editable() {
+            ui.publish_focused_paste_target(self.id);
+        }
+        ui.publish_bindings(
+            self.id,
+            live,
+            self.effective_bindings(st.is_editing(), st.session_entry),
+        );
 
         for row in content.rows() {
             let gutter_cell = cell_at(row, content.x);
@@ -983,40 +1738,76 @@ impl<'a> TextArea<'a> {
         if shown.is_empty() && !editing {
             if let Some(p) = self.placeholder {
                 let ps = style(ui, Part::PLACEHOLDER, live);
-                match ov.slot_for(Part::PLACEHOLDER) {
-                    Some(f) => f(ui, first_row(inner)),
-                    None => {
-                        ui.paint_str(first_row(inner), p, ps.style);
+                if let Some(row) = geometry.and_then(|geometry| {
+                    geometry.physical_row(0, st.scroll.offset()).map(|y| Rect {
+                        y,
+                        height: 1,
+                        ..inner
+                    })
+                }) {
+                    match ov.slot_for(Part::PLACEHOLDER) {
+                        Some(f) => f(ui, first_row(row)),
+                        None => {
+                            ui.paint_str(first_row(row), p, ps.style);
+                        }
                     }
                 }
             }
         } else {
             let ts = style(ui, Part::TEXT, live);
             let sel_style = style(ui, Part::ROW, live | StateFlags::SELECTED).style;
-            let view = ScrollRegion::view(&st.scroll, content, lines);
-            let hs = usize::from(if editing { st.draft.hscroll() } else { 0 });
+            let mut view = st.scroll;
+            view.apply_layout(window.logical_rows(), lines);
+            let secret_policy = self
+                .secret
+                .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
+            let explicit_idle = !editing
+                && self
+                    .idle_horizontal
+                    .is_some_and(|(policy, revision)| st.idle_revision_accepts(policy, revision));
+            let hs = if editing {
+                usize::from(st.draft.hscroll())
+            } else if explicit_idle {
+                let columns = displayed_width(shown, secret_policy.is_some());
+                if st.idle_horizontal_revision.is_none_or(|revision| {
+                    self.idle_horizontal
+                        .is_some_and(|(_, next)| next > revision)
+                }) {
+                    0
+                } else {
+                    st.idle_horizontal_offset
+                        .min(columns.saturating_sub(usize::from(visible_text.width)))
+                }
+            } else {
+                0
+            };
+            if explicit_idle {
+                let _ = ui.report_horizontal_source_offset(self.id, hs);
+            }
+            let paint_area = if explicit_idle { visible_text } else { inner };
             let sel = if editing { st.draft.selection() } else { None };
             let mut start = 0usize;
             for (i, line) in shown.split('\n').enumerate() {
                 let end = start.saturating_add(line.len());
-                if view.visible_range().contains(&i) {
-                    let y = inner.y.saturating_add(
-                        i.saturating_sub(view.offset()).min(usize::from(u16::MAX)) as u16,
-                    );
+                if view.visible_range().contains(&i)
+                    && let Some(y) = geometry.and_then(|g| g.physical_row(i, view.offset()))
+                {
                     let row = Rect {
                         y,
                         height: 1,
-                        ..inner
+                        ..paint_area
                     };
                     let secret_policy = self
                         .secret
                         .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
-                    let total = if secret_policy.is_some() {
+                    let total = if explicit_idle {
+                        line_display_width(line, secret_policy.is_some())
+                    } else if secret_policy.is_some() {
                         graphemes(line).count()
                     } else {
                         usize::from(width(line))
                     };
-                    let overflow = total > hs.saturating_add(usize::from(inner.width));
+                    let overflow = total > hs.saturating_add(usize::from(paint_area.width));
                     let run = Rect {
                         width: if overflow {
                             row.width.saturating_sub(1)
@@ -1025,7 +1816,9 @@ impl<'a> TextArea<'a> {
                         },
                         ..row
                     };
-                    if let Some(policy) = secret_policy {
+                    if explicit_idle && secret_policy.is_none() {
+                        paint_idle_line(ui, run, line, hs, ts.style);
+                    } else if let Some(policy) = secret_policy {
                         paint_masked_line(ui, run, line, hs, policy, ts.style);
                     } else {
                         let from = byte_at_col(line, hs);
@@ -1052,21 +1845,13 @@ impl<'a> TextArea<'a> {
                 }
                 start = end.saturating_add(1);
             }
-            if editing && live.contains(StateFlags::FOCUSED) && self.editable() {
-                let cur = st.draft.cursor_pos();
-                if cur.line >= view.offset() {
-                    let y = inner.y.saturating_add(
-                        cur.line
-                            .saturating_sub(view.offset())
-                            .min(usize::from(u16::MAX)) as u16,
-                    );
-                    let x = inner.x.saturating_add(
-                        cur.col.saturating_sub(hs).min(usize::from(u16::MAX)) as u16,
-                    );
-                    if y < inner.bottom() {
-                        ui.set_cursor(self.id, Position::new(x.min(inner.right()), y));
-                    }
-                }
+            if editing
+                && live.contains(StateFlags::FOCUSED)
+                && self.editable()
+                && let Some(cursor) = geometry
+                    .and_then(|g| g.cursor_position(st.draft.cursor_pos(), view.offset(), hs))
+            {
+                ui.set_cursor(self.id, cursor);
             }
         }
 
@@ -1130,6 +1915,19 @@ impl<'a> TextArea<'a> {
             .draw(ui, area, st)
     }
 
+    pub fn draw_in_form_window(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &TextAreaState,
+        value: &str,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .value(value)
+            .draw_window(ui, window, st)
+    }
+
     pub fn draw_secret_in_form(
         &self,
         ui: &mut Ui<'_>,
@@ -1142,6 +1940,20 @@ impl<'a> TextArea<'a> {
             .value(value.expose())
             .secret(self.secret.unwrap_or_default())
             .draw(ui, area, st)
+    }
+
+    pub fn draw_secret_in_form_window(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &TextAreaState,
+        value: &crate::secret::Secret,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .value(value.expose())
+            .secret(self.secret.unwrap_or_default())
+            .draw_window(ui, window, st)
     }
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
@@ -1164,6 +1976,73 @@ fn paint_masked_line(
     let total = graphemes(line).count().saturating_sub(skip);
     let mut cells = CellUi::new(ui.reborrow(), run, style);
     cells.glyphs(policy.mask, total);
+}
+
+fn paint_idle_line(
+    ui: &mut Ui<'_>,
+    run: Rect,
+    line: &str,
+    source_column: usize,
+    style: crate::theme::PaintStyle,
+) {
+    if run.is_empty() {
+        return;
+    }
+    let available = usize::from(run.width);
+    let mut source = 0usize;
+    let mut left_clipped = false;
+    for (_, grapheme) in graphemes(line) {
+        let width = usize::from(grapheme_width(grapheme));
+        let end = source.saturating_add(width);
+        if width == 0 {
+            source = end;
+            continue;
+        }
+        if source < source_column && end > source_column {
+            left_clipped = true;
+            source = end;
+            continue;
+        }
+        if source >= source_column {
+            let relative = source.saturating_sub(source_column);
+            if relative.saturating_add(width) > available {
+                break;
+            }
+            let x = run
+                .x
+                .saturating_add(u16::try_from(relative).unwrap_or(u16::MAX));
+            let cell = Rect {
+                x,
+                width: u16::try_from(width).unwrap_or(u16::MAX),
+                ..run
+            }
+            .intersection(run);
+            if usize::from(cell.width) == width {
+                ui.paint_str(cell, grapheme, style);
+            }
+        }
+        source = end;
+    }
+    if left_clipped {
+        ui.glyph(cell_at(run, run.x), GlyphRole::Ellipsis, style);
+    }
+}
+
+fn line_display_width(line: &str, masked: bool) -> usize {
+    if masked {
+        graphemes(line).count()
+    } else {
+        graphemes(line).fold(0usize, |width, (_, grapheme)| {
+            width.saturating_add(usize::from(grapheme_width(grapheme)))
+        })
+    }
+}
+
+fn displayed_width(text: &str, masked: bool) -> usize {
+    text.split('\n')
+        .map(|line| line_display_width(line, masked))
+        .max()
+        .unwrap_or(0)
 }
 
 fn column_span(row: Rect, a: usize, b: usize) -> Rect {
@@ -1193,8 +2072,9 @@ impl Validate for Dyn<'_> {
 impl Bindings for TextArea<'_> {
     type Cmd = TextCmd;
 
-    fn bindings(&self, _s: BindingState) -> &'static [Binding<TextCmd>] {
-        BINDINGS
+    fn bindings(&self, state: BindingState) -> &'static [Binding<TextCmd>] {
+        let editing = state.flags.contains(StateFlags::EDITING);
+        self.effective_bindings(editing, editing.then_some(self.edit_entry))
     }
 }
 
@@ -1211,503 +2091,5 @@ impl FieldControl for TextArea<'_> {
 
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         TextArea::measure(self, ui, c)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use core::cell::Cell;
-
-    use ratatui_core::buffer::Buffer;
-
-    use super::*;
-    use crate::event::{Input, Key, KeyCode, KeyModifiers};
-    use crate::runtime::App;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::{SCREEN, Stub};
-    use crate::theme::Theme;
-    use crate::{ReferenceState, ReferenceTarget};
-
-    const ID: Id = Id::root("textarea.tests");
-
-    struct SecretTextAreaApp {
-        state: TextAreaState,
-        value: String,
-    }
-
-    impl App for SecretTextAreaApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            TextArea::new(ID, 3)
-                .secret(SecretPolicy::default())
-                .update(cx, &mut self.state, &mut self.value)
-                .erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            TextArea::new(ID, 3)
-                .secret(SecretPolicy::default())
-                .value(&self.value)
-                .draw(ui, SCREEN, &self.state);
-        }
-    }
-
-    fn secret_state() -> TextAreaState {
-        let mut runtime = Runtime::new(
-            SecretTextAreaApp {
-                state: TextAreaState::default(),
-                value: "one\ntwo".to_owned(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            Input::Key(Key {
-                code: KeyCode::Enter,
-                mods: KeyModifiers::NONE,
-            }),
-        );
-        runtime.app().state.clone()
-    }
-
-    #[test]
-    fn sensitive_constructor_makes_direct_lifecycle_safe() {
-        const SECRET: &str = "one\ntwo";
-        let mut state = TextAreaState::sensitive();
-        assert!(state.is_sensitive());
-
-        state.begin(SECRET);
-        assert!(!format!("{state:?}").contains(SECRET));
-
-        let mut copy = state.clone();
-        let mut copied_value = String::new();
-        copy.commit(&mut copied_value, &NoValidate)
-            .expect("a redacted snapshot must not fail validation");
-        assert!(copied_value.is_empty());
-
-        let mut value = String::new();
-        state
-            .commit(&mut value, &NoValidate)
-            .expect("the sensitive draft must commit");
-        assert_eq!(value, SECRET);
-    }
-
-    #[test]
-    fn parts_include_every_owned_scroll_region_part() {
-        for part in ScrollRegion::PARTS {
-            assert!(
-                TextArea::PARTS.contains(part),
-                "TextArea::PARTS omits owned ScrollRegion part {part:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn a_reference_text_area_leaves_the_owned_scroll_region_inert() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = TextAreaState::default();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            ui.reference(
-                Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)),
-                |ui| {
-                    TextArea::new(ID, 4)
-                        .value("one\ntwo\nthree\nfour\nfive")
-                        .draw(ui, Rect::new(0, 0, 20, 4), &st);
-                },
-            );
-        })
-        .commit_presented();
-        for part in ScrollRegion::PARTS {
-            assert!(
-                rt.area_of_part(ID, PartRef::of(*part)).is_none(),
-                "reference TextArea registered owned ScrollRegion part {part:?}"
-            );
-        }
-        assert!(
-            !rt.registry().delivers_to(ID),
-            "reference TextArea left its owned ScrollRegion interactive"
-        );
-    }
-
-    fn always_bad(_s: &str) -> Result<(), FieldError> {
-        Err(FieldError::new("never valid"))
-    }
-
-    #[test]
-    fn sensitive_state_masks_when_control_policy_is_removed() {
-        const SECRET: &str = "one\ntwo";
-        let mut state = secret_state();
-        state.begin(SECRET);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let area = Rect::new(0, 0, 24, 3);
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                TextArea::new(ID, 3).value(SECRET).draw(ui, area, &state);
-            })
-            .commit_presented();
-        let frame: String = buffer
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect();
-        let mask = Theme::junie()
-            .design
-            .glyphs
-            .get(SecretPolicy::default().mask);
-        assert!(
-            !frame.contains(SECRET),
-            "the sensitive area reached the frame"
-        );
-        assert!(
-            frame.matches(mask).count() >= 6,
-            "the sensitive area did not paint its mask: {frame}"
-        );
-    }
-
-    #[test]
-    fn sensitive_state_equality_ignores_draft_contents() {
-        let mut left = secret_state();
-        left.cancel();
-        left.begin("one");
-        let mut right = secret_state();
-        right.cancel();
-        right.begin("different");
-        assert_eq!(left, right);
-        let copy = left.clone();
-        assert_eq!(copy.draft.text(), "•••");
-        assert!(!copy.draft.text().contains("one"));
-    }
-
-    #[test]
-    fn sensitive_state_clone_cannot_commit_redacted_draft() {
-        let mut state = TextAreaState::default();
-        state.set_sensitive(true);
-        state.begin("one\ntwo");
-        let _ = state.apply(EditAction::Insert('!'));
-
-        let mut copy = state.clone();
-        let mut value = String::new();
-        copy.commit(&mut value, &NoValidate)
-            .expect("a snapshot commit must not validate a redacted draft");
-        assert!(value.is_empty());
-        assert!(!copy.is_editing());
-    }
-
-    #[test]
-    fn sensitive_validator_error_is_generic_and_not_retained() {
-        const SECRET: &str = "one\ntwo";
-        let validator = |value: &str| Err(FieldError::new(format!("invalid {value}")));
-        let mut state = secret_state();
-        state.begin(SECRET);
-        state.set_error(Some(FieldError::new(SECRET)));
-        assert_eq!(
-            state.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        let mut value = String::new();
-        let error = state
-            .commit(&mut value, &validator)
-            .expect_err("the validator must reject the secret");
-        assert_eq!(error.message, "Invalid value");
-        assert_eq!(
-            state.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{state:?}").contains(SECRET));
-        state.zeroize();
-        assert!(state.error().is_none());
-        value.clear();
-    }
-
-    #[test]
-    fn sensitive_string_target_replaces_the_old_allocation() {
-        let mut state = TextAreaState::default();
-        state.set_sensitive(true);
-        state.begin("new\nsecret");
-
-        let mut value = String::with_capacity(1024);
-        value.push_str("old\nsecret");
-        let old_capacity = value.capacity();
-
-        state
-            .commit(&mut value, &NoValidate)
-            .expect("the replacement must not fail validation");
-
-        assert_eq!(value, "new\nsecret");
-        assert!(
-            value.capacity() < old_capacity,
-            "sensitive replacement retained the old caller allocation"
-        );
-    }
-
-    #[test]
-    fn pending_error_is_masked_until_sensitivity_is_reconciled() {
-        const DETAIL: &str = "secret validation detail";
-
-        let mut plain = TextAreaState::default();
-        plain.set_error(Some(FieldError::new(DETAIL.to_owned())));
-        assert!(matches!(plain.error, Some(ErrorState::Pending(_))));
-        assert_eq!(
-            plain.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        plain.set_sensitive(false);
-        assert!(matches!(plain.error, Some(ErrorState::Plain(_))));
-        assert_eq!(
-            plain.error().map(|error| error.message.as_ref()),
-            Some(DETAIL)
-        );
-
-        let mut secret = TextAreaState::default();
-        secret.set_error(Some(FieldError::new(DETAIL.to_owned())));
-        assert!(matches!(secret.error, Some(ErrorState::Pending(_))));
-        assert_eq!(
-            secret.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        secret.set_sensitive(true);
-        assert!(matches!(secret.error, Some(ErrorState::Sensitive)));
-        assert_eq!(
-            secret.error().map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-    }
-
-    #[test]
-    fn blur_commits_without_validation() {
-        let mut value = "first".to_owned();
-        let mut st = TextAreaState::default();
-        st.begin(&value);
-        assert!(st.is_editing());
-        assert_eq!(st.apply(EditAction::Newline), EditOutcome::Changed);
-        assert_eq!(st.apply(EditAction::Insert('x')), EditOutcome::Changed);
-        assert!(
-            st.blur(&mut value, &always_bad, BlurPolicy::Commit).is_ok(),
-            "the default policy must not run the validator"
-        );
-        assert_eq!(value, "first\nx");
-        assert!(st.error().is_none());
-        assert!(!st.is_editing());
-
-        st.begin(&value);
-        assert!(
-            st.blur(&mut value, &always_bad, BlurPolicy::CommitAndValidate)
-                .is_err()
-        );
-        assert!(st.error().is_some());
-        assert!(!format!("{st:?}").contains("first"));
-    }
-
-    #[test]
-    fn secret_blur_keep_policy_leaves_the_draft() {
-        let mut st = secret_state();
-        st.cancel();
-        let mut value = "one".to_owned();
-        st.begin(&value);
-        let _ = st.apply(EditAction::Insert('!'));
-        assert!(st.blur(&mut value, &always_bad, BlurPolicy::Keep).is_ok());
-        assert!(st.is_editing(), "secret Keep must preserve the draft");
-        assert_eq!(st.draft.text(), "one!");
-        assert_eq!(value, "one");
-    }
-
-    #[test]
-    fn vertical_motion_and_page_moves_stay_in_the_document() {
-        let mut st = TextAreaState::default();
-        st.begin("a\nbb\nccc");
-        assert_eq!(st.draft.line_count(), 3);
-        assert_eq!(
-            st.apply(EditAction::Move(Motion::DocStart, Extend::No)),
-            EditOutcome::Moved
-        );
-        assert_eq!(st.draft.cursor_pos().line, 0);
-        assert_eq!(
-            st.apply(EditAction::Move(Motion::DocEnd, Extend::No)),
-            EditOutcome::Moved
-        );
-        assert_eq!(st.draft.cursor_pos().line, 2);
-        assert_eq!(
-            st.apply(EditAction::Move(Motion::Up, Extend::No)),
-            EditOutcome::Moved
-        );
-        assert_eq!(st.draft.cursor_pos().line, 1);
-        assert_eq!(line_count("a\nb\n"), 3);
-        assert_eq!(column_span(Rect::new(4, 0, 10, 1), 2, 5).x, 6);
-        assert_eq!(column_span(Rect::new(4, 0, 10, 1), 2, 5).width, 3);
-    }
-
-    #[test]
-    fn selected_style_is_painted_only_for_a_real_selection_range() {
-        let render = |selected: bool| {
-            let theme = Theme::junie().override_family(Family::TEXTAREA, |recipe| {
-                recipe.part(Part::ROW).when(
-                    StateFlags::SELECTED,
-                    StylePatch::new().set_bg(crate::theme::Role::Danger),
-                );
-            });
-            let mut runtime = Runtime::new(Stub::default(), theme);
-            let area = Rect::new(0, 0, 12, 3);
-            let mut buffer = Buffer::empty(area);
-            let mut state = TextAreaState::default();
-            state.begin("hello");
-            if selected {
-                let _ = state.draft.apply(EditAction::SelectAll);
-            }
-            runtime
-                .draw_scene(area, &mut buffer, |ui, area| {
-                    TextArea::new(ID, 3).value("hello").draw(ui, area, &state);
-                })
-                .commit_presented();
-            buffer
-        };
-        let plain = render(false);
-        let selected = render(true);
-        for x in 0..12 {
-            let changed = plain
-                .cell(Position::new(x, 0))
-                .map(ratatui_core::buffer::Cell::style)
-                != selected
-                    .cell(Position::new(x, 0))
-                    .map(ratatui_core::buffer::Cell::style);
-            assert_eq!(changed, (2..7).contains(&x), "column {x}");
-        }
-    }
-
-    fn draw_with(status: termrock_runtime::Status) -> Buffer {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = TextAreaState::default();
-        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            TextArea::new(ID, 4)
-                .value("hello")
-                .status(status)
-                .draw(ui, a, &st);
-        })
-        .commit_presented();
-        buf
-    }
-
-    fn symbol_at(buf: &Buffer, x: u16, y: u16) -> String {
-        buf.cell(Position::new(x, y))
-            .map_or_else(String::new, |c| c.symbol().to_owned())
-    }
-
-    fn text_run(buf: &Buffer) -> String {
-        (0..SCREEN.width - 1)
-            .map(|x| symbol_at(buf, x, 0))
-            .collect()
-    }
-
-    const READINESS_X: u16 = SCREEN.width - 1;
-
-    #[test]
-    fn busy_and_loading_paint_the_readiness_spinner() {
-        let design = Theme::junie().design;
-        let frame = design.motion.spinner_frames.first().copied().unwrap();
-        let ready = draw_with(termrock_runtime::Status::Ready);
-        for status in [
-            termrock_runtime::Status::Busy,
-            termrock_runtime::Status::Loading,
-        ] {
-            let buf = draw_with(status);
-            assert_eq!(
-                symbol_at(&buf, READINESS_X, 0),
-                frame,
-                "{status:?}: the readiness affordance was not painted"
-            );
-            assert_eq!(
-                text_run(&buf),
-                text_run(&ready),
-                "{status:?}: the affordance moved the text"
-            );
-        }
-    }
-
-    #[test]
-    fn status_error_paints_the_icon_fallback_in_the_readiness_cell() {
-        let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
-        let buf = draw_with(termrock_runtime::Status::Error);
-        assert_eq!(symbol_at(&buf, READINESS_X, 0), glyph);
-    }
-
-    #[test]
-    fn ready_paints_no_readiness_affordance() {
-        let design = Theme::junie().design;
-        let cell = symbol_at(&draw_with(termrock_runtime::Status::Ready), READINESS_X, 0);
-        assert_ne!(cell, design.motion.spinner_frames.first().copied().unwrap());
-        assert_ne!(cell, design.glyphs.get(GlyphRole::Error));
-        assert_eq!(cell, " ", "the reserved pad column must stay blank");
-    }
-
-    #[test]
-    fn the_icon_slot_replaces_the_readiness_spinner() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = TextAreaState::default();
-        let icon = |ui: &mut Ui<'_>, r: Rect| {
-            let s = ui.surface_style();
-            ui.paint_str(r, "Z", s);
-        };
-        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            TextArea::new(ID, 4)
-                .value("hello")
-                .status(termrock_runtime::Status::Busy)
-                .slot(Part::ICON, &icon)
-                .draw(ui, a, &st);
-        })
-        .commit_presented();
-        assert_eq!(
-            symbol_at(&buf, READINESS_X, 0),
-            "Z",
-            "the ICON slot did not replace the readiness affordance"
-        );
-    }
-
-    #[test]
-    fn validation_marker_wins_the_shared_lane_over_status_error() {
-        assert!(TextArea::PARTS.contains(&Part::ICON));
-        let marker_calls = Cell::new(0usize);
-        let icon_calls = Cell::new(0usize);
-        let marker = |ui: &mut Ui<'_>, area: Rect| {
-            marker_calls.set(marker_calls.get().saturating_add(1));
-            let style = ui.surface_style();
-            ui.paint_str(area, "M", style);
-        };
-        let icon = |ui: &mut Ui<'_>, area: Rect| {
-            icon_calls.set(icon_calls.get().saturating_add(1));
-            let style = ui.surface_style();
-            ui.paint_str(area, "I", style);
-        };
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let mut st = TextAreaState::default();
-        st.set_error(Some(FieldError::new("invalid")));
-        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
-            TextArea::new(ID, 4)
-                .value("hello")
-                .status(termrock_runtime::Status::Error)
-                .slot(Part::MARKER, &marker)
-                .draw(ui, area, &st);
-        })
-        .commit_presented();
-        assert_eq!(marker_calls.get(), 1);
-        assert_eq!(icon_calls.get(), 0);
-        assert_eq!(symbol_at(&buf, READINESS_X, 0), "M");
-
-        st.set_error(None);
-        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
-            TextArea::new(ID, 4)
-                .value("hello")
-                .status(termrock_runtime::Status::Error)
-                .slot(Part::ICON, &icon)
-                .draw(ui, area, &st);
-        })
-        .commit_presented();
-        assert_eq!(icon_calls.get(), 1);
-        assert_eq!(symbol_at(&buf, READINESS_X, 0), "I");
     }
 }

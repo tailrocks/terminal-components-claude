@@ -1,0 +1,63 @@
+{
+  "purpose": "Read-only Showcase public capability coverage decision",
+  "source": {
+    "pr38_remote_head": "961795738ac2b56ab454bc41f6a035d27e5089d6",
+    "design_reference": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+    "radio_navigation_change": "804ed9ae1b23f07708cced1882c394eb8406638b",
+    "visible_cursor_retention_change": "df88318019021c272385f47634c0165e0d0ef8ec",
+    "menu_danger_profile_change": "c69a38f9c20fd7f551515a2c743ac5e018ddba9f",
+    "editor_find_candidate": "No Find-specific change found on fetched wip/editor-live-contract-20261021 (tip b1195b4b0e1241bcac454c6332d45b6423f2f142); current PR38 already contains CodeCmd::Find."
+  },
+  "decision": "Do not claim the design-branch SC catalog/allowlist gate exists on PR38. At pinned PR38 HEAD there is no src/catalog.rs, Showcase coverage.rs/app_tests_catalog.rs, tests/showcase_coverage_allow.txt, or equivalent capability-to-demo inventory gate. Add a crate-aware inventory only as separate planned work; do not copy monolithic src path assumptions. No exception is approved by this review.",
+  "capabilities": [
+    {
+      "name": "RadioNavigation::Deferred",
+      "change": "New public enum policy and RadioGroup::navigation builder; immediate remains default. Source 804ed9ae1 crates/termrock-controls/src/choice.rs:34-42, 839-840, 928-954; facade export crates/termrock-controls/src/lib.rs and crates/termrock/src/lib.rs changed by same commit.",
+      "consumer_evidence": "Pending public consumer in crates/termrock-forms/tests/form_lanes_consumer.rs:246 and form integration tests; this is an integration test external to termrock-forms' implementation module but still a workspace test, not a separate package consumer. TablePro baseline scenario must retain immediate semantics unless fixed reference proves otherwise.",
+      "catalog_id_proposal": ["controls::choice::RadioNavigation", "controls::choice::RadioNavigation::Immediate", "controls::choice::RadioNavigation::Deferred", "controls::choice::RadioGroup::navigation"],
+      "showcase": "Do not switch any existing baseline radio to Deferred merely for coverage. If the unchanged baseline Showcase flow only demonstrates default Immediate, Deferred requires a documented SCn exclusion plus a compiled public-consumer interaction test that proves arrows move focus without choosing and Enter/Space chooses. If no existing baseline UI can exercise that policy without changing screens or controls, document that exact reason; do not add a new visible Showcase option."
+    },
+    {
+      "name": "visible cursor retention",
+      "change": "New opt-in overlay/menu retained cursor APIs. Source df8831801 crates/termrock-runtime/src/ui/mod.rs:1052-1067, 1069-1137; menu builder crates/termrock-overlays/src/menu.rs:415. Implemented as promotion of a cursor request from a real rendered owner, not synthetic registration.",
+      "catalog_id_proposal": ["runtime::Ui::retain_owner_cursor", "runtime::Ui::retain_visible_owner_cursor", "overlays::ContextMenu::retain_cursor"],
+      "consumer_evidence": "The change adds crates/termrock-overlays/tests/visible_terminal_cursor.rs:140-262, covering real terminal/menu, viewport projection, resize/clipping, opt-in frame equality and cursor ownership. Tests are strong contract evidence, but not Showcase adoption evidence.",
+      "showcase": "Retention changes cursor visibility/ownership while an overlay is open. Do not enable it in frozen Showcase flows unless baseline behavior already retains that cursor. If no existing unchanged flow demonstrates the opt-in policy, proposed justified exclusion (not approved): `runtime::Ui::retain_owner_cursor | opt-in focus-owned cursor retention is exercised by visible_terminal_cursor tests; enabling it changes modal/overlay cursor state in the frozen Showcase flow | SCn`; equivalent rows for visible-owner and ContextMenu builder only if registry tracks each public API independently."
+    },
+    {
+      "name": "Menu Danger profile",
+      "change": "Behavior/style correction to existing menu-danger profile, not a new consumer API. Source c69a38f9c crates/termrock-theme/src/lib.rs changes disabled palette styling for the existing DANGER variant and labels; commit adds context-menu regression tests.",
+      "catalog_id": ["widgets::menu::MenuItem::danger", "widgets::menu::MenuItem::danger_if", "theme::Tone::Danger"],
+      "consumer_evidence": "Fixed design inventory already lists these IDs at src/catalog.rs:3414 and :4088-4097, and coverage declarations in src/bin/showcase/coverage.rs around :1294-1310 and :4088-4097; existing menus page constructs danger/danger_if entries at src/bin/showcase/pages/menus.rs:52-60. However this is design-branch evidence, not PR38 coverage. PR38 Showcase chrome uses custom menu painting (crates/showcase-demos/src/pages/chrome.rs:217-237), so it is not evidence that the shared menu's danger profile is covered. New regression tests are at crates/termrock-overlays/tests/context_menu_danger_profile.rs (path in commit c69a38f9c).",
+      "catalog_id_proposal": [],
+      "showcase": "Do not add a fake capability ID for an existing API/style. Preserve the current shared token/profile behavior and add a focused shared-component visual state assertion if needed. Do not claim Showcase demonstrates it until the shared MenuItem is live in unchanged Showcase UI; no new option or screen."
+    },
+    {
+      "name": "CodeEditor Find",
+      "change": "PR38 at pin already exposes CodeCmd::Find and FindAccept/FindBackspace/FindCancel/FindNext in crates/termrock-editors/src/code.rs:124-157, with the Find state/update/render path later in that module. Showcase editor creates CodeEditor at crates/showcase-demos/src/pages/editor.rs:158-164, updates it at :220-239, and advertises `/` Find at :320-336.",
+      "consumer_evidence": "Although the page calls the real CodeEditor for update/draw (`editor.rs:220-239`, :345-346), it takes an early baseline frame branch in draw at :241-244, and custom cursor/marker painting begins at :347. Earlier source audit identifies fixed plate data farther down this same file. Therefore the page is not proof that the live Find visual flow is demonstrated; retain the static baseline behavior only as an unresolved bypass to replace, not move.",
+      "catalog_id_proposal": ["editors::code::CodeCmd::Find", "editors::code::CodeCmd::FindAccept", "editors::code::CodeCmd::FindBackspace", "editors::code::CodeCmd::FindCancel", "editors::code::CodeCmd::FindNext"],
+      "showcase": "Existing API should retain one inventory entry per genuinely new public delta; do not add duplicates if Find is already in the API registry. The editor-live-contract branch currently has no Find-specific API delta. After writer presents exact landed API diff, inventory only new public methods/types. No Showcase coverage declaration until a live page path renders and drives Find without the baseline replay; no new screen/visible control."
+    }
+  ],
+  "design_branch_gate_evidence": {
+    "registry": "src/catalog.rs defines typed Capability and registry; current design source includes existing CodeEditor and menu danger IDs, but grep found no RadioNavigation or retained-cursor API ID.",
+    "declarations": "src/bin/showcase/coverage.rs has SHOWN entries; Option/StateRow/Demo/Via declarations are screen/option-specific.",
+    "allowlist": "tests/showcase_coverage_allow.txt parser contract is exactly `id | reason | SCn|permanent`; valid only when reason is explicit, ID exists in registry and is otherwise unshown, and SCn step is linked/valid. It records an exclusion, not demo coverage or product acceptance. This current PR does not contain/use this gate.",
+    "automation": "design src/bin/showcase/app_tests_catalog.rs scans source and checks missing/duplicate/stale/unknown/unshown entries, allowlist parse and Via consistency. It is a Rust test target; execute via cargo nextest, not cargo test. The PR38 tree has no analogous catalog scanner/test at the pinned head."
+  },
+  "tests_to_run_when_integrated": [
+    "cargo nextest run -p termrock-controls (radio behavior and component tests)",
+    "cargo nextest run -p termrock-forms --test form_lanes_consumer (deferred public form contract)",
+    "cargo nextest run -p termrock-overlays --test visible_terminal_cursor",
+    "cargo nextest run -p termrock-overlays --test context_menu_danger_profile",
+    "cargo nextest run -p showcase-demos --test buttons if changed; add focused live Menu/Find consumer tests only with actual API adoption",
+    "cargo nextest run -p showcase (PTY qualification; does not inventory all capabilities or prove baseline parity)",
+    "cargo nextest run --all-targets (eventual required complete test gate), plus paired tuiscotti tests separately"
+  ],
+  "limitations": [
+    "Read-only source review; no tests executed.",
+    "No blanket approval of proposed SCn exclusions; each needs a valid step, precise documented reason, and live compiled consumer evidence.",
+    "Editor Find API being written was not found in fetched refs; findings refer only to current PR38 API and current editor page." 
+  ]
+}

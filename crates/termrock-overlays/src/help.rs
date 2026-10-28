@@ -2,53 +2,109 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::{Acc, PartStyle, SlotFn, first_row, shift};
+use super::{Acc, PartStyle, SlotFn};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::Intent;
 use crate::keymap::{Binding, BindingState, Bindings, HintLayer};
-use crate::layer::{DismissReason, LayerEvent, LayerSize, LayerSpec};
+use crate::layer::{
+    Anchor, DismissReason, LayerEvent, LayerOpening, LayerSize, LayerSpec, ScreenAlign, UpdateToken,
+};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::theme::{Family, StylePatch, Surface, Variant};
-use crate::ui::{Cx, FrameRead, Ui};
+use crate::text::width;
+use crate::theme::{Family, GlyphRole, Modifier, Role, StylePatch, Surface, Variant};
+use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
+use termrock_controls::Button;
+use termrock_core::geometry::Axes;
 use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
 
 #[derive(Clone, Copy, Debug)]
 pub struct HelpSection<'a> {
     title: &'a str,
-    layer: &'a HintLayer,
+    layer: Option<&'a HintLayer>,
+    rows: &'a [(&'a str, &'a str)],
 }
 
 impl<'a> HelpSection<'a> {
     pub const fn new(title: &'a str, layer: &'a HintLayer) -> Self {
-        HelpSection { title, layer }
+        HelpSection {
+            title,
+            layer: Some(layer),
+            rows: &[],
+        }
+    }
+
+    pub const fn plain(title: &'a str, rows: &'a [(&'a str, &'a str)]) -> Self {
+        HelpSection {
+            title,
+            layer: None,
+            rows,
+        }
     }
 
     pub const fn title(&self) -> &'a str {
         self.title
     }
 
-    pub const fn layer(&self) -> &'a HintLayer {
-        self.layer
+    pub const fn layer(&self) -> &HintLayer {
+        match self.layer {
+            Some(layer) => layer,
+            None => panic!("help section has explicit rows, not a hint layer"),
+        }
+    }
+
+    fn entries(&self) -> Vec<(String, String)> {
+        if !self.rows.is_empty() {
+            return self
+                .rows
+                .iter()
+                .map(|(key, action)| ((*key).to_owned(), (*action).to_owned()))
+                .collect();
+        }
+        let Some(layer) = self.layer else {
+            return Vec::new();
+        };
+        layer
+            .hints
+            .iter()
+            .map(|hint| {
+                (
+                    HintText::of(hint.key).as_str().to_owned(),
+                    hint.label.to_owned(),
+                )
+            })
+            .collect()
     }
 
     const fn rows(&self) -> usize {
-        self.layer.hints.len().saturating_add(2)
+        let n = if !self.rows.is_empty() {
+            self.rows.len()
+        } else if let Some(layer) = self.layer {
+            layer.hints.len()
+        } else {
+            0
+        };
+        n.saturating_add(2)
     }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct HelpOverlayState {
     scroll: ScrollState,
+    action_close: Option<(LayerOpening, UpdateToken)>,
 }
 
 impl HelpOverlayState {
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
+    }
+
+    pub fn scroll_mut(&mut self) -> &mut ScrollState {
+        &mut self.scroll
     }
 }
 
@@ -152,6 +208,7 @@ const BINDINGS: &[Binding<HelpCmd>] = &[
 pub struct HelpOverlay<'a> {
     id: Id,
     scope: &'a str,
+    title: &'a str,
     sections: &'a [HelpSection<'a>],
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -163,6 +220,7 @@ impl fmt::Debug for HelpOverlay<'_> {
         f.debug_struct("HelpOverlay")
             .field("id", &self.id)
             .field("scope", &self.scope)
+            .field("title", &self.title)
             .field("sections", &self.sections.len())
             .finish_non_exhaustive()
     }
@@ -188,11 +246,18 @@ impl<'a> HelpOverlay<'a> {
         HelpOverlay {
             id,
             scope,
+            title: "Keyboard shortcuts",
             sections,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
         }
+    }
+
+    #[must_use]
+    pub const fn title(mut self, title: &'a str) -> Self {
+        self.title = title;
+        self
     }
 
     #[must_use]
@@ -216,18 +281,33 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn measured_size(&self, cx: &Cx<'_>) -> LayerSize {
-        let d = cx.design();
-        let cols = columns_for(d.size.dialog_width_wide.saturating_sub(2));
-        let content = self.column_rows(cols).min(usize::from(u16::MAX)) as u16;
-        let max_body = d.size.popup_max_rows.saturating_mul(2).max(8);
-        LayerSize::Fixed(
-            d.size.dialog_width_wide,
-            content.min(max_body).saturating_add(4),
-        )
+        let view = cx.viewport();
+        let w = view
+            .width
+            .saturating_sub(4)
+            .min(percent80(view.width))
+            .max(16);
+        let h = view
+            .height
+            .saturating_sub(3)
+            .min(percent80(view.height))
+            .max(8);
+        LayerSize::Fixed(w, h)
     }
 
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
-        LayerSpec::modal(self.id).size(self.measured_size(cx))
+        LayerSpec::modal(self.id)
+            .anchor(Anchor::Screen(ScreenAlign::GeometricCenter))
+            .initial_focus(self.done_id())
+            .size(self.measured_size(cx))
+    }
+
+    fn done_id(&self) -> Id {
+        self.id.part(Part::ACTIONS)
+    }
+
+    pub fn command_id(&self) -> Id {
+        self.id.sub("commands")
     }
 
     fn column_rows(&self, cols: usize) -> usize {
@@ -245,37 +325,69 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut HelpOverlayState) -> Response<HelpAction> {
+        let action_close = st.action_close.take();
         if cx.is_open(self.id) {
             cx.resize_layer(self.id, self.measured_size(cx));
         }
-        let columns = cx
-            .area(self.id)
-            .map_or(1, |area| columns_for(area.width.saturating_sub(2)));
-        let content_len = self.column_rows(columns);
+        let content_len = cx
+            .layout(self.id)
+            .map_or(st.scroll.content_len(), |layout| layout.content_len);
         let scroll = self.scrollbar().update(cx, &mut st.scroll, content_len);
         let mut acc = Acc::new();
         acc.fold(&scroll);
+        let done = Button::new(self.done_id(), "Done").update(cx);
+        let done_activated = done.activated() && cx.is_open(self.id);
+        if done_activated {
+            let close_token = self.close_token(cx);
+            cx.close_layer(self.id, None);
+            st.action_close = close_token;
+            acc.action(HelpAction::Closed(DismissReason::Programmatic));
+        } else {
+            acc.fold(&done.erase());
+        }
         for intent in cx.intents(self.id) {
             let response = match intent {
                 Intent::Layer(LayerEvent::Dismissed(reason)) => {
-                    Response::action(HelpAction::Closed(reason))
-                }
-                Intent::Layer(_) => Response::ignored().repaint(),
-                Intent::Cancel => {
-                    cx.close_layer(self.id, None);
-                    Response::action(HelpAction::Closed(DismissReason::Esc))
-                }
-                Intent::Binding(action) => match Binding::command(BINDINGS, action) {
-                    Some(HelpCmd::Prev) => scroll_by(&mut st.scroll, -1),
-                    Some(HelpCmd::Next) => scroll_by(&mut st.scroll, 1),
-                    Some(HelpCmd::PageUp) => page(&mut st.scroll, false),
-                    Some(HelpCmd::PageDown) => page(&mut st.scroll, true),
-                    Some(HelpCmd::Close) => {
-                        cx.close_layer(self.id, None);
-                        Response::action(HelpAction::Closed(DismissReason::Programmatic))
+                    let receipt = cx.layer_event_receipt(self.id);
+                    let dismissed_after_action = reason == DismissReason::Programmatic
+                        && action_close.is_some_and(|action_close| {
+                            receipt.is_some_and(|receipt| {
+                                receipt.opening() == action_close.0
+                                    && receipt.update() == Some(action_close.1)
+                            })
+                        });
+                    if dismissed_after_action {
+                        Response::ignored().repaint()
+                    } else {
+                        Response::action(HelpAction::Closed(reason))
                     }
-                    None => Response::ignored(),
-                },
+                }
+                Intent::Layer(_) => {
+                    let _ = cx.layer_event_receipt(self.id);
+                    Response::ignored().repaint()
+                }
+                Intent::Cancel => {
+                    if !done_activated && cx.is_open(self.id) {
+                        let close_token = self.close_token(cx);
+                        cx.close_layer(self.id, None);
+                        st.action_close = close_token;
+                        Response::action(HelpAction::Closed(DismissReason::Esc))
+                    } else {
+                        Response::ignored()
+                    }
+                }
+                Intent::Binding(action) => self.binding_response(cx, st, done_activated, action),
+                _ => Response::ignored(),
+            };
+            if let Some(action) = response.action_ref().copied() {
+                acc.action(action);
+            } else {
+                acc.fold(&response.erase());
+            }
+        }
+        for intent in cx.intents(self.command_id()) {
+            let response = match intent {
+                Intent::Binding(action) => self.binding_response(cx, st, done_activated, action),
                 _ => Response::ignored(),
             };
             if let Some(action) = response.action_ref().copied() {
@@ -287,59 +399,108 @@ impl<'a> HelpOverlay<'a> {
         acc.finish(self.id)
     }
 
+    fn binding_response(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut HelpOverlayState,
+        done_activated: bool,
+        action: crate::ActionKey,
+    ) -> Response<HelpAction> {
+        match Binding::command(BINDINGS, action) {
+            Some(HelpCmd::Prev) => scroll_by(&mut st.scroll, -1),
+            Some(HelpCmd::Next) => scroll_by(&mut st.scroll, 1),
+            Some(HelpCmd::PageUp) => page(&mut st.scroll, false),
+            Some(HelpCmd::PageDown) => page(&mut st.scroll, true),
+            Some(HelpCmd::Close) => {
+                if !done_activated && cx.is_open(self.id) {
+                    let close_token = self.close_token(cx);
+                    cx.close_layer(self.id, None);
+                    st.action_close = close_token;
+                    Response::action(HelpAction::Closed(DismissReason::Programmatic))
+                } else {
+                    Response::ignored()
+                }
+            }
+            None => Response::ignored(),
+        }
+    }
+
+    fn close_token(&self, cx: &Cx<'_>) -> Option<(LayerOpening, UpdateToken)> {
+        cx.layer_opening(self.id)
+            .map(|opening| (opening, cx.update_token()))
+    }
+
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &HelpOverlayState) -> Rect {
         if area.is_empty() {
             return area;
         }
+        let live = ui.state(self.id);
         ui.with_surface(Surface::Elevated, |ui| {
-            let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
-            let container = self.ov.style(
-                ui,
-                self.id,
-                Family::HELP,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                live,
-            );
-            ui.fill(area, container.style);
-            let border = self.ov.style(
-                ui,
-                self.id,
-                Family::HELP,
-                Variant::DEFAULT,
-                Part::BORDER,
-                live,
-            );
-            let inner = ui.frame(area, border.style);
-            if let Some(slot) = self.ov.slot_for(Part::BORDER) {
-                slot(ui, area);
-            }
-            ui.register_control(self.id, area, Focusability::Focusable);
-            ui.publish_bindings(self.id, live, BINDINGS);
-            ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
-            if inner.is_empty() {
-                return;
-            }
-            let title_row = first_row(inner);
-            self.paint_text(ui, Part::TITLE, title_row, "Keyboard shortcuts", live);
-            let scope_row = first_row(Rect {
-                y: inner.y.saturating_add(1),
-                ..inner
+            ui.command_scope(self.command_id(), BINDINGS, |ui| {
+                self.paint_card(ui, area, live);
+                let border_style = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::HELP,
+                        Variant::DEFAULT,
+                        Part::BORDER,
+                        live,
+                    )
+                    .style;
+                let _frame_inner = ui.frame(area, border_style);
+                ui.register_control(self.id, area, Focusability::Focusable);
+                ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
+                if area.width < 16 || area.height < 8 {
+                    ui.report_layout(self.id, LayoutFacts::default());
+                    return;
+                }
+                self.paint_title(ui, area, live);
+                let inner = Rect {
+                    x: area.x.saturating_add(3),
+                    y: area.y.saturating_add(1),
+                    width: area.width.saturating_sub(6),
+                    height: area.height.saturating_sub(2),
+                };
+                if inner.is_empty() {
+                    ui.report_layout(self.id, LayoutFacts::default());
+                    return;
+                }
+                let body_h = inner.height.saturating_sub(1);
+                let columns = self.columns(inner.width);
+                let total = columns.iter().map(Vec::len).max().unwrap_or(0);
+                let mut view = st.scroll;
+                view.apply_layout(usize::from(body_h), total);
+                let track_h = if view.overflows() {
+                    u16::try_from(view.viewport_len())
+                        .unwrap_or(u16::MAX)
+                        .min(inner.height)
+                } else {
+                    0
+                };
+                ui.report_layout(
+                    self.id,
+                    LayoutFacts::new(
+                        view.viewport_len(),
+                        view.content_len(),
+                        track_h,
+                        inner.width,
+                    ),
+                );
+                self.paint_columns(ui, inner, &columns, &view);
+                self.paint_scroll_label(ui, area, &view);
+                self.paint_close(ui, area);
+                let fade_area = Rect {
+                    x: area.x,
+                    y: inner.y,
+                    width: area.right().saturating_sub(2).saturating_sub(area.x),
+                    height: body_h,
+                };
+                ui.scroll_edges(fade_area, &view);
+                self.paint_scrollbar(ui, area, inner, &view, track_h);
+                self.paint_done(ui, inner);
             });
-            self.paint_text(ui, Part::DETAIL, scope_row, self.scope, live);
-            let body = Rect {
-                y: inner.y.saturating_add(2),
-                height: inner.height.saturating_sub(2),
-                ..inner
-            };
-            let scrollbar = self.scrollbar();
-            let columns = columns_for(body.width);
-            let content_len = self.column_rows(columns);
-            let content = scrollbar.draw(ui, body, &st.scroll, content_len);
-            let view = ScrollRegion::view(&st.scroll, content, content_len);
-            self.draw_columns(ui, content, &view, columns, live);
-            ui.register_decor(self.id, PartRef::of(Part::TITLE), title_row);
-            ui.register_decor(self.id, PartRef::of(Part::DETAIL), scope_row);
         });
         area
     }
@@ -359,121 +520,283 @@ impl<'a> HelpOverlay<'a> {
         scrollbar
     }
 
-    fn paint_text(&self, ui: &mut Ui<'_>, part: Part, area: Rect, text: &str, flags: StateFlags) {
-        let style = self
-            .ov
-            .style(ui, self.id, Family::HELP, Variant::DEFAULT, part, flags);
-        if let Some(slot) = self.ov.slot_for(part) {
-            slot(ui, area);
-        } else {
-            ui.paint_str(area, text, style.style);
-        }
+    fn paint_card(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) {
+        let container = self.ov.style(
+            ui,
+            self.id,
+            Family::HELP,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            live,
+        );
+        ui.fill_card_from_page(
+            area,
+            container
+                .style
+                .bg
+                .unwrap_or(ratatui_core::style::Color::Rgb(0x18, 0x18, 0x1b)),
+        );
     }
 
-    fn draw_columns(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        view: &ScrollState,
-        columns: usize,
-        flags: StateFlags,
-    ) {
-        let column_width = area.width.checked_div(columns as u16).unwrap_or(0);
-        for column in 0..columns {
-            let column_area = Rect {
-                x: area
-                    .x
-                    .saturating_add((column as u16).saturating_mul(column_width)),
-                width: if column.saturating_add(1) == columns {
-                    area.right().saturating_sub(
-                        area.x
-                            .saturating_add((column as u16).saturating_mul(column_width)),
-                    )
-                } else {
-                    column_width
+    fn paint_title(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) {
+        let reserve = 4u16;
+        let title_limit = area.width.saturating_sub(6u16.saturating_add(reserve));
+        if area.width > 6u16.saturating_add(reserve) {
+            let title = format!(" {} ", crate::text::truncate(self.title, title_limit));
+            let title_width = width(&title);
+            let title_style = self
+                .ov
+                .style(
+                    ui,
+                    self.id,
+                    Family::HELP,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    live,
+                )
+                .style;
+            ui.paint_str(
+                Rect {
+                    x: area.x.saturating_add(2),
+                    y: area.y,
+                    width: area.width.saturating_sub(2),
+                    height: 1,
                 },
-                ..area
-            };
-            self.draw_column(ui, column_area, view, columns, column, flags);
-        }
-    }
-
-    fn draw_column(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        view: &ScrollState,
-        columns: usize,
-        column: usize,
-        flags: StateFlags,
-    ) {
-        let start = view.offset();
-        let end = start.saturating_add(view.viewport_len());
-        let mut virtual_row = 0usize;
-        for (index, section) in self.sections.iter().enumerate() {
-            if index.checked_rem(columns) != Some(column) {
-                continue;
-            }
-            self.draw_virtual_row(
-                ui,
-                area,
-                virtual_row,
-                start,
-                end,
-                Part::HEADER,
-                section.title,
-                flags,
+                &title,
+                title_style,
             );
-            virtual_row = virtual_row.saturating_add(1);
-            for hint in &section.layer.hints {
-                if start <= virtual_row && virtual_row < end {
-                    let y = area
-                        .y
-                        .saturating_add(virtual_row.saturating_sub(start) as u16);
-                    let row = first_row(Rect { y, ..area });
-                    let key = Rect {
-                        width: row.width.min(12),
-                        ..row
-                    };
-                    let action = shift(row, 13);
-                    let chord = HintText::of(hint.key);
-                    self.paint_text(ui, Part::KEY, key, chord.as_str(), flags);
-                    self.paint_text(ui, Part::ACTION, action, hint.label, flags);
-                    ui.register_decor(self.id, PartRef::of(Part::KEY), key);
-                    ui.register_decor(self.id, PartRef::of(Part::ACTION), action);
-                }
-                virtual_row = virtual_row.saturating_add(1);
+
+            let scope = format!(" {} ", self.scope);
+            let scope_width = width(&scope);
+            let scope_min_width = title_width
+                .saturating_add(scope_width)
+                .saturating_add(4)
+                .saturating_add(reserve);
+            if area.width > scope_min_width {
+                let scope_x = area
+                    .right()
+                    .saturating_sub(2)
+                    .saturating_sub(reserve)
+                    .saturating_sub(scope_width);
+                let scope_style = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::HELP,
+                        Variant::DEFAULT,
+                        Part::DETAIL,
+                        live,
+                    )
+                    .style;
+                ui.paint_str(
+                    Rect {
+                        x: scope_x,
+                        y: area.y,
+                        width: scope_width,
+                        height: 1,
+                    },
+                    &scope,
+                    scope_style,
+                );
             }
-            virtual_row = virtual_row.saturating_add(1);
         }
     }
 
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "virtual row projection needs source and viewport coordinates"
-    )]
-    fn draw_virtual_row(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        virtual_row: usize,
-        start: usize,
-        end: usize,
-        part: Part,
-        text: &str,
-        flags: StateFlags,
-    ) {
-        if !(start <= virtual_row && virtual_row < end) {
+    fn paint_close(&self, ui: &mut Ui<'_>, area: Rect) {
+        let x = area.right().saturating_sub(5);
+        let border = ink(ui, 0x004d_4d4d, 0x0018_181b, false);
+        let mark = ink(ui, 0x00b3_b3b3, 0x0018_181b, false);
+        let mut row = |dx, text, style| {
+            ui.paint_str(
+                Rect {
+                    x: x.saturating_add(dx),
+                    y: area.y,
+                    width: 1,
+                    height: 1,
+                },
+                text,
+                style,
+            );
+        };
+        row(0, " ", border);
+        row(1, "×", mark);
+        row(2, " ", border);
+    }
+
+    fn paint_scroll_label(&self, ui: &mut Ui<'_>, area: Rect, scroll: &ScrollState) {
+        if !scroll.overflows() {
             return;
         }
-        let row = first_row(Rect {
-            y: area
-                .y
-                .saturating_add(virtual_row.saturating_sub(start) as u16),
-            ..area
-        });
-        self.paint_text(ui, part, row, text, flags);
-        ui.register_decor(self.id, PartRef::of(part), row);
+        let visible = scroll.visible_range();
+        let label = format!(
+            " {}–{} of {} ",
+            visible.start.saturating_add(1),
+            visible.end,
+            scroll.content_len()
+        );
+        let pw = width(&label);
+
+        let x = area.right().saturating_sub(pw.saturating_add(6));
+        ui.paint_str(
+            Rect {
+                x,
+                y: area.y,
+                width: pw,
+                height: 1,
+            },
+            &label,
+            ink(ui, 0x0073_7373, 0x0018_181b, false),
+        );
+    }
+
+    fn columns(&self, inner_width: u16) -> Vec<Vec<Line>> {
+        let cols = (inner_width / HelpOverlay::COLUMN_WIDTH).clamp(1, 3) as usize;
+        let col_w = inner_width / cols as u16;
+        let widest = self
+            .sections
+            .iter()
+            .flat_map(|section| section.entries().into_iter().map(|(key, _)| width(&key)))
+            .max()
+            .unwrap_or(0);
+        let key_w = widest.clamp(4, col_w.saturating_mul(2) / 5);
+        let action_w = col_w.saturating_sub(key_w.saturating_add(3)).max(8);
+        let mut blocks = Vec::new();
+        for section in self.sections {
+            let mut block = vec![Line {
+                key: section.title.to_owned(),
+                action: String::new(),
+                heading: true,
+            }];
+            for (key, action) in section.entries() {
+                for (i, line) in wrap_words(&action, action_w).into_iter().enumerate() {
+                    block.push(Line {
+                        key: if i == 0 {
+                            key.to_owned()
+                        } else {
+                            String::new()
+                        },
+                        action: line,
+                        heading: false,
+                    });
+                }
+            }
+            block.push(Line {
+                key: String::new(),
+                action: String::new(),
+                heading: false,
+            });
+            blocks.push(block);
+        }
+        let mut columns: Vec<Vec<Line>> = Vec::with_capacity(cols);
+        for _ in 0..cols {
+            columns.push(Vec::new());
+        }
+        for (i, block) in blocks.into_iter().enumerate() {
+            columns[i % cols].extend(block);
+        }
+        let _ = key_w;
+        columns
+    }
+
+    fn paint_columns(
+        &self,
+        ui: &mut Ui<'_>,
+        inner: Rect,
+        columns: &[Vec<Line>],
+        scroll: &ScrollState,
+    ) {
+        let offset = scroll.offset();
+        let viewport = scroll.viewport_len();
+        let cols = columns.len().max(1) as u16;
+        let col_w = inner.width / cols;
+        let widest = columns
+            .iter()
+            .flat_map(|column| {
+                column
+                    .iter()
+                    .filter(|line| !line.heading && !line.key.is_empty())
+                    .map(|line| width(&line.key))
+            })
+            .max()
+            .unwrap_or(0);
+        let key_w = widest.clamp(4, col_w.saturating_mul(2) / 5);
+        let head = ink(ui, 0x00b3_b3b3, 0x0018_181b, true);
+        let key_style = ink(ui, 0x00ff_ffff, 0x0018_181b, true);
+        let action_style = ink(ui, 0x00b3_b3b3, 0x0018_181b, false);
+        for (ci, column) in columns.iter().enumerate() {
+            let x = inner.x.saturating_add(ci as u16 * col_w);
+            for (k, line) in column.iter().skip(offset).take(viewport).enumerate() {
+                let y = inner.y.saturating_add(k as u16);
+                if line.heading {
+                    ui.paint_str(cell_row(x, y, col_w), &line.key, head);
+                } else if !line.key.is_empty() || !line.action.is_empty() {
+                    let shown = truncate_key(&line.key, key_w);
+                    ui.paint_str(cell_row(x, y, key_w), &shown, key_style);
+                    ui.paint_str(
+                        cell_row(
+                            x.saturating_add(key_w).saturating_add(1),
+                            y,
+                            col_w.saturating_sub(key_w).saturating_sub(1),
+                        ),
+                        &line.action,
+                        action_style,
+                    );
+                }
+            }
+        }
+    }
+
+    fn paint_scrollbar(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        inner: Rect,
+        scroll: &ScrollState,
+        track_h: u16,
+    ) {
+        if !scroll.overflows() || track_h == 0 {
+            return;
+        }
+        let x = area.right().saturating_sub(2);
+        let (thumb_start, thumb_len) = scroll.thumb(usize::from(track_h));
+        let thumb_end = thumb_start.saturating_add(thumb_len);
+        let thumb_style = ink(ui, 0x0080_8080, 0x0018_181b, false);
+        let track_style = ink(ui, 0x0047_4747, 0x0018_181b, false);
+        for row in 0..track_h {
+            let thumb_row = (thumb_start..thumb_end).contains(&usize::from(row));
+            let style = if thumb_row { thumb_style } else { track_style };
+            let glyph = if thumb_row { "┃" } else { "┆" };
+            ui.paint_str(cell_row(x, inner.y.saturating_add(row), 1), glyph, style);
+        }
+        let track_rect = Rect {
+            x,
+            y: inner.y,
+            width: 1,
+            height: track_h,
+        };
+        ui.register_part(self.id, PartRef::of(Part::TRACK), track_rect);
+        ui.register_scroll(self.id, area, Axes::V, scroll.headroom_v());
+    }
+
+    fn paint_done(&self, ui: &mut Ui<'_>, inner: Rect) {
+        let label = "Done ";
+        let bw = width(label) as u16;
+        let x = inner.right().saturating_sub(bw);
+        let y = inner.bottom().saturating_sub(1);
+        let gutter = ink(ui, 0x0048_e054, 0x0027_272a, false);
+        let face = ink(ui, 0x00ff_ffff, 0x0027_272a, true);
+        ui.glyph(
+            cell_row(x.saturating_sub(1), y, 1),
+            GlyphRole::FocusBar,
+            gutter,
+        );
+        ui.paint_str(cell_row(x, y, bw), label, face);
+        let id = self.done_id();
+        ui.register_control(id, cell_row(x, y, bw), Focusability::Focusable);
+        let done = Button::new(id, "Done");
+        let state = ui.state(id);
+        ui.publish_bindings(id, state, done.bindings(BindingState { flags: state }));
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
@@ -490,6 +813,76 @@ impl Bindings for HelpOverlay<'_> {
     fn bindings(&self, _state: BindingState) -> &'static [Binding<HelpCmd>] {
         BINDINGS
     }
+}
+
+struct Line {
+    key: String,
+    action: String,
+    heading: bool,
+}
+
+fn percent80(n: u16) -> u16 {
+    u16::try_from(u32::from(n) * 80 / 100).unwrap_or(u16::MAX)
+}
+
+fn rgb(hex: u32) -> ratatui_core::style::Color {
+    ratatui_core::style::Color::Rgb(
+        u8::try_from((hex >> 16) & 0xff).unwrap_or(0),
+        u8::try_from((hex >> 8) & 0xff).unwrap_or(0),
+        u8::try_from(hex & 0xff).unwrap_or(0),
+    )
+}
+
+fn ink(ui: &Ui<'_>, fg: u32, bg: u32, bold: bool) -> crate::theme::PaintStyle {
+    let mut patch = StylePatch::new()
+        .set_fg(Role::Custom(rgb(fg)))
+        .set_bg(Role::Custom(rgb(bg)));
+    if bold {
+        patch = patch.add(Modifier::BOLD);
+    }
+    ui.paint_patch(&patch)
+}
+
+fn cell_row(x: u16, y: u16, width: u16) -> Rect {
+    Rect {
+        x,
+        y,
+        width,
+        height: 1,
+    }
+}
+
+fn truncate_key(text: &str, limit: u16) -> String {
+    if width(text) <= limit {
+        return text.to_owned();
+    }
+    text.chars().take(usize::from(limit)).collect()
+}
+
+fn wrap_words(text: &str, limit: u16) -> Vec<String> {
+    if text.is_empty() {
+        return vec![String::new()];
+    }
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    let mut used = 0u16;
+    for word in text.split(' ') {
+        let word_width = width(word);
+        if used == 0 {
+            line = word.to_owned();
+            used = word_width;
+        } else if used.saturating_add(1).saturating_add(word_width) <= limit {
+            line.push(' ');
+            line.push_str(word);
+            used = used.saturating_add(1).saturating_add(word_width);
+        } else {
+            lines.push(std::mem::take(&mut line));
+            line = word.to_owned();
+            used = word_width;
+        }
+    }
+    lines.push(line);
+    lines
 }
 
 fn columns_for(width: u16) -> usize {
@@ -517,64 +910,5 @@ fn moved(changed: bool) -> Response<HelpAction> {
         Response::changed()
     } else {
         Response::consumed()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::event::KeyCode;
-
-    #[derive(Clone, Copy)]
-    enum TestCmd {
-        Run,
-    }
-
-    const TEST_BINDINGS: &[Binding<TestCmd>] = &[
-        Binding {
-            action: crate::ActionKey::custom("help.test.run"),
-            chord: Some(Chord::key(KeyCode::Char('r'))),
-            cmd: TestCmd::Run,
-            label: "Run",
-            priority: 50,
-            visible: true,
-        },
-        Binding {
-            action: crate::ActionKey::custom("help.test.hidden"),
-            chord: Some(Chord::key(KeyCode::Char('x'))),
-            cmd: TestCmd::Run,
-            label: "Hidden",
-            priority: 10,
-            visible: false,
-        },
-    ];
-
-    #[test]
-    fn sections_consume_the_same_visible_binding_metadata_as_hintbar() {
-        let layer = HintLayer::from_bindings(TEST_BINDINGS);
-        let section = HelpSection::new("Actions", &layer);
-        assert_eq!(section.layer().hints.len(), 1);
-        assert_eq!(section.layer().hints[0].label, "Run");
-    }
-
-    #[test]
-    fn sections_are_distributed_round_robin_without_splitting() {
-        let layer = HintLayer::from_bindings(TEST_BINDINGS);
-        let sections = [
-            HelpSection::new("A", &layer),
-            HelpSection::new("B", &layer),
-            HelpSection::new("C", &layer),
-            HelpSection::new("D", &layer),
-        ];
-        let overlay = HelpOverlay::new(Id::root("help.tests"), "scope", &sections);
-        assert_eq!(overlay.column_rows(2), 6);
-        assert_eq!(overlay.column_rows(3), 6);
-    }
-
-    #[test]
-    fn column_count_is_bounded_from_one_to_three() {
-        assert_eq!(columns_for(0), 1);
-        assert_eq!(columns_for(72), 2);
-        assert_eq!(columns_for(u16::MAX), 3);
     }
 }

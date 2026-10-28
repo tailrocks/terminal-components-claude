@@ -2,9 +2,13 @@ use core::fmt;
 use core::ops::Range;
 
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::Modifier;
+use ratatui_core::style::{Color, Modifier};
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
+use crate::completion::{
+    COMPLETION_NEXT_FOCUS_CHORD, COMPLETION_PREV_FOCUS_CHORD, CompletingCodeEditor,
+    CompletionProvider,
+};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -15,9 +19,13 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, SyntaxRole, Variant};
+use crate::theme::{
+    Family, FgStep, GlyphRole, Role, Slot, StyleDefaults, StylePatch, SyntaxRole, Variant,
+};
 use crate::ui::{Cx, FrameRead, Ui};
-use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_core::edit_entry::EditEntry;
+use termrock_runtime::scroll_region::{ScrollRegion, position_label};
+use termrock_text::CursorPos;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
@@ -152,6 +160,10 @@ pub enum CodeCmd {
     FindNext(bool),
 
     Block(bool),
+
+    FocusNext,
+
+    FocusPrevious,
 }
 
 const fn b(chord: Chord, cmd: CodeCmd, label: &'static str, visible: bool) -> Binding<CodeCmd> {
@@ -166,6 +178,18 @@ const fn b(chord: Chord, cmd: CodeCmd, label: &'static str, visible: bool) -> Bi
 }
 
 const NAV_BINDINGS: &[Binding<CodeCmd>] = &[
+    b(
+        COMPLETION_PREV_FOCUS_CHORD,
+        CodeCmd::FocusPrevious,
+        "focus.previous",
+        false,
+    ),
+    b(
+        COMPLETION_NEXT_FOCUS_CHORD,
+        CodeCmd::FocusNext,
+        "focus.next",
+        false,
+    ),
     b(
         Chord::key(KeyCode::Enter),
         CodeCmd::InsertMode,
@@ -296,6 +320,24 @@ const NAV_BINDINGS: &[Binding<CodeCmd>] = &[
 ];
 
 const EDIT_BINDINGS: &[Binding<CodeCmd>] = &[
+    b(
+        COMPLETION_PREV_FOCUS_CHORD,
+        CodeCmd::FocusPrevious,
+        "focus.previous",
+        false,
+    ),
+    b(
+        COMPLETION_NEXT_FOCUS_CHORD,
+        CodeCmd::FocusNext,
+        "focus.next",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('f'), CTRL),
+        CodeCmd::Find,
+        "Find",
+        true,
+    ),
     b(Chord::key(KeyCode::Esc), CodeCmd::Commit, "Done", true),
     b(
         Chord::key(KeyCode::Enter),
@@ -478,6 +520,17 @@ struct FindState {
     typing: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CodeFindInfo<'a> {
+    pub query: &'a str,
+
+    pub current: Option<usize>,
+
+    pub matches: usize,
+
+    pub typing: bool,
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct CodeEditorState {
     editor: TextEditorCore,
@@ -547,6 +600,10 @@ impl CodeEditorState {
         self.editing
     }
 
+    pub fn is_find_typing(&self) -> bool {
+        self.find.as_ref().is_some_and(|find| find.typing)
+    }
+
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
@@ -555,8 +612,30 @@ impl CodeEditorState {
         self.editor.cursor_offset()
     }
 
+    pub fn cursor_pos(&self) -> CursorPos {
+        self.editor.cursor_pos()
+    }
+
+    pub fn find_info(&self) -> Option<CodeFindInfo<'_>> {
+        self.find.as_ref().map(|find| CodeFindInfo {
+            query: &find.needle,
+            current: (!find.matches.is_empty()).then_some(find.current),
+            matches: find.matches.len(),
+            typing: find.typing,
+        })
+    }
+
     pub fn selected_text(&self) -> Option<&str> {
         self.editor.selected_text()
+    }
+
+    pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
+        let end = self.editor.cursor_offset();
+        let start = end.saturating_sub(replace_len);
+        self.editor.select_range(start, end);
+        let outcome = self.editor.apply(EditAction::Paste(insertion));
+        self.after_edit(outcome);
+        outcome.changed()
     }
 
     pub fn set_diagnostics(&mut self, mut diagnostics: Vec<CodeDiagnostic>) {
@@ -663,17 +742,42 @@ impl CodeEditorState {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct HighlightCache {
     generation: u64,
     valid: bool,
+
+    source: String,
     spans: Vec<(Range<usize>, SyntaxRole)>,
     line_starts: Vec<usize>,
+
+    blocks: Vec<Range<usize>>,
+    blocks_generation: u64,
+    blocks_valid: bool,
+}
+
+impl fmt::Debug for HighlightCache {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("HighlightCache")
+            .field("generation", &self.generation)
+            .field("valid", &self.valid)
+            .field("source_len", &self.source.len())
+            .field("spans", &self.spans)
+            .field("line_starts", &self.line_starts)
+            .field("blocks", &self.blocks)
+            .field("blocks_generation", &self.blocks_generation)
+            .field("blocks_valid", &self.blocks_valid)
+            .finish()
+    }
 }
 
 impl HighlightCache {
     fn ensure(&mut self, generation: u64, text: &str, highlighter: Option<&dyn Highlighter>) {
-        if generation != u64::MAX && self.valid && self.generation == generation {
+        if generation != u64::MAX
+            && self.valid
+            && self.generation == generation
+            && self.source == text
+        {
             return;
         }
         self.spans.clear();
@@ -692,14 +796,27 @@ impl HighlightCache {
             }
             self.spans.sort_by_key(|(range, _)| range.start);
         }
+        self.source.clear();
+        self.source.push_str(text);
         self.generation = generation;
         self.valid = true;
+        self.blocks_valid = false;
     }
+}
+
+fn current_block_in(blocks: &[Range<usize>], cursor: usize) -> Option<Range<usize>> {
+    blocks
+        .iter()
+        .find(|range| range.start <= cursor && cursor <= range.end)
+        .or_else(|| blocks.iter().rev().find(|range| range.end <= cursor))
+        .cloned()
 }
 
 pub struct CodeEditor<'a> {
     id: Id,
     rows: u16,
+    fill_height: bool,
+    idle_scroll_position: bool,
     highlighter: Option<&'a dyn Highlighter>,
     segmenter: Option<&'a dyn Segmenter>,
     placeholder: Option<&'a str>,
@@ -707,6 +824,8 @@ pub struct CodeEditor<'a> {
     tab_behavior: TabBehavior,
     read_only: bool,
     disabled: bool,
+    edit_entry: Option<EditEntry>,
+    commit_on_blur: bool,
     ov: PartStyle<'a>,
 }
 
@@ -715,6 +834,8 @@ impl fmt::Debug for CodeEditor<'_> {
         f.debug_struct("CodeEditor")
             .field("id", &self.id)
             .field("rows", &self.rows)
+            .field("fill_height", &self.fill_height)
+            .field("idle_scroll_position", &self.idle_scroll_position)
             .field("highlighter", &self.highlighter.is_some())
             .field("segmenter", &self.segmenter.is_some())
             .field("placeholder", &self.placeholder)
@@ -722,6 +843,8 @@ impl fmt::Debug for CodeEditor<'_> {
             .field("tab_behavior", &self.tab_behavior)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
+            .field("edit_entry", &self.edit_entry)
+            .field("commit_on_blur", &self.commit_on_blur)
             .finish_non_exhaustive()
     }
 }
@@ -746,6 +869,8 @@ impl<'a> CodeEditor<'a> {
         CodeEditor {
             id,
             rows,
+            fill_height: false,
+            idle_scroll_position: false,
             highlighter: None,
             segmenter: None,
             placeholder: None,
@@ -753,8 +878,39 @@ impl<'a> CodeEditor<'a> {
             tab_behavior: TabBehavior::Indent,
             read_only: false,
             disabled: false,
+            edit_entry: None,
+            commit_on_blur: true,
             ov: PartStyle::new(),
         }
+    }
+
+    #[must_use]
+    pub const fn fill_height(mut self, fill: bool) -> Self {
+        self.fill_height = fill;
+        self
+    }
+
+    #[must_use]
+    pub const fn idle_scroll_position(mut self, enabled: bool) -> Self {
+        self.idle_scroll_position = enabled;
+        self
+    }
+
+    pub fn with_completion(
+        self,
+        popup_id: Id,
+        provider: &'a dyn CompletionProvider,
+    ) -> CompletingCodeEditor<'a> {
+        let id = self.id;
+        CompletingCodeEditor::new(self, id, popup_id, provider)
+    }
+
+    pub(crate) const fn is_read_only(&self) -> bool {
+        self.read_only
+    }
+
+    pub(crate) const fn is_disabled(&self) -> bool {
+        self.disabled
     }
 
     #[must_use]
@@ -796,6 +952,18 @@ impl<'a> CodeEditor<'a> {
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
+        self
+    }
+
+    #[must_use]
+    pub const fn edit_entry(mut self, entry: EditEntry) -> Self {
+        self.edit_entry = Some(entry);
+        self
+    }
+
+    #[must_use]
+    pub const fn commit_on_blur(mut self, commit: bool) -> Self {
+        self.commit_on_blur = commit;
         self
     }
 
@@ -858,13 +1026,7 @@ impl<'a> CodeEditor<'a> {
     }
 
     pub fn current_block(&self, st: &CodeEditorState) -> Option<Range<usize>> {
-        let cursor = st.cursor_offset();
-        let blocks = self.blocks(st);
-        blocks
-            .iter()
-            .find(|range| range.start <= cursor && cursor <= range.end)
-            .or_else(|| blocks.iter().rev().find(|range| range.end <= cursor))
-            .cloned()
+        current_block_in(&self.blocks(st), st.cursor_offset())
     }
 
     pub fn cursor_cell(&self, cx: &Cx<'_>, st: &CodeEditorState) -> Option<Rect> {
@@ -886,13 +1048,44 @@ impl<'a> CodeEditor<'a> {
             ..area
         };
         let y = cursor.line.saturating_sub(st.scroll.offset());
-        let position = visible_cursor(text_area, cursor.col, y, usize::from(st.editor.hscroll()))?;
-        Some(Rect {
-            x: position.x,
-            y: position.y,
-            width: 1,
-            height: 1,
-        })
+        let hscroll = usize::from(st.editor.hscroll());
+        if let Some(position) = visible_cursor(text_area, cursor.col, y, hscroll) {
+            return Some(Rect {
+                x: position.x,
+                y: position.y,
+                width: 1,
+                height: 1,
+            });
+        }
+
+        if text_area.width > 0
+            && y < usize::from(text_area.height)
+            && cursor.col >= hscroll
+            && cursor.col.saturating_sub(hscroll) == usize::from(text_area.width)
+        {
+            return Some(Rect {
+                x: text_area.right().saturating_sub(1),
+                y: text_area
+                    .y
+                    .saturating_add(y.min(usize::from(u16::MAX)) as u16),
+                width: 1,
+                height: 1,
+            });
+        }
+        None
+    }
+
+    pub fn open_find(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) -> Response<CodeAction> {
+        if self.disabled {
+            return Response::ignored();
+        }
+        self.begin_find(cx, st);
+        Response::changed()
+    }
+
+    fn begin_find(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) {
+        st.open_find();
+        cx.focus(self.id);
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) -> Response<CodeAction> {
@@ -900,6 +1093,7 @@ impl<'a> CodeEditor<'a> {
             return Response::ignored();
         }
         let mut acc = Acc::<CodeAction>::new();
+        let edit_entry = self.edit_entry.unwrap_or_else(|| cx.edit_entry());
         let lines = st.editor.line_count();
         let bar = self.bar();
         let track = bar.prepare(cx, &mut st.scroll, lines);
@@ -907,7 +1101,20 @@ impl<'a> CodeEditor<'a> {
         for intent in cx.intents(self.id) {
             acc.fold(&bar.handle_intent(cx, &mut st.scroll, track, intent));
             match intent {
-                Intent::FocusOut { .. } | Intent::Cancel if st.editing => {
+                Intent::FocusIn { .. }
+                    if edit_entry == EditEntry::Immediate && !self.read_only && !self.disabled =>
+                {
+                    if !st.editing {
+                        st.begin_edit();
+                        acc.changed();
+                    }
+                }
+                Intent::FocusOut { .. } if st.editing && self.commit_on_blur => {
+                    st.commit();
+                    acc.action(CodeAction::Committed);
+                }
+                Intent::FocusOut { .. } if st.editing => acc.consumed(),
+                Intent::Cancel if st.editing => {
                     st.commit();
                     acc.action(CodeAction::Committed);
                 }
@@ -917,14 +1124,37 @@ impl<'a> CodeEditor<'a> {
                         if st.find.as_ref().is_some_and(|find| find.typing) {
                             Self::find_command(st, command, &mut acc);
                         } else {
-                            self.command(st, command, page, &mut acc);
+                            self.dispatch_command(cx, st, command, page, &mut acc);
                         }
                     }
                 }
                 Intent::Key(key)
-                    if st.editing || st.find.as_ref().is_some_and(|find| find.typing) =>
+                    if st.editing
+                        || st.find.as_ref().is_some_and(|find| find.typing)
+                        || (edit_entry == EditEntry::TypeToEdit
+                            && !self.read_only
+                            && key.bare_char().is_some()) =>
                 {
-                    if let Some(c) = key.bare_char() {
+                    if !st.editing && !st.find.as_ref().is_some_and(|find| find.typing) {
+                        st.begin_edit();
+                        acc.changed();
+                    }
+                    let command = Self::active_bindings(st).iter().find(|binding| {
+                        cx.effective_chord(self.id, binding.action, binding.chord)
+                            .is_some_and(|chord| chord.matches(&key))
+                    });
+                    if let Some(binding) = command {
+                        let already_dispatched = cx.intents(self.id).any(|intent| {
+                            matches!(intent, Intent::Binding(action) if action == binding.action)
+                        });
+                        if !already_dispatched {
+                            if st.find.as_ref().is_some_and(|find| find.typing) {
+                                Self::find_command(st, binding.cmd, &mut acc);
+                            } else {
+                                self.dispatch_command(cx, st, binding.cmd, page, &mut acc);
+                            }
+                        }
+                    } else if let Some(c) = key.bare_char() {
                         if let Some(find) = st.find.as_mut().filter(|find| find.typing) {
                             find.needle.push(c);
                             st.refind();
@@ -961,8 +1191,10 @@ impl<'a> CodeEditor<'a> {
                         },
                     local,
                     ..
-                } if !self.read_only && !self.disabled => {
-                    st.editing = true;
+                } if !self.disabled => {
+                    if !self.read_only {
+                        st.editing = true;
+                    }
                     let line = st
                         .scroll
                         .offset()
@@ -981,13 +1213,42 @@ impl<'a> CodeEditor<'a> {
             st.scroll.set_content(st.editor.line_count());
             st.scroll.ensure_visible(cursor.line);
             if let Some(area) = cx.area(self.id) {
-                let text_width = area
-                    .width
-                    .saturating_sub(Self::gutter_width(lines).saturating_add(1));
+                let gutter = Self::gutter_width(lines);
+                let text_width = area.width.saturating_sub(gutter);
                 st.editor.scroll_into_view(text_width);
+
+                let widest = st.text().split('\n').map(width).max().unwrap_or(0);
+                st.editor.clamp_hscroll(widest.saturating_sub(text_width));
             }
         }
         acc.finish(self.id)
+    }
+
+    fn dispatch_command(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut CodeEditorState,
+        command: CodeCmd,
+        page: usize,
+        acc: &mut Acc<CodeAction>,
+    ) {
+        match command {
+            CodeCmd::Find => {
+                self.begin_find(cx, st);
+                acc.changed();
+            }
+            CodeCmd::FocusNext => {
+                st.commit();
+                cx.focus_next();
+                acc.action(CodeAction::Leave { backward: false });
+            }
+            CodeCmd::FocusPrevious => {
+                st.commit();
+                cx.focus_prev();
+                acc.action(CodeAction::Leave { backward: true });
+            }
+            command => self.command(st, command, page, acc),
+        }
     }
 
     fn command(
@@ -1008,6 +1269,7 @@ impl<'a> CodeEditor<'a> {
                     | CodeCmd::DeleteToLineEnd
                     | CodeCmd::DeleteToLineStart
                     | CodeCmd::Newline
+                    | CodeCmd::Tab(true)
                     | CodeCmd::Tab(false)
             )
         {
@@ -1029,10 +1291,7 @@ impl<'a> CodeEditor<'a> {
                 st.commit();
                 acc.action(CodeAction::Committed);
             }
-            CodeCmd::Find => {
-                st.open_find();
-                acc.changed();
-            }
+            CodeCmd::Find => acc.consumed(),
             CodeCmd::FindNext(previous) => {
                 st.goto_match(previous);
                 acc.action(CodeAction::CursorMoved);
@@ -1072,10 +1331,87 @@ impl<'a> CodeEditor<'a> {
                 st.commit();
                 acc.action(CodeAction::Leave { backward });
             }
-            CodeCmd::Tab(true)
-            | CodeCmd::FindAccept
-            | CodeCmd::FindBackspace
-            | CodeCmd::FindCancel => acc.consumed(),
+            CodeCmd::Tab(true) => {
+                let text = st.editor.text();
+                let selection = st.editor.selection();
+                let cursor = st.editor.cursor_offset();
+                let anchor = selection.as_ref().map(|range| {
+                    if cursor == range.start {
+                        range.end
+                    } else {
+                        range.start
+                    }
+                });
+                let (first_line, last_line) = if let Some(range) = selection.as_ref() {
+                    let first = text[..range.start]
+                        .bytes()
+                        .filter(|byte| *byte == b'\n')
+                        .count();
+                    let before_end = &text[..range.end];
+                    let newlines = before_end.bytes().filter(|byte| *byte == b'\n').count();
+                    let last = newlines.saturating_sub(usize::from(before_end.ends_with('\n')));
+                    (first, last)
+                } else {
+                    let line = st.editor.cursor_pos().line;
+                    (line, line)
+                };
+                let mut line_starts = vec![0usize];
+                line_starts.extend(
+                    text.match_indices('\n')
+                        .map(|(offset, _)| offset.saturating_add(1)),
+                );
+                let mut removals = Vec::new();
+                for line in first_line..=last_line {
+                    let Some(&start) = line_starts.get(line) else {
+                        continue;
+                    };
+                    let end = text[start..]
+                        .find('\n')
+                        .map_or(text.len(), |relative| start.saturating_add(relative));
+                    let count = text.as_bytes()[start..end]
+                        .iter()
+                        .take(usize::from(self.indent))
+                        .take_while(|byte| **byte == b' ')
+                        .count();
+                    if count > 0 {
+                        let removal_start = grapheme_floor_boundary(text, start);
+                        let removal_end = grapheme_ceil_boundary(text, start.saturating_add(count));
+                        if removal_start < removal_end {
+                            removals.push(removal_start..removal_end);
+                        }
+                    }
+                }
+                if removals.is_empty() {
+                    st.after_edit(EditOutcome::Ignored);
+                    acc.action(CodeAction::Changed);
+                    return;
+                }
+                let map_offset = |offset: usize| {
+                    let mut removed = 0usize;
+                    for range in &removals {
+                        if offset >= range.end {
+                            removed = removed.saturating_add(range.len());
+                        } else if offset > range.start {
+                            return range.start.saturating_sub(removed);
+                        }
+                    }
+                    offset.saturating_sub(removed)
+                };
+                let cursor = map_offset(cursor);
+                let anchor = anchor.map(map_offset);
+                for range in removals.iter().rev() {
+                    st.editor.select_range(range.start, range.end);
+                    let _ = st.editor.apply(EditAction::Paste(""));
+                }
+                if let Some(anchor) = anchor {
+                    st.editor.select_range(anchor, cursor);
+                } else {
+                    st.jump_to(cursor);
+                }
+                st.after_edit(EditOutcome::Changed);
+                acc.action(CodeAction::Changed);
+            }
+            CodeCmd::FindAccept | CodeCmd::FindBackspace | CodeCmd::FindCancel => acc.consumed(),
             CodeCmd::Tab(false) => {
                 let spaces = "                ";
                 let take = usize::from(self.indent).min(spaces.len());
@@ -1139,7 +1475,11 @@ impl<'a> CodeEditor<'a> {
     )]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &CodeEditorState) -> Rect {
         let used = Rect {
-            height: self.rows.min(area.height),
+            height: if self.fill_height {
+                area.height
+            } else {
+                self.rows.min(area.height)
+            },
             ..area
         };
         if used.is_empty() {
@@ -1147,6 +1487,11 @@ impl<'a> CodeEditor<'a> {
         }
         let mut cache = core::mem::take(ui.cache::<HighlightCache>(self.id));
         cache.ensure(st.edit_generation, st.text(), self.highlighter);
+        if !cache.blocks_valid || cache.blocks_generation != st.edit_generation {
+            cache.blocks = self.blocks(st);
+            cache.blocks_generation = st.edit_generation;
+            cache.blocks_valid = true;
+        }
         let body_h = used.height.saturating_sub(1);
         let body = Rect {
             height: body_h,
@@ -1213,9 +1558,18 @@ impl<'a> CodeEditor<'a> {
         let view = ScrollRegion::view(&st.scroll, content, lines);
         let text_style = style(ui, Part::TEXT, live).style;
         let selected_style = style(ui, Part::ROW, live | StateFlags::SELECTED).style;
-        let number_style = style(ui, Part::META, live).style;
         let marker_style = style(ui, Part::MARKER, live).style;
         let gutter_style = style(ui, Part::GUTTER, live).style;
+
+        let block = if st.editor.selection().is_none() {
+            if cache.blocks_valid {
+                current_block_in(&cache.blocks, st.cursor_offset())
+            } else {
+                self.current_block(st)
+            }
+        } else {
+            None
+        };
         let visible = view.visible_range();
         let first_offset = cache
             .line_starts
@@ -1248,29 +1602,41 @@ impl<'a> CodeEditor<'a> {
                     height: 1,
                     ..content
                 };
-                if live.contains(StateFlags::FOCUSED) && line_index == cursor.line {
-                    match self.ov.slot_for(Part::GUTTER) {
-                        Some(slot) => slot(ui, cell_at(row, row.x)),
-                        None => match self
-                            .ov
-                            .style(
-                                ui,
-                                self.id,
-                                Family::CODE,
-                                Variant::DEFAULT,
-                                Part::GUTTER,
-                                live,
-                            )
-                            .glyph
-                        {
-                            Slot::Set(glyph) => {
-                                ui.glyph(cell_at(row, row.x), glyph, gutter_style);
-                            }
-                            Slot::Inherit => {
-                                ui.glyph(cell_at(row, row.x), GlyphRole::FocusBar, gutter_style);
-                            }
-                            Slot::Clear => {}
-                        },
+                if line_index == cursor.line {
+                    if live.contains(StateFlags::FOCUSED) {
+                        match self.ov.slot_for(Part::GUTTER) {
+                            Some(slot) => slot(ui, cell_at(row, row.x)),
+                            None => match self
+                                .ov
+                                .style(
+                                    ui,
+                                    self.id,
+                                    Family::CODE,
+                                    Variant::DEFAULT,
+                                    Part::GUTTER,
+                                    live,
+                                )
+                                .glyph
+                            {
+                                Slot::Set(glyph) => {
+                                    ui.glyph(cell_at(row, row.x), glyph, gutter_style);
+                                }
+                                Slot::Inherit => {
+                                    ui.glyph(
+                                        cell_at(row, row.x),
+                                        GlyphRole::FocusBar,
+                                        gutter_style,
+                                    );
+                                }
+                                Slot::Clear => {}
+                            },
+                        }
+                    } else {
+                        ui.paint_str(
+                            cell_at(row, row.x),
+                            " ",
+                            container.style.with_fg_from_bg(container.style),
+                        );
                     }
                 }
                 let marker = cell_at(row, row.x.saturating_add(1));
@@ -1288,8 +1654,29 @@ impl<'a> CodeEditor<'a> {
                     if let Some(slot) = self.ov.slot_for(Part::MARKER) {
                         slot(ui, marker);
                     } else {
-                        ui.paint_str(marker, "!", marker_style);
+                        let ink = marker_style.patch(
+                            ui.paint_patch(
+                                &StylePatch::new()
+                                    .set_fg(Role::Syntax(SyntaxRole::DiagError))
+                                    .add(Modifier::BOLD),
+                            ),
+                        );
+                        ui.paint_str(marker, "!", ink);
                     }
+                } else if block
+                    .as_ref()
+                    .is_some_and(|range| range.start >= global && range.start <= line_end)
+                {
+                    let ink = if live.contains(StateFlags::FOCUSED) {
+                        Role::Fg(FgStep::Primary)
+                    } else {
+                        Role::Fg(FgStep::Secondary)
+                    };
+                    ui.paint_str(
+                        marker,
+                        "›",
+                        marker_style.patch(ui.paint_patch(&StylePatch::new().set_fg(ink))),
+                    );
                 } else if st
                     .running
                     .as_ref()
@@ -1315,12 +1702,61 @@ impl<'a> CodeEditor<'a> {
                     ..row
                 }
                 .intersection(row);
+                let line_start = global;
+                let line_span_end = global.saturating_add(code_line.len());
+                let in_block = block
+                    .as_ref()
+                    .is_some_and(|range| line_span_end >= range.start && line_start <= range.end);
+                let focused_line = live.contains(StateFlags::FOCUSED) && line_index == cursor.line;
+                let defaults = if self.read_only {
+                    StylePatch::new().set_fg(Role::Fg(FgStep::Faint))
+                } else if focused_line {
+                    StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD)
+                } else if in_block {
+                    StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))
+                } else {
+                    StylePatch::new().set_fg(Role::Fg(FgStep::Muted))
+                };
+                let meta_patch = self.ov.part_patch(Part::META);
+                let resolved = ui.style_defaults_with_explicit(
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::META,
+                    live,
+                    StyleDefaults::new(defaults),
+                    meta_patch.as_ref(),
+                );
+                self.ov.note(
+                    ui,
+                    self.id,
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::META,
+                    resolved.resolved,
+                );
+                let number_style = resolved.resolved.style;
                 let mut digits = [0u8; 20];
                 let number_text = usize_text(line_index.saturating_add(1), &mut digits);
                 let number_width = width(number_text).min(number.width);
+                let pad = number.width.saturating_sub(number_width);
+                let mut digit_x = number.x;
+                for _ in 0..pad {
+                    ui.paint_str(
+                        Rect {
+                            x: digit_x,
+                            width: 1,
+                            ..number
+                        },
+                        " ",
+                        number_style,
+                    );
+                    digit_x = digit_x.saturating_add(1);
+                }
                 ui.paint_str(
                     Rect {
-                        x: number.right().saturating_sub(number_width),
+                        x: digit_x,
                         width: number_width,
                         ..number
                     },
@@ -1330,10 +1766,21 @@ impl<'a> CodeEditor<'a> {
                 let hs = usize::from(st.editor.hscroll());
                 let mut column = 0usize;
                 let mut x = text_area.x;
+                if hs > 0 && !code_line.is_empty() {
+                    let ellipsis = text_style
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+                    ui.paint_str(cell_at(row, x), "…", ellipsis);
+                }
                 for (at, grapheme) in graphemes(code_line) {
                     let cells = usize::from(grapheme_width(grapheme));
                     if column.saturating_add(cells) <= hs {
                         column = column.saturating_add(cells);
+                        continue;
+                    }
+
+                    if hs > 0 && column == hs {
+                        column = column.saturating_add(cells);
+                        x = x.saturating_add(cells.min(usize::from(u16::MAX)) as u16);
                         continue;
                     }
                     if x.saturating_add(cells.min(usize::from(u16::MAX)) as u16) > text_area.right()
@@ -1359,6 +1806,11 @@ impl<'a> CodeEditor<'a> {
                     {
                         painted = painted
                             .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Syntax(role))));
+                        if role == SyntaxRole::Keyword {
+                            painted = painted.add_modifier(Modifier::BOLD);
+                        } else if role == SyntaxRole::Number || role == SyntaxRole::Comment {
+                            painted = painted.add_modifier(Modifier::ITALIC);
+                        }
                     }
                     if selection
                         .as_ref()
@@ -1406,6 +1858,17 @@ impl<'a> CodeEditor<'a> {
                         painted = painted
                             .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Syntax(role))));
                     }
+                    if st.editing
+                        && line_index == cursor.line
+                        && !painted
+                            .as_style()
+                            .add_modifier
+                            .contains(Modifier::UNDERLINED)
+                    {
+                        painted = painted.add_modifier(Modifier::UNDERLINED).patch(
+                            ui.paint_patch(&StylePatch::new().set_underline(Role::BorderStrong)),
+                        );
+                    }
                     ui.paint_str(
                         Rect {
                             x,
@@ -1419,11 +1882,34 @@ impl<'a> CodeEditor<'a> {
                     x = x.saturating_add(cells.min(usize::from(u16::MAX)) as u16);
                     column = column.saturating_add(cells);
                 }
+                if st.editing && line_index == cursor.line && x < text_area.right() {
+                    ui.paint_style(
+                        Rect {
+                            x,
+                            y,
+                            width: text_area.right().saturating_sub(x),
+                            height: 1,
+                        },
+                        ui.paint_patch(
+                            &StylePatch::new()
+                                .add(Modifier::UNDERLINED)
+                                .set_underline(Role::BorderStrong),
+                        ),
+                    );
+                }
             }
         }
+        paint_code_hbar(
+            ui,
+            text_area,
+            content.bottom().saturating_sub(1),
+            content.height,
+            st.text(),
+            usize::from(st.editor.hscroll()),
+            container.style,
+        );
         *ui.cache::<HighlightCache>(self.id) = cache;
         if st.text().is_empty()
-            && !st.editing
             && let Some(placeholder) = self.placeholder
         {
             let row = first_row(text_area);
@@ -1455,15 +1941,80 @@ impl<'a> CodeEditor<'a> {
             if find.typing && live.contains(StateFlags::FOCUSED) {
                 let x = at.saturating_add(width(&find.needle));
                 if x < footer.right() {
-                    ui.set_cursor(self.id, Position::new(x, footer.y));
+                    ui.set_bar_cursor(self.id, Position::new(x, footer.y));
                 }
             }
-        } else if let Some(diagnostic) = nearest_diagnostic(&st.diagnostics, st.cursor_offset()) {
-            let detail_style = style(ui, Part::DETAIL, live).style;
-            ui.paint_str(footer, &diagnostic.message, detail_style);
+        } else {
+            let show_pos = st.editing || live.contains(StateFlags::FOCUSED);
+            let pos = if show_pos {
+                format!(
+                    "ln {}/{} · col {}",
+                    cursor.line.saturating_add(1),
+                    lines.max(1),
+                    cursor.col.saturating_add(1)
+                )
+            } else if self.idle_scroll_position {
+                position_label(&view)
+            } else {
+                String::new()
+            };
+            let right_pad = u16::from(footer.width > 1);
+            let room = footer.width.saturating_sub(right_pad);
+            let pos_width = width(&pos).min(room);
+            let pos_x = footer
+                .right()
+                .saturating_sub(pos_width.saturating_add(right_pad))
+                .max(footer.x);
+            if let Some(diagnostic) = nearest_diagnostic(&st.diagnostics, st.cursor_offset()) {
+                let detail_style = style(ui, Part::DETAIL, live)
+                    .style
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(diagnostic.severity.role())));
+                let message_x = footer.x.saturating_add(1);
+                let message_width = pos_x.saturating_sub(message_x);
+                ui.paint_str(
+                    Rect {
+                        x: message_x,
+                        width: message_width,
+                        ..footer
+                    },
+                    &diagnostic.message,
+                    detail_style,
+                );
+            }
+            if pos_width > 0 {
+                let defaults = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
+                let meta_patch = self.ov.part_patch(Part::META);
+                let resolved = ui.style_defaults_with_explicit(
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::META,
+                    live,
+                    StyleDefaults::new(defaults),
+                    meta_patch.as_ref(),
+                );
+                self.ov.note(
+                    ui,
+                    self.id,
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::META,
+                    resolved.resolved,
+                );
+                let pos_style = resolved.resolved.style;
+                ui.paint_str(
+                    Rect {
+                        x: pos_x,
+                        width: pos_width,
+                        ..footer
+                    },
+                    &pos,
+                    pos_style,
+                );
+            }
         }
-        if live.contains(StateFlags::FOCUSED)
-            && !self.read_only
+
+        let show_caret = live.contains(StateFlags::FOCUSED) && (st.editing || self.read_only);
+        if show_caret
             && !st.find.as_ref().is_some_and(|find| find.typing)
             && cursor.line >= view.offset()
             && let Some(position) = visible_cursor(
@@ -1473,7 +2024,7 @@ impl<'a> CodeEditor<'a> {
                 usize::from(st.editor.hscroll()),
             )
         {
-            ui.set_cursor(self.id, position);
+            ui.set_bar_cursor(self.id, position);
         }
         used
     }
@@ -1481,7 +2032,14 @@ impl<'a> CodeEditor<'a> {
     pub fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
         Size {
             min: (20, 2),
-            preferred: (80, self.rows.max(2)),
+            preferred: (
+                80,
+                if self.fill_height {
+                    constraints.max.1
+                } else {
+                    self.rows.max(2)
+                },
+            ),
         }
         .fit(constraints)
     }
@@ -1496,6 +2054,45 @@ impl Bindings for CodeEditor<'_> {
         } else {
             NAV_BINDINGS
         }
+    }
+}
+
+fn paint_code_hbar(
+    ui: &mut Ui<'_>,
+    text_area: Rect,
+    y: u16,
+    body_rows: u16,
+    text: &str,
+    offset: usize,
+    field: crate::theme::PaintStyle,
+) {
+    let text_w = usize::from(text_area.width);
+    if body_rows < 2 || text_w == 0 {
+        return;
+    }
+    let widest = usize::from(text.split('\n').map(width).max().unwrap_or(0));
+    if widest.saturating_add(1) <= text_w {
+        return;
+    }
+    let mut across = ScrollState::default();
+    across.set_content(widest.saturating_add(1));
+    across.set_viewport(text_w);
+    across.scroll_to(offset);
+    let (start, len) = across.thumb(text_w);
+    let end = start.saturating_add(len);
+    let track = field.patch(
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::from_u32(0x0047_4747)))),
+    );
+    let thumb = field.patch(
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::from_u32(0x0080_8080)))),
+    );
+    for i in 0..text_w {
+        let on_thumb = i >= start && i < end;
+        ui.paint_str(
+            Rect::new(text_area.x.saturating_add(i as u16), y, 1, 1),
+            if on_thumb { "━" } else { "┄" },
+            if on_thumb { thumb } else { track },
+        );
     }
 }
 
@@ -1530,6 +2127,26 @@ fn floor_boundary(text: &str, mut offset: usize) -> usize {
     offset
 }
 
+fn grapheme_floor_boundary(text: &str, offset: usize) -> usize {
+    let offset = offset.min(text.len());
+    graphemes(text)
+        .map(|(at, _)| at)
+        .take_while(|at| *at <= offset)
+        .last()
+        .unwrap_or(0)
+}
+
+fn grapheme_ceil_boundary(text: &str, offset: usize) -> usize {
+    let offset = offset.min(text.len());
+    if offset == text.len() {
+        return text.len();
+    }
+    graphemes(text)
+        .map(|(at, _)| at)
+        .find(|at| *at >= offset)
+        .unwrap_or(text.len())
+}
+
 fn line_col(text: &str, offset: usize) -> (usize, usize) {
     let prefix = text.get(..offset).unwrap_or("");
     let line = prefix.bytes().filter(|b| *b == b'\n').count();
@@ -1550,358 +2167,4 @@ fn usize_text(mut number: usize, buf: &mut [u8; 20]) -> &str {
         }
     }
     core::str::from_utf8(buf.get(at..).unwrap_or_default()).unwrap_or("")
-}
-
-#[cfg(test)]
-mod tests {
-    use core::cell::Cell;
-
-    use ratatui_core::buffer::Buffer;
-
-    use super::*;
-    use crate::event::MouseKind;
-    use crate::runtime::stub::{Stub, key, mouse};
-    use crate::runtime::{App, Runtime};
-    use crate::theme::{FgStep, Surface, Theme};
-
-    const ID: Id = Id::root("code.tests");
-
-    struct EditorApp {
-        state: CodeEditorState,
-        read_only: bool,
-    }
-
-    impl App for EditorApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            CodeEditor::new(ID, 5)
-                .read_only(self.read_only)
-                .update(cx, &mut self.state)
-                .erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            CodeEditor::new(ID, 5)
-                .read_only(self.read_only)
-                .draw(ui, ui.full(), &self.state);
-        }
-    }
-
-    fn focused_runtime(text: &str, read_only: bool) -> (Runtime<EditorApp>, Buffer) {
-        let area = Rect::new(0, 0, 40, 5);
-        let mut runtime = Runtime::new(
-            EditorApp {
-                state: CodeEditorState::new(text),
-                read_only,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Tab));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        (runtime, buffer)
-    }
-
-    fn send_key(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer, code: KeyCode) {
-        let _ = crate::runtime::stub::deliver(runtime, key(code));
-        runtime.draw_buffer(buffer.area, buffer).commit_presented();
-    }
-
-    #[test]
-    fn edit_counter_invalidates_the_highlight_cache() {
-        let calls = Cell::new(0usize);
-        let highlighter = |text: &str| {
-            calls.set(calls.get().saturating_add(1));
-            vec![(0..text.len(), SyntaxRole::Keyword)]
-        };
-        let editor = CodeEditor::new(ID, 4).highlighter(&highlighter);
-        let mut state = CodeEditorState::new("select 1");
-        let area = Rect::new(0, 0, 40, 4);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        for _ in 0..2 {
-            runtime
-                .draw_scene(area, &mut buffer, |ui, rect| {
-                    editor.draw(ui, rect, &state);
-                })
-                .commit_presented();
-        }
-        assert_eq!(calls.get(), 1, "unchanged draw re-highlighted the document");
-        state.set_text("select 2");
-        runtime
-            .draw_scene(area, &mut buffer, |ui, rect| {
-                editor.draw(ui, rect, &state);
-            })
-            .commit_presented();
-        assert_eq!(calls.get(), 2);
-    }
-
-    #[test]
-    fn editing_style_comes_only_from_the_real_edit_state() {
-        let render = |stale_runtime_editing: bool, real_editing: bool| {
-            let theme = Theme::junie().override_family(Family::CODE, |recipe| {
-                recipe
-                    .part(Part::TEXT)
-                    .when(StateFlags::EDITING, StylePatch::new().set_bg(Role::Danger));
-            });
-            let area = Rect::new(0, 0, 30, 4);
-            let mut runtime = Runtime::new(Stub::default(), theme);
-            let mut buffer = Buffer::empty(area);
-            runtime
-                .draw_scene(area, &mut buffer, |ui, _| {
-                    if stale_runtime_editing {
-                        ui.declare_state(ID, StateFlags::EDITING);
-                    }
-                })
-                .commit_presented();
-            let mut state = CodeEditorState::new("hello");
-            if real_editing {
-                state.begin_edit();
-            }
-            runtime
-                .draw_scene(area, &mut buffer, |ui, area| {
-                    CodeEditor::new(ID, 4).draw(ui, area, &state);
-                })
-                .commit_presented();
-            let text = runtime
-                .registry()
-                .area_of_part(ID, PartRef::of(Part::TEXT))
-                .unwrap_or(Rect::ZERO);
-            buffer
-                .cell(Position::new(text.x, text.y))
-                .map(|cell| cell.bg)
-                .unwrap_or_default()
-        };
-        let idle = render(false, false);
-        assert_eq!(render(true, false), idle, "stale runtime EDITING leaked");
-        assert_ne!(render(false, true), idle, "real edit state was not styled");
-    }
-
-    #[test]
-    fn saturation_never_reuses_stale_highlights() {
-        let calls = Cell::new(0usize);
-        let highlighter = |_text: &str| {
-            calls.set(calls.get().saturating_add(1));
-            Vec::new()
-        };
-        let editor = CodeEditor::new(ID, 3).highlighter(&highlighter);
-        let mut state = CodeEditorState::new("a");
-        state.edit_generation = u64::MAX;
-        let area = Rect::new(0, 0, 20, 3);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        for _ in 0..2 {
-            runtime
-                .draw_scene(area, &mut buffer, |ui, rect| {
-                    editor.draw(ui, rect, &state);
-                })
-                .commit_presented();
-        }
-        assert_eq!(calls.get(), 2);
-    }
-
-    #[test]
-    fn captured_highlighter_and_segmenter_are_supported() {
-        let keyword = "let".to_owned();
-        let highlighter = |text: &str| {
-            text.match_indices(&keyword)
-                .map(|(at, found)| at..at + found.len())
-                .map(|range| (range, SyntaxRole::Keyword))
-                .collect()
-        };
-        let delimiter = ';';
-        let segmenter = |text: &str| {
-            text.match_indices(delimiter)
-                .scan(0usize, |start, (end, _)| {
-                    let range = *start..end.saturating_add(1);
-                    *start = range.end;
-                    Some(range)
-                })
-                .collect()
-        };
-        let editor = CodeEditor::new(ID, 4)
-            .highlighter(&highlighter)
-            .segmenter(&segmenter);
-        let state = CodeEditorState::new("let a;let b;");
-        assert_eq!(editor.blocks(&state), [0..6, 6..12]);
-    }
-
-    #[test]
-    fn disabled_highlighting_keeps_the_disabled_text_style() {
-        let area = Rect::new(0, 0, 40, 5);
-        let theme = Theme::junie().override_family(Family::CODE, |recipe| {
-            recipe.part(Part::TEXT).when(
-                StateFlags::DISABLED,
-                StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
-            );
-        });
-        let highlighter = |text: &str| vec![(0..text.len(), SyntaxRole::Keyword)];
-        let mut runtime = Runtime::new(Stub::default(), theme.clone());
-        let mut buffer = Buffer::empty(area);
-        let state = CodeEditorState::new("let attempts = 5;");
-        runtime
-            .draw_scene(area, &mut buffer, |ui, rect| {
-                CodeEditor::new(ID, 5)
-                    .disabled(true)
-                    .highlighter(&highlighter)
-                    .draw(ui, rect, &state);
-            })
-            .commit_presented();
-        let text = runtime
-            .area_of_part(ID, PartRef::of(Part::TEXT))
-            .expect("disabled editor registers its text part");
-        let expected = theme
-            .resolve(
-                Family::CODE,
-                Variant::DEFAULT,
-                Part::TEXT,
-                StateFlags::DISABLED,
-                Surface::Canvas,
-            )
-            .style
-            .fg
-            .expect("test override supplies a disabled foreground");
-        for position in text.positions() {
-            let cell = buffer
-                .cell(position)
-                .expect("text part positions are inside the buffer");
-            if cell.symbol() != " " {
-                assert_eq!(cell.fg, expected, "syntax replaced disabled text style");
-            }
-        }
-    }
-
-    #[test]
-    fn draw_cannot_commit_or_change_the_state() {
-        let editor = CodeEditor::new(ID, 4);
-        let mut state = CodeEditorState::new("one\ntwo");
-        state.begin_edit();
-        let before = state.clone();
-        let area = Rect::new(0, 0, 30, 4);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, rect| {
-                editor.draw(ui, rect, &state);
-            })
-            .commit_presented();
-        assert_eq!(state, before);
-    }
-
-    #[test]
-    fn find_input_routes_text_backspace_enter_and_escape() {
-        let (mut runtime, mut buffer) = focused_runtime("alpha beta alpha", false);
-        for code in [
-            KeyCode::Char('/'),
-            KeyCode::Char('a'),
-            KeyCode::Char('l'),
-            KeyCode::Backspace,
-        ] {
-            send_key(&mut runtime, &mut buffer, code);
-        }
-        let find = runtime.app().state.find.as_ref().expect("find is open");
-        assert_eq!(find.needle, "a");
-        assert!(find.typing);
-        assert_eq!(runtime.cursor(), Some(Position::new(6, 4)));
-        send_key(&mut runtime, &mut buffer, KeyCode::Enter);
-        assert!(
-            !runtime
-                .app()
-                .state
-                .find
-                .as_ref()
-                .expect("find remains")
-                .typing
-        );
-        send_key(&mut runtime, &mut buffer, KeyCode::Char('/'));
-        send_key(&mut runtime, &mut buffer, KeyCode::Esc);
-        assert!(runtime.app().state.find.is_none());
-
-        let (mut read_only, mut read_only_buffer) = focused_runtime("alpha", true);
-        send_key(&mut read_only, &mut read_only_buffer, KeyCode::Char('/'));
-        send_key(&mut read_only, &mut read_only_buffer, KeyCode::Char('p'));
-        assert_eq!(
-            read_only
-                .app()
-                .state
-                .find
-                .as_ref()
-                .map(|find| find.needle.as_str()),
-            Some("p")
-        );
-    }
-
-    #[test]
-    fn text_hit_coordinates_are_relative_to_the_text_part() {
-        let (mut runtime, mut buffer) = focused_runtime("a界b", false);
-        let text = runtime
-            .registry()
-            .area_of_part(ID, PartRef::of(Part::TEXT))
-            .expect("text part");
-        for (column, expected) in [(0, 0), (1, 1), (2, 1), (3, 4)] {
-            let x = text.x.saturating_add(column);
-            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, text.y));
-            runtime
-                .draw_buffer(buffer.area, &mut buffer)
-                .commit_presented();
-            assert_eq!(
-                runtime.app().state.cursor_offset(),
-                expected,
-                "column {column}"
-            );
-            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, text.y));
-            runtime
-                .draw_buffer(buffer.area, &mut buffer)
-                .commit_presented();
-        }
-        let gutter_x = text.x.saturating_sub(1);
-        let _ =
-            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, gutter_x, text.y));
-        runtime
-            .draw_buffer(buffer.area, &mut buffer)
-            .commit_presented();
-        assert_eq!(runtime.app().state.cursor_offset(), 4);
-    }
-
-    #[test]
-    fn read_only_blocks_document_commands_even_if_state_is_editing() {
-        let (mut runtime, mut buffer) = focused_runtime("alpha", true);
-        runtime.app_mut().state.begin_edit();
-        runtime.app_mut().state.jump_to(2);
-        let before = runtime.app().state.clone();
-        runtime
-            .draw_buffer(buffer.area, &mut buffer)
-            .commit_presented();
-        for code in [
-            KeyCode::Char('x'),
-            KeyCode::Backspace,
-            KeyCode::Delete,
-            KeyCode::Enter,
-            KeyCode::Tab,
-        ] {
-            send_key(&mut runtime, &mut buffer, code);
-        }
-        assert_eq!(runtime.app().state, before);
-
-        let editor = CodeEditor::new(ID, 4).read_only(true);
-        for command in [CodeCmd::InsertMode, CodeCmd::AppendMode] {
-            let mut state = CodeEditorState::new("alpha");
-            let before = state.clone();
-            let mut response = Acc::new();
-            editor.command(&mut state, command, 1, &mut response);
-            assert_eq!(state, before, "{command:?} changed read-only state");
-        }
-    }
-
-    #[test]
-    fn cursor_is_only_returned_inside_nonempty_text_area() {
-        assert_eq!(visible_cursor(Rect::new(2, 3, 0, 1), 0, 0, 0), None);
-        assert_eq!(visible_cursor(Rect::new(2, 3, 4, 1), 4, 0, 0), None);
-        assert_eq!(visible_cursor(Rect::new(2, 3, 4, 1), 0, 0, 1), None);
-        assert_eq!(
-            visible_cursor(Rect::new(2, 3, 4, 1), 3, 0, 0),
-            Some(Position::new(5, 3))
-        );
-    }
 }

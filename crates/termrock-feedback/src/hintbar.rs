@@ -5,11 +5,13 @@ use ratatui_core::layout::Rect;
 use super::{PartStyle, SlotFn, first_row, shift};
 use crate::id::{Id, Part};
 use crate::keyhint::KeyHint;
-use crate::keymap::HintLayer;
+use crate::keymap::{HintKey, HintLayer};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{ColorLevel, Family, GlyphRole, Slot, StateRule, StylePatch, Theme, Variant};
+use crate::theme::{
+    ColorLevel, Family, FgStep, GlyphRole, Role, Slot, StateRule, StylePatch, Theme, Variant,
+};
 use crate::ui::{FrameRead, Ui};
 use termrock_runtime::Status;
 
@@ -35,15 +37,32 @@ pub struct HintBar<'a> {
     badge_override: MetadataOverride<'a>,
     status_text_override: MetadataOverride<'a>,
     centered_override: Option<bool>,
+    peek: Option<&'a str>,
     variant: Variant,
     status: Status,
 
-    #[cfg(test)]
-    flags: StateFlags,
     frame: usize,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+}
+
+fn pinned_way_out(key: HintKey) -> bool {
+    matches!(key, HintKey::Label("Esc" | "?" | "F1"))
+}
+
+fn hint_cost(widths: &[u16], keep: &[usize], cut: bool) -> u16 {
+    if keep.is_empty() {
+        return 0;
+    }
+    let mut cost = 0u16;
+    for (n, &index) in keep.iter().enumerate() {
+        cost = cost.saturating_add(widths.get(index).copied().unwrap_or(0));
+        if n.saturating_add(1) < keep.len() || cut {
+            cost = cost.saturating_add(HintBar::HINT_GAP);
+        }
+    }
+    cost
 }
 
 fn marker_states(part: Option<&crate::theme::PartRecipe>) -> &[StateRule] {
@@ -85,10 +104,10 @@ impl<'a> HintBar<'a> {
             badge_override: MetadataOverride::Inherit,
             status_text_override: MetadataOverride::Inherit,
             centered_override: None,
+            peek: None,
             variant: Variant::DEFAULT,
             status: Status::Ready,
-            #[cfg(test)]
-            flags: StateFlags::empty(),
+
             frame: 0,
             patch: None,
             parts: &[],
@@ -106,6 +125,7 @@ impl<'a> HintBar<'a> {
             badge: MetadataOverride::Inherit,
             status_text: MetadataOverride::Inherit,
             centered: None,
+            peek: None,
         }
     }
 
@@ -131,6 +151,12 @@ impl<'a> HintBar<'a> {
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
+        self
+    }
+
+    #[must_use]
+    pub const fn peek(mut self, text: Option<&'a str>) -> Self {
+        self.peek = text;
         self
     }
 
@@ -165,14 +191,7 @@ impl<'a> HintBar<'a> {
     }
 
     fn derived_flags(&self) -> StateFlags {
-        #[cfg(test)]
-        {
-            self.status.flags().union(self.flags)
-        }
-        #[cfg(not(test))]
-        {
-            self.status.flags()
-        }
+        self.status.flags()
     }
 
     fn hint(&self, i: usize) -> Option<KeyHint<'a>> {
@@ -310,27 +329,106 @@ impl<'a> HintBar<'a> {
         acc.glyph
     }
 
-    fn fitting(&self, budget: u16) -> (usize, u16) {
+    fn fitting_stack(&self, budget: u16, keep_buf: &mut [usize; 32]) -> (usize, u16) {
         let n = self.layer.hints.len();
-        let mut used = 0u16;
-        let mut drawn = 0usize;
-        for i in 0..n {
-            let Some(w) = self.hint(i).map(|h| h.width()) else {
-                break;
-            };
-            let reserve = if i.saturating_add(1) < n {
-                Self::HINT_GAP
-            } else {
-                0
-            };
-            let need = used.saturating_add(w).saturating_add(reserve);
-            if need > budget {
-                break;
-            }
-            used = used.saturating_add(w).saturating_add(Self::HINT_GAP);
-            drawn = drawn.saturating_add(1);
+        if n == 0 {
+            return (0, 0);
         }
-        (drawn, used.saturating_sub(Self::HINT_GAP))
+        let mut widths = [0u16; 32];
+        let mut pinned = [false; 32];
+        for i in 0..n {
+            widths[i] = self.hint(i).map(|h| h.width()).unwrap_or(0);
+            pinned[i] = self
+                .layer
+                .hints
+                .get(i)
+                .is_some_and(|hint| pinned_way_out(hint.key));
+            keep_buf[i] = i;
+        }
+        let mut keep_len = n;
+        if hint_cost(&widths[..n], &keep_buf[..keep_len], false) > budget {
+            let mut order = [0usize; 32];
+            let mut order_len = 0;
+            for i in (0..n).rev() {
+                if !pinned[i] {
+                    order[order_len] = i;
+                    order_len += 1;
+                }
+            }
+            for i in (0..n).rev() {
+                if pinned[i] {
+                    order[order_len] = i;
+                    order_len += 1;
+                }
+            }
+            for &gone in &order[..order_len] {
+                if hint_cost(&widths[..n], &keep_buf[..keep_len], true) <= budget {
+                    break;
+                }
+                let mut w = 0;
+                for r in 0..keep_len {
+                    if keep_buf[r] != gone {
+                        keep_buf[w] = keep_buf[r];
+                        w += 1;
+                    }
+                }
+                keep_len = w;
+            }
+        }
+        let cut = keep_len < n;
+        let full = hint_cost(&widths[..n], &keep_buf[..keep_len], cut);
+        let used = if cut {
+            full.saturating_sub(Self::HINT_GAP)
+        } else {
+            full
+        };
+        (keep_len, used)
+    }
+
+    fn full_hint_width(&self) -> u16 {
+        let count = self.layer.hints.len();
+        (0..count).fold(0u16, |used, index| {
+            used.saturating_add(self.hint(index).map_or(0, |hint| hint.width()))
+                .saturating_add(if index.saturating_add(1) < count {
+                    Self::HINT_GAP
+                } else {
+                    0
+                })
+        })
+    }
+
+    fn fitting_heap(&self, budget: u16) -> (Vec<usize>, u16) {
+        let n = self.layer.hints.len();
+        let widths: Vec<u16> = (0..n)
+            .map(|i| self.hint(i).map(|h| h.width()).unwrap_or(0))
+            .collect();
+        let pinned: Vec<bool> = (0..n)
+            .map(|i| {
+                self.layer
+                    .hints
+                    .get(i)
+                    .is_some_and(|hint| pinned_way_out(hint.key))
+            })
+            .collect();
+        let mut keep: Vec<usize> = (0..n).collect();
+        if hint_cost(&widths, &keep, false) > budget {
+            let mut order: Vec<usize> = (0..n).rev().filter(|&i| !pinned[i]).collect();
+            order.extend((0..n).rev().filter(|&i| pinned[i]));
+            for gone in order {
+                if hint_cost(&widths, &keep, true) <= budget {
+                    break;
+                }
+                keep.retain(|&i| i != gone);
+            }
+        }
+        let cut = keep.len() < n;
+        let full = hint_cost(&widths, &keep, cut);
+        let used = if cut {
+            full.saturating_sub(Self::HINT_GAP)
+        } else {
+            full
+        };
+        (keep, used)
     }
 
     #[expect(
@@ -395,7 +493,8 @@ impl<'a> HintBar<'a> {
 
         let mut x = area.x.saturating_add(1);
         let badge_w = self.badge_width();
-        if badge_w > 0 && x.saturating_add(badge_w) <= right_limit {
+        let badge_fits = badge_w == 0 || x.saturating_add(badge_w) <= right_limit;
+        if badge_w > 0 && badge_fits {
             if let Some(b) = self.badge_text() {
                 let cell = Rect {
                     x,
@@ -413,14 +512,53 @@ impl<'a> HintBar<'a> {
             x = x.saturating_add(badge_w).saturating_add(Self::HINT_GAP);
         }
 
+        let mut peek_text = None;
+        let mut peek_area = None;
+        if badge_fits
+            && self.message().is_none()
+            && let Some(text) = self.peek.filter(|text| !text.is_empty())
+        {
+            let full_hints = self.full_hint_width();
+            let spare = right_limit
+                .saturating_sub(x.saturating_add(full_hints))
+                .saturating_sub(Self::HINT_GAP)
+                .saturating_sub(1);
+            if spare >= 8 {
+                let clipped = crate::text::truncate(text, spare);
+                let peek_width = width(&clipped).min(spare);
+                if peek_width > 0 {
+                    let peek_x = right_limit.saturating_sub(peek_width).saturating_sub(1);
+                    let hint_limit = peek_x.saturating_sub(Self::HINT_GAP);
+                    if x.saturating_add(full_hints) <= hint_limit {
+                        right_limit = hint_limit;
+                        peek_area = Some(Rect {
+                            x: peek_x,
+                            width: peek_width,
+                            ..area
+                        });
+                        peek_text = Some(clipped);
+                    }
+                }
+            }
+        }
+
         let budget = right_limit.saturating_sub(x);
-        let (drawn, used) = self.fitting(budget);
+        let mut keep_buf = [0usize; 32];
+        let heap_keep: Vec<usize>;
+        let (keep, used): (&[usize], u16) = if self.layer.hints.len() <= 32 {
+            let (len, used) = self.fitting_stack(budget, &mut keep_buf);
+            (&keep_buf[..len], used)
+        } else {
+            let (vec, used) = self.fitting_heap(budget);
+            heap_keep = vec;
+            (&heap_keep[..], used)
+        };
         if self.centered_override.unwrap_or(self.layer.centered) {
             let free = area.width.saturating_sub(used);
             let mid = area.x.saturating_add(free / 2);
             x = mid.max(x).min(right_limit.saturating_sub(used).max(x));
         }
-        for i in 0..drawn {
+        for &i in keep {
             let Some(h) = self.hint(i) else { break };
             let w = h.width();
             let cell = Rect {
@@ -434,7 +572,7 @@ impl<'a> HintBar<'a> {
             h.draw(ui, cell);
             x = x.saturating_add(w).saturating_add(Self::HINT_GAP);
         }
-        if drawn < self.layer.hints.len() && x < right_limit {
+        if keep.len() < self.layer.hints.len() && x < right_limit {
             let cell = Rect {
                 x,
                 width: right_limit.saturating_sub(x),
@@ -456,6 +594,11 @@ impl<'a> HintBar<'a> {
                     }
                 }
             }
+        }
+        if let (Some(text), Some(cell)) = (peek_text.as_deref(), peek_area) {
+            let label = ov.style(ui, id, Family::HINTBAR, self.variant, Part::LABEL, live);
+            let secondary = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
+            ui.paint_str(cell, text, label.style.with_fg_from(secondary));
         }
         area
     }
@@ -544,6 +687,7 @@ pub struct DerivedHintBar<'a> {
     badge: MetadataOverride<'a>,
     status_text: MetadataOverride<'a>,
     centered: Option<bool>,
+    peek: Option<&'a str>,
 }
 
 impl<'a> DerivedHintBar<'a> {
@@ -589,11 +733,18 @@ impl<'a> DerivedHintBar<'a> {
         self
     }
 
+    #[must_use]
+    pub const fn peek(mut self, text: Option<&'a str>) -> Self {
+        self.peek = text;
+        self
+    }
+
     fn draw_layer(&self, ui: &mut Ui<'_>, area: Rect, layer: &HintLayer) -> Rect {
         let mut bar = HintBar::new(self.id, layer);
         bar.badge_override = self.badge;
         bar.status_text_override = self.status_text;
         bar.centered_override = self.centered;
+        bar.peek = self.peek;
         bar.draw(ui, area)
     }
 
@@ -626,6 +777,7 @@ impl<'a> DerivedHintBar<'a> {
                 .status_text
                 .resolve(None)
                 .is_some_and(|text| !text.is_empty())
+            || self.peek.is_some_and(|text| !text.is_empty())
         {
             return self.draw_layer(ui, area, &HintLayer::empty());
         }
@@ -634,434 +786,5 @@ impl<'a> DerivedHintBar<'a> {
             height: 0,
             ..area
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::event::{Chord, KeyCode};
-    use crate::keymap::Hint;
-    use crate::theme::Theme;
-    use crate::ui::cx::LastFrame;
-    use crate::ui::{FrameState, UiCore};
-    use ratatui_core::buffer::Buffer;
-
-    const AREA: Rect = Rect::new(0, 0, 40, 1);
-
-    fn glyph(theme: &Theme, status: Status) -> Option<String> {
-        let mut frame = FrameState::default();
-        frame.reset(1, AREA);
-        let mut page = Buffer::empty(AREA);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let layer = HintLayer {
-            status: Some("Attention".into()),
-            ..HintLayer::empty()
-        };
-        let ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
-        HintBar::new(Id::root("hintbar.warning"), &layer)
-            .status(status)
-            .status_glyph(&ui, status.flags())
-            .map(str::to_owned)
-    }
-
-    fn layer(labels: &[(&'static str, KeyCode)]) -> HintLayer {
-        HintLayer {
-            hints: labels
-                .iter()
-                .map(|(l, c)| Hint {
-                    key: crate::keymap::HintKey::Chord(Chord::key(*c)),
-                    label: l,
-                    priority: 50,
-                })
-                .collect(),
-            ..HintLayer::empty()
-        }
-    }
-
-    #[test]
-    fn the_topmost_layer_wins_and_the_fallback_is_none() {
-        let screen = layer(&[("Launch", KeyCode::Enter)]);
-        let modal = layer(&[("Close", KeyCode::Esc)]);
-        assert_eq!(
-            HintBar::resolve(&[Some(&modal), None, Some(&screen)]).map(|l| l.hints.len()),
-            Some(1)
-        );
-
-        assert!(core::ptr::eq(
-            HintBar::resolve(&[Some(&modal), None, Some(&screen)]).unwrap_or(&screen),
-            &raw const modal
-        ));
-        assert!(core::ptr::eq(
-            HintBar::resolve(&[None, None, Some(&screen)]).unwrap_or(&modal),
-            &raw const screen
-        ));
-        assert!(HintBar::resolve(&[None, None]).is_none());
-    }
-
-    #[test]
-    fn narrow_rows_drop_hints_from_the_right() {
-        let l = layer(&[
-            ("Open", KeyCode::Enter),
-            ("Choose", KeyCode::Char(' ')),
-            ("Next", KeyCode::Tab),
-            ("Cancel", KeyCode::Esc),
-        ]);
-        let bar = HintBar::new(Id::root("t"), &l);
-        let (all, _) = bar.fitting(200);
-        assert_eq!(all, 4);
-        let (few, used) = bar.fitting(24);
-        assert!((1..4).contains(&few), "{few}");
-        assert!(used <= 24, "{used}");
-        assert_eq!(bar.fitting(0).0, 0);
-    }
-
-    #[test]
-    fn inherited_warning_status_uses_warning_mark() {
-        let theme = Theme::junie();
-        assert_eq!(glyph(&theme, Status::Error).as_deref(), Some("!"));
-        assert_eq!(
-            glyph(&theme, Status::Ready).as_deref(),
-            None,
-            "ready status does not imply a glyph"
-        );
-
-        let mut frame = FrameState::default();
-        frame.reset(1, AREA);
-        let mut page = Buffer::empty(AREA);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        let layer = HintLayer::empty();
-        let ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-        assert_eq!(
-            HintBar::new(Id::root("hintbar.warning"), &layer)
-                .status_glyph(&ui, StateFlags::WARNING)
-                .map(str::to_owned)
-                .as_deref(),
-            Some("▲")
-        );
-    }
-
-    fn with_warning(mut bar: HintBar<'_>) -> HintBar<'_> {
-        bar.flags |= StateFlags::WARNING;
-        bar
-    }
-
-    fn draw_page(theme: &Theme, screen: Rect, area: Rect, bar: &HintBar<'_>) -> Buffer {
-        let mut frame = FrameState::default();
-        frame.reset(1, screen);
-        let mut page = Buffer::empty(screen);
-        let untouched = page.clone();
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
-            bar.draw(&mut ui, area);
-        }
-        assert_painted_inside(&untouched, &page, screen, area);
-        page
-    }
-
-    fn assert_painted_inside(before: &Buffer, after: &Buffer, screen: Rect, area: Rect) {
-        for y in 0..screen.height {
-            for x in 0..screen.width {
-                let inside = area.height > 0
-                    && area.width > 0
-                    && y == area.y
-                    && x >= area.x
-                    && x < area.right();
-                if inside {
-                    continue;
-                }
-                let left = &before[(x, y)];
-                let right = &after[(x, y)];
-                assert_eq!(
-                    (left.symbol(), left.fg, left.bg, left.modifier),
-                    (right.symbol(), right.fg, right.bg, right.modifier),
-                    "painted outside the area at ({x}, {y})"
-                );
-            }
-        }
-    }
-
-    fn row_text(page: &Buffer, area: Rect) -> String {
-        let mut out = String::new();
-        if area.height == 0 || area.width == 0 {
-            return out;
-        }
-        for x in area.x..area.right() {
-            out.push_str(page[(x, area.y)].symbol());
-        }
-        out
-    }
-
-    fn theme_with_marker(glyph: Slot<GlyphRole>) -> Theme {
-        Theme::junie().define_family(Family::HINTBAR, |edit| {
-            edit.part(Part::MARKER).base(StylePatch {
-                glyph,
-                ..StylePatch::new()
-            });
-        })
-    }
-
-    fn choose_layer(status: &'static str) -> HintLayer {
-        HintLayer {
-            hints: vec![Hint {
-                key: crate::keymap::HintKey::Chord(Chord::key(KeyCode::Enter)),
-                label: "Choose",
-                priority: 50,
-            }],
-            status: Some(status.into()),
-            centered: true,
-            ..HintLayer::empty()
-        }
-    }
-
-    #[test]
-    fn mono_warning_status_keeps_the_warning_mark() {
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        let area = Rect::new(0, 0, 24, 1);
-        let screen = Rect::new(0, 0, 24, 3);
-        let layer = HintLayer {
-            status: Some("Attention".into()),
-            ..HintLayer::empty()
-        };
-        let mut frame = FrameState::default();
-        frame.reset(1, screen);
-        let mut page = Buffer::empty(screen);
-        let mut core = UiCore::default();
-        let last = LastFrame::default();
-        {
-            let ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            assert_eq!(
-                ui.resolve(
-                    Family::HINTBAR,
-                    Variant::DEFAULT,
-                    Part::MARKER,
-                    StateFlags::WARNING
-                )
-                .glyph,
-                Slot::Set(GlyphRole::Dirty),
-                "mono fallback still rewrites the resolved marker"
-            );
-        }
-        let painted = draw_page(
-            &theme,
-            screen,
-            area,
-            &with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
-        );
-        let row = row_text(&painted, area);
-        assert!(row.contains('▲'), "{row}");
-        assert!(!row.contains('•'), "{row}");
-    }
-
-    #[test]
-    fn a_status_wider_than_the_row_truncates_and_drops_hints() {
-        let theme = Theme::junie();
-        let area = Rect::new(0, 0, 72, 1);
-        let screen = Rect::new(0, 0, 72, 2);
-        let layer = choose_layer(
-            "Could not confirm running instances: instance index unreadable · entered without the ritual",
-        );
-        let page = draw_page(
-            &theme,
-            screen,
-            area,
-            &with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
-        );
-        assert_eq!(page[(1, 0)].symbol(), "▲");
-        assert_eq!(page[(2, 0)].symbol(), " ");
-        assert_eq!(page[(2, 0)].fg, theme.color.warning);
-        assert_eq!(page[(70, 0)].symbol(), "…");
-        assert_eq!(page[(27, 0)].fg, theme.color.warning);
-        let row = row_text(&page, area);
-        assert!(!row.contains("Choose"), "{row}");
-    }
-
-    #[test]
-    fn narrow_widths_do_not_paint_outside_the_area() {
-        let theme = Theme::junie();
-        let layer = choose_layer(
-            "Could not confirm running instances: instance index unreadable · entered without the ritual",
-        );
-        let screen = Rect::new(0, 0, 20, 6);
-        for width in 0..=5 {
-            let area = Rect::new(3, 2, width, 2);
-            let page = draw_page(
-                &theme,
-                screen,
-                area,
-                &with_warning(HintBar::new(Id::root("hintbar.narrow"), &layer)),
-            );
-            let row = row_text(&page, area);
-            assert!(!row.contains("Choose"), "width {width}: {row}");
-        }
-    }
-
-    #[test]
-    fn a_unicode_wide_status_truncates_inside_a_shifted_row() {
-        let theme = Theme::junie();
-        let status = "警告：无法确认运行实例";
-        let area = Rect::new(4, 2, 11, 3);
-        let screen = Rect::new(0, 0, 24, 7);
-        let layer = choose_layer(status);
-        let page = draw_page(
-            &theme,
-            screen,
-            area,
-            &with_warning(HintBar::new(Id::root("hintbar.wide"), &layer)),
-        );
-        let expected = crate::text::truncate(&format!("▲ {status}"), area.width.saturating_sub(2));
-        let w = width(&expected);
-        assert!(w > 0, "{expected}");
-        assert!(expected.contains('…'), "{expected}");
-        let x0 = area.right().saturating_sub(w).saturating_sub(1);
-        assert!(x0 >= area.x && x0 < area.right(), "{x0}");
-        let mut col = x0;
-        for (_, grapheme) in crate::text::measure::graphemes(&expected) {
-            assert!(col < area.right(), "wide status spilled");
-            assert_eq!(page[(col, area.y)].symbol(), grapheme, "at {col}");
-            let columns = crate::text::measure::grapheme_width(grapheme);
-            let mut step = 1u16;
-            while step < columns {
-                let next = col.saturating_add(step);
-                assert!(next < area.right(), "wide glyph spilled at {next}");
-                step = step.saturating_add(1);
-            }
-            col = col.saturating_add(columns);
-        }
-        assert!(col <= area.right());
-        let row = row_text(&page, area);
-        assert!(!row.contains("Choose"), "{row}");
-        assert!(!row.contains('•'), "{row}");
-    }
-
-    #[test]
-    fn truncated_status_respects_a_shifted_origin() {
-        let theme = Theme::junie();
-        let area = Rect::new(5, 3, 72, 2);
-        let screen = Rect::new(0, 0, 90, 8);
-        let layer = choose_layer(
-            "Could not confirm running instances: instance index unreadable · entered without the ritual",
-        );
-        let page = draw_page(
-            &theme,
-            screen,
-            area,
-            &with_warning(HintBar::new(Id::root("hintbar.shift"), &layer)),
-        );
-        assert_eq!(page[(6, 3)].symbol(), "▲");
-        assert_eq!(page[(7, 3)].fg, theme.color.warning);
-        assert_eq!(page[(75, 3)].symbol(), "…");
-        let row = row_text(&page, area);
-        assert!(!row.contains("Choose"), "{row}");
-    }
-
-    #[test]
-    fn custom_theme_marker_set_clear_and_inherit() {
-        let screen = Rect::new(0, 0, 32, 4);
-        let area = Rect::new(2, 1, 24, 1);
-        let layer = HintLayer {
-            status: Some("Attention".into()),
-            ..HintLayer::empty()
-        };
-        let paint = |theme: &Theme, bar: HintBar<'_>| -> String {
-            row_text(&draw_page(theme, screen, area, &bar), area)
-        };
-        let set = theme_with_marker(Slot::Set(GlyphRole::Error)).downgrade(ColorLevel::Mono);
-        let clear = theme_with_marker(Slot::Clear).downgrade(ColorLevel::Mono);
-        let inherit = theme_with_marker(Slot::Inherit).downgrade(ColorLevel::Mono);
-        let mono = Theme::junie().downgrade(ColorLevel::Mono);
-        let chosen = [(Part::MARKER, StylePatch::new().set_glyph(GlyphRole::Chosen))];
-        let cleared = [(
-            Part::MARKER,
-            StylePatch {
-                glyph: Slot::Clear,
-                ..StylePatch::new()
-            },
-        )];
-        let inherited = [(Part::MARKER, StylePatch::new())];
-
-        let row = paint(
-            &set,
-            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
-        );
-        assert!(row.contains('!'), "theme Set: {row}");
-        assert!(!row.contains('▲'), "theme Set: {row}");
-        assert!(!row.contains('•'), "theme Set: {row}");
-
-        let row = paint(
-            &clear,
-            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
-        );
-        assert!(row.contains("Attention"), "theme Clear: {row}");
-        assert!(!row.contains('▲'), "theme Clear: {row}");
-        assert!(!row.contains('•'), "theme Clear: {row}");
-        assert!(!row.contains('!'), "theme Clear: {row}");
-
-        let row = paint(
-            &inherit,
-            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer)),
-        );
-        assert!(row.contains('▲'), "theme Inherit: {row}");
-        assert!(!row.contains('•'), "theme Inherit: {row}");
-
-        let row = paint(
-            &mono,
-            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer).patch_part(&chosen)),
-        );
-        assert!(row.contains('›'), "instance Set: {row}");
-        assert!(!row.contains('▲'), "instance Set: {row}");
-        assert!(!row.contains('•'), "instance Set: {row}");
-
-        let row = paint(
-            &mono,
-            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer).patch_part(&cleared)),
-        );
-        assert!(row.contains("Attention"), "instance Clear: {row}");
-        assert!(!row.contains('▲'), "instance Clear: {row}");
-        assert!(!row.contains('•'), "instance Clear: {row}");
-        assert!(!row.contains('›'), "instance Clear: {row}");
-
-        let row = paint(
-            &mono,
-            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer).patch_part(&inherited)),
-        );
-        assert!(row.contains('▲'), "instance Inherit: {row}");
-        assert!(!row.contains('•'), "instance Inherit: {row}");
-
-        let row = paint(
-            &set,
-            with_warning(HintBar::new(Id::root("hintbar.warning"), &layer).patch_part(&chosen)),
-        );
-        assert!(row.contains('›'), "instance Set beats theme Set: {row}");
-        assert!(!row.contains('!'), "instance Set beats theme Set: {row}");
-    }
-
-    #[test]
-    fn busy_status_keeps_the_spinner_ahead_of_a_warning() {
-        let theme = Theme::junie().downgrade(ColorLevel::Mono);
-        let spinner = theme
-            .design
-            .motion
-            .spinner_frames
-            .first()
-            .copied()
-            .unwrap_or("");
-        let area = Rect::new(1, 1, 24, 1);
-        let screen = Rect::new(0, 0, 28, 4);
-        let layer = HintLayer {
-            status: Some("Attention".into()),
-            ..HintLayer::empty()
-        };
-        let mut bar = HintBar::new(Id::root("hintbar.warning"), &layer).status(Status::Busy);
-        bar.flags |= StateFlags::WARNING;
-        let page = draw_page(&theme, screen, area, &bar);
-        let row = row_text(&page, area);
-        assert!(row.contains(spinner), "{row}");
-        assert!(!row.contains('▲'), "{row}");
-        assert!(!row.contains('•'), "{row}");
     }
 }

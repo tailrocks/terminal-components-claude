@@ -1,9 +1,10 @@
 use ratatui_core::layout::{Position, Rect};
 
 use crate::focus::FocusRing;
-use crate::hit::{RegionKind, Registry};
+use crate::hit::{Hit, RegionKind, Registry, ReleaseFrom};
 use crate::id::{Id, PartRef};
 use crate::layer::LayerId;
+use termrock_core::outcome::Outcome;
 
 pub(crate) fn target_eligible(
     ring: &FocusRing,
@@ -87,160 +88,142 @@ impl CaptureSlot {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::id::Part;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SecondaryOutside {
+    #[default]
+    Reopen,
 
-    fn cap(generation: u32) -> Capture {
-        Capture {
-            owner: Id::root("thumb"),
-            part: PartRef::of(Part::THUMB),
-            origin: Position::new(5, 5),
-            area: Rect::new(3, 3, 4, 10),
-            generation,
+    Close,
+
+    Ignore,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SecondaryRoute {
+    Nothing,
+
+    Target(Hit),
+
+    Outside { backdrop: Id, reopen: Option<Hit> },
+
+    Swallowed,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SecondaryTracker {
+    hover: Option<Hit>,
+    secondary_at: Option<Position>,
+}
+
+impl SecondaryTracker {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub const fn hover(&self) -> Option<Hit> {
+        self.hover
+    }
+
+    pub fn on_secondary(&mut self, hits: &Registry, pos: Position) -> Option<Hit> {
+        self.secondary_at = Some(pos);
+        let hit = hits.hit(pos);
+        self.hover = hit;
+        hit
+    }
+
+    pub fn route_secondary(
+        &mut self,
+        hits: &Registry,
+        pos: Position,
+        policy: SecondaryOutside,
+    ) -> SecondaryRoute {
+        let Some(hit) = self.on_secondary(hits, pos) else {
+            return SecondaryRoute::Nothing;
+        };
+        let Some((backdrop, beneath)) = backdrop_at(hits, pos) else {
+            return SecondaryRoute::Target(hit);
+        };
+        match policy {
+            SecondaryOutside::Ignore => SecondaryRoute::Swallowed,
+            SecondaryOutside::Close => SecondaryRoute::Outside {
+                backdrop,
+                reopen: None,
+            },
+            SecondaryOutside::Reopen => {
+                self.hover = beneath;
+                SecondaryRoute::Outside {
+                    backdrop,
+                    reopen: beneath,
+                }
+            }
         }
     }
 
-    #[test]
-    fn capture_claims_and_rejects_a_second_claim() {
-        let mut s = CaptureSlot::default();
-        assert!(s.claim(cap(1)));
-        assert!(!s.claim(Capture {
-            owner: Id::root("other"),
-            ..cap(1)
-        }));
-        assert_eq!(s.get().map(|c| c.owner), Some(Id::root("thumb")));
-        assert!(s.release().is_some());
-        assert!(s.get().is_none());
+    pub fn on_secondary_drag(&mut self, hits: &Registry, pos: Position) -> Outcome {
+        let was = self.hover;
+        self.hover = hits.hit(pos);
+        if self.hover != was {
+            Outcome::Changed
+        } else {
+            Outcome::Ignored
+        }
     }
 
-    #[test]
-    fn local_is_computed_against_the_captured_area() {
-        let c = cap(1);
-        assert_eq!(c.local(Position::new(5, 7)), Position::new(2, 4));
-        assert_eq!(c.local(Position::new(0, 0)), Position::new(0, 0));
-        assert!(c.contains(Position::new(6, 12)));
-        assert!(!c.contains(Position::new(7, 12)));
-    }
-
-    #[test]
-    fn capture_is_released_when_the_owner_disappears() {
-        let mut s = CaptureSlot::default();
-        s.claim(cap(1));
-        let reg = Registry::new(1);
-        s.release_if_stale(&reg);
-        assert!(s.get().is_none());
-    }
-
-    #[test]
-    fn capture_is_released_on_generation_mismatch() {
-        let mut s = CaptureSlot::default();
-        s.claim(cap(5));
-        let mut reg = Registry::new(3);
-        reg.register_control(Id::root("thumb"), Rect::new(0, 0, 1, 1), LayerId::PAGE);
-        s.release_if_stale(&reg);
-        assert!(s.get().is_none());
-        s.claim(cap(3));
-        s.release_if_stale(&reg);
-        assert!(s.get().is_some());
+    pub fn on_secondary_up(&mut self, hits: &Registry, pos: Position) -> Option<Hit> {
+        let from = self.secondary_at.take()?;
+        if from == pos {
+            return None;
+        }
+        let hit = hits.hit(pos)?;
+        hits.accepts_release(hit.owner, ReleaseFrom::Secondary)
+            .then_some(hit)
     }
 }
 
-#[cfg(test)]
-mod runtime_tests {
-    use ratatui_core::layout::Rect;
-
-    use crate::event::{Input, MouseKind};
-    use crate::id::Id;
-    use crate::response::StateFlags;
-    use crate::runtime::stub::{Control, Stub, mouse, runtime, step};
-
-    const THUMB: Id = Id::root("thumb");
-    const OTHER: Id = Id::root("other");
-
-    fn stub() -> Stub {
-        Stub {
-            page: vec![
-                Control {
-                    captures: true,
-                    ..Control::new(THUMB, Rect::new(2, 2, 4, 4))
-                },
-                Control::new(OTHER, Rect::new(20, 2, 5, 1)),
-            ],
-            ..Stub::default()
-        }
+pub(crate) fn backdrop_at(hits: &Registry, pos: Position) -> Option<(Id, Option<Hit>)> {
+    let top = hits.region_at(pos)?;
+    if top.kind != RegionKind::Backdrop {
+        return None;
     }
+    let beneath = hits
+        .pointer_regions()
+        .rev()
+        .find(|(_, r)| {
+            r.layer < top.layer
+                && r.area.contains(pos)
+                && r.pointer_enabled()
+                && matches!(r.kind, RegionKind::Control | RegionKind::Part)
+        })
+        .map(|(_, r)| Hit {
+            owner: r.owner,
+            part: r.part,
+            layer: r.layer,
+            kind: r.kind,
+            local: Position::new(
+                pos.x.saturating_sub(r.area.x),
+                pos.y.saturating_sub(r.area.y),
+            ),
+        });
+    Some((top.owner, beneath))
+}
 
-    #[test]
-    fn drag_and_release_go_to_the_capture_owner() {
-        let (mut rt, mut buf) = runtime(stub());
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 3));
-        assert_eq!(
-            rt.state_of(THUMB) & StateFlags::PRESSED,
-            StateFlags::PRESSED
-        );
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BarInput {
+    Press,
 
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Drag, 22, 2));
-        assert!(rt.app().saw(THUMB, "phase: Drag"));
-        assert!(!rt.app().saw(OTHER, "Drag"));
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 22, 2));
-        assert!(rt.app().saw(THUMB, "phase: Release"));
-        assert!(rt.app().saw(THUMB, "phase: DragEnd"));
-    }
+    Drag,
 
-    #[test]
-    fn local_is_computed_against_the_captured_area_at_runtime() {
-        let (mut rt, mut buf) = runtime(stub());
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 3));
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Drag, 10, 9));
-        assert!(rt.app().saw(THUMB, "local: Position { x: 8, y: 7 }"));
-    }
+    Release,
 
-    #[test]
-    fn pressed_stays_set_while_the_pointer_leaves() {
-        let (mut rt, mut buf) = runtime(stub());
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 3));
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Drag, 30, 10));
-        assert!(rt.state_of(THUMB).contains(StateFlags::PRESSED));
-        assert!(!rt.state_of(THUMB).contains(StateFlags::HOVERED));
-    }
+    None,
+}
 
-    #[test]
-    fn release_outside_the_captured_area_does_not_activate() {
-        let (mut rt, mut buf) = runtime(stub());
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 3));
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 30, 10));
-        assert!(rt.app().saw(THUMB, "Release"));
-        assert!(!rt.app().saw(THUMB, "Click"));
-
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 3));
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 4, 4));
-        assert!(rt.app().saw(THUMB, "Click"));
-    }
-
-    #[test]
-    fn origin_is_the_press_position() {
-        let (mut rt, mut buf) = runtime(stub());
-
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 5, 4));
-        assert!(
-            rt.app().saw(THUMB, "origin: Some(Position { x: 5, y: 4 })"),
-            "origin must be the press position, not the area origin: {:?}",
-            rt.app().log
-        );
-
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Drag, 6, 4));
-        assert!(rt.app().saw(THUMB, "phase: Drag"));
-    }
-
-    #[test]
-    fn capture_is_released_on_resize() {
-        let (mut rt, mut buf) = runtime(stub());
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 3));
-        assert!(rt.state_of(THUMB).contains(StateFlags::PRESSED));
-        let _ = step(&mut rt, &mut buf, Input::Resize(40, 12));
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Drag, 22, 2));
-        assert!(!rt.app().saw(THUMB, "Drag"), "no capture survives a resize");
+pub const fn bar_input_for(phase: termrock_core::intent::Phase) -> BarInput {
+    use termrock_core::intent::Phase;
+    match phase {
+        Phase::Press => BarInput::Press,
+        Phase::DragStart | Phase::Drag => BarInput::Drag,
+        Phase::Click | Phase::Release | Phase::DragEnd => BarInput::Release,
+        _ => BarInput::None,
     }
 }

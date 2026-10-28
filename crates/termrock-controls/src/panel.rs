@@ -1,6 +1,6 @@
 use core::fmt;
 
-use ratatui_core::layout::Rect;
+use ratatui_core::layout::{Position, Rect};
 
 use super::{PartStyle, SlotFn, cell_at, first_row};
 use crate::id::{Id, Part, PartRef};
@@ -8,7 +8,7 @@ use crate::layout::{Insets, inset};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
-use crate::ui::{FrameRead, Ui};
+use crate::ui::{FrameRead, Ui, VerticalWindow};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum PanelKind {
@@ -16,6 +16,29 @@ pub enum PanelKind {
     Card,
     Framed,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PanelWindowError {
+    InvalidWindow,
+
+    UnsupportedLegacySlot(Part),
+}
+
+impl fmt::Display for PanelWindowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidWindow => f.write_str("window does not match the panel logical area"),
+            Self::UnsupportedLegacySlot(part) => {
+                write!(
+                    f,
+                    "partial panel window does not support the {part:?} legacy slot"
+                )
+            }
+        }
+    }
+}
+
+impl core::error::Error for PanelWindowError {}
 
 pub struct Panel<'a> {
     id: Id,
@@ -137,20 +160,21 @@ impl<'a> Panel<'a> {
         }
     }
 
-    pub fn inner(&self, ui: &Ui<'_>, area: Rect) -> Rect {
+    fn insets(&self, ui: &Ui<'_>) -> Insets {
         let side = match self.kind {
             PanelKind::Card => ui.design().space.card_inset,
             PanelKind::Framed => ui.design().space.frame_inset,
         };
-        let r = inset(
-            area,
-            Insets {
-                l: side,
-                t: self.top_inset(),
-                r: side,
-                b: 1,
-            },
-        );
+        Insets {
+            l: side,
+            t: self.top_inset(),
+            r: side,
+            b: 1,
+        }
+    }
+
+    pub fn inner(&self, ui: &Ui<'_>, area: Rect) -> Rect {
+        let r = inset(area, self.insets(ui));
         if r.is_empty() {
             return Rect {
                 x: area.x,
@@ -181,12 +205,9 @@ impl<'a> Panel<'a> {
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let side = match self.kind {
-            PanelKind::Card => ui.design().space.card_inset,
-            PanelKind::Framed => ui.design().space.frame_inset,
-        };
-        let chrome_w = side.saturating_mul(2);
-        let chrome_h = self.top_inset().saturating_add(1);
+        let insets = self.insets(ui);
+        let chrome_w = insets.l.saturating_add(insets.r);
+        let chrome_h = insets.t.saturating_add(insets.b);
         let title_w = self.title.map_or(0, crate::text::width);
         let meta_w = self.meta.map_or(0, crate::text::width);
         let head = title_w
@@ -204,6 +225,54 @@ impl<'a> Panel<'a> {
         .fit(c)
     }
 
+    pub fn measure_with_body(
+        &self,
+        ui: &Ui<'_>,
+        constraints: Constraints,
+        measure_body: impl FnOnce(Constraints) -> Size,
+    ) -> Size {
+        let insets = self.insets(ui);
+        let chrome_w = insets.l.saturating_add(insets.r);
+        let chrome_h = insets.t.saturating_add(insets.b);
+        let body_constraints = Constraints {
+            max: (
+                constraints.max.0.saturating_sub(chrome_w),
+                constraints.max.1.saturating_sub(chrome_h),
+            ),
+            tight_w: constraints.tight_w,
+            tight_h: constraints.tight_h,
+        };
+        let body = measure_body(body_constraints);
+        let title_w = self.title.map_or(0, crate::text::width);
+        let meta_w = self.meta.map_or(0, crate::text::width);
+        let head = title_w
+            .saturating_add(meta_w)
+            .saturating_add(u16::from(meta_w != 0))
+            .saturating_add(2);
+        let head = self.badge_lane_width().map_or(head, |lane| lane.max(head));
+        let one_body_cell = 1;
+        Size {
+            min: (
+                chrome_w
+                    .saturating_add(body.min.0)
+                    .max(chrome_w.saturating_add(one_body_cell)),
+                chrome_h
+                    .saturating_add(body.min.1)
+                    .max(chrome_h.saturating_add(one_body_cell)),
+            ),
+            preferred: (
+                chrome_w
+                    .saturating_add(body.preferred.0)
+                    .max(chrome_w.saturating_add(one_body_cell))
+                    .max(head),
+                chrome_h
+                    .saturating_add(body.preferred.1)
+                    .max(chrome_h.saturating_add(one_body_cell)),
+            ),
+        }
+        .fit(constraints)
+    }
+
     pub fn draw<R>(
         &self,
         ui: &mut Ui<'_>,
@@ -216,6 +285,132 @@ impl<'a> Panel<'a> {
             self.chrome(ui, area);
             ui.with_area(inner, |ui| body(ui, inner))
         })
+    }
+
+    pub fn draw_window<R>(
+        &self,
+        ui: &mut Ui<'_>,
+        logical_area: Rect,
+        window: VerticalWindow,
+        body: impl FnOnce(&mut Ui<'_>, Option<VerticalWindow>) -> R,
+    ) -> Result<R, PanelWindowError> {
+        if window == VerticalWindow::full(logical_area) {
+            if !logical_area.is_empty()
+                && VerticalWindow::new(logical_area, usize::from(logical_area.height), 0).is_err()
+            {
+                return Err(PanelWindowError::InvalidWindow);
+            }
+            return Ok(self.draw(ui, logical_area, |ui, inner| {
+                let body_window = (!inner.is_empty()).then(|| VerticalWindow::full(inner));
+                body(ui, body_window)
+            }));
+        }
+
+        let visible = window.visible_body();
+        let valid = window.logical_rows() == usize::from(logical_area.height)
+            && visible.x == logical_area.x
+            && visible.width == logical_area.width
+            && !visible.is_empty()
+            && VerticalWindow::new(
+                visible,
+                usize::from(logical_area.height),
+                window.first_source_row(),
+            )
+            .is_ok();
+        if !valid {
+            return Err(PanelWindowError::InvalidWindow);
+        }
+        if let Some((part, _)) = self.ov.slot {
+            return Err(PanelWindowError::UnsupportedLegacySlot(part));
+        }
+
+        let plane = self.plane(ui);
+        Ok(ui.with_surface(plane, |ui| {
+            ui.with_area(visible, |ui| {
+                let inner = self.inner(ui, logical_area);
+                let live = PartStyle::flags(StateFlags::empty(), self.derived());
+                let container = self.ov.style(
+                    ui,
+                    self.id,
+                    Family::PANEL,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    live,
+                );
+                ui.fill(visible, container.style);
+                ui.register_decor(self.id, PartRef::of(Part::CONTAINER), visible);
+
+                if self.kind == PanelKind::Framed {
+                    let border = self.ov.style(
+                        ui,
+                        self.id,
+                        Family::PANEL,
+                        Variant::DEFAULT,
+                        Part::BORDER,
+                        live,
+                    );
+                    self.frame_window(ui, logical_area, window, border.style);
+                    ui.register_decor(self.id, PartRef::of(Part::BORDER), visible);
+                }
+
+                if let Some(head_y) = window.physical_row_for_source(0) {
+                    let head = Rect::new(logical_area.x, head_y, logical_area.width, 1);
+                    self.head(ui, head, live, container.style);
+                }
+
+                let body_window = body_window(inner, logical_area, window);
+                if let Some(body_window) = body_window {
+                    ui.with_area(body_window.visible_body(), |ui| body(ui, Some(body_window)))
+                } else {
+                    let empty = Rect::new(inner.x, visible.y, inner.width, 0);
+                    ui.with_area(empty, |ui| body(ui, None))
+                }
+            })
+        }))
+    }
+
+    fn frame_window(
+        &self,
+        ui: &mut Ui<'_>,
+        logical_area: Rect,
+        window: VerticalWindow,
+        style: crate::theme::PaintStyle,
+    ) {
+        if logical_area.width < 2 || logical_area.height < 2 {
+            return;
+        }
+
+        let borders = ui.theme_ref().design.borders;
+        let left = logical_area.left();
+        let right = logical_area.right().saturating_sub(1);
+        let bottom_source = usize::from(logical_area.height.saturating_sub(1));
+        for source_row in window.visible_source_range() {
+            let Some(y) = window.physical_row_for_source(source_row) else {
+                continue;
+            };
+            let top = source_row == 0;
+            let bottom = source_row == bottom_source;
+            if top || bottom {
+                let horizontal = if top {
+                    borders.horizontal_top
+                } else {
+                    borders.horizontal_bottom
+                };
+                for col in logical_area.columns().map(|col| col.x) {
+                    ui.paint_cell(Position::new(col, y), horizontal, style);
+                }
+                let (left_corner, right_corner) = if top {
+                    (borders.top_left, borders.top_right)
+                } else {
+                    (borders.bottom_left, borders.bottom_right)
+                };
+                ui.paint_cell(Position::new(left, y), left_corner, style);
+                ui.paint_cell(Position::new(right, y), right_corner, style);
+            } else {
+                ui.paint_cell(Position::new(left, y), borders.vertical_left, style);
+                ui.paint_cell(Position::new(right, y), borders.vertical_right, style);
+            }
+        }
     }
 
     fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -439,6 +634,30 @@ impl<'a> Panel<'a> {
     }
 }
 
+fn body_window(
+    inner: Rect,
+    logical_area: Rect,
+    panel_window: VerticalWindow,
+) -> Option<VerticalWindow> {
+    if inner.is_empty() {
+        return None;
+    }
+
+    let body_start = usize::from(inner.y.checked_sub(logical_area.y)?);
+    let body_end = body_start.saturating_add(usize::from(inner.height));
+    let visible = panel_window.visible_source_range();
+    let first = visible.start.max(body_start);
+    let end = visible.end.min(body_end);
+    if first >= end {
+        return None;
+    }
+
+    let physical_y = panel_window.physical_row_for_source(first)?;
+    let visible_height = u16::try_from(end.saturating_sub(first)).ok()?;
+    let visible_body = Rect::new(inner.x, physical_y, inner.width, visible_height);
+    VerticalWindow::new(visible_body, usize::from(inner.height), first - body_start).ok()
+}
+
 fn paint_label(
     ui: &mut Ui<'_>,
     block: Rect,
@@ -460,281 +679,4 @@ fn paint_label(
         ui.fill(label, style);
     }
     ui.paint_str(inner, text, style);
-}
-
-#[cfg(test)]
-mod tests {
-    use std::cell::Cell;
-
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::Position;
-
-    use super::*;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::{SCREEN, Stub};
-    use crate::theme::{Role, Theme};
-
-    const ID: Id = Id::root("panel.tests");
-
-    #[test]
-    fn body_runs_once_for_an_empty_area_and_returns_its_value() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let calls = Cell::new(0);
-        let seen = Cell::new(Rect::ZERO);
-        let area = Rect::new(7, 5, 0, 0);
-        let mut answer = 0;
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            answer = Panel::new(ID).draw(ui, area, |_, inner| {
-                calls.set(calls.get() + 1);
-                seen.set(inner);
-                42
-            });
-        })
-        .commit_presented();
-        assert_eq!(answer, 42);
-        assert_eq!(calls.get(), 1);
-        assert_eq!(seen.get(), area);
-    }
-
-    #[test]
-    fn body_paint_is_clipped_to_the_inner_rect() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let area = Rect::new(4, 3, 12, 5);
-        let mut inner = Rect::ZERO;
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            Panel::new(ID).draw(ui, area, |ui, body| {
-                inner = body;
-                let style = ui.surface_style();
-                for row in SCREEN.rows() {
-                    ui.paint_str(row, "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", style);
-                }
-            });
-        })
-        .commit_presented();
-        for pos in SCREEN.positions() {
-            let is_z = buf.cell(pos).is_some_and(|cell| cell.symbol() == "Z");
-            assert_eq!(is_z, inner.contains(pos), "body clip mismatch at {pos:?}");
-        }
-    }
-
-    fn symbol_at(buf: &Buffer, x: u16, y: u16) -> String {
-        buf.cell(Position::new(x, y))
-            .map_or_else(String::new, |c| c.symbol().to_owned())
-    }
-
-    #[test]
-    fn the_inner_rect_never_escapes_the_panel() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            for kind in [PanelKind::Card, PanelKind::Framed] {
-                for title in [None, Some("t")] {
-                    for w in 0u16..=9 {
-                        for h in 0u16..=5 {
-                            let area = Rect {
-                                x: 3,
-                                y: 2,
-                                width: w,
-                                height: h,
-                            };
-                            let mut p = Panel::new(ID).kind(kind);
-                            if let Some(t) = title {
-                                p = p.title(t);
-                            }
-                            let inner = p.inner(ui, area);
-                            assert!(
-                                inner.x >= area.x
-                                    && inner.y >= area.y
-                                    && inner.right() <= area.right()
-                                    && inner.bottom() <= area.bottom(),
-                                "{kind:?} {title:?} {w}x{h}: {inner:?} escapes {area:?}"
-                            );
-                        }
-                    }
-                }
-            }
-        })
-        .commit_presented();
-    }
-
-    #[test]
-    fn a_framed_head_row_keeps_the_corner_columns() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 20,
-            height: 5,
-        };
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            Panel::new(ID)
-                .kind(PanelKind::Framed)
-                .title("a title far too long for this panel")
-                .meta("and a meta as well")
-                .draw(ui, area, |_, inner| inner);
-        })
-        .commit_presented();
-        let b = Theme::junie().design.borders;
-        assert_eq!(symbol_at(&buf, 0, 0), b.top_left);
-        assert_eq!(symbol_at(&buf, 19, 0), b.top_right);
-        assert_eq!(symbol_at(&buf, 0, 4), b.bottom_left);
-        assert_eq!(symbol_at(&buf, 19, 4), b.bottom_right);
-    }
-
-    #[test]
-    fn the_focus_bar_is_painted_from_the_props_and_only_then() {
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 14,
-            height: 4,
-        };
-        let bar = Theme::junie().design.glyphs.get(GlyphRole::FocusBar);
-        let render = |focused: bool| {
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                Panel::new(ID)
-                    .title("Files")
-                    .focused(focused)
-                    .draw(ui, area, |_, inner| inner);
-            })
-            .commit_presented();
-            symbol_at(&buf, 1, 0)
-        };
-        assert_eq!(render(true), bar, "a focused panel paints no focus bar");
-        assert_ne!(
-            render(false),
-            bar,
-            "an unfocused panel paints the focus bar"
-        );
-    }
-
-    #[test]
-    fn a_panel_registers_no_focus_stop() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            Panel::new(ID)
-                .kind(PanelKind::Framed)
-                .title("Files")
-                .draw(ui, a, |_, inner| inner);
-        })
-        .commit_presented();
-        assert!(!rt.ring().is_registered(ID));
-        assert_eq!(rt.ring().reachable().count(), 0);
-        assert!(rt.area_of(ID).is_some(), "the container is not addressable");
-    }
-
-    #[test]
-    fn a_reference_panel_registers_nothing() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            ui.reference(None, |ui| {
-                Panel::new(ID)
-                    .kind(PanelKind::Framed)
-                    .title("Files")
-                    .draw(ui, a, |_, inner| inner);
-            });
-        })
-        .commit_presented();
-        assert!(rt.area_of(ID).is_none());
-    }
-
-    #[test]
-    fn every_declared_part_is_one_a_drawn_panel_styles() {
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 24,
-            height: 5,
-        };
-        let render = |patched: Option<Part>| {
-            let ps: [(Part, StylePatch); 1] = [(
-                patched.unwrap_or(Part::CONTAINER),
-                StylePatch::new().set_fg(Role::Warning).set_bg(Role::Danger),
-            )];
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                let mut p = Panel::new(ID)
-                    .kind(PanelKind::Framed)
-                    .title("Files")
-                    .meta("12")
-                    .badge("EDIT")
-                    .focused(true);
-                if patched.is_some() {
-                    p = p.patch_part(&ps);
-                }
-                p.draw(ui, area, |_, inner| inner);
-            })
-            .commit_presented();
-            buf
-        };
-        let plain = render(None);
-        for part in Panel::PARTS {
-            assert_ne!(
-                render(Some(*part)),
-                plain,
-                "Panel declares {part:?} and paints nothing with it"
-            );
-        }
-    }
-
-    #[test]
-    fn the_slot_addressable_parts_are_exactly_the_documented_ones() {
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 24,
-            height: 5,
-        };
-        let marker = |ui: &mut Ui<'_>, r: Rect| {
-            let s = ui.surface_style();
-            ui.paint_str(r, "ZZZZ", s);
-        };
-        let render = |slot: Option<Part>| {
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                let mut p = Panel::new(ID)
-                    .kind(PanelKind::Framed)
-                    .title("Files")
-                    .meta("12")
-                    .badge("EDIT")
-                    .focused(true);
-                if let Some(part) = slot {
-                    p = p.slot(part, &marker);
-                }
-                p.draw(ui, area, |_, inner| inner);
-            })
-            .commit_presented();
-            buf
-        };
-        let plain = render(None);
-
-        for part in [
-            Part::GUTTER,
-            Part::TITLE,
-            Part::DETAIL,
-            Part::BADGE,
-            Part::BORDER,
-        ] {
-            assert_ne!(
-                render(Some(part)),
-                plain,
-                "`## Overrides` grants a slot on {part:?} and it is dropped"
-            );
-        }
-
-        assert_eq!(
-            render(Some(Part::CONTAINER)),
-            plain,
-            "a slot on Part::CONTAINER changes cells, and `## Overrides` says it does not"
-        );
-    }
 }

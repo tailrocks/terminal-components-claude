@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 300a97bf8ef78b079cc79acc948894029dbefc3b Alexey Zhokhov <alexey@zhokhov.com> 1792582106 +0700	branch: Created from 300a97bf8ef78b079cc79acc948894029dbefc3b
+300a97bf8ef78b079cc79acc948894029dbefc3b 154495e2bb2da72d5008b12a2e1d874cb86067c1 Alexey Zhokhov <alexey@zhokhov.com> 1792583079 +0700	commit: feat(consumer): add external public consumer crate
+154495e2bb2da72d5008b12a2e1d874cb86067c1 d5d0152f0249eb2b4935d675ac3bb6312fe5eac9 Alexey Zhokhov <alexey@zhokhov.com> 1792583194 +0700	commit: test(consumer): land public consumer contracts and external consumer audit
+d5d0152f0249eb2b4935d675ac3bb6312fe5eac9 0a9be2238b1bd462586d5722f7aa92d98e982a9f Alexey Zhokhov <alexey@zhokhov.com> 1792583444 +0700	commit (amend): test(consumer): land public consumer contracts and external consumer audit
+0a9be2238b1bd462586d5722f7aa92d98e982a9f e4bd7a4299d923d87deea6adad64f5047f75851a Alexey Zhokhov <alexey@zhokhov.com> 1792583547 +0700	commit (amend): test(consumer): land public consumer contracts and external consumer audit
+e4bd7a4299d923d87deea6adad64f5047f75851a fd1e65243d1f64ea2a6f54ffb09e072c8c369899 Alexey Zhokhov <alexey@zhokhov.com> 1792583586 +0700	commit (amend): test(consumer): land public consumer contracts and external consumer audit

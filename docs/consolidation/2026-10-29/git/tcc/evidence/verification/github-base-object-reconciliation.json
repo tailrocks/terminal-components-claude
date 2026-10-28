@@ -1,0 +1,29 @@
+{
+  "command": [
+    "git",
+    "--git-dir=/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+    "cat-file",
+    "--batch-all-objects",
+    "--batch-check=%(objectname) %(objecttype) %(objectsize)"
+  ],
+  "repository": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+  "started_at_utc": "2026-10-28T19:55:27Z",
+  "ended_at_utc": "2026-10-28T19:55:27Z",
+  "exit_code": 0,
+  "alternates_disabled": true,
+  "expected_baseline_count": 104389,
+  "actual_count": 104389,
+  "missing_count": 0,
+  "missing_first": [],
+  "extra_count": 0,
+  "extra_first": [],
+  "type_size_mismatch_count": 0,
+  "type_size_mismatch_first": [],
+  "malformed_duplicate_count": 0,
+  "malformed_first": [],
+  "stdout_bytes": 5371377,
+  "stdout_sha256": "cdf5c9ceb4757632d9f5c099388bc6c8466285dec58e2c12842b88ab9b74350e",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "matches_exact_f629_closure": true
+}

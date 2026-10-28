@@ -1,0 +1,11 @@
+{
+  "attempt": "preflight-02",
+  "command": "git for-each-ref --format=%(refname)%00%(objectname)%00%(objecttype)%00%(symref)%00%(upstream)",
+  "corrected_command": "git for-each-ref --format=%(refname)%00%(objectname)%00%(objecttype)%00%(upstream)%00%(symref)",
+  "final_archive_created": false,
+  "inventory_refmap_sha256": "0042debff66b9d4fc6b6ffadbc66b6aeb98789d6b70b5d7c6c12742943a044ff",
+  "reason": "read-only ref comparison used symref before upstream; sealed inventory records upstream before symref",
+  "result": "failed-before-output-creation",
+  "source_head": "5af24dcb49a7983eb504ff7db647e099fb491b3a",
+  "source_mutation": "none"
+}

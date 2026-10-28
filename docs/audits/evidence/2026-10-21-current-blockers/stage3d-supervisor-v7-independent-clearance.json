@@ -1,0 +1,77 @@
+{
+  "schema": "termrock.stage3d.supervisor-v7.independent-review.v1",
+  "reviewer": "/root/runner_atomic_step_architect",
+  "created_at_utc": "2026-10-21T02:58:13.375669+00:00",
+  "decision": "CLEARED exact v7 implementation for explicit stage1 preparation only, subject to canonical source publication and exact controlled preflight succeeding. Stages2-8 remain disabled. No actual operation was performed by this review.",
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v7-20261021.py",
+      "sha256": "30bb46c94af9590712d176e9e958978980d06969afe47ded23012d4a76dcd000"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v7-20261021.py",
+      "sha256": "d6569d262c7bc29ef2995fc92778fccea1e17b79d60ed33e095888a740814106"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v7-author-handoff-20261021.json",
+      "sha256": "fc0a9af1ccd9d729905b21e4d1cd04d2168253456f752c7c89f938818604eb82"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v7-independent-tool-probes-20261021.json",
+      "sha256": "7d54ea0f90379ad71a803044e84fb9ebc5f0aead79aa64e2967ed73cec9a16a9"
+    }
+  ],
+  "verification": {
+    "unchanged_tests": {
+      "command": "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15 /Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v7-20261021.py",
+      "exit_status": 0,
+      "tests": 17,
+      "skipped": 0,
+      "elapsed_seconds": 0.292
+    },
+    "independent_real_which_probe": {
+      "case_count": 4,
+      "valid_symlink": "ACCEPTED",
+      "wrong_target": "REJECTED",
+      "dangling": "REJECTED",
+      "changed_reviewed_executable_bytes": "REJECTED",
+      "mocked_which": false,
+      "actual_canonical_runner_invoked": false
+    }
+  },
+  "resolved_findings": [
+    {
+      "id": "V6-1",
+      "status": "RESOLVED",
+      "evidence": "v7 strictly resolves successful lexical which output and the recorded expected path before comparing. The unchanged independent v6 real rustc-to-rustup fixture now passes. Wrong target, dangling entry and changed reviewed executable bytes still reject."
+    }
+  ],
+  "scope_review": [
+    "The v6-to-v7 production diff is confined to strict tool-path normalization and the matching tool_lookup_targets_match report field. It preserves executable SHA verification and controlled PATH selection.",
+    "The previously reviewed stage1-only argv, canonical a468 source SHA00f967a0b603997875bc712ae5d5969c32486aec17a83e1f6317e941f217bc06, independent canonical clearance96305b593325c7014fc7ce42313e27cc414554b5bff23edff2987923c92636ee, readiness47e7c04615b69d552b55396eff0d41c0e34801cf118513c0ed5406edfafa5577 and nine exact482 driver-input hashes remain enforced.",
+    "Stages2-8 are rejected by both official_argv and run_stage before operational preflight or launch. The corrected wrapper never imports canonical private code, reads key bytes or monkeypatches authentication.",
+    "Work budget is computed after preflight from actual220-second time remaining, reserving15seconds canonical cleanup plus5seconds finalization and capping200. The official argv explicitly supplies prepare --owned-lifecycle --owned-budgetN.",
+    "The wrapper signals/reaps only its exact direct Popen canonical child. The canonical reviewed stage1 lifecycle owns Git broker/group cleanup; no Darwin ancestry enumeration or universal PTY containment claim is used.",
+    "Reaped direct child with exit0 and no timeout is required for success. Failure or timeout never becomes a successful stage even if TERM eventually returns0.",
+    "Allowlisted environment, immutable reference packets, all nine driver inputs, selected tool hashes/identities, root absence and exclusive evidence outputs retain the v6 reviewed checks. The current controlled host preflight was intentionally not executed."
+  ],
+  "operational_notes": [
+    "The inherited event schema and log filename prefixes still contain v6. They are labels, not evidence that v6 code was executed. Bind any eventual operation to this exact v7 script SHA and this review packet in the migration record. Existing exclusive output checks prevent silently overwriting prior logs.",
+    "Canonical source publication and remote commit verification remain parent-owned prerequisites. Confirm delivered runner bytes still match the cleared SHA.",
+    "Synchronous uninterruptible filesystem/kernel operations remain an explicit deadline limit; failed or unreaped cleanup is reported unverified, not accepted.",
+    "This review does not approve stage2 preparation, new plan/run/key creation, capture, replay, candidate comparison or product parity. Preserve all old frozen evidence and keys without automatic receipt transfer."
+  ],
+  "preservation": {
+    "author_source_modified": false,
+    "actual_live_preflight": false,
+    "actual_prepare": false,
+    "actual_key_read_or_created": false,
+    "actual_plan_or_journal_mutation": false,
+    "capture_replay_candidate": false,
+    "helpers_spawned": false
+  },
+  "approved_implementation_scope": [
+    "Exact v7 wrapper stage1 with reviewed canonical owned lifecycle"
+  ],
+  "approved_actual_invocations": []
+}

@@ -1,0 +1,37 @@
+   Compiling termrock-core v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-core)
+   Compiling termrock-theme v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-theme)
+   Compiling termrock-layout v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-layout)
+   Compiling termrock-text v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-text)
+   Compiling termrock-render v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-render)
+   Compiling termrock-collections v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-collections)
+   Compiling termrock-runtime v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-runtime)
+   Compiling termrock-controls v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-controls)
+   Compiling termrock-shell v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-shell)
+   Compiling termrock-viewport v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-viewport)
+   Compiling termrock-fields v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-fields)
+   Compiling termrock-feedback v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-feedback)
+   Compiling termrock-terminal v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-terminal)
+   Compiling termrock-session v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-session)
+   Compiling termrock-navigation v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-navigation)
+   Compiling termrock-overlays v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-overlays)
+   Compiling termrock-grid v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-grid)
+   Compiling termrock-forms v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-forms)
+   Compiling termrock-editors v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-editors)
+   Compiling termrock v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.27s
+────────────
+ Nextest run ID dbebaea9-bec2-4bf3-bb78-f17c3101fa4e with nextest profile: default
+    Starting 11 tests across 1 binary
+        PASS [   0.017s] ( 1/11) termrock tests::test_facade_reexports
+        PASS [   0.017s] ( 2/11) termrock blocks::shell::tests::the_facade_shell_is_the_shell_crate_type
+        PASS [   0.018s] ( 3/11) termrock blocks::master_detail::tests::facade_and_control_share_resolver_but_keep_default_breakpoints_and_rows
+        PASS [   0.021s] ( 4/11) termrock blocks::shell::tests::rows_reports_the_reserved_strips
+        PASS [   0.022s] ( 5/11) termrock blocks::shell::tests::the_spec_carries_the_gap_and_inset
+        PASS [   0.022s] ( 6/11) termrock blocks::shell::tests::app_shell_slots_builder_shows_with_empty_defaults
+        PASS [   0.022s] ( 7/11) termrock blocks::shell::tests::the_shell_lays_three_named_slots_out_as_one_column
+        PASS [   0.023s] ( 8/11) termrock blocks::shell::tests::regions_split_the_frame_once
+        PASS [   0.024s] ( 9/11) termrock blocks::shell::tests::a_strip_slot_keeps_its_rows_and_the_body_flexes
+        PASS [   0.026s] (10/11) termrock blocks::shell::tests::the_extension_trait_delegates_to_shared_slot_types
+        PASS [   0.029s] (11/11) termrock blocks::shell::tests::the_shell_builder_names_its_strips
+────────────
+     Summary [   0.030s] 11 tests run: 11 passed, 0 skipped

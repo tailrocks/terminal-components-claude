@@ -1,0 +1,69 @@
+[
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/donbeave/termrock-pr38-plan",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/Users/donbeave/termrock-pr38-plan",
+    "exit": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "848747c16388edb0037981dbe0a3e454ccb5fc79bb4edf8d8b9a7cd2a244be64"
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/donbeave/termrock-pr38-plan",
+      "status",
+      "--porcelain=v2",
+      "--untracked-files=all"
+    ],
+    "cwd": "/Users/donbeave/termrock-pr38-plan",
+    "exit": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/donbeave/termrock-pr38-plan",
+      "for-each-ref",
+      "--format=%(refname)%00%(objectname)%00%(objecttype)%00%(upstream)%00%(symref)"
+    ],
+    "cwd": "/Users/donbeave/termrock-pr38-plan",
+    "exit": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "0042debff66b9d4fc6b6ffadbc66b6aeb98789d6b70b5d7c6c12742943a044ff"
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/donbeave/termrock-pr38-plan",
+      "verify-pack",
+      "-v",
+      "/Users/donbeave/termrock-pr38-plan/.git/objects/pack/pack-675d97316e84e153be879abeecce49d01236cf7d.idx"
+    ],
+    "cwd": "/Users/donbeave/termrock-pr38-plan",
+    "exit": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "c572e73e4cbd83308868c5d629eacc8a07bc5effcff5dbee54fa6ed3ea35c02a"
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "/Users/donbeave/termrock-pr38-plan",
+      "cat-file",
+      "--batch-check=%(objectname) %(objecttype) %(objectsize)"
+    ],
+    "cwd": "/Users/donbeave/termrock-pr38-plan",
+    "exit": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "59b55efcb663e99b5890beb844e22e5c540591da8703c37e0734dcae0f6e6ffc"
+  }
+]

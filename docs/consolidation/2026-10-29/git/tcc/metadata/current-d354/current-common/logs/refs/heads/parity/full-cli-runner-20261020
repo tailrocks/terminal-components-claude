@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 faedb821265bb5211be6f6c06394dcfd76214f50 Alexey Zhokhov <alexey@zhokhov.com> 1792485670 +0700	branch: Created from origin/parity/termrock-visual-baseline
+faedb821265bb5211be6f6c06394dcfd76214f50 67e6ce9b5c783ab8a9bc5629f38ff4a233dbc162 Alexey Zhokhov <alexey@zhokhov.com> 1792486077 +0700	cherry-pick: test: add live paired CLI frame helper
+67e6ce9b5c783ab8a9bc5629f38ff4a233dbc162 f726d9ba6b15e37f131d1bfad0bfd77e7da266ee Alexey Zhokhov <alexey@zhokhov.com> 1792486077 +0700	cherry-pick: test: preflight duplicate paired capture outputs
+f726d9ba6b15e37f131d1bfad0bfd77e7da266ee 3e9eea442986dc4a21a81de6f6bca83c502b904c Alexey Zhokhov <alexey@zhokhov.com> 1792486424 +0700	cherry-pick: test: reject paired frame path aliases
+3e9eea442986dc4a21a81de6f6bca83c502b904c 8bb6365abf7fbb78f017dfc95331831ec78e9b10 Alexey Zhokhov <alexey@zhokhov.com> 1792486654 +0700	commit: test: add full live paired CLI runner
+8bb6365abf7fbb78f017dfc95331831ec78e9b10 25cf6bcd99ecd24d169f457e584061727dcd9836 Alexey Zhokhov <alexey@zhokhov.com> 1792486836 +0700	cherry-pick: fix(test): bound paired checkpoint filenames
+25cf6bcd99ecd24d169f457e584061727dcd9836 73b30cf058234acab3de2ae653df4b9c09925575 Alexey Zhokhov <alexey@zhokhov.com> 1792487018 +0700	commit: test: compare ordinary CLI controls against both builds
+73b30cf058234acab3de2ae653df4b9c09925575 ad5c91f97ec3039c9f5924dbf8e901a49ffb3bfc Alexey Zhokhov <alexey@zhokhov.com> 1792487434 +0700	commit: docs: record final paired CLI pilot evidence

@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 804b9f8b4994ae02352a2c344fd8544dd8ed90f5 Alexey Zhokhov <alexey@zhokhov.com> 1792232006 +0700	branch: Created from HEAD
+804b9f8b4994ae02352a2c344fd8544dd8ed90f5 9c44fe5c791f2387178eb35e7a45cabf323e8ba6 Alexey Zhokhov <alexey@zhokhov.com> 1792233342 +0700	commit: feat(file_browser): FileBrowser and FileSource in the library; jackin and the File browser page on it (S22, SC41)
+9c44fe5c791f2387178eb35e7a45cabf323e8ba6 076f730a3c0faf5d6a11e7023f12d3a9a0d7946f Alexey Zhokhov <alexey@zhokhov.com> 1792233342 +0700	commit: docs(plan): S22 FileBrowser and SC41 File browser done; Alt-chord hints recorded (A29)
+076f730a3c0faf5d6a11e7023f12d3a9a0d7946f dca23da608f8a61badff89d14d92ea6d7671e103 Alexey Zhokhov <alexey@zhokhov.com> 1792233633 +0700	commit: fix(file_browser): FsSource lists a linked folder as a folder
+dca23da608f8a61badff89d14d92ea6d7671e103 9987becf104c10659dac4a19afe1298b9fa5f453 Alexey Zhokhov <alexey@zhokhov.com> 1792233802 +0700	rebase (finish): refs/heads/p0-filebrowser onto 706b4a68c0f2468123529bbb7ed387e8819108c0
+9987becf104c10659dac4a19afe1298b9fa5f453 01778790d0d519a3d911672b053a1b7ec7460033 Alexey Zhokhov <alexey@zhokhov.com> 1792234217 +0700	commit: fixup! feat(file_browser): FileBrowser and FileSource in the library; jackin and the File browser page on it (S22, SC41)
+01778790d0d519a3d911672b053a1b7ec7460033 44d0ef0fd92a2883e4cf91da192191865a691b73 Alexey Zhokhov <alexey@zhokhov.com> 1792234218 +0700	rebase (finish): refs/heads/p0-filebrowser onto 706b4a68c0f2468123529bbb7ed387e8819108c0

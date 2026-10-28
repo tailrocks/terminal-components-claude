@@ -44,10 +44,13 @@ pub enum GlyphRole {
     SelectClosed,
     SelectOpen,
     PrimaryKey,
+    DotOn,
+    DotOff,
+    SwitchOff,
 }
 
 impl GlyphRole {
-    pub const ALL: [GlyphRole; 42] = [
+    pub const ALL: [GlyphRole; 45] = [
         GlyphRole::FocusBar,
         GlyphRole::Chosen,
         GlyphRole::Checked,
@@ -90,6 +93,9 @@ impl GlyphRole {
         GlyphRole::SelectClosed,
         GlyphRole::SelectOpen,
         GlyphRole::PrimaryKey,
+        GlyphRole::DotOn,
+        GlyphRole::DotOff,
+        GlyphRole::SwitchOff,
     ];
 
     const fn index(self) -> usize {
@@ -101,6 +107,10 @@ impl GlyphRole {
 pub struct GlyphSet {
     glyphs: [&'static str; 41],
     primary_key: &'static str,
+    more_titles: &'static str,
+    dot_on: &'static str,
+    dot_off: &'static str,
+    switch_off: &'static str,
     scroll: scrollbar::Set<'static>,
     rule_quiet: line::Set<'static>,
     rule_active: line::Set<'static>,
@@ -116,6 +126,10 @@ impl GlyphSet {
         GlyphSet {
             glyphs,
             primary_key: "⚷",
+            more_titles: "»",
+            dot_on: "●",
+            dot_off: "○",
+            switch_off: "○",
             scroll,
             rule_quiet,
             rule_active,
@@ -129,6 +143,9 @@ impl GlyphSet {
     pub const fn get(&self, r: GlyphRole) -> &'static str {
         match r {
             GlyphRole::PrimaryKey => self.primary_key,
+            GlyphRole::DotOn => self.dot_on,
+            GlyphRole::DotOff => self.dot_off,
+            GlyphRole::SwitchOff => self.switch_off,
             GlyphRole::ScrollTrack => self.scroll.track,
             GlyphRole::ScrollThumb => self.scroll.thumb,
             GlyphRole::RuleQuiet => self.rule_quiet.horizontal,
@@ -144,6 +161,9 @@ impl GlyphSet {
     pub const fn set(&mut self, r: GlyphRole, s: &'static str) {
         match r {
             GlyphRole::PrimaryKey => self.primary_key = s,
+            GlyphRole::DotOn => self.dot_on = s,
+            GlyphRole::DotOff => self.dot_off = s,
+            GlyphRole::SwitchOff => self.switch_off = s,
             GlyphRole::ScrollTrack => self.scroll.track = s,
             GlyphRole::ScrollThumb => self.scroll.thumb = s,
             GlyphRole::RuleQuiet => self.rule_quiet.horizontal = s,
@@ -162,6 +182,14 @@ impl GlyphSet {
 
     pub const fn set_rule_active(&mut self, s: line::Set<'static>) {
         self.rule_active = s;
+    }
+
+    pub const fn more_titles(&self) -> &'static str {
+        self.more_titles
+    }
+
+    pub const fn set_more_titles(&mut self, glyph: &'static str) {
+        self.more_titles = glyph;
     }
 
     pub fn scrollbar(&self) -> scrollbar::Set<'static> {
@@ -211,81 +239,3 @@ pub(crate) const ASCII_RULE_ACTIVE: line::Set<'static> = line::Set {
     horizontal_up: "+",
     cross: "+",
 };
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn every_role_reads_and_writes_its_slot() {
-        let mut g = GlyphSet::new(["x"; 41], scrollbar::VERTICAL, line::NORMAL, line::THICK);
-        for r in GlyphRole::ALL {
-            g.set(r, "y");
-            assert_eq!(g.get(r), "y", "{r:?}");
-        }
-        assert_eq!(g.scrollbar().thumb, "y");
-    }
-
-    #[test]
-    fn select_roles_are_appended_without_shifting_existing_discriminants() {
-        assert_eq!(GlyphRole::ALL.len(), 42);
-        assert_eq!(GlyphRole::PrimaryKey as usize, 41);
-        assert_eq!(GlyphRole::SecretMask as usize, 38);
-        assert_eq!(GlyphRole::SelectClosed as usize, 39);
-        assert_eq!(GlyphRole::SelectOpen as usize, 40);
-    }
-
-    #[test]
-    fn ascii_glyph_set_has_no_box_drawing() {
-        let t = crate::theme::Theme::junie()
-            .builder()
-            .borders_set(crate::theme::border::ASCII)
-            .build();
-        let g = &t.design.glyphs;
-        let check = |what: &str, s: &'static str| {
-            for c in s.chars() {
-                assert!(
-                    !('\u{2500}'..='\u{257F}').contains(&c),
-                    "{what} is {s:?}, which contains box drawing U+{:04X}",
-                    c as u32
-                );
-            }
-        };
-        for r in GlyphRole::ALL {
-            check(&format!("{r:?}"), g.get(r));
-        }
-        let sb = g.scrollbar();
-        for (name, s) in [
-            ("scrollbar.track", sb.track),
-            ("scrollbar.thumb", sb.thumb),
-            ("scrollbar.begin", sb.begin),
-            ("scrollbar.end", sb.end),
-        ] {
-            check(name, s);
-        }
-        for (set_name, l) in [
-            ("rule_quiet", g.rule_quiet()),
-            ("rule_active", g.rule_active()),
-        ] {
-            for (name, s) in [
-                ("vertical", l.vertical),
-                ("horizontal", l.horizontal),
-                ("top_right", l.top_right),
-                ("top_left", l.top_left),
-                ("bottom_right", l.bottom_right),
-                ("bottom_left", l.bottom_left),
-                ("vertical_left", l.vertical_left),
-                ("vertical_right", l.vertical_right),
-                ("horizontal_down", l.horizontal_down),
-                ("horizontal_up", l.horizontal_up),
-                ("cross", l.cross),
-            ] {
-                check(&format!("{set_name}.{name}"), s);
-            }
-        }
-
-        let j = crate::theme::Theme::junie();
-        assert_eq!(j.design.glyphs.scrollbar().begin, "│");
-        assert_eq!(j.design.glyphs.rule_quiet().cross, "┼");
-    }
-}

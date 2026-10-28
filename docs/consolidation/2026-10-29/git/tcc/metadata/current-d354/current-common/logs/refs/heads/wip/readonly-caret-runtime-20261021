@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 86f3ae3d6c9dc6662f5f14a2eb7448422be54d5b Alexey Zhokhov <alexey@zhokhov.com> 1792595259 +0700	branch: Created from HEAD
+86f3ae3d6c9dc6662f5f14a2eb7448422be54d5b f700ccff71b9fbcf50b81c444c14d13eb64ad9a8 Alexey Zhokhov <alexey@zhokhov.com> 1792595713 +0700	commit: fix: preserve read-only editor cursor
+f700ccff71b9fbcf50b81c444c14d13eb64ad9a8 5921fa8e15445cfbb49e052372c5ed5702ac3817 Alexey Zhokhov <alexey@zhokhov.com> 1792595989 +0700	commit: test: assert read-only caret focus ownership
+5921fa8e15445cfbb49e052372c5ed5702ac3817 590e7325bd1e219cc6a80a4e1d876866e026b19a Alexey Zhokhov <alexey@zhokhov.com> 1792596043 +0700	commit: docs: link read-only caret red baseline
+590e7325bd1e219cc6a80a4e1d876866e026b19a f2f5711f3f4bda16217712bb24abf765fc71d843 Alexey Zhokhov <alexey@zhokhov.com> 1792596090 +0700	commit: test: assert read-only editor uses bar cursor
+f2f5711f3f4bda16217712bb24abf765fc71d843 cb2e2a41bb1f4b7f5c1092cfaaa34041cb98e1f6 Alexey Zhokhov <alexey@zhokhov.com> 1792596176 +0700	commit: docs: bind caret proof to final runtime test

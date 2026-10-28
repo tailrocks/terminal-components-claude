@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 6db2d2dce2dc61273dfb24900d870ed3f7d4d84a Alexey Zhokhov <alexey@zhokhov.com> 1792667680 +0700
+6db2d2dce2dc61273dfb24900d870ed3f7d4d84a 6db2d2dce2dc61273dfb24900d870ed3f7d4d84a Alexey Zhokhov <alexey@zhokhov.com> 1792667732 +0700	reset: moving to HEAD
+6db2d2dce2dc61273dfb24900d870ed3f7d4d84a 6c904af50a2a0b5de2c0b181ed9a9271489dce86 Alexey Zhokhov <alexey@zhokhov.com> 1792668304 +0700	commit: chore(conformance): drop unused app dependencies
+6c904af50a2a0b5de2c0b181ed9a9271489dce86 7a6956145e69999366926575001cd05d8da03666 Alexey Zhokhov <alexey@zhokhov.com> 1792668633 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+7a6956145e69999366926575001cd05d8da03666 5f4bca1279b017b91f476a7b944cc4710015c648 Alexey Zhokhov <alexey@zhokhov.com> 1792668634 +0700	rebase (pick): chore(conformance): drop unused app dependencies
+5f4bca1279b017b91f476a7b944cc4710015c648 5f4bca1279b017b91f476a7b944cc4710015c648 Alexey Zhokhov <alexey@zhokhov.com> 1792668634 +0700	rebase (finish): returning to refs/heads/wip/conformance-cleanup-20261022

@@ -1,9 +1,10 @@
 use core::fmt;
-use termrock::author::PaintStyle;
+use std::time::Duration;
 
 use termrock::{
-    Button, Cx, FrameRead, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status,
-    StepState, Steps, StepsState, Surface, TextArea, TextAreaState, Ui, Variant, layout, width,
+    Button, Cx, FrameRead, Id, Moment, Panel, PanelKind, Rect, Response, Spinner, StateFlags,
+    Status, StepState, Steps, StepsState, TextArea, TextAreaState, Ui, UpdateCause, Variant,
+    layout,
 };
 
 use showcase_data::log_lines;
@@ -18,20 +19,31 @@ const STEP_SPINNER: Id = termrock::Id::root("showcase_ui::pages::terminal::termi
 const RUN: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.run");
 const FAIL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.fail");
 
-const STAGES: &[(&str, StepState)] = &[
-    ("01 Resolve workspace", StepState::Running),
-    ("02 Pull base image", StepState::Queued),
-    ("03 Build container", StepState::Queued),
-    ("04 Mount sources", StepState::Queued),
-    ("05 Resolve credentials", StepState::Queued),
-    ("06 Start agent", StepState::Queued),
-    ("07 Ready", StepState::Queued),
+const STAGE_TICKS: u32 = 6;
+const TICK_INTERVAL: Duration = Duration::from_millis(16);
+
+fn future_deadline(now: Moment) -> Option<Moment> {
+    let deadline = now.saturating_add(TICK_INTERVAL);
+    (deadline > now).then_some(deadline)
+}
+
+const FOOTER_ROWS: u16 = 2;
+
+const STAGES: &[(&str, StepState, &str)] = &[
+    ("01 Resolve workspace", StepState::Running, "0.8 s"),
+    ("02 Pull base image", StepState::Queued, "2.1 s"),
+    ("03 Build container", StepState::Queued, "3.2 s"),
+    ("04 Mount sources", StepState::Queued, "cached"),
+    ("05 Resolve credentials", StepState::Queued, "1.4 s"),
+    ("06 Start agent", StepState::Queued, "1.1 s"),
+    ("07 Ready", StepState::Queued, "0.1 s"),
 ];
 
 #[derive(Clone, Copy, Debug)]
 struct TerminalStep {
     label: &'static str,
     state: StepState,
+    duration: &'static str,
 }
 
 impl fmt::Display for TerminalStep {
@@ -45,7 +57,9 @@ fn step_state(step: &TerminalStep) -> StepState {
 }
 
 fn step_rail() -> Steps<'static, TerminalStep> {
-    Steps::navigable(RAIL).step(&step_state)
+    Steps::navigable(RAIL)
+        .step(&step_state)
+        .metadata(&|step: &TerminalStep| Some(step.duration))
 }
 
 fn step_spinner() -> Spinner<'static> {
@@ -58,18 +72,8 @@ fn output_panel() -> Panel<'static> {
         .title("Viewport")
 }
 
-fn rail_meta(running: bool) -> &'static str {
-    if running {
-        "0 of 7 · running "
-    } else {
-        "0 of 7 "
-    }
-}
-
-fn rail_panel(running: bool) -> Panel<'static> {
-    Panel::new(RAIL_PANEL)
-        .title("Step rail")
-        .meta(rail_meta(running))
+fn rail_panel(meta: &str) -> Panel<'_> {
+    Panel::new(RAIL_PANEL).title("Step rail").meta(meta)
 }
 
 fn output() -> TextArea<'static> {
@@ -106,67 +110,6 @@ fn panes(area: Rect) -> (Option<Rect>, Rect) {
     )
 }
 
-fn terminal_style(
-    ui: &mut Ui<'_>,
-    surface: Surface,
-    family: termrock::Family,
-    variant: Variant,
-    part: Part,
-    flags: StateFlags,
-) -> PaintStyle {
-    ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
-}
-
-fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
-    let [panel, gutter, running, queued, time, primary] = historical_palette(ui);
-    let visible = [
-        "▎⠏ 01 Resolve workspace                          0.7 s",
-        "▎  02 Pull base image                           queued",
-        "▎  03 Build container                           queued",
-        "▎  04 Mount sources                             queued",
-        "▎  05 Resolve credentials                       queued",
-        "▎  06 Start agent                               queued",
-        "▎  07 Ready                                     queued",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "▎Run   ▎Run with a failure",
-    ];
-    for (row, line) in visible.iter().enumerate() {
-        let Ok(row) = u16::try_from(row) else {
-            break;
-        };
-        if row >= inner.height {
-            break;
-        }
-        let area = Rect {
-            y: inner.y.saturating_add(row),
-            height: 1,
-            ..inner
-        };
-        ui.fill(area, panel);
-        ui.paint_str(area, line, panel);
-    }
-    for (row, line) in visible.iter().copied().take(7).enumerate() {
-        let number_end = line.find(|c: char| c.is_ascii_digit()).unwrap_or(2);
-        ui.paint_str(
-            Rect {
-                x: inner.x,
-                y: inner.y.saturating_add(row as u16),
-                width: inner.width,
-                height: 1,
-            },
-            &line[..number_end],
-            gutter,
-        );
-    }
-    paint_narrow_adornments(ui, inner, [running, queued, time, primary]);
-}
-
 #[derive(Debug)]
 pub struct TerminalPage {
     output: String,
@@ -174,6 +117,8 @@ pub struct TerminalPage {
     steps: Vec<TerminalStep>,
     steps_state: StepsState,
     running: bool,
+    tick: u32,
+    next_deadline: Option<Moment>,
 }
 
 impl TerminalPage {
@@ -183,13 +128,16 @@ impl TerminalPage {
             output_state: TextAreaState::default(),
             steps: STAGES
                 .iter()
-                .map(|(label, state)| TerminalStep {
+                .map(|(label, state, duration)| TerminalStep {
                     label,
                     state: *state,
+                    duration,
                 })
                 .collect(),
             steps_state: StepsState::default(),
             running: true,
+            tick: 0,
+            next_deadline: None,
         }
     }
 
@@ -197,8 +145,9 @@ impl TerminalPage {
         self.steps = STAGES
             .iter()
             .enumerate()
-            .map(|(index, (label, _))| TerminalStep {
+            .map(|(index, (label, _, duration))| TerminalStep {
                 label,
+                duration,
                 state: if failed && index > 0 {
                     StepState::Blocked
                 } else if failed && index == 0 {
@@ -212,6 +161,36 @@ impl TerminalPage {
             .collect();
         self.steps_state = StepsState::default();
         self.running = !failed;
+        self.tick = 0;
+        self.next_deadline = None;
+    }
+
+    fn advance(&mut self) {
+        if !self.running {
+            return;
+        }
+        self.tick = self.tick.saturating_add(1);
+        let current = (self.tick / STAGE_TICKS) as usize;
+        for (index, step) in self.steps.iter_mut().enumerate() {
+            step.state = match index.cmp(&current) {
+                std::cmp::Ordering::Less => StepState::Done,
+                std::cmp::Ordering::Equal => StepState::Running,
+                std::cmp::Ordering::Greater => StepState::Queued,
+            };
+        }
+        if current + 1 >= self.steps.len() {
+            self.running = false;
+            for step in &mut self.steps {
+                step.state = StepState::Done;
+            }
+        }
+    }
+
+    fn settled(&self) -> usize {
+        self.steps
+            .iter()
+            .filter(|step| step.state == StepState::Done)
+            .count()
     }
 }
 
@@ -246,8 +225,31 @@ impl Page for TerminalPage {
         response |= fail.erase();
 
         let _ = output_panel();
-        let _ = rail_panel(self.running);
         let _ = step_spinner();
+
+        if self.running {
+            let now = cx.now();
+            if self.next_deadline.is_none() {
+                self.next_deadline = future_deadline(now);
+            }
+            if self
+                .next_deadline
+                .is_some_and(|deadline| cx.update_cause() == UpdateCause::Tick && now >= deadline)
+            {
+                self.advance();
+                self.next_deadline = if self.running {
+                    future_deadline(now)
+                } else {
+                    None
+                };
+                response = response.repaint();
+            }
+            if let Some(deadline) = self.next_deadline {
+                cx.request_repaint_at(deadline);
+            }
+        } else {
+            self.next_deadline = None;
+        }
         response.into()
     }
 
@@ -258,7 +260,18 @@ impl Page for TerminalPage {
             self.title(),
             "Viewport with scrollback, selection and copy · drag the seam · step rail reports a job",
             |ui, body| {
-                let (left, right) = panes(body);
+                super::section_strip(ui, body);
+                let content = Rect {
+                    y: body.y.saturating_add(3),
+                    height: body.height.saturating_sub(3),
+                    ..body
+                };
+
+                let panes_area = Rect {
+                    height: content.height.saturating_sub(FOOTER_ROWS),
+                    ..content
+                };
+                let (left, right) = panes(panes_area);
                 let wide = left.is_some();
                 if let Some(left) = left {
                     output_panel().draw(ui, left, |ui, inner| {
@@ -268,7 +281,12 @@ impl Page for TerminalPage {
                     });
                 }
 
-                rail_panel(self.running).draw(ui, right, |ui, inner| {
+                let count = if self.running {
+                    format!("{} of 7 · running", self.settled())
+                } else {
+                    format!("{} of 7", self.settled())
+                };
+                rail_panel(&count).draw(ui, right, |ui, inner| {
                     let rail_area = Rect {
                         height: inner.height.saturating_sub(3),
                         ..inner
@@ -283,16 +301,6 @@ impl Page for TerminalPage {
                             width: 1,
                             height: 1,
                         },
-                    );
-                    let _ = ui.paint_str(
-                        Rect {
-                            x: inner.right().saturating_sub(5),
-                            y: inner.y,
-                            width: 5,
-                            height: 1,
-                        },
-                        "0.7 s",
-                        ui.surface_style(),
                     );
 
                     let run = run_button();
@@ -317,18 +325,15 @@ impl Page for TerminalPage {
                     if let Some(rect) = rects.get(1).copied() {
                         fail.draw(ui, rect);
                     }
-                    if inner.width < 60 {
-                        paint_narrow_rail(ui, inner);
-                    }
                 });
 
                 if wide {
                     lines(
                         ui,
                         Rect {
-                            y: body.bottom().saturating_sub(2),
-                            height: 2,
-                            ..body
+                            y: panes_area.bottom(),
+                            height: FOOTER_ROWS,
+                            ..content
                         },
                         &[
                             "Output remains borrowed by the public control.",
@@ -342,149 +347,11 @@ impl Page for TerminalPage {
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(OUTPUT).contains(StateFlags::FOCUSED) {
-            &[
-                ("↑ ↓", "Scroll"),
-                ("Home End", "Oldest / live"),
-                ("f", "Follow"),
-                ("drag", "Select"),
-                ("y", "Copy"),
-                ("Esc", "Clear"),
-            ]
+            &[("↑ ↓", "Scroll"), ("Home End", "Oldest / live")]
         } else if ui.state(RAIL).contains(StateFlags::FOCUSED) {
-            &[("↑ ↓", "Move"), ("wheel", "Scroll")]
+            &[("↑ ↓", "Move")]
         } else {
-            &[("Enter", "Activate"), ("drag ┃", "Resize")]
+            &[("Enter", "Activate")]
         }
     }
-}
-
-fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 6] {
-    let [panel, gutter, running, queued, time, primary] = [
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::DETAIL,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::STEPS,
-            Variant::DEFAULT,
-            Part::LABEL,
-            StateFlags::BUSY | StateFlags::ACTIVE,
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::STEPS,
-            Variant::DEFAULT,
-            Part::META,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::DETAIL,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::BUTTON,
-            Variant::SECONDARY,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        ),
-    ]
-    .map(|(surface, family, variant, part, flags)| {
-        terminal_style(ui, surface, family, variant, part, flags)
-    });
-
-    [panel, gutter, running, queued, time, primary]
-}
-
-fn paint_narrow_adornments(
-    ui: &mut Ui<'_>,
-    inner: Rect,
-    [running, queued, time, primary]: [PaintStyle; 4],
-) {
-    let spinner = terminal_style(
-        ui,
-        Surface::Surface,
-        termrock::Family::STEPS,
-        Variant::DEFAULT,
-        Part::ICON,
-        StateFlags::BUSY | StateFlags::ACTIVE,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(1),
-            y: inner.y,
-            width: 1,
-            height: 1,
-        },
-        "⠏",
-        spinner,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(width("▎⠏ ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "01 Resolve workspace",
-        running,
-    );
-    for (row, prefix) in [
-        "▎  02 Pull base image                           ",
-        "▎  03 Build container                           ",
-        "▎  04 Mount sources                             ",
-        "▎  05 Resolve credentials                       ",
-        "▎  06 Start agent                               ",
-        "▎  07 Ready                                     ",
-    ]
-    .iter()
-    .enumerate()
-    {
-        ui.paint_str(
-            Rect {
-                x: inner.x.saturating_add(width(prefix)),
-                y: inner.y.saturating_add((row as u16).saturating_add(1)),
-                width: inner.width,
-                height: 1,
-            },
-            "queued",
-            queued,
-        );
-    }
-    ui.paint_str(
-        Rect {
-            x: inner
-                .x
-                .saturating_add(width("▎⠏ 01 Resolve workspace                          ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "0.7 s",
-        time,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x,
-            y: inner.y.saturating_add(14),
-            width: inner.width,
-            height: 1,
-        },
-        "▎Run   ▎Run with a failure",
-        primary,
-    );
 }

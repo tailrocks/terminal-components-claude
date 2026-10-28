@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 2de0d01255390d2a02b7775ee452268782802a38 Alexey Zhokhov <alexey@zhokhov.com> 1792496197 +0700	branch: Created from HEAD
+2de0d01255390d2a02b7775ee452268782802a38 0168ccc15246343e6a1f846a30bf7964991b439c Alexey Zhokhov <alexey@zhokhov.com> 1792496780 +0700	commit: test: require complete paired terminal frames and checkpoint inventory
+0168ccc15246343e6a1f846a30bf7964991b439c 78ccc2cb5737ea7934ca90dca880b5a688bf070f Alexey Zhokhov <alexey@zhokhov.com> 1792497321 +0700	commit: docs: record paired controls and remaining cursor lifecycle failures
+78ccc2cb5737ea7934ca90dca880b5a688bf070f 1a947a251ab9b045610b47729bf481419b9fca8d Alexey Zhokhov <alexey@zhokhov.com> 1792498619 +0700	commit: docs: freeze reference delivery boundaries and record CI evidence

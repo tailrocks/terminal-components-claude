@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 c07978771bc3f4e50c6e859a04bcb5cfae34309d Alexey Zhokhov <alexey@zhokhov.com> 1792560428 +0700	branch: Created from c07978771bc3f4e50c6e859a04bcb5cfae34309d
+c07978771bc3f4e50c6e859a04bcb5cfae34309d 860529a316dd1e45e6e2f9f3921d93e964fa0e66 Alexey Zhokhov <alexey@zhokhov.com> 1792560799 +0700	commit: fix(runtime): preserve underlay ink channels
+860529a316dd1e45e6e2f9f3921d93e964fa0e66 bb012956690d08381b16aa28985b474ad7501d1c Alexey Zhokhov <alexey@zhokhov.com> 1792562169 +0700	commit: fix(runtime): resolve underlay ink at composition
+bb012956690d08381b16aa28985b474ad7501d1c 28a5d2323fe2be3a3a98e4aaa479dd77a93d90bd Alexey Zhokhov <alexey@zhokhov.com> 1792563131 +0700	commit: fix(runtime): preserve underlay post-fill style operations
+28a5d2323fe2be3a3a98e4aaa479dd77a93d90bd cfd2304fb17632d254a020cd4b5d0b8a828c6162 Alexey Zhokhov <alexey@zhokhov.com> 1792563190 +0700	commit: docs: record underlay regression red-green evidence
+cfd2304fb17632d254a020cd4b5d0b8a828c6162 5ac1ae24b9f0548bc064d6609de26245e62695ea Alexey Zhokhov <alexey@zhokhov.com> 1792563340 +0700	commit: test(runtime): prove fades use lower overlay ink
+5ac1ae24b9f0548bc064d6609de26245e62695ea 098aacd5035a94eb739ed08ac17cc4fd279d95ff Alexey Zhokhov <alexey@zhokhov.com> 1792564082 +0700	commit: fix(runtime): replay underlay style operations in order

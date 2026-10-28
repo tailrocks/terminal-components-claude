@@ -1,0 +1,20 @@
+0000000000000000000000000000000000000000 5d9f5b1772e733dad4940c84fb9a06b3baaae0ce Alexey Zhokhov <alexey@zhokhov.com> 1792492381 +0700	branch: Created from origin/parity/termrock-visual-baseline
+5d9f5b1772e733dad4940c84fb9a06b3baaae0ce 2ed4aafa22c4fcf582f7997060ebf10105384534 Alexey Zhokhov <alexey@zhokhov.com> 1792492901 +0700	commit: test: add source-bound architecture acceptance checks
+2ed4aafa22c4fcf582f7997060ebf10105384534 970c93ee4e88522b3900384794db748028157ce0 Alexey Zhokhov <alexey@zhokhov.com> 1792492989 +0700	commit (amend): test: add source-bound architecture acceptance checks
+970c93ee4e88522b3900384794db748028157ce0 e3f3a1b9a4439acee19beee16f29cfba752559a9 Alexey Zhokhov <alexey@zhokhov.com> 1792493008 +0700	commit: docs: record architecture acceptance evidence
+e3f3a1b9a4439acee19beee16f29cfba752559a9 08d88b8059a0e319962fe3e282e2e10b52371d9e Alexey Zhokhov <alexey@zhokhov.com> 1792493029 +0700	rebase (finish): refs/heads/parity/acceptance-architecture-20261020 onto c92930d095962244af4ad1ca8f681b1ef646701b
+08d88b8059a0e319962fe3e282e2e10b52371d9e c6f1ee62465845459e815a228ee541571ae548c9 Alexey Zhokhov <alexey@zhokhov.com> 1792493055 +0700	commit: docs: refresh architecture gate evidence
+c6f1ee62465845459e815a228ee541571ae548c9 0431e7500daf77389c317e81bc9165520b315e52 Alexey Zhokhov <alexey@zhokhov.com> 1792493501 +0700	commit: fix: close architecture scanner coverage gaps
+0431e7500daf77389c317e81bc9165520b315e52 86f2a01ec161a1d428f812153bd69027f784c12d Alexey Zhokhov <alexey@zhokhov.com> 1792493504 +0700	rebase (finish): refs/heads/parity/acceptance-architecture-20261020 onto 0b8f4e32b24a137987307600b10d892bec0619c3
+86f2a01ec161a1d428f812153bd69027f784c12d 510b623d16f39e01a4af72b00cd1830a5c3303d0 Alexey Zhokhov <alexey@zhokhov.com> 1792493537 +0700	commit: docs: refresh P1 architecture gate evidence
+510b623d16f39e01a4af72b00cd1830a5c3303d0 89afe32839a386e1a56c73ef93bd7fc6efb92578 Alexey Zhokhov <alexey@zhokhov.com> 1792493575 +0700	commit: docs: bind architecture evidence to final source
+89afe32839a386e1a56c73ef93bd7fc6efb92578 73e8dea2267ee6350518be87d3b999d76703834b Alexey Zhokhov <alexey@zhokhov.com> 1792493599 +0700	commit: docs: record exact checked architecture revision
+73e8dea2267ee6350518be87d3b999d76703834b 39bac510939502e62e93f55f1779082d2814de49 Alexey Zhokhov <alexey@zhokhov.com> 1792493879 +0700	commit: fix: follow production source directory symlinks safely
+39bac510939502e62e93f55f1779082d2814de49 89c7aed3c9b38ffd6ed8147993bb2e5bddb5700e Alexey Zhokhov <alexey@zhokhov.com> 1792493883 +0700	rebase (finish): refs/heads/parity/acceptance-architecture-20261020 onto b0504717c280a4bb141cc6043b35fce6664f8a6a
+89c7aed3c9b38ffd6ed8147993bb2e5bddb5700e c997975bd36fde7fde2da865e6ad558cc3cbe5e0 Alexey Zhokhov <alexey@zhokhov.com> 1792493915 +0700	commit: docs: record symlink gate evidence
+c997975bd36fde7fde2da865e6ad558cc3cbe5e0 462f8ec26ff426d942030e978693c9e479d63ebe Alexey Zhokhov <alexey@zhokhov.com> 1792493937 +0700	commit: docs: bind symlink evidence to checked source
+462f8ec26ff426d942030e978693c9e479d63ebe a48e94fae4fe1b774bd5fd4864fc933979f7b9a5 Alexey Zhokhov <alexey@zhokhov.com> 1792493954 +0700	commit: docs: bind source report revision
+a48e94fae4fe1b774bd5fd4864fc933979f7b9a5 ec44e1cfe3c88b5e6535b703ec9e0c2a05ec00ae Alexey Zhokhov <alexey@zhokhov.com> 1792494689 +0700	commit: fix: scan modules under production-like directory names
+ec44e1cfe3c88b5e6535b703ec9e0c2a05ec00ae 4fad468af929e24324f2b53d2d33a5b0d8ddbbfc Alexey Zhokhov <alexey@zhokhov.com> 1792494738 +0700	commit: fix: honor Cargo target directory during source scan
+4fad468af929e24324f2b53d2d33a5b0d8ddbbfc eebcbadccb183b43e314e21e6dcca3750e342539 Alexey Zhokhov <alexey@zhokhov.com> 1792494805 +0700	commit: docs: record module path coverage evidence
+eebcbadccb183b43e314e21e6dcca3750e342539 461c7d1e1a33ecbc6fad2ec143353bbd578e4aa0 Alexey Zhokhov <alexey@zhokhov.com> 1792494829 +0700	commit: docs: bind module scan reports to source revision

@@ -1,0 +1,92 @@
+{
+  "created_utc": "2026-10-28T21:14:45.027909+00:00",
+  "entries": [
+    {
+      "bytes": 0,
+      "path": "head-tree.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 480002,
+      "path": "head-tree.stdout.raw",
+      "sha256": "1bebcaae6c4be0d9050afa9269e4212ea8f918b1bb2383470ed4f6f4b7627457"
+    },
+    {
+      "bytes": 0,
+      "path": "head.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 41,
+      "path": "head.stdout.raw",
+      "sha256": "b47b7a1d17be3bf606f837b980c7ba3ed7be9318a457f4b57a3b1267fd448c06"
+    },
+    {
+      "bytes": 0,
+      "path": "ignored-files.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 7,
+      "path": "ignored-files.stdout.raw",
+      "sha256": "f7117ad754602040c399fd8c556f7b852fa7de86f90138f336cab48167955943"
+    },
+    {
+      "bytes": 0,
+      "path": "index-flags.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 272075,
+      "path": "index-flags.stdout.raw",
+      "sha256": "9ef63120b31b8e21db56b38ec00e376f7d69069859856b951806fc6b421c0239"
+    },
+    {
+      "bytes": 0,
+      "path": "index-stage.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 467771,
+      "path": "index-stage.stdout.raw",
+      "sha256": "f00cd01649e29229cc03952e764cd17165517192169984b47c0e6f8fe872d713"
+    },
+    {
+      "bytes": 0,
+      "path": "object-format.stderr.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 5,
+      "path": "object-format.stdout.raw",
+      "sha256": "335277ee77cfc8d51d6602e4137232cf6041aac2bc663777e384b90d5ae74d51"
+    },
+    {
+      "bytes": 110,
+      "path": "objects/sha256/6897aa106a3977b547fa1843947f2fc8b9d04e8863a75eb8e9ef779c448523a6",
+      "sha256": "6897aa106a3977b547fa1843947f2fc8b9d04e8863a75eb8e9ef779c448523a6"
+    },
+    {
+      "bytes": 320,
+      "path": "payloads.jsonl",
+      "sha256": "2b0d1b20ce23cf5ecf4dd883bd38a26f43db942662167aae758ba9e0db418862"
+    },
+    {
+      "bytes": 2392235,
+      "path": "physical-files.jsonl",
+      "sha256": "435a80dfc1676aa412b1fa9d3fbd5562f5ffb5fb2666ff0ac0898b8f50d763d7"
+    },
+    {
+      "bytes": 6704,
+      "path": "summary.json",
+      "sha256": "c31f761ba597bc0cc030e5c59985449c885f5149ecc5c9327423eb4481cea2dd"
+    },
+    {
+      "bytes": 1451,
+      "path": "SHA256SUMS",
+      "sha256": "cf7abe493fcde55ccd451075ce695f83bace09db0971ce1bf850f161c946ffc9"
+    }
+  ],
+  "root": "/private/tmp/pr38-consolidation-inventory-20261029/canonical-worktree-closure-v2",
+  "schema": "pr38-physical-worktree-closure-seal-v1"
+}

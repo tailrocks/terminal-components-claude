@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 574c740fc44341b867cabccc4cb591c8985843d7 Alexey Zhokhov <alexey@zhokhov.com> 1792489942 +0700	branch: Created from origin/parity/termrock-visual-baseline
+574c740fc44341b867cabccc4cb591c8985843d7 cb07bfaedaa037dc986e262a1ee3b984c8d280d4 Alexey Zhokhov <alexey@zhokhov.com> 1792489996 +0700	cherry-pick: feat(editors): support completion splicing
+cb07bfaedaa037dc986e262a1ee3b984c8d280d4 9c8ddecbb71174b7cc515b51cf09d4b5dc73b3ab Alexey Zhokhov <alexey@zhokhov.com> 1792490537 +0700	commit: feat(editors): compose code completion
+9c8ddecbb71174b7cc515b51cf09d4b5dc73b3ab 5455f11a844a8d92684146de756318d3544aaacf Alexey Zhokhov <alexey@zhokhov.com> 1792490662 +0700	commit: fix(editors): preserve completion outcomes
+5455f11a844a8d92684146de756318d3544aaacf 82c087fc65bee44c6866a43a5722ae3adbb63f82 Alexey Zhokhov <alexey@zhokhov.com> 1792490727 +0700	commit: test(editors): cover completion focus and dismissal
+82c087fc65bee44c6866a43a5722ae3adbb63f82 e1b54b330ed6bdb128ddd313a250d6fcc6a09e0a Alexey Zhokhov <alexey@zhokhov.com> 1792490755 +0700	rebase (finish): refs/heads/parity/code-completion-composite-20261020 onto d6b274ddb3ac463c202fb2ce1d3ac719d985b0ef
+e1b54b330ed6bdb128ddd313a250d6fcc6a09e0a eae42341d34f181b5f7d89339794870dfb1f0ebe Alexey Zhokhov <alexey@zhokhov.com> 1792491789 +0700	commit: fix(editors): resolve completion editor shortcuts
+eae42341d34f181b5f7d89339794870dfb1f0ebe 12e760e81ddf31d2956a2a05af567abfc64d7769 Alexey Zhokhov <alexey@zhokhov.com> 1792492281 +0700	commit: fix(editors): scope manual completion to composite

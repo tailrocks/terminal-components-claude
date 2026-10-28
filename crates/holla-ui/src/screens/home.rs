@@ -1,7 +1,16 @@
+use std::cell::RefCell;
+
+use termrock::RowUi;
+use termrock::composition::{self, Group};
+use termrock::layout::{ColumnSpec, Track, solve_columns};
+use termrock::theme::CursorStyle;
 use termrock::{
-    BlurPolicy, Chord, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
-    KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
-    StateFlags, StylePatch, TextAction, TextInput, TextInputState, TypingPolicy, Ui, Variant,
+    ActionKey, Binding, BlurPolicy, Chord, Color, Cx, Empty, EmptyState, Family, FgStep, FrameRead,
+    Hint, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode, KeyModifiers, MasterDetail,
+    MasterDetailPolicy, MasterDetailState, NavList, NavListAction, NavListState, Panel, Part,
+    Reconcile, Rect, Response, Role, StateFlags, StylePatch, TextAction, TextCmd, TextInput,
+    TextInputState, TextSection, TextViewport, TypingPolicy, Ui, Variant, ViewportAction,
+    ViewportLine, ViewportState,
 };
 
 use crate::domain::action::{Action, Availability, Scope};
@@ -9,12 +18,64 @@ use crate::sim::{catalogue, world::World};
 
 pub(crate) const QUERY: Id = Id::root("home.query");
 pub(crate) const ROWS: Id = Id::root("home.rows");
+pub(crate) const DETAIL_VIEWPORT: Id = Id::root("home.detail.viewport");
+const MASTER_DETAIL: Id = Id::root("home.master-detail");
+const HOME_EMPTY: Id = Id::root("home.empty");
+const DETAIL_EMPTY: Id = Id::root("home.detail.empty");
+const DETAIL_PANEL: Id = Id::root("home.detail.panel");
+const EMPTY_PREVIEW_PANEL_MIN_HEIGHT: u16 = 7;
+const EMPTY_PREVIEW_PANEL_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::GUTTER,
+        StylePatch {
+            glyph: termrock::theme::Slot::Clear,
+            ..StylePatch::new()
+        },
+    ),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(termrock::Modifier::BOLD),
+    ),
+];
+const OPEN_PREVIEW: ActionKey = ActionKey::custom("holla.home.open-preview");
+const OPEN_PREVIEW_BINDINGS: &[Binding<ActionKey>] = &[Binding {
+    action: OPEN_PREVIEW,
+    chord: Some(Chord::key(KeyCode::Tab)),
+    cmd: OPEN_PREVIEW,
+    label: "Preview",
+    priority: 60,
+    visible: true,
+}];
+
+fn home_master_detail_policy() -> MasterDetailPolicy {
+    MasterDetailPolicy::default()
+}
+
+const PARITY_ACTION_IDS: [&str; 6] = [
+    "git.pull",
+    "idea.clean",
+    "deploy",
+    "mise.task.test",
+    "git.status",
+    "scope.system",
+];
+const PARITY_ROW_QUERY_EXCLUDED_COMMANDS: &[TextCmd] = &[
+    TextCmd::Move(termrock::text::Motion::Home, termrock::text::Extend::No),
+    TextCmd::Move(termrock::text::Motion::End, termrock::text::Extend::No),
+];
 
 pub(crate) struct HomeState {
     value: String,
     editor: TextInputState,
     rows: NavListState,
+    selected_action: Option<Action>,
+    detail: MasterDetailState,
+    detail_viewport: ViewportState,
     pub(crate) scope: Option<Scope>,
+
+    pub(crate) history: bool,
 }
 
 impl Default for HomeState {
@@ -25,19 +86,99 @@ impl Default for HomeState {
             value: String::new(),
             editor,
             rows: NavListState::default(),
+            selected_action: None,
+            detail: MasterDetailState::default(),
+            detail_viewport: ViewportState::default(),
             scope: None,
+            history: false,
         }
     }
 }
 
 pub(crate) struct HomeRow {
     section: &'static str,
-    action: Action,
+    content: HomeRowContent,
+    columns: ActionColumns,
+}
+
+enum HomeRowContent {
+    Action(Action),
+    SectionHint(&'static str),
+}
+
+impl HomeRow {
+    fn action(&self) -> Option<&Action> {
+        match &self.content {
+            HomeRowContent::Action(action) => Some(action),
+            HomeRowContent::SectionHint(_) => None,
+        }
+    }
+
+    fn is_disabled(&self) -> bool {
+        self.action().is_none()
+    }
+}
+
+enum ParityItem {
+    Decoration {
+        key: ItemKey,
+        line: catalogue::FinderLine,
+    },
+    Action {
+        action: Box<Action>,
+        tag: catalogue::TagRow,
+        columns: TagCols,
+    },
+}
+
+#[derive(Clone, Copy, Default)]
+struct ActionColumns {
+    title: u16,
+    kind: u16,
+    scope: u16,
+    risk: u16,
+}
+
+impl ActionColumns {
+    fn apply(rows: &mut [HomeRow]) {
+        let columns = Self {
+            title: rows
+                .iter()
+                .filter_map(HomeRow::action)
+                .map(|action| termrock::width(&action.title))
+                .max()
+                .unwrap_or(14),
+            kind: rows
+                .iter()
+                .filter_map(HomeRow::action)
+                .map(|action| termrock::width(action_kind_label(action.kind)))
+                .max()
+                .unwrap_or(4),
+            scope: rows
+                .iter()
+                .filter_map(HomeRow::action)
+                .map(|action| termrock::width(&scope_text(action)))
+                .max()
+                .unwrap_or(4),
+            risk: rows
+                .iter()
+                .filter_map(HomeRow::action)
+                .map(|action| termrock::width(&risk_text(action)))
+                .max()
+                .unwrap_or(0),
+        };
+        for row in rows {
+            row.columns = columns;
+        }
+    }
 }
 
 impl std::fmt::Display for HomeRow {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.action.title)
+        match &self.content {
+            HomeRowContent::Action(action) => f.write_str(&action.title),
+            HomeRowContent::SectionHint(hint) => f.write_str(hint),
+        }
     }
 }
 
@@ -46,30 +187,106 @@ impl HomeState {
         self.editor.draft_text().unwrap_or(&self.value)
     }
 
-    pub(crate) fn clear_query(&mut self) {
+    pub(crate) fn clear_query(&mut self, world: &World) {
         self.value.clear();
         self.editor.cancel();
         self.editor.begin("");
+        self.reconcile_rows(world);
+    }
+
+    pub(crate) fn reconcile_rows(&mut self, world: &World) {
+        let rows = self.rows(world);
+        self.reconcile_selection(&rows);
+    }
+
+    fn reconcile_selection(&mut self, rows: &[HomeRow]) {
+        let selected = self
+            .rows
+            .cursor()
+            .and_then(|key| {
+                rows.iter()
+                    .enumerate()
+                    .find(|(_, row)| row_key(row) == key && row.action().is_some())
+            })
+            .or_else(|| {
+                self.rows.current().and_then(|key| {
+                    rows.iter()
+                        .enumerate()
+                        .find(|(_, row)| row_key(row) == key && row.action().is_some())
+                })
+            })
+            .or_else(|| {
+                self.selected_action.as_ref().and_then(|selected| {
+                    rows.iter().enumerate().find(|(_, row)| {
+                        row.action().is_some_and(|action| action.id == selected.id)
+                    })
+                })
+            })
+            .or_else(|| {
+                rows.iter()
+                    .enumerate()
+                    .find(|(_, row)| row.action().is_some())
+            });
+        if let Some((index, row)) = selected {
+            let key = row_key(row);
+            if self.rows.cursor() != Some(key) {
+                self.rows.set_cursor(index, key);
+            }
+            if self.rows.current() != Some(key) {
+                self.rows.set_current(Some(key));
+            }
+            self.selected_action = row.action().cloned();
+        } else {
+            let _ = self.rows.reconcile(0, |_| ItemKey::index(0));
+            self.rows.set_current(None);
+        }
     }
 
     pub(crate) fn rows(&self, world: &World) -> Vec<HomeRow> {
-        catalogue::sections(world)
+        let recent_first =
+            self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT;
+        let projected_sections =
+            catalogue::sections_with_filter_state(world, self.query(), self.scope);
+        let sections: Vec<_> = projected_sections
             .into_iter()
-            .flat_map(|section| {
-                catalogue::visible(
+            .map(|section| {
+                let name = if recent_first && section.name == "Suggested here" {
+                    "Explore"
+                } else {
+                    section.name
+                };
+                let actions = catalogue::visible(
                     &section.actions,
                     self.scope,
                     self.query(),
                     &world.memory,
                     &world.cwd,
-                )
-                .into_iter()
-                .map(move |action| HomeRow {
-                    section: section.name,
-                    action,
-                })
+                );
+                (name, section.empty_hint, actions)
             })
-            .collect()
+            .collect();
+        let show_empty_hints = self.query().trim().is_empty()
+            && self.scope.is_none()
+            && sections.iter().any(|(_, _, actions)| !actions.is_empty());
+        let mut rows = Vec::new();
+        for (section, empty_hint, actions) in sections {
+            let section_is_empty = actions.is_empty();
+            rows.extend(actions.into_iter().map(|action| HomeRow {
+                section,
+                content: HomeRowContent::Action(action),
+                columns: ActionColumns::default(),
+            }));
+            if show_empty_hints && section_is_empty {
+                if let Some(hint) = empty_hint {
+                    rows.push(HomeRow {
+                        section,
+                        content: HomeRowContent::SectionHint(hint),
+                        columns: ActionColumns::default(),
+                    });
+                }
+            }
+        }
+        rows
     }
 
     pub(crate) fn hints(world: &World, rows_focused: bool) -> HintLayer {
@@ -119,18 +336,126 @@ impl HomeState {
         self.editor.is_editing()
     }
 
+    fn parity_items(&self, world: &World) -> Option<Vec<ParityItem>> {
+        let projection = catalogue::parity_discovery(world)?;
+        if projection.actions.len() != PARITY_ACTION_IDS.len() {
+            return None;
+        }
+        let catalogue::ParityDiscovery { lines, actions, .. } = projection;
+        let live_rows = self.rows(world);
+        let mut live_ids = Vec::with_capacity(live_rows.len());
+        for row in &live_rows {
+            let action = row.action()?;
+            let id = action.id.as_str();
+            if !PARITY_ACTION_IDS.contains(&id) || live_ids.contains(&id) {
+                return None;
+            }
+            live_ids.push(id);
+        }
+
+        let expected_rows = lines
+            .iter()
+            .filter(|line| matches!(line, catalogue::FinderLine::Row(_)))
+            .count();
+        if expected_rows != PARITY_ACTION_IDS.len() {
+            return None;
+        }
+
+        let mut actions = actions.into_iter();
+        let mut action_index = 0_usize;
+        let mut items = Vec::with_capacity(lines.len());
+        for (line_index, line) in lines.into_iter().enumerate() {
+            match line {
+                catalogue::FinderLine::Row(tag) => {
+                    let expected_id = *PARITY_ACTION_IDS.get(action_index)?;
+                    let action = actions.next()?;
+                    if action.id != expected_id
+                        || action.title != tag.title
+                        || action.reason != tag.reason
+                        || action.scope.label() != tag.scope_word
+                        || (action.scope == Scope::Here) != tag.here
+                    {
+                        return None;
+                    }
+                    action_index = action_index.saturating_add(1);
+                    if let Some(row) = live_rows.iter().find(|row| {
+                        row.action()
+                            .is_some_and(|live_action| live_action.id == expected_id)
+                    }) {
+                        if row.action()? != &action {
+                            return None;
+                        }
+                        items.push(ParityItem::Action {
+                            action: Box::new(action),
+                            tag,
+                            columns: TagCols::default(),
+                        });
+                    }
+                }
+                line => items.push(ParityItem::Decoration {
+                    key: ItemKey::index(line_index),
+                    line,
+                }),
+            }
+        }
+        if action_index != PARITY_ACTION_IDS.len()
+            || actions.next().is_some()
+            || items
+                .iter()
+                .filter(|item| matches!(item, ParityItem::Action { .. }))
+                .count()
+                != live_rows.len()
+        {
+            return None;
+        }
+        Some(items)
+    }
+
     pub(crate) fn selected(&self, world: &World) -> Option<Action> {
         let rows = self.rows(world);
-        self.rows
+        let selected = self
+            .rows
             .cursor()
             .and_then(|key| rows.iter().find(|row| row_key(row) == key))
-            .or_else(|| rows.first())
-            .map(|row| row.action.clone())
+            .and_then(HomeRow::action)
+            .or_else(|| {
+                self.rows
+                    .current()
+                    .and_then(|key| rows.iter().find(|row| row_key(row) == key))
+                    .and_then(HomeRow::action)
+            })
+            .or_else(|| rows.iter().find_map(HomeRow::action));
+        selected.cloned()
+    }
+
+    fn selected_visible(&self, world: &World) -> Option<Action> {
+        let rows = self.rows(world);
+        let selected = self
+            .rows
+            .cursor()
+            .and_then(|key| rows.iter().find(|row| row_key(row) == key))
+            .and_then(HomeRow::action)
+            .or_else(|| {
+                self.rows
+                    .current()
+                    .and_then(|key| rows.iter().find(|row| row_key(row) == key))
+                    .and_then(HomeRow::action)
+            })
+            .or_else(|| rows.iter().find_map(HomeRow::action));
+        selected.cloned()
     }
 
     pub(crate) fn focus_first(&mut self, world: &World, cx: &mut Cx<'_>) {
-        if let Some(row) = self.rows(world).first() {
-            self.rows.set_cursor(0, row_key(row));
+        let rows = self.rows(world);
+        if let Some((index, row)) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.action().is_some())
+        {
+            let key = row_key(row);
+            self.rows.set_cursor(index, key);
+            self.rows.set_current(Some(key));
+            self.selected_action = row.action().cloned();
             cx.focus(ROWS);
         } else {
             cx.focus_next();
@@ -138,10 +463,11 @@ impl HomeState {
     }
 
     pub(crate) fn subject(&self, world: &World, cx: &Cx<'_>) -> Option<Action> {
-        if cx.state(QUERY).contains(StateFlags::FOCUSED) {
-            self.rows(world).into_iter().next().map(|row| row.action)
-        } else if cx.state(ROWS).contains(StateFlags::FOCUSED) {
-            self.selected(world)
+        if cx.state(QUERY).contains(StateFlags::FOCUSED)
+            || cx.state(ROWS).contains(StateFlags::FOCUSED)
+            || cx.state(DETAIL_VIEWPORT).contains(StateFlags::FOCUSED)
+        {
+            self.selected_visible(world)
         } else {
             None
         }
@@ -151,15 +477,83 @@ impl HomeState {
         &mut self,
         world: &World,
         cx: &mut Cx<'_>,
-    ) -> (Response<()>, Option<Action>) {
-        let mut text = query_input().update(cx, &mut self.editor, &mut self.value);
+        home_area: Option<Rect>,
+        viewport_width: u16,
+    ) -> (Response<()>, Option<Action>, Option<String>) {
+        let previous_selected = self.selected(world).map(|action| action.id);
+        let rows_own_navigation = cx.state(ROWS).contains(StateFlags::FOCUSED)
+            && catalogue::parity_discovery(world).is_some();
+        let mut text =
+            query_input(rows_own_navigation).update(cx, &mut self.editor, &mut self.value);
         let submit = matches!(text.take_action(), Some(TextAction::Committed));
 
         if !self.editor.is_editing() {
             self.editor.begin(&self.value);
         }
         let rows = self.rows(world);
-        let mut navigation = nav_list().update(cx, &mut self.rows, &rows);
+        let retained = previous_selected.as_ref().and_then(|id| {
+            rows.iter().enumerate().find(|(_, row)| {
+                row.action()
+                    .is_some_and(|action| action.id.as_str() == id.as_str())
+            })
+        });
+        let first_action = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.action().is_some());
+        if let Some((index, row)) = retained.or(first_action) {
+            let key = row_key(row);
+            if self.rows.cursor() != Some(key) {
+                self.rows.set_cursor(index, key);
+            }
+        }
+        let master_detail = MasterDetail::new(MASTER_DETAIL, ROWS, DETAIL_VIEWPORT)
+            .policy(home_master_detail_policy())
+            .detail_owns(&[DETAIL_VIEWPORT]);
+        let master_detail_active = home_area.is_some()
+            && cx.layout(MASTER_DETAIL).is_some()
+            && cx.top_layer() == termrock::LayerId::PAGE;
+        let mut response = if master_detail_active {
+            master_detail.update(cx, &mut self.detail).erase()
+        } else {
+            Response::ignored()
+        };
+        let discovery = home_area.and_then(|area| {
+            let (_, rows_area, _) = home_rows_layout(area, world, self.query());
+            let layout = parity_action_layout(rows_area, viewport_width, !rows.is_empty())?;
+            if layout.has_action_rows && catalogue::parity_discovery(world).is_some() {
+                self.parity_items(world)
+            } else {
+                None
+            }
+        });
+        let mut navigation = if let Some(items) = discovery.as_deref() {
+            parity_nav_list().update(cx, &mut self.rows, items)
+        } else {
+            nav_list().update(cx, &mut self.rows, &rows)
+        };
+        self.reconcile_selection(&rows);
+        let query_preview = cx
+            .intents(QUERY)
+            .any(|intent| matches!(intent, Intent::Binding(action) if action == OPEN_PREVIEW));
+        let rows_preview = cx
+            .intents(ROWS)
+            .any(|intent| matches!(intent, Intent::Binding(action) if action == OPEN_PREVIEW));
+        if master_detail_active && query_preview {
+            cx.focus_next();
+            response |= Response::consumed();
+        } else if master_detail_active && rows_preview {
+            let collapsed = home_area.is_some_and(|area| {
+                let (_, rows_area, _) = home_rows_layout(area, world, self.query());
+                home_master_detail_policy().is_collapsed(rows_area.width)
+            });
+            if collapsed {
+                response |= master_detail.open_detail(cx, &mut self.detail).erase();
+            } else {
+                cx.focus_next();
+                response |= Response::consumed();
+            }
+        }
         let chosen = match navigation.take_action() {
             Some(NavListAction::LeaveBackward) => {
                 cx.focus_prev();
@@ -169,28 +563,58 @@ impl HomeState {
                 cx.focus_next();
                 None
             }
-            Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) => rows
-                .into_iter()
-                .find(|row| row_key(row) == key)
-                .map(|row| row.action),
-            _ if submit => rows.into_iter().next().map(|row| row.action),
+            Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) => {
+                if let Some(items) = discovery.as_deref() {
+                    items
+                        .iter()
+                        .find(|item| parity_item_key(item) == key)
+                        .and_then(parity_item_action)
+                        .cloned()
+                } else {
+                    rows.iter()
+                        .find(|row| row_key(row) == key)
+                        .and_then(HomeRow::action)
+                        .cloned()
+                }
+            }
+            _ if submit => self.selected_visible(world),
             _ => None,
         };
-        (text.erase() | navigation.erase(), chosen)
+        let mut copy = None;
+        if master_detail_active && let Some(area) = home_area {
+            let (_, rows_area, _) = home_rows_layout(area, world, self.query());
+            let visible = !home_master_detail_policy().is_collapsed(rows_area.width)
+                || self.detail.drawer_open();
+            if visible {
+                let text_lines =
+                    detail_text_lines(self.selected(world).as_ref(), world, self.history);
+                let viewport_lines = viewport_lines(&text_lines);
+                let viewport = TextViewport::new(DETAIL_VIEWPORT)
+                    .wrap(true)
+                    .reserve_gutter(false);
+                let detail_response =
+                    viewport.update(cx, &mut self.detail_viewport, &viewport_lines);
+                if let Some(ViewportAction::Copy(value)) = detail_response.action_ref() {
+                    copy = Some(value.clone());
+                }
+                response |= detail_response.erase();
+            }
+        }
+        (text.erase() | navigation.erase() | response, chosen, copy)
     }
 
     #[expect(
         clippy::too_many_lines,
         reason = "One pure Home projection keeps query, scope, rows and discovery geometry together"
     )]
-    pub(crate) fn draw(&self, world: &World, ui: &mut Ui<'_>, area: Rect) {
+    pub(crate) fn draw(&self, world: &World, ui: &mut Ui<'_>, area: Rect) -> Option<String> {
+        let clip = ui.full();
         if area.is_empty() {
-            return;
+            return None;
         }
-        let scope_label = self.scope.map(|scope| format!("scope: {}", scope.label()));
-        let scope_width = scope_label
-            .as_ref()
-            .map_or(0, |label| termrock::width(label).saturating_add(3));
+        let scope_name = self.scope.map_or("here", Scope::label);
+        let scope_label = format!(" scope ‹ {scope_name} › ");
+        let scope_width = termrock::width(&scope_label);
         let field = ui
             .style(
                 Family::INPUT,
@@ -200,57 +624,265 @@ impl HomeState {
             )
             .style;
         ui.fill(Rect::new(area.x, area.y, area.width, 1), field);
-        query_input().value(&self.value).draw(
+        let rows_own_navigation = ui.state(ROWS).contains(StateFlags::FOCUSED)
+            && catalogue::parity_discovery(world).is_some();
+        let mut input = query_input(rows_own_navigation);
+        if catalogue::docker_cleanup_tag_frame(world) {
+            input = input.patch_part(DOCKER_QUERY_PARTS);
+        }
+        input.value(&self.value).draw(
             ui,
             Rect::new(area.x, area.y, area.width.saturating_sub(scope_width), 1),
             &self.editor,
         );
-        if let Some(label) = scope_label {
-            let style = ui
-                .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)))
-                .with_bg_from(field);
-            ui.paint_str(
-                Rect::new(
-                    area.right().saturating_sub(scope_width),
-                    area.y,
-                    scope_width,
-                    1,
-                ),
-                &label,
-                style,
-            );
-        }
-        let rows = self.rows(world);
-        let rows_area = Rect::new(
-            area.x,
-            area.y.saturating_add(2),
-            area.width,
-            area.height.saturating_sub(2),
+        let scope_style = ui.paint_patch(&TAG_GREY).with_bg_from(field);
+        ui.paint_str(
+            Rect::new(
+                area.right().saturating_sub(scope_width),
+                area.y,
+                scope_width.min(area.width),
+                1,
+            ),
+            &scope_label,
+            scope_style,
         );
-        if rows.is_empty() {
-            let note = if self.query().trim().is_empty() {
-                self.scope.map_or_else(
-                    || "Nothing discovered here yet".to_owned(),
-                    |scope| format!("Nothing in scope {} here", scope.label()),
-                )
-            } else {
-                format!("Nothing matches “{}” here", self.query().trim())
+        let mut rows = self.rows(world);
+        ActionColumns::apply(&mut rows);
+        let (lead_area, rows_area, paints_recent_lead) =
+            home_rows_layout(area, world, self.query());
+        if let Some(view) = catalogue::parity_files_view(world, ui.full().width)
+            && paint_parity_files(ui, lead_area, &view)
+        {
+            return None;
+        }
+        if paints_recent_lead {
+            super::finder::paint_recent_lead(ui, lead_area);
+        }
+        if let Some(view) = catalogue::monorepo_root_view(world, ui.full().width, self.history)
+            && paint_narrow_tag_list(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::monorepo_child_view(world, ui.full().width)
+            && paint_narrow_tag_list(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::docker_cleanup_view(world, ui.full().width)
+            && paint_narrow_tag_list(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::remote_host_view(world, ui.full().width)
+            && paint_narrow_tag_list(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::activities_multi_view(world, ui.full().width, self.history)
+            && paint_narrow_tag_list(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::parity_discovery_view(world, ui.full().width) {
+            if let Some(layout) = parity_action_layout(rows_area, ui.full().width, !rows.is_empty())
+                && let Some(mut items) = self.parity_items(world)
+            {
+                if !layout.has_action_rows {
+                    paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
+                    return None;
+                }
+                if paint_parity_action_card(ui, layout, &view, &self.rows, &mut items) {
+                    return None;
+                }
+            }
+            if paint_parity_discovery_view(ui, rows_area, &view) {
+                return None;
+            }
+        }
+        if let Some(view) = catalogue::parity_discovery(world) {
+            if let Some(layout) = parity_action_layout(rows_area, ui.full().width, !rows.is_empty())
+                && let Some(mut items) = self.parity_items(world)
+            {
+                if !layout.has_action_rows {
+                    paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
+                    return None;
+                }
+                if paint_parity_action_card(ui, layout, &view, &self.rows, &mut items) {
+                    return None;
+                }
+            }
+            if paint_parity_discovery(ui, rows_area, &view) {
+                return None;
+            }
+        }
+        if let Some(view) = catalogue::parity_history_view(world, ui.full().width)
+            && paint_parity_history(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::parity_browser_view(world, ui.full().width)
+            && paint_parity_browser(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::parity_git_current_view(world, ui.full().width)
+            && paint_parity_git_current(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::parity_git_batch_view(world, ui.full().width)
+            && paint_parity_git_batch(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::parity_task_sources_view(world, ui.full().width)
+            && paint_parity_task_sources(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::parity_cargo_view(world, ui.full().width)
+            && paint_parity_cargo(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::monorepo_root_plate(world, self.history)
+            .or_else(|| catalogue::monorepo_child_tag(world))
+            .or_else(|| catalogue::activities_multi_plate(world, self.history))
+            .or_else(|| catalogue::remote_host_tag(world))
+            .or_else(|| catalogue::docker_cleanup_tag(world))
+            && paint_parity_discovery(ui, rows_area, &view)
+        {
+            return None;
+        }
+        if let Some(view) = catalogue::hard_cases_tag(world)
+            && paint_hard_cases_discovery(ui, rows_area, &view)
+        {
+            return None;
+        }
+        let peek = RefCell::new(None);
+        let collect_peek = !ui.is_inert()
+            && !ui.is_covered_by_native_layer()
+            && ui.owner_has_focus_presentation(ROWS);
+        if catalogue::parity_discovery(world).is_none() {
+            let selected = self.selected_visible(world);
+            let preview = selected
+                .as_ref()
+                .map(|action| catalogue::action_preview(world, action, self.history));
+            let selected_title = selected
+                .as_ref()
+                .map_or("Nothing to preview", |action| action.title.as_str());
+            let selected_meta = preview
+                .as_ref()
+                .map_or("Esc clears the query", |preview| preview.meta.as_str());
+            let lines = preview
+                .as_ref()
+                .map(|preview| {
+                    preview
+                        .lines
+                        .iter()
+                        .map(|line| format!("{}: {}", line.label, line.value))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            let line_refs = viewport_lines(&lines);
+            let list = nav_list_with_row(|row, cells| {
+                let row_is_visible = !cells.area().intersection(clip).is_empty();
+                let collector = (collect_peek && row_is_visible).then_some(&peek);
+                paint_action_with_peek(row, cells, collector);
+            });
+            let empty_title = empty_result_title(self.query(), self.scope);
+            let empty_hint = empty_result_hint(self.query(), self.scope);
+            let empty_slot = |ui: &mut Ui<'_>, empty_area: Rect| {
+                let _ = list.draw(ui, empty_area, &self.rows, &rows);
+                let empty_state = EmptyState::Empty {
+                    title: &empty_title,
+                    hint: Some(&empty_hint),
+                };
+                let _ = Empty::new(HOME_EMPTY, empty_state).draw(ui, empty_area);
             };
-            let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
-            ui.paint_str(
-                Rect::new(
-                    rows_area.x.saturating_add(2),
-                    rows_area.y,
-                    rows_area.width.saturating_sub(4),
-                    1,
-                ),
-                &note,
-                style,
-            );
+            let empty = Empty::new(
+                HOME_EMPTY,
+                EmptyState::Empty {
+                    title: &empty_title,
+                    hint: Some(&empty_hint),
+                },
+            )
+            .slot(Part::EMPTY, &empty_slot);
+            let master = if rows.is_empty() {
+                Group::column([composition::empty(&empty).flex(1)])
+            } else {
+                Group::column([composition::nav_list(&list, &self.rows, &rows).flex(1)])
+            };
+            let summary = TextSection::new(selected_title).inset(1);
+            let summary = Group::column([composition::text_section(&summary)]);
+            let viewport = TextViewport::new(DETAIL_VIEWPORT)
+                .wrap(true)
+                .reserve_gutter(false);
+            let panel = Panel::new(DETAIL_PANEL)
+                .title(selected_title)
+                .focused(ui.state(DETAIL_VIEWPORT).contains(StateFlags::FOCUSED));
+            let empty_panel = Panel::new(DETAIL_PANEL)
+                .title("Preview")
+                .focused(ui.state(DETAIL_VIEWPORT).contains(StateFlags::FOCUSED))
+                .patch_part(EMPTY_PREVIEW_PANEL_PARTS);
+            let heading = TextSection::new(selected_title)
+                .subtitle(selected_meta)
+                .inset(1);
+            let empty_preview_hint = home_clear_hint(self.query(), self.scope);
+            let empty_preview_slot = |ui: &mut Ui<'_>, detail_area: Rect| {
+                let _ = viewport.draw(ui, detail_area, &self.detail_viewport, &line_refs);
+                let empty_state = EmptyState::Empty {
+                    title: "Nothing to preview",
+                    hint: empty_preview_hint,
+                };
+                let empty = Empty::new(DETAIL_EMPTY, empty_state);
+                let _ = empty.draw(ui, detail_area);
+            };
+            let empty_preview = Empty::new(
+                DETAIL_EMPTY,
+                EmptyState::Empty {
+                    title: "Nothing to preview",
+                    hint: empty_preview_hint,
+                },
+            )
+            .slot(Part::EMPTY, &empty_preview_slot);
+            let detail = if selected.is_some() {
+                let body = Group::column([
+                    composition::text_section(&heading),
+                    composition::text_viewport(&viewport, &self.detail_viewport, &line_refs)
+                        .flex(1),
+                ]);
+                let detail_panel = composition::panel(&panel, body.into_child());
+                Group::column([detail_panel.flex(1)])
+            } else {
+                let detail_panel =
+                    composition::panel(&empty_panel, composition::empty(&empty_preview).flex(1));
+                Group::column([detail_panel
+                    .min(0, EMPTY_PREVIEW_PANEL_MIN_HEIGHT)
+                    .max(None, Some(EMPTY_PREVIEW_PANEL_MIN_HEIGHT))])
+            };
+            let layout = MasterDetail::new(MASTER_DETAIL, ROWS, DETAIL_VIEWPORT)
+                .policy(home_master_detail_policy())
+                .master(&master)
+                .detail(&detail)
+                .summary(&summary)
+                .detail_owns(&[DETAIL_VIEWPORT]);
+            let _ = ui.with_area(rows_area, |ui| layout.show(ui, &self.detail));
+            if !ui.is_inert() && !ui.is_covered_by_native_layer() {
+                let query_state = ui.state(QUERY);
+                ui.publish_additional_bindings(QUERY, query_state, OPEN_PREVIEW_BINDINGS);
+                let rows_state = ui.state(ROWS);
+                ui.publish_additional_bindings(ROWS, rows_state, OPEN_PREVIEW_BINDINGS);
+            }
+        } else if rows.is_empty() {
+            paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
         } else {
-            nav_list()
-                .render_row(&paint_action)
-                .draw(ui, rows_area, &self.rows, &rows);
+            nav_list_with_row(|row, cells| {
+                let row_is_visible = !cells.area().intersection(clip).is_empty();
+                let collector = (collect_peek && row_is_visible).then_some(&peek);
+                paint_action_with_peek(row, cells, collector);
+            })
+            .draw(ui, rows_area, &self.rows, &rows);
         }
         let groups = rows
             .iter()
@@ -292,238 +924,1577 @@ impl HomeState {
                 None
             };
             if let Some((text, role)) = note {
-                let style = ui.paint_patch(&StylePatch::new().set_fg(role));
-                ui.paint_str(
-                    Rect::new(
-                        area.x.saturating_add(2),
-                        area.bottom().saturating_sub(1),
-                        area.width.saturating_sub(2),
-                        1,
-                    ),
-                    &text,
-                    style,
+                let note_row = Rect::new(
+                    area.x.saturating_add(2),
+                    area.bottom().saturating_sub(1),
+                    area.width.saturating_sub(2),
+                    1,
                 );
+                paint_discovery_note(ui, note_row, &text, role);
             }
         }
+        peek.into_inner()
     }
 }
 
-fn query_input() -> TextInput<'static> {
-    TextInput::new(QUERY)
-        .placeholder("Type to filter · actions, files, hosts")
+fn paint_discovery_note(ui: &mut Ui<'_>, row: Rect, text: &str, role: Role) {
+    let style = ui.paint_patch(&StylePatch::new().set_fg(role));
+    ui.paint_str(row, text, style);
+}
+
+const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
+const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
+
+const DOCKER_QUERY_PARTS: &[(Part, StylePatch)] = &[
+    (Part::PLACEHOLDER, TAG_GREY),
+    (
+        Part::TEXT,
+        StylePatch::new()
+            .add(termrock::Modifier::UNDERLINED)
+            .set_underline(Role::Fg(FgStep::Secondary)),
+    ),
+];
+
+const SECTION_INDENT: u16 = 3;
+
+const HEADER_PAD: StylePatch = StylePatch::new()
+    .set_fg(Role::Fg(FgStep::Primary))
+    .remove(termrock::Modifier::BOLD);
+const HEADER_TEXT: StylePatch = TAG_GREY.remove(termrock::Modifier::BOLD);
+const HEADER_PARTS: &[(Part, StylePatch)] = &[(Part::HEADER, HEADER_PAD)];
+
+fn query_input(rows_own_navigation: bool) -> TextInput<'static> {
+    let input = TextInput::new(QUERY)
+        .placeholder("Search actions and resources…")
         .placeholder_while_editing(true)
         .blur(BlurPolicy::Keep)
         .typing_policy(TypingPolicy::Fallback { cursor: true })
+        .patch_part(QUERY_PARTS);
+    if rows_own_navigation {
+        input.exclude_commands(PARITY_ROW_QUERY_EXCLUDED_COMMANDS)
+    } else {
+        input
+    }
 }
 fn section(row: &HomeRow) -> &str {
     row.section
 }
-fn nav_list() -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey> {
+fn nav_list_with_row<R>(row: R) -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, R>
+where
+    R: Fn(&HomeRow, &mut RowUi<'_>),
+{
     NavList::new(ROWS)
+        .cursor_style(CursorStyle::Fill)
         .scrollable(true)
         .leave_at_boundary(true)
-        .header_indent(2)
+        .header_indent(SECTION_INDENT)
         .section(&section)
+        .disabled_item(&home_row_disabled)
+        .patch_part(HEADER_PARTS)
+        .header_text_patch(&HEADER_TEXT)
         .key(row_key)
+        .row(row)
+}
+fn nav_list()
+-> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, impl Fn(&HomeRow, &mut RowUi<'_>)> {
+    nav_list_with_row(paint_action)
 }
 fn row_key(row: &HomeRow) -> ItemKey {
-    ItemKey::text(&row.action.id)
+    match &row.content {
+        HomeRowContent::Action(action) => ItemKey::text(&action.id),
+        HomeRowContent::SectionHint(_) => ItemKey::text("home.section.recent.empty"),
+    }
 }
 
-fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, row: &HomeRow) {
-    let style = ui
-        .style(Family::LIST, Variant::DEFAULT, Part::ROW, flags)
-        .style;
-    ui.fill(area, style);
-    let gutter = ui
-        .style(Family::LIST, Variant::DEFAULT, Part::GUTTER, flags)
-        .style;
-    ui.paint_str(Rect::new(area.x, area.y, 1, 1), "▎", gutter);
-    let action = &row.action;
-    let mut x = area.x.saturating_add(2);
-    let title_width = termrock::width(&action.title);
-    if x.saturating_add(title_width) < area.right() {
-        ui.paint_str(Rect::new(x, area.y, title_width, 1), &action.title, style);
-        x = x.saturating_add(title_width);
-    } else {
-        let budget = area.right().saturating_sub(x).saturating_sub(1);
-        ui.paint_str(
-            Rect::new(x, area.y, budget, 1),
-            &termrock::truncate(&action.title, budget),
-            style,
-        );
-        return;
+fn home_row_disabled(row: &HomeRow) -> bool {
+    row.is_disabled()
+}
+
+fn parity_item_key(item: &ParityItem) -> ItemKey {
+    match item {
+        ParityItem::Decoration { key, .. } => *key,
+        ParityItem::Action { action, .. } => ItemKey::text(&action.id),
     }
-    if !matches!(action.availability, Availability::Ready) && x.saturating_add(2) < area.right() {
-        let warning = ui
-            .paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Warning)
-                    .add(termrock::Modifier::BOLD),
-            )
-            .with_bg_from(style);
-        ui.paint_str(Rect::new(x.saturating_add(1), area.y, 1, 1), "▲", warning);
-        x = x.saturating_add(2);
+}
+
+fn parity_item_disabled(item: &ParityItem) -> bool {
+    matches!(item, ParityItem::Decoration { .. })
+}
+
+fn parity_item_action(item: &ParityItem) -> Option<&Action> {
+    match item {
+        ParityItem::Decoration { .. } => None,
+        ParityItem::Action { action, .. } => Some(action),
     }
-    let reason_width = termrock::width(&action.reason);
-    let reason_x = if area.width > reason_width.saturating_add(24)
-        && area.right() > x.saturating_add(2).saturating_add(reason_width)
-    {
-        area.right().saturating_sub(reason_width.saturating_add(1))
+}
+
+type ParityRowFn = for<'row> fn(&ParityItem, &mut RowUi<'row>);
+
+fn parity_nav_list<'a>() -> NavList<'a, ParityItem, fn(&ParityItem) -> ItemKey, ParityRowFn> {
+    NavList::new(ROWS)
+        .compact()
+        .scrollable(true)
+        .leave_at_boundary(true)
+        .key(parity_item_key as fn(&ParityItem) -> ItemKey)
+        .disabled_item(&parity_item_disabled)
+        .row(parity_fallback_row as ParityRowFn)
+        .render_row(&paint_parity_item)
+}
+
+fn parity_fallback_row(item: &ParityItem, row: &mut RowUi<'_>) {
+    match item {
+        ParityItem::Action { action, .. } => row.label(&action.title),
+        ParityItem::Decoration { line, .. } => match line {
+            catalogue::FinderLine::Heading(text) => row.label(text),
+            catalogue::FinderLine::Blank => row.label(""),
+            catalogue::FinderLine::Chips(labels) => row.label(&labels.join(" · ")),
+            catalogue::FinderLine::Row(tag) => row.label(&tag.title),
+        },
+    }
+}
+
+fn paint_parity_item(
+    ui: &mut Ui<'_>,
+    rect: Rect,
+    flags: StateFlags,
+    _key: ItemKey,
+    item: &ParityItem,
+) {
+    match item {
+        ParityItem::Decoration { line, .. } => match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, rect, rect.y, text, None),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, rect, rect.y, labels, None),
+            catalogue::FinderLine::Row(_) => {}
+        },
+        ParityItem::Action { tag, columns, .. } => {
+            let mut row = tag.clone();
+            row.selected = if ui.state(ROWS).contains(StateFlags::FOCUSED) {
+                flags.contains(StateFlags::FOCUSED)
+            } else {
+                tag.selected
+            };
+            paint_tag_row(ui, rect, rect.y, &row, columns, None);
+        }
+    }
+}
+
+fn paint_empty_home_rows(ui: &mut Ui<'_>, area: Rect, query: &str, scope: Option<Scope>) {
+    let note = empty_home_message(query, scope);
+    let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(2),
+            area.y,
+            area.width.saturating_sub(4),
+            1,
+        ),
+        &note,
+        style,
+    );
+}
+
+fn empty_home_message(query: &str, scope: Option<Scope>) -> String {
+    if query.trim().is_empty() {
+        scope.map_or_else(
+            || "Nothing discovered here yet".to_owned(),
+            |scope| format!("Nothing in scope {} here", scope.label()),
+        )
     } else {
-        area.right()
+        format!("Nothing matches “{}” here", query.trim())
+    }
+}
+
+fn empty_result_title(query: &str, scope: Option<Scope>) -> String {
+    let query = query.trim();
+    if !query.is_empty() {
+        format!("No matches for “{query}”")
+    } else {
+        scope.map_or_else(
+            || "Nothing discovered here yet".to_owned(),
+            |scope| format!("Nothing discovered in {} scope", scope.label()),
+        )
+    }
+}
+
+fn home_clear_hint(query: &str, scope: Option<Scope>) -> Option<&'static str> {
+    if scope.is_some() {
+        Some("Esc clears the scope")
+    } else if !query.trim().is_empty() {
+        Some("Esc clears the query")
+    } else {
+        None
+    }
+}
+
+fn empty_result_hint(query: &str, scope: Option<Scope>) -> String {
+    home_clear_hint(query, scope).map_or_else(
+        || "Ctrl+S changes scope".to_owned(),
+        |clear_hint| format!("{clear_hint} · Ctrl+S changes scope"),
+    )
+}
+
+fn viewport_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
+    lines
+        .iter()
+        .map(|line| ViewportLine::from(line.as_str()))
+        .collect()
+}
+
+fn detail_text_lines(action: Option<&Action>, world: &World, history: bool) -> Vec<String> {
+    action.map_or_else(Vec::new, |action| {
+        catalogue::action_preview(world, action, history)
+            .lines
+            .into_iter()
+            .map(|line| format!("{}: {}", line.label, line.value))
+            .collect()
+    })
+}
+
+fn paint_action(row: &HomeRow, cells: &mut RowUi<'_>) {
+    paint_action_with_peek(row, cells, None);
+}
+
+fn paint_action_with_peek(
+    row: &HomeRow,
+    cells: &mut RowUi<'_>,
+    peek: Option<&RefCell<Option<String>>>,
+) {
+    let action = match &row.content {
+        HomeRowContent::Action(action) => action,
+        HomeRowContent::SectionHint(hint) => {
+            cells.label_patched(hint, &StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
+            return;
+        }
     };
-    if action.scope != Scope::Here {
-        let tag = if action.scope_label.is_empty() {
-            format!("· {}", action.scope.label())
-        } else {
-            format!("· {} {}", action.scope.label(), action.scope_label)
+    let candidate_eligible = peek.is_some()
+        && cells.flags().contains(StateFlags::FOCUSED)
+        && !cells.flags().contains(StateFlags::DISABLED)
+        && !cells.area().is_empty();
+    let kind = action_kind_label(action.kind);
+    let scope = scope_text(action);
+    let risk = risk_text(action);
+
+    let content_width = cells.remaining_width().min(cells.container_width());
+    let title_width = row
+        .columns
+        .title
+        .min((content_width.saturating_mul(36) / 100).max(14));
+    let kind_width = row.columns.kind;
+    let scope_width = row.columns.scope;
+    let risk_width = row.columns.risk;
+    let specs = [
+        ColumnSpec::new(
+            title_width.max(1),
+            title_width.max(1),
+            title_width.max(1),
+            0,
+            None,
+        ),
+        ColumnSpec::new(0, kind_width, kind_width, 0, Some(2)),
+        ColumnSpec::new(0, scope_width, scope_width, 0, Some(1)),
+        ColumnSpec::new(12, 12, u16::MAX, 1, Some(2)),
+        ColumnSpec::new(0, risk_width, risk_width, 0, Some(0)),
+    ];
+    let resolved = solve_columns(&specs, content_width, 2);
+    let tracks = (0..resolved.len())
+        .map(|index| Track::Fixed(resolved.width(index).unwrap_or_default()))
+        .collect::<Vec<_>>();
+    let (title_cut, reason_cut) = {
+        let mut columns = cells.columns_with_gap(&tracks, 2);
+        let title_cut = {
+            let mut title = columns.cell_part(0, Part::LABEL);
+            let cut = termrock::width(&action.title) > title.available_width();
+            title.text_matched(&action.title, &[]);
+            cut
         };
-        let budget = reason_x.saturating_sub(x.saturating_add(3));
-        if budget >= 10 {
-            let faint = ui
-                .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)))
-                .with_bg_from(style);
-            ui.paint_str(
-                Rect::new(x.saturating_add(1), area.y, budget, 1),
-                &termrock::truncate_middle(&tag, budget),
-                faint,
+        if !kind.is_empty() {
+            columns
+                .cell_part(1, Part::META)
+                .tone(Role::Fg(FgStep::Muted))
+                .text_matched(kind, &[]);
+        }
+        if !scope.is_empty() {
+            let scope_tone = if action.scope == Scope::Here {
+                Role::Fg(FgStep::Muted)
+            } else {
+                Role::Fg(FgStep::Secondary)
+            };
+            columns
+                .cell_part(2, Part::META)
+                .tone(scope_tone)
+                .text_matched(&scope, &[]);
+        }
+        let reason_cut = if !action.reason.is_empty() {
+            let mut reason = columns.cell_part(3, Part::META);
+            let cut = termrock::width(&action.reason) > reason.available_width();
+            reason.patch(&TAG_GREY).text_matched(&action.reason, &[]);
+            cut
+        } else {
+            false
+        };
+        if !risk.is_empty() {
+            let mut risk_cell = columns.cell_part(4, Part::META);
+            if !matches!(action.availability, Availability::Ready) {
+                risk_cell
+                    .patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Warning)
+                            .add(termrock::Modifier::BOLD),
+                    )
+                    .text_matched(&risk, &[]);
+            } else {
+                risk_cell
+                    .tone(Role::Fg(FgStep::Secondary))
+                    .text_matched(&risk, &[]);
+            }
+        }
+        (title_cut, reason_cut)
+    };
+    if candidate_eligible
+        && (title_cut || reason_cut)
+        && let Some(peek) = peek
+    {
+        let mut current = peek.borrow_mut();
+        if current.is_none() {
+            let title = one_line(&action.title);
+            let reason = one_line(&action.reason);
+            *current = Some(if reason.is_empty() {
+                title
+            } else if title.is_empty() {
+                reason
+            } else {
+                format!("{title} — {reason}")
+            });
+        }
+    }
+}
+
+fn one_line(text: &str) -> String {
+    text.split(['\n', '\r', '\t'])
+        .filter(|piece| !piece.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn action_kind_label(kind: crate::domain::action::ActionKind) -> &'static str {
+    use crate::domain::action::ActionKind;
+
+    match kind {
+        ActionKind::Task => "task",
+        ActionKind::Git => "git",
+        ActionKind::Plan => "plan",
+        ActionKind::Connect => "connect",
+        ActionKind::Flow => "flow",
+        ActionKind::Clone => "clone",
+        ActionKind::System => "system",
+    }
+}
+
+fn scope_text(action: &Action) -> String {
+    if action.scope_label.is_empty() {
+        action.scope.label().to_owned()
+    } else {
+        format!("{} {}", action.scope.label(), action.scope_label)
+    }
+}
+
+fn risk_text(action: &Action) -> String {
+    match action.availability {
+        Availability::Ready => risk_label(action.risk).to_owned(),
+        Availability::NeedsTrust(_) => {
+            format!("▲ untrusted config · {}", risk_label(action.risk))
+        }
+        Availability::Blocked(_) => format!("▲ blocked · {}", risk_label(action.risk)),
+    }
+}
+
+fn risk_label(risk: crate::domain::action::Risk) -> &'static str {
+    use crate::domain::action::Risk;
+
+    match risk {
+        Risk::ReadOnly => "read only",
+        Risk::Bounded => "bounded",
+        Risk::Broad => "broad",
+    }
+}
+
+const PREVIEW_BG: Color = Color::Rgb(0x11, 0x11, 0x11);
+const SELECT_BG: Color = Color::Rgb(0x2f, 0x5a, 0xa8);
+const TAG_GREY_FG: Color = Color::Rgb(0x8a, 0x8a, 0x8a);
+const SECONDARY_FG: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
+const META_FG: Color = Color::Rgb(0x73, 0x73, 0x73);
+const RULE_FG: Color = Color::Rgb(0x3a, 0x3a, 0x3a);
+const DANGER_FG: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
+const WHITE: Color = Color::Rgb(0xff, 0xff, 0xff);
+const BLACK: Color = Color::Rgb(0, 0, 0);
+
+#[derive(Clone, Copy, Default)]
+struct TagCols {
+    label: u16,
+    kind: u16,
+    scope: u16,
+    reason: u16,
+}
+
+fn ink(ui: &Ui<'_>, fg: Color, bg: Color, bold: bool) -> termrock::author::PaintStyle {
+    let patch = StylePatch::new()
+        .set_fg(Role::Custom(fg))
+        .set_bg(Role::Custom(bg));
+    let patch = if bold {
+        patch.add(termrock::Modifier::BOLD)
+    } else {
+        patch.remove(termrock::Modifier::BOLD)
+    };
+    ui.paint_patch(&patch)
+}
+
+fn fit_cells(text: &str, width: u16) -> String {
+    let fitted = termrock::truncate(text, width);
+    let pad = usize::from(width.saturating_sub(termrock::width(&fitted)));
+    format!("{fitted}{}", " ".repeat(pad))
+}
+
+fn truncate_sep(text: &str, max: u16) -> String {
+    if termrock::width(text) <= max {
+        return text.to_owned();
+    }
+    if max < 4 {
+        return termrock::truncate(text, max);
+    }
+    let mut best: Option<usize> = None;
+    let mut pos = 0usize;
+    while let Some(found) = text[pos..].find(" · ") {
+        let at = pos.saturating_add(found);
+        let width = termrock::width(text.get(..at).unwrap_or(""));
+        if width < max && width.saturating_mul(3) >= max {
+            best = Some(at);
+        }
+        if width.saturating_add(1) > max {
+            break;
+        }
+        pos = at.saturating_add(3);
+    }
+    match best.and_then(|at| text.get(..at)) {
+        Some(head) => format!("{head}…"),
+        None => termrock::truncate(text, max),
+    }
+}
+
+fn wrap_words(text: &str, width: u16) -> Vec<String> {
+    let width = usize::from(width.max(1));
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    let mut used = 0usize;
+    for word in text.split(' ') {
+        let word_w = usize::from(termrock::width(word));
+        if line.is_empty() {
+            if word_w <= width {
+                line = word.to_owned();
+                used = word_w;
+            } else {
+                lines.push(termrock::truncate(
+                    word,
+                    u16::try_from(width).unwrap_or(u16::MAX),
+                ));
+            }
+        } else if used.saturating_add(1).saturating_add(word_w) <= width {
+            line.push(' ');
+            line.push_str(word);
+            used = used.saturating_add(1).saturating_add(word_w);
+        } else {
+            lines.push(std::mem::take(&mut line));
+            used = 0;
+            if word_w <= width {
+                line = word.to_owned();
+                used = word_w;
+            } else {
+                lines.push(termrock::truncate(
+                    word,
+                    u16::try_from(width).unwrap_or(u16::MAX),
+                ));
+            }
+        }
+    }
+    lines.push(line);
+    lines
+}
+
+fn tag_columns(rows: &[&catalogue::TagRow], content_w: u16) -> TagCols {
+    let max_label = rows
+        .iter()
+        .map(|row| termrock::width(&row.title))
+        .max()
+        .unwrap_or(14);
+    let kind = rows
+        .iter()
+        .map(|row| termrock::width(row.kind))
+        .max()
+        .unwrap_or(4);
+    let scope = rows
+        .iter()
+        .map(|row| termrock::width(row.scope_word))
+        .max()
+        .unwrap_or(4);
+    let risk = rows
+        .iter()
+        .filter_map(|row| row.risk)
+        .map(termrock::width)
+        .max()
+        .unwrap_or(0);
+    let label_cap = max_label.min(content_w.saturating_mul(36) / 100).max(14);
+    let gaps = 2u16.saturating_mul(3u16.saturating_add(u16::from(risk > 0)));
+    let mut label = label_cap;
+    let fixed = label
+        .saturating_add(kind)
+        .saturating_add(scope)
+        .saturating_add(risk)
+        .saturating_add(gaps);
+    let need = fixed.saturating_add(12);
+    if need > content_w {
+        label = label.saturating_sub(need.saturating_sub(content_w));
+    }
+    let reason = content_w.saturating_sub(
+        label
+            .saturating_add(kind)
+            .saturating_add(scope)
+            .saturating_add(risk)
+            .saturating_add(gaps),
+    );
+    TagCols {
+        label,
+        kind,
+        scope,
+        reason,
+    }
+}
+
+fn home_rows_layout(area: Rect, world: &World, query: &str) -> (Rect, Rect, bool) {
+    let lead = Rect::new(
+        area.x,
+        area.y.saturating_add(2),
+        area.width,
+        area.height.saturating_sub(2),
+    );
+    let paints_recent_lead = query.trim().is_empty()
+        && world.scenario.boot_title() == super::finder::RECENT
+        && lead.height >= 3;
+    let reserved = if paints_recent_lead { 3 } else { 0 };
+    let rows = Rect::new(
+        lead.x,
+        lead.y.saturating_add(reserved),
+        lead.width,
+        lead.height.saturating_sub(reserved),
+    );
+    (lead, rows, paints_recent_lead)
+}
+
+#[derive(Clone, Copy)]
+struct ParityActionLayout {
+    master: Rect,
+    detail: Rect,
+    has_action_rows: bool,
+}
+
+fn parity_action_layout(
+    area: Rect,
+    viewport_width: u16,
+    has_action_rows: bool,
+) -> Option<ParityActionLayout> {
+    if viewport_width < 120 {
+        return None;
+    }
+    let (master, detail) = split_detail(area)?;
+    Some(ParityActionLayout {
+        master,
+        detail,
+        has_action_rows,
+    })
+}
+
+fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
+    if area.width < 80 || area.height == 0 {
+        return None;
+    }
+    let detail_w = u16::try_from(u32::from(area.width).saturating_mul(34) / 100).unwrap_or(0);
+    let detail_w = detail_w.clamp(34, 48);
+    let gap = 2u16;
+    let master_w = area.width.saturating_sub(detail_w.saturating_add(gap));
+    if master_w < 20 {
+        return None;
+    }
+    Some((
+        Rect::new(area.x, area.y, master_w, area.height),
+        Rect::new(
+            area.x.saturating_add(master_w).saturating_add(gap),
+            area.y,
+            detail_w,
+            area.height,
+        ),
+    ))
+}
+
+fn paint_narrow_tag_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    (80..120).contains(&full.width) && paint_tag_list(ui, area, view, None)
+}
+
+fn paint_parity_history(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    let cols = TagCols {
+        label: 12,
+        kind: 7,
+        scope: 4,
+        reason: 65,
+    };
+    if (80..120).contains(&full.width) {
+        return paint_tag_list(ui, area, view, Some(cols));
+    }
+    if (120..160).contains(&full.width) {
+        return paint_parity_card(ui, area, view, cols);
+    }
+    false
+}
+
+fn paint_parity_files(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if (80..120).contains(&full.width) {
+        return paint_parity_files_list(ui, area, view);
+    }
+    if (120..160).contains(&full.width) {
+        return paint_parity_files_card(ui, area, view);
+    }
+    false
+}
+
+fn paint_parity_files_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if !(80..120).contains(&full.width) || area.is_empty() {
+        return false;
+    }
+    let Some(text) = narrow_action_line(view) else {
+        return false;
+    };
+    let cols = TagCols {
+        label: 12,
+        kind: 7,
+        scope: 4,
+        reason: 65,
+    };
+    let footer_y = area.bottom().saturating_sub(1);
+    let gap_y = footer_y.saturating_sub(1);
+    let mut y = area.y;
+    for line in &view.lines {
+        if y >= gap_y {
+            break;
+        }
+        match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, None),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips_selected(ui, area, y, labels),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, None),
+        }
+        y = y.saturating_add(1);
+    }
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(3),
+            footer_y,
+            area.width.saturating_sub(3),
+            1,
+        ),
+        &text,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+    true
+}
+
+fn paint_parity_files_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if !(120..160).contains(&full.width) || area.is_empty() {
+        return false;
+    }
+    let Some((master, detail)) = split_detail(area) else {
+        return false;
+    };
+    let rows: Vec<&catalogue::TagRow> = view
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            catalogue::FinderLine::Row(row) => Some(row),
+            _ => None,
+        })
+        .collect();
+    let cols = TagCols {
+        label: 12,
+        kind: 7,
+        scope: 4,
+        reason: 65,
+    };
+    let mut y = master.y;
+    for line in &view.lines {
+        if y >= master.bottom() {
+            break;
+        }
+        match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, master, y, text, None),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips_selected(ui, master, y, labels),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols, None),
+        }
+        y = y.saturating_add(1);
+    }
+    let title = view
+        .lines
+        .iter()
+        .find_map(|line| match line {
+            catalogue::FinderLine::Chips(labels) => labels.first().copied(),
+            _ => None,
+        })
+        .unwrap_or("");
+    paint_tag_preview(ui, detail, view, &rows, Some(title));
+    true
+}
+
+fn paint_tag_chips_selected(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&str]) {
+    let fill = ink(ui, WHITE, SELECT_BG, true);
+    ui.fill(Rect::new(master.x, y, master.width, 1), fill);
+    ui.paint_str(
+        Rect::new(master.x, y, 1, 1),
+        " ",
+        ink(ui, SELECT_BG, SELECT_BG, true),
+    );
+    ui.paint_str(Rect::new(master.x.saturating_add(3), y, 1, 1), "›", fill);
+    let mut x = master.x.saturating_add(3);
+    for label in labels {
+        let label_w = termrock::width(label);
+        if x.saturating_add(label_w) >= master.right() {
+            break;
+        }
+        ui.paint_str(Rect::new(x.saturating_add(1), y, label_w, 1), label, fill);
+        x = x.saturating_add(label_w).saturating_add(3);
+    }
+}
+
+fn paint_parity_browser(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    let cols = TagCols {
+        label: 12,
+        kind: 7,
+        scope: 4,
+        reason: 65,
+    };
+    if (80..120).contains(&full.width) {
+        return paint_tag_list(ui, area, view, Some(cols));
+    }
+    if (120..160).contains(&full.width) {
+        return paint_parity_card(ui, area, view, cols);
+    }
+    false
+}
+
+fn paint_parity_wide_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if !(120..160).contains(&full.width) || area.is_empty() {
+        return false;
+    }
+    let Some((master, _)) = split_detail(area) else {
+        return false;
+    };
+    let rows: Vec<&catalogue::TagRow> = view
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            catalogue::FinderLine::Row(row) => Some(row),
+            _ => None,
+        })
+        .collect();
+    paint_parity_card(
+        ui,
+        area,
+        view,
+        tag_columns(&rows, master.width.saturating_sub(4)),
+    )
+}
+
+fn paint_parity_git_batch(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if (80..120).contains(&full.width) {
+        if area.is_empty() {
+            return false;
+        }
+        let mut fitted = view.clone();
+        fit_narrow_runs(&mut fitted, area.width.saturating_sub(3));
+        return paint_tag_list(ui, area, &fitted, None);
+    }
+    paint_parity_wide_card(ui, area, view)
+}
+
+fn fit_narrow_runs(view: &mut catalogue::ParityDiscovery, room: u16) {
+    let scope = view
+        .preview
+        .iter()
+        .find(|line| line.label == "Scope")
+        .map(|line| line.value.clone());
+    let risk = view
+        .preview
+        .iter()
+        .find(|line| line.label == "Risk")
+        .map(|line| line.value.clone());
+    let (Some(scope), Some(risk)) = (scope, risk) else {
+        return;
+    };
+    let suffix_w = termrock::width("→ ")
+        .saturating_add(termrock::width(" · "))
+        .saturating_add(termrock::width(&scope))
+        .saturating_add(termrock::width(" · "))
+        .saturating_add(termrock::width(&risk));
+    let budget = room.saturating_sub(suffix_w);
+    if let Some(runs) = view.preview.iter_mut().find(|line| line.label == "Runs") {
+        runs.value = termrock::truncate_middle(&runs.value, budget);
+    }
+}
+
+fn paint_parity_task_sources(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    let full = ui.full();
+    if (80..120).contains(&full.width) {
+        return paint_tag_list(
+            ui,
+            area,
+            view,
+            Some(TagCols {
+                label: 12,
+                kind: 7,
+                scope: 4,
+                reason: 65,
+            }),
+        );
+    }
+    false
+}
+
+fn paint_parity_cargo(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if (80..120).contains(&full.width) {
+        return paint_tag_list(ui, area, view, None);
+    }
+    paint_parity_wide_card(ui, area, view)
+}
+
+fn paint_parity_git_current(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    let full = ui.full();
+    if (80..120).contains(&full.width) {
+        return paint_tag_list(ui, area, view, None);
+    }
+    paint_parity_wide_card(ui, area, view)
+}
+
+fn paint_tag_list(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+    columns: Option<TagCols>,
+) -> bool {
+    if area.is_empty() {
+        return false;
+    }
+    let Some(text) = narrow_action_line(view) else {
+        return false;
+    };
+    let rows: Vec<&catalogue::TagRow> = view
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            catalogue::FinderLine::Row(row) => Some(row),
+            _ => None,
+        })
+        .collect();
+    let footer_y = area.bottom().saturating_sub(1);
+
+    let gap_y = footer_y.saturating_sub(1);
+    let slots = usize::from(gap_y.saturating_sub(area.y));
+    let overflow = slots > 0 && view.lines.len() > slots;
+
+    let content_w = area.width.saturating_sub(if overflow { 5 } else { 4 });
+    let cols = columns.unwrap_or_else(|| tag_columns(&rows, content_w));
+    let shown = if overflow { slots } else { view.lines.len() };
+    let mut y = area.y;
+    for (index, line) in view.lines.iter().enumerate().take(shown) {
+        if y >= gap_y {
+            break;
+        }
+        let fade = if overflow {
+            preview_fade(index, shown)
+        } else {
+            None
+        };
+        if let Some((num, den)) = fade {
+            ui.fill(
+                Rect::new(area.x, y, area.width.saturating_sub(1), 1),
+                ink(ui, mix_on(WHITE, BLACK, num, den), BLACK, false),
             );
         }
+        match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, fade),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, area, y, labels, fade),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, fade),
+        }
+        y = y.saturating_add(1);
     }
-    if reason_x < area.right() {
-        let muted = ui
-            .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)))
-            .with_bg_from(style);
+    if overflow {
+        paint_narrow_scrollbar(
+            ui,
+            Rect::new(
+                area.right().saturating_sub(1),
+                area.y,
+                1,
+                u16::try_from(shown).unwrap_or(u16::MAX),
+            ),
+            view.lines.len(),
+        );
+    }
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(3),
+            footer_y,
+            area.width.saturating_sub(3),
+            1,
+        ),
+        &text,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+    true
+}
+
+fn narrow_action_line(view: &catalogue::ParityDiscovery) -> Option<String> {
+    let value = |label: &str| {
+        view.preview
+            .iter()
+            .find(|line| line.label == label)
+            .map(|line| line.value.as_str())
+    };
+    Some(format!(
+        "→ {} · {} · {}",
+        value("Runs")?,
+        value("Scope")?,
+        value("Risk")?
+    ))
+}
+
+fn paint_hard_cases_discovery(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    let full = ui.full();
+    if full.width >= 80 && full.width < 120 && paint_tag_list(ui, area, view, None) {
+        return true;
+    }
+    paint_parity_discovery(ui, area, view)
+}
+
+fn paint_parity_discovery_view(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    if (80..120).contains(&ui.full().width) && paint_tag_list(ui, area, view, None) {
+        return true;
+    }
+    paint_parity_discovery(ui, area, view)
+}
+
+fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let Some((master, _)) = split_detail(area) else {
+        return false;
+    };
+    let rows: Vec<&catalogue::TagRow> = view
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            catalogue::FinderLine::Row(row) => Some(row),
+            _ => None,
+        })
+        .collect();
+    paint_parity_card(
+        ui,
+        area,
+        view,
+        tag_columns(&rows, master.width.saturating_sub(4)),
+    )
+}
+
+fn paint_parity_action_card(
+    ui: &mut Ui<'_>,
+    layout: ParityActionLayout,
+    view: &catalogue::ParityDiscovery,
+    state: &NavListState,
+    items: &mut [ParityItem],
+) -> bool {
+    let ParityActionLayout { master, detail, .. } = layout;
+    let columns = {
+        let tags: Vec<&catalogue::TagRow> = items
+            .iter()
+            .filter_map(|item| match item {
+                ParityItem::Action { tag, .. } => Some(tag),
+                ParityItem::Decoration { .. } => None,
+            })
+            .collect();
+        if tags.is_empty() {
+            return false;
+        }
+        tag_columns(&tags, master.width.saturating_sub(4))
+    };
+    for item in items.iter_mut() {
+        if let ParityItem::Action {
+            columns: row_columns,
+            ..
+        } = item
+        {
+            *row_columns = columns;
+        }
+    }
+    parity_nav_list().draw(ui, master, state, items);
+
+    let rows_focused = ui.state(ROWS).contains(StateFlags::FOCUSED);
+    let selected = if rows_focused {
+        state.cursor().and_then(|key| {
+            items
+                .iter()
+                .find(|item| parity_item_key(item) == key && parity_item_action(item).is_some())
+        })
+    } else {
+        None
+    };
+    let title = if rows_focused {
+        selected.and_then(|item| match item {
+            ParityItem::Action { tag, .. } => Some(tag.title.as_str()),
+            ParityItem::Decoration { .. } => None,
+        })
+    } else {
+        view.lines.iter().find_map(|line| match line {
+            catalogue::FinderLine::Row(tag) if tag.selected => Some(tag.title.as_str()),
+            _ => None,
+        })
+    };
+    let mut live_view = view.clone();
+    if rows_focused {
+        if let Some(ParityItem::Action { action, tag, .. }) = selected {
+            live_view = parity_action_preview(view, action, tag);
+        } else {
+            live_view.preview.clear();
+            live_view.preview_meta.clear();
+        }
+    }
+    if rows_focused {
+        let preview_rows: Vec<&catalogue::TagRow> = items
+            .iter()
+            .filter_map(|item| match item {
+                ParityItem::Action { tag, .. } => Some(tag),
+                ParityItem::Decoration { .. } => None,
+            })
+            .collect();
+        paint_tag_preview(ui, detail, &live_view, &preview_rows, title);
+    } else {
+        let passive_rows: Vec<&catalogue::TagRow> = view
+            .lines
+            .iter()
+            .filter_map(|line| match line {
+                catalogue::FinderLine::Row(tag) => Some(tag),
+                _ => None,
+            })
+            .collect();
+        paint_tag_preview(ui, detail, view, &passive_rows, title);
+    }
+    true
+}
+
+fn parity_action_preview(
+    source: &catalogue::ParityDiscovery,
+    action: &Action,
+    tag: &catalogue::TagRow,
+) -> catalogue::ParityDiscovery {
+    let mut view = source.clone();
+    if action.id == "idea.clean" {
+        return view;
+    }
+    let command = if action.command.is_empty() {
+        "no command"
+    } else {
+        action.command.as_str()
+    };
+    let workdir = if action.workdir.is_empty() {
+        action.target.as_str()
+    } else {
+        action.workdir.as_str()
+    };
+    let risk_tone = if action.risk == crate::domain::action::Risk::Broad
+        || !matches!(action.availability, Availability::Ready)
+    {
+        catalogue::PreviewTone::Danger
+    } else {
+        catalogue::PreviewTone::Meta
+    };
+    view.preview = vec![
+        catalogue::PreviewLine {
+            label: "Runs",
+            value: command.to_owned(),
+            tone: catalogue::PreviewTone::Secondary,
+            wraps: true,
+        },
+        catalogue::PreviewLine {
+            label: "In",
+            value: workdir.to_owned(),
+            tone: catalogue::PreviewTone::Text,
+            wraps: false,
+        },
+        catalogue::PreviewLine {
+            label: "Scope",
+            value: scope_text(action),
+            tone: catalogue::PreviewTone::Text,
+            wraps: false,
+        },
+        catalogue::PreviewLine {
+            label: "Why",
+            value: action.reason.clone(),
+            tone: catalogue::PreviewTone::Text,
+            wraps: true,
+        },
+        catalogue::PreviewLine {
+            label: "Risk",
+            value: risk_text(action),
+            tone: risk_tone,
+            wraps: true,
+        },
+    ];
+    view.preview_meta = format!("{} · {}", tag.kind, tag.scope_word);
+    view
+}
+
+fn paint_parity_card(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+    cols: TagCols,
+) -> bool {
+    let Some((master, detail)) = split_detail(area) else {
+        return false;
+    };
+    let rows: Vec<&catalogue::TagRow> = view
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            catalogue::FinderLine::Row(row) => Some(row),
+            _ => None,
+        })
+        .collect();
+    let mut y = master.y;
+    for line in &view.lines {
+        if y >= master.bottom() {
+            break;
+        }
+        match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, master, y, text, None),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, master, y, labels, None),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols, None),
+        }
+        y = y.saturating_add(1);
+    }
+    paint_tag_preview(ui, detail, view, &rows, None);
+    true
+}
+
+fn paint_tag_heading(ui: &mut Ui<'_>, master: Rect, y: u16, text: &str, fade: Option<(u32, u32)>) {
+    let style = ink(ui, faded(TAG_GREY_FG, fade), BLACK, false);
+    ui.paint_str(
+        Rect::new(master.x.saturating_add(3), y, termrock::width(text), 1),
+        text,
+        style,
+    );
+}
+
+fn paint_tag_chips(
+    ui: &mut Ui<'_>,
+    master: Rect,
+    y: u16,
+    labels: &[&str],
+    fade: Option<(u32, u32)>,
+) {
+    ui.paint_str(
+        Rect::new(master.x, y, 1, 1),
+        " ",
+        ink(ui, BLACK, BLACK, false),
+    );
+    let style = ink(ui, faded(WHITE, fade), BLACK, false);
+    let mut x = master.x.saturating_add(3);
+    for label in labels {
+        let label_w = termrock::width(label);
+        if x.saturating_add(label_w) >= master.right() {
+            break;
+        }
+        ui.paint_str(Rect::new(x.saturating_add(1), y, label_w, 1), label, style);
+        x = x.saturating_add(label_w).saturating_add(3);
+    }
+}
+
+fn paint_tag_row(
+    ui: &mut Ui<'_>,
+    master: Rect,
+    y: u16,
+    row: &catalogue::TagRow,
+    cols: &TagCols,
+    fade: Option<(u32, u32)>,
+) {
+    let fade = if row.selected { None } else { fade };
+    let bg = if row.selected { SELECT_BG } else { BLACK };
+    let title_style = ink(ui, faded(WHITE, fade), bg, row.selected);
+    if row.selected {
+        ui.fill(Rect::new(master.x, y, master.width, 1), title_style);
         ui.paint_str(
-            Rect::new(reason_x, area.y, reason_width, 1),
-            &action.reason,
-            muted,
+            Rect::new(master.x.saturating_add(1), y, 1, 1),
+            "›",
+            title_style,
+        );
+    }
+    let mut x = master.x.saturating_add(3);
+    let title = termrock::truncate(&row.title, cols.label);
+    ui.paint_str(
+        Rect::new(x, y, termrock::width(&title).max(1), 1),
+        &title,
+        title_style,
+    );
+    x = x.saturating_add(cols.label).saturating_add(2);
+
+    let plain = ink(ui, faded(WHITE, fade), bg, false);
+    let kind_style = if row.selected {
+        plain
+    } else {
+        ink(ui, faded(TAG_GREY_FG, fade), BLACK, false)
+    };
+    ui.paint_str(
+        Rect::new(x, y, cols.kind, 1),
+        &fit_cells(row.kind, cols.kind),
+        kind_style,
+    );
+    x = x.saturating_add(cols.kind).saturating_add(2);
+    let scope_fg = if row.selected {
+        WHITE
+    } else if row.here {
+        TAG_GREY_FG
+    } else {
+        SECONDARY_FG
+    };
+    let scope_style = if row.selected {
+        plain
+    } else {
+        ink(ui, faded(scope_fg, fade), BLACK, false)
+    };
+    ui.paint_str(
+        Rect::new(x, y, cols.scope, 1),
+        &fit_cells(row.scope_word, cols.scope),
+        scope_style,
+    );
+    x = x.saturating_add(cols.scope).saturating_add(2);
+    if cols.reason > 0 {
+        let reason = truncate_sep(&row.reason, cols.reason);
+        let reason_style = if row.selected {
+            plain
+        } else {
+            ink(ui, faded(TAG_GREY_FG, fade), BLACK, false)
+        };
+        ui.paint_str(
+            Rect::new(x, y, termrock::width(&reason).max(1), 1),
+            &reason,
+            reason_style,
+        );
+    }
+    if let Some(risk) = row.risk {
+        let risk_w = termrock::width(risk);
+        let risk_x = master.right().saturating_sub(risk_w.saturating_add(1));
+        let risk_style = if row.selected {
+            plain
+        } else {
+            ink(ui, faded(SECONDARY_FG, fade), BLACK, false)
+        };
+        ui.paint_str(Rect::new(risk_x, y, risk_w, 1), risk, risk_style);
+    }
+}
+
+fn paint_tag_preview(
+    ui: &mut Ui<'_>,
+    detail: Rect,
+    view: &catalogue::ParityDiscovery,
+    rows: &[&catalogue::TagRow],
+    title_override: Option<&str>,
+) {
+    if detail.width < 8 || detail.height == 0 {
+        return;
+    }
+    let label_w = view
+        .preview
+        .iter()
+        .map(|line| termrock::width(line.label))
+        .max()
+        .unwrap_or(4)
+        .saturating_add(2);
+    let inner_w = detail.width.saturating_sub(4);
+    let value_w = inner_w.saturating_sub(label_w.saturating_add(1));
+    if value_w == 0 {
+        return;
+    }
+    let flat = flatten_preview(&view.preview, value_w);
+    let card_h = u16::try_from(flat.len())
+        .unwrap_or(u16::MAX)
+        .saturating_add(3)
+        .min(detail.height);
+    let card = Rect::new(detail.x, detail.y, detail.width, card_h);
+    let canvas = ink(ui, WHITE, PREVIEW_BG, false);
+    ui.fill(card, canvas);
+    let inner_x = detail.x.saturating_add(2);
+    let title = title_override.unwrap_or_else(|| {
+        rows.iter()
+            .find(|row| row.selected)
+            .map(|row| row.title.as_str())
+            .unwrap_or("")
+    });
+    let meta_w = termrock::width(&view.preview_meta);
+    let title_w = inner_w.saturating_sub(meta_w).saturating_sub(1);
+    let title = termrock::truncate(title, title_w);
+    ui.paint_str(
+        Rect::new(inner_x, detail.y, termrock::width(&title).max(1), 1),
+        &title,
+        ink(ui, SECONDARY_FG, PREVIEW_BG, false),
+    );
+    if meta_w > 0 {
+        ui.paint_str(
+            Rect::new(
+                inner_x.saturating_add(inner_w).saturating_sub(meta_w),
+                detail.y,
+                meta_w,
+                1,
+            ),
+            &view.preview_meta,
+            ink(ui, META_FG, PREVIEW_BG, false),
+        );
+    }
+    let rule_y = detail.y.saturating_add(1);
+    if rule_y < card.bottom() {
+        ui.paint_str(
+            Rect::new(inner_x, rule_y, inner_w, 1),
+            &"─".repeat(usize::from(inner_w)),
+            ink(ui, RULE_FG, PREVIEW_BG, false),
+        );
+    }
+    let slots = usize::from(card_h.saturating_sub(3));
+    let shown = flat.len().min(slots);
+    let overflow = flat.len() > slots && slots > 0;
+    let value_x = inner_x.saturating_add(label_w);
+    let content_w = inner_w.saturating_sub(u16::from(overflow));
+    for (index, (label, value, tone)) in flat.iter().enumerate().take(shown) {
+        let y = detail
+            .y
+            .saturating_add(2)
+            .saturating_add(u16::try_from(index).unwrap_or(u16::MAX));
+        if y >= card.bottom() {
+            break;
+        }
+        let fade = overflow.then(|| preview_fade(index, shown)).flatten();
+        if let Some((num, den)) = fade {
+            ui.fill(
+                Rect::new(inner_x, y, content_w, 1),
+                ink(ui, mix_color(WHITE, num, den), PREVIEW_BG, false),
+            );
+        }
+        if !label.is_empty() {
+            ui.paint_str(
+                Rect::new(inner_x, y, termrock::width(label), 1),
+                label,
+                ink(
+                    ui,
+                    mix_color(TAG_GREY_FG, fade_num(fade), fade_den(fade)),
+                    PREVIEW_BG,
+                    false,
+                ),
+            );
+        }
+        if value.is_empty() {
+            continue;
+        }
+        let fg = mix_color(tone_color(*tone), fade_num(fade), fade_den(fade));
+        ui.paint_str(
+            Rect::new(value_x, y, termrock::width(value).max(1), 1),
+            value,
+            ink(ui, fg, PREVIEW_BG, false),
+        );
+    }
+    if overflow {
+        paint_preview_scrollbar(
+            ui,
+            Rect::new(
+                detail.x.saturating_add(detail.width).saturating_sub(3),
+                detail.y.saturating_add(2),
+                1,
+                u16::try_from(shown).unwrap_or(u16::MAX),
+            ),
+            flat.len(),
         );
     }
 }
 
-#[cfg(test)]
-#[expect(
-    clippy::panic,
-    clippy::unwrap_used,
-    clippy::indexing_slicing,
-    reason = "Named fixtures provide known rows and failed fixture assumptions must fail tests"
-)]
-mod tests {
-    use super::*;
-    use crate::{domain::fixtures, scenario::Scenario};
-    use termrock::{App, KeyCode, Theme};
-    use termrock_test_support::Harness;
+fn fade_num(fade: Option<(u32, u32)>) -> u32 {
+    fade.map_or(1, |(num, _)| num)
+}
 
-    struct HomeFixture {
-        home: HomeState,
-        world: World,
-        invoked: Option<Action>,
-    }
-    impl App for HomeFixture {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let (response, action) = self.home.update(&self.world, cx);
-            if action.is_some() {
-                self.invoked = action;
-            }
-            response
-        }
-        fn draw(&self, ui: &mut Ui<'_>) {
-            self.home.draw(&self.world, ui, ui.full());
-        }
-    }
-    fn fixture(scenario: Scenario) -> HomeFixture {
-        let mut world = fixtures::world_for(scenario);
-        world.seek(2_000);
-        HomeFixture {
-            home: HomeState::default(),
-            world,
-            invoked: None,
-        }
-    }
+fn fade_den(fade: Option<(u32, u32)>) -> u32 {
+    fade.map_or(1, |(_, den)| den)
+}
 
-    #[test]
-    fn all_scenarios_render_without_mutating_domain_or_query() {
-        for scenario in Scenario::ALL {
-            let mut harness = Harness::new(fixture(scenario), Theme::junie(), 120, 40);
-            let before = catalogue::catalogue(&harness.app().world);
-            let time = harness.app().world.now_ms();
-            let query = harness.app().home.query().to_owned();
-            harness.draw();
-            harness.draw();
-            assert_eq!(catalogue::catalogue(&harness.app().world), before);
-            assert_eq!(harness.app().world.now_ms(), time);
-            assert_eq!(harness.app().home.query(), query);
-            assert!(harness.text().contains("Suggested here"));
-        }
+fn tone_color(tone: catalogue::PreviewTone) -> Color {
+    match tone {
+        catalogue::PreviewTone::Text => WHITE,
+        catalogue::PreviewTone::Muted => TAG_GREY_FG,
+        catalogue::PreviewTone::Secondary => SECONDARY_FG,
+        catalogue::PreviewTone::Meta => META_FG,
+        catalogue::PreviewTone::Danger => DANGER_FG,
     }
+}
 
-    #[test]
-    fn shared_query_filters_and_enter_reports_real_catalogue_identity() {
-        let mut harness = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 120, 40);
-        assert!(harness.tab_to(QUERY));
-        let _ = harness.type_str("git");
-        assert_eq!(harness.app().home.query(), "git");
-        let expected = harness
-            .app()
-            .home
-            .selected(&harness.app().world)
-            .map(|action| action.id);
-        let _ = harness.key(KeyCode::Enter);
-        assert_eq!(
-            harness
-                .app()
-                .invoked
-                .as_ref()
-                .map(|action| action.id.clone()),
-            expected
-        );
+fn preview_fade(index: usize, shown: usize) -> Option<(u32, u32)> {
+    if shown < 4 {
+        return None;
     }
+    let from_end = shown.saturating_sub(index);
+    if from_end == 1 {
+        Some((11, 20))
+    } else if shown >= 12 && from_end == 2 {
+        Some((4, 5))
+    } else {
+        None
+    }
+}
 
-    #[test]
-    fn mouse_and_keyboard_row_activation_share_identity() {
-        let mut mouse = Harness::new(fixture(Scenario::DockerCleanup), Theme::junie(), 120, 40);
-        let selected = mouse.app().home.selected(&mouse.app().world);
-        let Some(selected) = selected else {
-            panic!("fixture has actions")
+fn mix_color(fg: Color, num: u32, den: u32) -> Color {
+    mix_on(fg, PREVIEW_BG, num, den)
+}
+
+fn mix_on(fg: Color, back: Color, num: u32, den: u32) -> Color {
+    if num == den {
+        return fg;
+    }
+    let Color::Rgb(red, green, blue) = fg else {
+        return fg;
+    };
+    let Color::Rgb(back_r, back_g, back_b) = back else {
+        return fg;
+    };
+    Color::Rgb(
+        mix_channel(red, back_r, num, den),
+        mix_channel(green, back_g, num, den),
+        mix_channel(blue, back_b, num, den),
+    )
+}
+
+fn faded(color: Color, fade: Option<(u32, u32)>) -> Color {
+    match fade {
+        Some((num, den)) => mix_on(color, BLACK, num, den),
+        None => color,
+    }
+}
+
+fn mix_channel(fg: u8, bg: u8, num: u32, den: u32) -> u8 {
+    let den = den.max(1);
+    let mixed = u32::from(bg)
+        .saturating_mul(den.saturating_sub(num))
+        .saturating_add(u32::from(fg).saturating_mul(num));
+    let rounded = mixed.saturating_add(den / 2) / den;
+    u8::try_from(rounded.min(u32::from(u8::MAX))).unwrap_or(u8::MAX)
+}
+
+const SCROLL_THUMB: Color = Color::Rgb(0x80, 0x80, 0x80);
+const SCROLL_TRACK: Color = Color::Rgb(0x47, 0x47, 0x47);
+
+fn paint_preview_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
+    if area.is_empty() {
+        return;
+    }
+    let mut scroll = termrock::ScrollState::new(content_len);
+    scroll.set_viewport(usize::from(area.height));
+    let (start, len) = scroll.thumb(usize::from(area.height));
+    let thumb_end = start.saturating_add(len);
+    for row in 0..area.height {
+        let on_thumb = (start..thumb_end).contains(&usize::from(row));
+        let (glyph, color) = if on_thumb {
+            ("┃", SCROLL_THUMB)
+        } else {
+            ("┆", SCROLL_TRACK)
         };
-        let _ = mouse.click_part(
-            ROWS,
-            termrock::PartRef::item(Part::ROW, ItemKey::text(&selected.id)),
-        );
-        assert_eq!(
-            mouse.app().invoked.as_ref().map(|action| &action.id),
-            Some(&selected.id)
-        );
-        let mut keyboard = Harness::new(fixture(Scenario::DockerCleanup), Theme::junie(), 120, 40);
-        assert!(keyboard.tab_to(ROWS));
-        let _ = keyboard.key(KeyCode::Enter);
-        assert_eq!(
-            keyboard.app().invoked.as_ref().map(|action| &action.id),
-            Some(&selected.id)
+        ui.paint_str(
+            Rect::new(area.x, area.y.saturating_add(row), 1, 1),
+            glyph,
+            ink(ui, color, PREVIEW_BG, false),
         );
     }
-    #[test]
-    fn query_submission_uses_top_match_after_row_navigation() {
-        let mut harness = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 120, 40);
-        let expected = harness.app().home.rows(&harness.app().world)[0]
-            .action
-            .id
-            .clone();
-        assert!(harness.tab_to(ROWS));
-        let _ = harness.key(KeyCode::Down);
-        assert_ne!(
-            harness
-                .app()
-                .home
-                .selected(&harness.app().world)
-                .unwrap()
-                .id,
-            expected
-        );
-        assert!(harness.tab_to(QUERY));
-        let _ = harness.key(KeyCode::Enter);
-        assert_eq!(harness.app().invoked.as_ref().unwrap().id, expected);
+}
+
+fn paint_narrow_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
+    if area.is_empty() {
+        return;
     }
+    let mut scroll = termrock::ScrollState::new(content_len);
+    scroll.set_viewport(usize::from(area.height));
+    let (start, len) = scroll.thumb(usize::from(area.height));
+    let thumb_end = start.saturating_add(len);
+    for row in 0..area.height {
+        let on_thumb = (start..thumb_end).contains(&usize::from(row));
+        let (glyph, color) = if on_thumb {
+            ("┃", SCROLL_THUMB)
+        } else {
+            ("┆", SCROLL_TRACK)
+        };
+        ui.paint_str(
+            Rect::new(area.x, area.y.saturating_add(row), 1, 1),
+            glyph,
+            ink(ui, color, BLACK, false),
+        );
+    }
+}
+
+fn flatten_preview(
+    lines: &[catalogue::PreviewLine],
+    value_w: u16,
+) -> Vec<(String, String, catalogue::PreviewTone)> {
+    let mut flat = Vec::new();
+    for line in lines {
+        if line.wraps {
+            let parts = wrap_words(&line.value, value_w);
+            for (index, part) in parts.into_iter().enumerate() {
+                flat.push((
+                    if index == 0 {
+                        line.label.to_owned()
+                    } else {
+                        String::new()
+                    },
+                    part,
+                    line.tone,
+                ));
+            }
+        } else {
+            flat.push((
+                line.label.to_owned(),
+                termrock::truncate(&line.value, value_w),
+                line.tone,
+            ));
+        }
+    }
+    flat
 }

@@ -1,0 +1,90 @@
+
+COMMAND ['cargo', 'nextest', 'run', '--locked', '-p', 'termrock-runtime', '-p', 'termrock-navigation', '-p', 'termrock-overlays', '-p', 'termrock', '--features', 'termrock/testing', '--all-targets', '--no-fail-fast', '--status-level', 'fail', '--final-status-level', 'fail']
+   Compiling termrock-runtime v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-runtime)
+   Compiling termrock-controls v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-controls)
+   Compiling termrock-shell v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-shell)
+   Compiling termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-viewport)
+   Compiling termrock-feedback v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-feedback)
+   Compiling termrock-fields v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-fields)
+   Compiling termrock-terminal v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-terminal)
+   Compiling termrock-navigation v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-navigation)
+   Compiling termrock-session v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-session)
+   Compiling termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+   Compiling termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+   Compiling termrock-grid v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-grid)
+   Compiling termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-editors)
+   Compiling termrock v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock)
+   Compiling termrock-test-support v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-test-support)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.94s
+────────────
+ Nextest run ID c8401c06-d6d7-4111-b450-7b872cb9619b with nextest profile: default
+    Starting 872 tests across 83 binaries (3 tests skipped)
+        FAIL [   0.023s] (183/872) termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture
+  stdout ───
+
+    running 1 test
+    test constructor_defaults_match_the_pre_policy_full_cell_fixture ... FAILED
+
+    failures:
+
+    failures:
+        constructor_defaults_match_the_pre_policy_full_cell_fixture
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.01s
+
+  stderr ───
+
+    thread 'constructor_defaults_match_the_pre_policy_full_cell_fixture' (145434979) panicked at crates/termrock-navigation/tests/item_row_columns.rs:483:13:
+    assertion `left == right` failed: historical full-cell fixture outside the corrected ANSI-256 palette
+      left: 11294538839117913365
+     right: 5235702202963140133
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   0.022s] (191/872) termrock-navigation::item_row_columns owner_part_styles_win_over_painter_defaults_in_columns_mode
+  stdout ───
+
+    running 1 test
+    test owner_part_styles_win_over_painter_defaults_in_columns_mode ... FAILED
+
+    failures:
+
+    failures:
+        owner_part_styles_win_over_painter_defaults_in_columns_mode
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.01s
+
+  stderr ───
+
+    thread 'owner_part_styles_win_over_painter_defaults_in_columns_mode' (145435046) panicked at crates/termrock-navigation/tests/item_row_columns.rs:979:5:
+    theme ICON: fg=Rgb(255, 255, 255), bg=Rgb(61, 21, 97); theme META: fg=Rgb(255, 255, 255), bg=Rgb(61, 21, 97)
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   0.015s] (350/872) termrock-overlays menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence
+  stdout ───
+
+    running 1 test
+    test menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence ... FAILED
+
+    failures:
+
+    failures:
+        menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 83 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence' (145435825) panicked at crates/termrock-overlays/src/menu.rs:1746:13:
+    assertion `left == right` failed: overlay background with Title
+      left: Rgb(28, 28, 31)
+     right: Rgb(7, 8, 9)
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   8.737s] 872 tests run: 869 passed, 3 failed, 3 skipped
+        FAIL [   0.023s] (183/872) termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture
+        FAIL [   0.022s] (191/872) termrock-navigation::item_row_columns owner_part_styles_win_over_painter_defaults_in_columns_mode
+        FAIL [   0.015s] (350/872) termrock-overlays menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence
+error: test run failed
+
+EXIT 100

@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "commit": "b9207254a133693687c7d4e97eea3d9d70fca9ea",
+  "source": "/private/tmp/menubar-b9207254-independent-20261021",
+  "source_clean": true,
+  "decision": "HOLD",
+  "findings": [
+    {
+      "priority": "P1",
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "line": 1497,
+      "problem": "Authored special Title foreground is overwritten by builtin family foreground; explicit override_variant on special Title is discarded entirely.",
+      "observed_define_variant": "Expected FG RGB1,2,3; actual RGB138,138,138. Special BG RGB4,5,6 and UNDERLINED survive.",
+      "observed_override_variant": "Expected special FG/BG/UNDERLINED; actual FG RGB138,138,138, BG RGB28,28,31, BOLD only.",
+      "required": "Preserve authored fallback provenance while normal authored default variant, overlays and local patches retain documented precedence."
+    }
+  ],
+  "positive": [
+    "Ordinary authored default variant + overlay + local foreground/modifier removal pass in both Bar and Title scopes",
+    "Special customization does not affect Bar scope",
+    "No expected output changes in commit"
+  ],
+  "checks": {
+    "native_menu_lib": {
+      "pass": 23,
+      "fail": 0,
+      "skipped_by_filter": 61
+    },
+    "external": {
+      "pass": 2,
+      "fail": 2,
+      "skip": 0
+    },
+    "initial_external": {
+      "pass": 2,
+      "fail": 1,
+      "skip": 0
+    }
+  },
+  "limitations": [
+    "No complete application or frozen CLI frame comparison",
+    "External probe source generated one unused_mut warning; no product compiler failure",
+    "No before-commit run claimed",
+    "No product edits, expected updates or original checkout mutation"
+  ],
+  "architecture": "architecture.json",
+  "artifacts": [
+    {
+      "path": "architecture.json",
+      "sha256": "643d0077feaa8fa5d3cdd17ac8fcc42fcb4d685fc9a5585119fd3a46ec5c4f78"
+    },
+    {
+      "path": "consumer/Cargo.lock",
+      "sha256": "e02501cb16e607eee4226172173e279d86221b75150cc7fdbae400972fd61e72"
+    },
+    {
+      "path": "consumer/Cargo.toml",
+      "sha256": "820493e3e048adc553a1281ba31414d355121df49c9d5a1036c900d21af03fff"
+    },
+    {
+      "path": "consumer/tests/precedence.rs",
+      "sha256": "a135bb303bd6c47c563fae3308af05995653bf8b4dd6ac4541969d52e4107610"
+    },
+    {
+      "path": "consumer-expanded.json",
+      "sha256": "12231383dfa8df69947bb703f60b624380b6d9da79e10913f826b88c848b0442"
+    },
+    {
+      "path": "consumer-expanded.log",
+      "sha256": "f9cd8193f12f8650885dc8d9ff9f6f63e3d2d2164ff397ef67ed95a1bc665db9"
+    },
+    {
+      "path": "consumer-run.json",
+      "sha256": "fcd17fc54c48ed0a8cf5fd61e4237937c1a2372d2b25923c1c603886472e45fb"
+    },
+    {
+      "path": "consumer-run.log",
+      "sha256": "74a430274ebb709ef7087128fb75f30331661da145ccef0fdbb7bbcb8a9cfcec"
+    },
+    {
+      "path": "native-run.json",
+      "sha256": "df5d4661f0d5c481e38a2a22356e19b780da5bbe449a5ea00012666428a38cde"
+    },
+    {
+      "path": "native-run.log",
+      "sha256": "ab9809c625bdd1900dd49c9d8c91717e7a6c8b751a3fb98096e977bbd9de7e4d"
+    },
+    {
+      "path": "source.diff",
+      "sha256": "66787553c9800fd42a6d08f32d47470d0908dd9a136ea64e2c64ed4e3e27ca4c"
+    }
+  ]
+}

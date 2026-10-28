@@ -1,0 +1,114 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T12:20:05.525800+00:00",
+  "reviewer": "tree_adapter_independent_review",
+  "review_effort": "medium",
+  "reviewed_commit": "098bb3c94e69f033811de42de12b6dc4a779de78",
+  "parent_commit": "623bb46b82b3e1e021f25a33f42a2522177fda64",
+  "root_synchronization_commit": "04f6e1e1c147b40b28a12a3e5fcca3d6284504ba",
+  "decision": "HOLD; new reduced-profile functional selectors and correction passes extend previously rejected false parity",
+  "scope": "Only098 increment relative exact623 parent/e937/40d lineage. Previouse937 five probes not rerun; no Menu/runtime probe duplication. Ui::with_theme itself unchanged in this increment.",
+  "source_blob_proof": {
+    "crates/jackin-preview-app/src/app.rs": {
+      "e937_blob": "1da7dc4601b72194f7b2479670cb30438e5f53c2",
+      "parent623_blob": "1da7dc4601b72194f7b2479670cb30438e5f53c2",
+      "candidate098_blob": "39a35d281c95431993c180908d0fdc163d5322a5"
+    },
+    "crates/jackin-preview-app/src/app/capsule_split_view.rs": {
+      "e937_blob": "a83ea10cb949e51af27a408d947fc80f7b608809",
+      "parent623_blob": "a83ea10cb949e51af27a408d947fc80f7b608809",
+      "candidate098_blob": "c093311e1795a05176f6efb5a7f3575c5334b907"
+    },
+    "crates/termrock-runtime/src/ui/mod.rs": {
+      "e937_blob": "a5249ed3fcbaeb364bf23d8665d9afc0487d6614",
+      "parent623_blob": "adf99ce5ced368af05aa52541b1f194640b0ee5e",
+      "candidate098_blob": "adf99ce5ced368af05aa52541b1f194640b0ee5e"
+    }
+  },
+  "findings": [
+    {
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:8249",
+      "title": "New16/mono exact-theme selectors change domain flow when only appearance changes",
+      "introduced_by_increment": "ANSI16 requires accentLightGreen; Mono requires accentGray AND firstsurfaceBlack. Other domain/size/motion guards remain.",
+      "new_reproductions": [
+        {
+          "setup": "App::for_scenario(CapsuleMulti,Paused),80x24,Ansi16,CtrlB then quote",
+          "only_change": "accentLightGreen\u2192LightCyan",
+          "observed": "Original account=false,focuscapsule-input,cursor(8,8). Changed account=true,focusaccount-picker,cursor(19,3).",
+          "result": "independent ansi16_accent_only_change_preserves_picker_flow RED"
+        },
+        {
+          "setup": "Same80x24flow,Mono,accentGray",
+          "only_change": "surfaces[0] Black\u2192DarkGray",
+          "observed": "Original account=false,focuscapsule-input,cursor(8,8). Changed account=true,focusaccount-picker,cursor(19,3).",
+          "result": "independent mono_canvas_only_change_preserves_picker_flow RED"
+        }
+      ],
+      "required_fix": "Shared semantic agent-picker flow must be independent of exact accent/canvas/profile identity; remove these selectors during live component migration. Frozen spawn_flow receives intent/world/context and opens shared agent Picker without theme predicates."
+    },
+    {
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app/capsule_split_view.rs:595",
+      "related_paths": [
+        "crates/jackin-preview-app/src/app.rs:8835",
+        "crates/jackin-preview-app/src/app.rs:11021"
+      ],
+      "title": "New reduced-mode postpainting expands the prohibited static-screen mechanism",
+      "source": "finish_reduced scans raw buffer based on literal selectedRGB, togglesREVERSED, rewritesforegrounds, recolors the whole underlay, collects arbitrary black-on-black glyphs for repaint, and addsDIM over the rectangle. Mono also changes theme.surfaces[3] only while this frame is selected.",
+      "why_blocked": "These are application-owned component/state/theme correction painters. They do not connect card rows/query/navigation/cursor to real Picker state. Exact80x24 opening cells cannot prove interaction or general data/layout parity. Existing fixed-row/cursor/input defects remain source-unchanged and unapproved.",
+      "required_fix": "Remove finish_reduced and conditional palette mutations with entire capsule_split_view painter and undrawn cursor path when the real shared Picker/row/layout/theme contracts replace it. Do not move these raw-frame corrections into a library crate."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/jackin-preview-app/src/app.rs:9671",
+      "related_paths": [
+        "crates/jackin-preview-app/src/app.rs:8911"
+      ],
+      "title": "New16-color hint-ellipsis override also affects command palette and remains application-specific theme repair",
+      "source": "paint_capsule_palette_hints now chooses Role::Custom(Color::Gray) forAnsi16 overflow. Caller uses it for capsule_palette_open OR static agent-picker frame, so change is not limited to newly painted agent cards.",
+      "required_fix": "Resolve intended pinned HintBar overflow appearance through a shared semantic theme/profile/variant with a separate baseline decision. Verify command-palette and picker paths; do not infer all affected flows from agent-card opening captures.",
+      "limit": "No independent command-palette visual regression claim or new palette/runtime probe was made here."
+    }
+  ],
+  "prior_hold_status": {
+    "prior_review_commit": "e9375eb4fb4a761a0882d617d7d1889c161237af",
+    "prior_packet_sha256": "ed58ebadb7786183fc2b691b6d42ad28d889cbee5fc526d62e86eca11ea4aa06",
+    "status": "Still held. This increment adds profile styling/selector branches; it does not add query/selection state inputs to fixed painter, replace it with sharedPicker, or remove synthetic cursor registration. Prior app tests were not unnecessarily repeated."
+  },
+  "frozen_query_contract_qualification": {
+    "artifact": "frozen-query-contract-qualification.json",
+    "sha256": "c2ba1b82372999827041884b56c042956a031aaca09fe0b10c17aecfce9f02fa",
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "clarification": "Frozen agent query edits visibly and emitsQueryChanged but does NOT automatically filter rows. App refresh replacesitems only for screen.picker_items Some; CapsuleScreen handlespalette only and returnsNone foragent/provider. Provider flow is explicitly non-searchable.",
+    "migration_policy": "Preserve FilterPolicy::Caller for these frozen item flows, and non-searchable provider configuration. Prior migration wording about filtering is qualified accordingly; do not introduce Label filtering. Shared general Label capability may serve other consumers.",
+    "unchanged_valid_contracts": "Visible query editing/clear, realDown/navigation/Enter actions, exact color-independent domain flow and actual search cursor bounds remain required. None of previous red tests asserted shrinking rows."
+  },
+  "verification": {
+    "new_focused_nextest": "2run0pass2fail0skip, intentionally demonstrating new functional defects.",
+    "unique_source_target": "Fresh /private/tmp/jackin-picker-increment-independent-098bb3c9-target-20261021; fullcompile log binds exact098 readonlycopy, never parent/other-task target.",
+    "tooling": "Rust1.99.1,Nextest0.9.148,offline,buildjobs2. External lock seeded from exactcandidate.",
+    "binaries": [
+      {
+        "path": "/private/tmp/jackin-picker-increment-independent-098bb3c9-target-20261021/debug/deps/independent_reduced_picker_increment-24d6f94c589075e7",
+        "sha256": "6255253589c9cf1619700fac342656dd0d96dfcc452c687923f0cf066e0b8905"
+      }
+    ],
+    "source": "Only two Rust app files plus migration record differ from parent; no expected baseline/snapshot edit. No new shared component implementation or regression tests added in increment.",
+    "git": "diffcheckexit0; isolated source clean"
+  },
+  "limits": [
+    "No full frozenCLI/tuiscotti compare/capture, no approval of author0cellclaims, no existing baseline approval changes.",
+    "Source synchronization into PR38 is not acceptance. Product/library gates remain incomplete.",
+    "No original/product edits,source backups,pushes or helpers by reviewer. Holla focus-gutter audit remains queued, not investigated here."
+  ],
+  "artifacts": {
+    "consumer-Cargo.lock": "58c6859f81c79782ea0ca89105f8989ee2eeeafef11e9b18af7cad266405a991",
+    "consumer-Cargo.toml": "30cb1e66fab5062a08948cd35887b0b3c1c910fddf42cab7219fe53fc2f7e1cd",
+    "consumer.rs": "7d6619ff85a5a340eb0ff6bf9c403b5216524280dfc3440139abf6dcc6d3f88e",
+    "frozen-query-contract-qualification.json": "c2ba1b82372999827041884b56c042956a031aaca09fe0b10c17aecfce9f02fa",
+    "increment.diff": "40b9fcee9ced2d62abcdbd03cbb5ad8d8e21ea2c178409e6216b5fc62bf2ed18",
+    "new-reduced-flow-probes.log": "c1611f0583a3c2ebcb6714bfcdd23bbe683911bef3de13cd54834dbc99f14100",
+    "probe-result.json": "46a1eaadc9f5e28c912e78412d7ac0d0561adbe7fb755f24387ed38ffc9666ba"
+  }
+}

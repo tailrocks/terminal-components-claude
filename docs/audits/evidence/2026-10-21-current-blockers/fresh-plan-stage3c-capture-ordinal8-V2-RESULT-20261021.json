@@ -1,0 +1,91 @@
+{
+  "anchors": {
+    "independent_supervisor_review_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3c-supervisor-review-v2-2765/review.json",
+    "independent_supervisor_review_sha256": "4e5775397945ecdb7e3f16eeeb8b0ce37ce91e226dcd47d4942366866589cf3d",
+    "plan_external_sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+    "plan_id": "58b38fb0b1a1007f14230337f8f1a225",
+    "plan_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-capture-plan.json",
+    "plan_self_sha256": "4be7c01d0aecbe3fec1fff8416ab89c03fb25dfec8acbb73a1b26039e8293a31",
+    "runner_sha256": "f2a7583e155c7e85b7c8782c1b163b60bd0bf83038f5e736abe52271724139a8",
+    "supervisor_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-inclusive-ordinal8-supervisor-v2-20261021.py",
+    "supervisor_sha256": "2765ef46ecb834225b30c75686c8f44610a81559a66e80b31afbb8d0a574804b"
+  },
+  "attempt": "exactly one approved ordinal-8 baseline-capture attempt using reviewed v2 supervisor; no retry loop",
+  "capture": {
+    "artifacts_sha256": "f54af1f4ef230a9ccf51fff10672231ff5212d06493d327de7a9ecb21a5b41b5",
+    "candidate_comparison_or_replay": false,
+    "capture_directories": [
+      "chunk-00000",
+      "chunk-00001",
+      "chunk-00002",
+      "chunk-00003",
+      "chunk-00004",
+      "chunk-00005",
+      "chunk-00006",
+      "chunk-00007",
+      "chunk-00008"
+    ],
+    "checkpoint_count": 32,
+    "checkpoint_inventory_sha256": "efa69980dc6c0b8524c255154daefb7a6cbe7c1b082afbd692469142f5b3bb06",
+    "chunk": 8,
+    "chunk_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-capture/58b38fb0b1a1007f14230337f8f1a225/baseline-capture/chunk-00008",
+    "chunk_regular_file_count": 707,
+    "committed_chunk_sha256": "5ab63d619a52bf44c2f3775fdbbc5577619303081247a6f309ca5ac9198f5a1b",
+    "expected_chunk_sha256": "eb2297f80a3af993bc92ad14ef8f5b230e9c2715b333317a31baa8f040026785",
+    "ordinal": 8,
+    "ordinary_phase": false,
+    "phase": "baseline-capture",
+    "receipt_envelope_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-runs/58b38fb0b1a1007f14230337f8f1a225/journal/step-00000008.json",
+    "receipt_envelope_sha256": "1d3025733b77c05ac540718492b070b48896c7994087905cd4d542ef92f2b122",
+    "selected_case_count": 32,
+    "status": "passed"
+  },
+  "created_utc": "2026-10-21T00:46:00Z",
+  "fixed_references": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "runner_commit": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+    "tuiscotti": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+  },
+  "official_postverification": {
+    "candidate_comparison_eligible": false,
+    "completed_steps": 9,
+    "environment_matches_preparation": true,
+    "exit_code": 0,
+    "product_acceptance": false,
+    "tool_observation_matches_preparation": true,
+    "verified": true,
+    "verify_plan_command": "python3 fresh-plan-stage3c-verify-exact-environment.py ... verify-plan",
+    "verify_plan_log_sha256": "adeecbdef26abf5cc763660472110e600c7a288630378a7d422edea0c90e354f",
+    "verify_run_command": "python3 fresh-plan-stage3c-verify-exact-environment.py ... verify-run",
+    "verify_run_log_sha256": "ab5feee8933857a7517d57aa099d918c6187afd7af0bfb3dd8de467c9d97b022",
+    "visual_capture_replay_complete": false
+  },
+  "prior_failed_attempt_preservation": {
+    "all_file_hashes_unchanged": true,
+    "file_count": 707,
+    "report_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-capture-ordinal8-TIMEOUT-INDEPENDENT-result-20261021.json",
+    "report_sha256": "12eeab4ab93a13f91e919495996db69c8f3a24a993df40d946dcc58001f8dc52"
+  },
+  "result": "PASS: authenticated receipt for baseline-capture ordinal 8; official verify-plan and verify-run passed. Ordinal 9 not started.",
+  "schema": "termrock-stage3c-ordinal8-capture-result-v1",
+  "scope_notes": [
+    "No baseline replay, candidate comparison, ordinary checks, product source edits, plan/runner/key mutation, or ordinal 9.",
+    "Fresh-run verifier reports metadata-only with executed=false by design while authenticated completed_steps=9; visual capture/replay is not complete."
+  ],
+  "secret_handling": "Run key contents were not read for reporting or written here.",
+  "supervisor": {
+    "cleanup_reserve_seconds": 15,
+    "direct_worker_reaped": true,
+    "elapsed_seconds": 145.589,
+    "event_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-ordinal8-supervised-retry-events-20261021.json",
+    "event_sha256": "196901db8586c7c7ca4afc780b331ffebe184618546a13f6d9bf7f743eb6e7d1",
+    "exit_status": 0,
+    "inclusive_total_budget_seconds": 220,
+    "log_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-ordinal8-supervised-retry-20261021.log",
+    "log_sha256": "49bd3c06e7174c92430dd0ff7f1123905f9da29a033edf55858cec219efe1bd8",
+    "nested_session_descendants": "not individually enumerated; owned process group was empty after cleanup",
+    "owned_group_empty_after_cleanup": true,
+    "timed_out": false
+  }
+}

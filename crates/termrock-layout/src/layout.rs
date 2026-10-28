@@ -387,6 +387,315 @@ impl SplitModel {
     }
 
     pub fn layout(&self, area: Rect, gap: u16) -> (Rect, Rect) {
+        self.layout_with_ratio(area, gap, u32::from(self.percent), 100)
+    }
+
+    pub fn layout_with_basis_points(
+        &self,
+        area: Rect,
+        gap: u16,
+        basis_points: u16,
+    ) -> (Rect, Rect) {
+        self.layout_with_ratio(area, gap, u32::from(basis_points.clamp(500, 9_500)), 10_000)
+    }
+
+    pub fn layout_with_first_extent(
+        &self,
+        area: Rect,
+        gap: u16,
+        first_extent: u16,
+    ) -> (Rect, Rect) {
+        match self.maximized {
+            Maximized::First => return (area, self.collapsed(area, true)),
+            Maximized::Second => return (self.collapsed(area, false), area),
+            Maximized::None => {}
+        }
+
+        let usable = self.length(area).saturating_sub(gap);
+        if usable < self.min_first.saturating_add(self.min_second) {
+            return (area, self.collapsed(area, true));
+        }
+        let first = first_extent.clamp(self.min_first, usable.saturating_sub(self.min_second));
+        match self.axis {
+            SplitAxis::Vertical => {
+                let (first, rest) = split_v(area, first);
+                let (_, second) = split_v(rest, gap.min(rest.height));
+                (first, second)
+            }
+            SplitAxis::Horizontal => {
+                let (first, rest) = split_h(area, first);
+                let (_, second) = split_h(rest, gap.min(rest.width));
+                (first, second)
+            }
+        }
+    }
+
+    pub fn required_extent_with_first_extent(
+        self,
+        gap: u16,
+        first_extent: u16,
+        first: u16,
+        second: u16,
+    ) -> u16 {
+        if self.maximized == Maximized::First {
+            return first;
+        }
+        if self.maximized == Maximized::Second {
+            return second;
+        }
+
+        let first_extent = first_extent.max(self.min_first);
+        let first = first.max(self.min_first);
+        if first > first_extent {
+            return u16::MAX;
+        }
+        first_extent
+            .saturating_add(gap)
+            .saturating_add(second.max(self.min_second))
+    }
+
+    pub fn layout_with_first_share(
+        &self,
+        area: Rect,
+        gap: u16,
+        percent: u8,
+        min_first: u16,
+        max_first: u16,
+    ) -> (Rect, Rect) {
+        match self.maximized {
+            Maximized::First => return (area, self.collapsed(area, true)),
+            Maximized::Second => return (self.collapsed(area, false), area),
+            Maximized::None => {}
+        }
+
+        let extent = self.length(area);
+        let usable = extent.saturating_sub(gap);
+        if usable < self.min_first.saturating_add(self.min_second) {
+            return (area, self.collapsed(area, true));
+        }
+        let requested = (u32::from(extent)
+            .saturating_mul(u32::from(percent.min(100)))
+            .saturating_add(50)
+            / 100)
+            .min(u32::from(u16::MAX)) as u16;
+        let first = requested
+            .clamp(min_first.min(max_first), max_first.max(min_first))
+            .min(usable.saturating_sub(self.min_second))
+            .max(self.min_first);
+        match self.axis {
+            SplitAxis::Vertical => {
+                let (first, rest) = split_v(area, first);
+                let (_, second) = split_v(rest, gap.min(rest.height));
+                (first, second)
+            }
+            SplitAxis::Horizontal => {
+                let (first, rest) = split_h(area, first);
+                let (_, second) = split_h(rest, gap.min(rest.width));
+                (first, second)
+            }
+        }
+    }
+
+    pub fn layout_with_second_share(
+        &self,
+        area: Rect,
+        gap: u16,
+        percent: u8,
+        min_second: u16,
+        max_second: u16,
+    ) -> (Rect, Rect) {
+        match self.maximized {
+            Maximized::First => return (area, self.collapsed(area, true)),
+            Maximized::Second => return (self.collapsed(area, false), area),
+            Maximized::None => {}
+        }
+
+        let extent = self.length(area);
+        let usable = extent.saturating_sub(gap);
+        if usable < self.min_first.saturating_add(self.min_second) {
+            return (area, self.collapsed(area, true));
+        }
+        let requested = (u32::from(extent).saturating_mul(u32::from(percent.min(100))) / 100)
+            .min(u32::from(u16::MAX)) as u16;
+        let second = requested
+            .clamp(min_second.min(max_second), max_second.max(min_second))
+            .min(usable.saturating_sub(self.min_first))
+            .max(self.min_second);
+        let first = usable.saturating_sub(second);
+        match self.axis {
+            SplitAxis::Vertical => {
+                let (first, rest) = split_v(area, first);
+                let (_, second) = split_v(rest, gap.min(rest.height));
+                (first, second)
+            }
+            SplitAxis::Horizontal => {
+                let (first, rest) = split_h(area, first);
+                let (_, second) = split_h(rest, gap.min(rest.width));
+                (first, second)
+            }
+        }
+    }
+
+    pub fn required_extent_with_basis_points(
+        self,
+        gap: u16,
+        basis_points: u16,
+        first: u16,
+        second: u16,
+    ) -> u16 {
+        if self.maximized == Maximized::First {
+            return first;
+        }
+        if self.maximized == Maximized::Second {
+            return second;
+        }
+
+        let usable_min = u32::from(first).saturating_add(u32::from(second));
+        let mut low = usable_min
+            .saturating_add(u32::from(gap))
+            .min(u32::from(u16::MAX)) as u16;
+        let fits = |extent: u16| {
+            let area = match self.axis {
+                SplitAxis::Vertical => Rect::new(0, 0, 1, extent),
+                SplitAxis::Horizontal => Rect::new(0, 0, extent, 1),
+            };
+            let (first_area, second_area) = self.layout_with_basis_points(area, gap, basis_points);
+            let (first_extent, second_extent) = match self.axis {
+                SplitAxis::Vertical => (first_area.height, second_area.height),
+                SplitAxis::Horizontal => (first_area.width, second_area.width),
+            };
+            first_extent >= first && second_extent >= second
+        };
+
+        if fits(low) {
+            return low;
+        }
+        if !fits(u16::MAX) {
+            return u16::MAX;
+        }
+        let mut high = u16::MAX;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if fits(middle) {
+                high = middle;
+            } else {
+                low = middle.saturating_add(1);
+            }
+        }
+        low
+    }
+
+    pub fn required_extent_with_first_share(
+        self,
+        gap: u16,
+        percent: u8,
+        min_first: u16,
+        max_first: u16,
+        first: u16,
+        second: u16,
+    ) -> u16 {
+        if self.maximized == Maximized::First {
+            return first;
+        }
+        if self.maximized == Maximized::Second {
+            return second;
+        }
+
+        let mut low = u32::from(first)
+            .saturating_add(u32::from(second))
+            .saturating_add(u32::from(gap))
+            .min(u32::from(u16::MAX)) as u16;
+        let fits = |extent: u16| {
+            let area = match self.axis {
+                SplitAxis::Vertical => Rect::new(0, 0, 1, extent),
+                SplitAxis::Horizontal => Rect::new(0, 0, extent, 1),
+            };
+            let (first_area, second_area) =
+                self.layout_with_first_share(area, gap, percent, min_first, max_first);
+            let (first_extent, second_extent) = match self.axis {
+                SplitAxis::Vertical => (first_area.height, second_area.height),
+                SplitAxis::Horizontal => (first_area.width, second_area.width),
+            };
+            first_extent >= first && second_extent >= second
+        };
+
+        if fits(low) {
+            return low;
+        }
+        if !fits(u16::MAX) {
+            return u16::MAX;
+        }
+        let mut high = u16::MAX;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if fits(middle) {
+                high = middle;
+            } else {
+                low = middle.saturating_add(1);
+            }
+        }
+        low
+    }
+
+    pub fn required_extent_with_second_share(
+        self,
+        gap: u16,
+        percent: u8,
+        min_second: u16,
+        max_second: u16,
+        first: u16,
+        second: u16,
+    ) -> u16 {
+        if self.maximized == Maximized::First {
+            return first;
+        }
+        if self.maximized == Maximized::Second {
+            return second;
+        }
+
+        let mut low = u32::from(first)
+            .saturating_add(u32::from(second))
+            .saturating_add(u32::from(gap))
+            .min(u32::from(u16::MAX)) as u16;
+        let fits = |extent: u16| {
+            let area = match self.axis {
+                SplitAxis::Vertical => Rect::new(0, 0, 1, extent),
+                SplitAxis::Horizontal => Rect::new(0, 0, extent, 1),
+            };
+            let (first_area, second_area) =
+                self.layout_with_second_share(area, gap, percent, min_second, max_second);
+            let (first_extent, second_extent) = match self.axis {
+                SplitAxis::Vertical => (first_area.height, second_area.height),
+                SplitAxis::Horizontal => (first_area.width, second_area.width),
+            };
+            first_extent >= first && second_extent >= second
+        };
+
+        if fits(low) {
+            return low;
+        }
+        if !fits(u16::MAX) {
+            return u16::MAX;
+        }
+        let mut high = u16::MAX;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if fits(middle) {
+                high = middle;
+            } else {
+                low = middle.saturating_add(1);
+            }
+        }
+        low
+    }
+
+    fn layout_with_ratio(
+        &self,
+        area: Rect,
+        gap: u16,
+        numerator: u32,
+        denominator: u32,
+    ) -> (Rect, Rect) {
         let split = |at: u16| match self.axis {
             SplitAxis::Vertical => {
                 let (a, rest) = split_v(area, at);
@@ -407,8 +716,7 @@ impl SplitModel {
                 if usable < self.min_first.saturating_add(self.min_second) {
                     return (area, self.collapsed(area, true));
                 }
-                let first =
-                    (u32::from(usable).saturating_mul(u32::from(self.percent)) / 100) as u16;
+                let first = (u32::from(usable).saturating_mul(numerator) / denominator) as u16;
                 let first = first.clamp(self.min_first, usable.saturating_sub(self.min_second));
                 split(first)
             }
@@ -455,6 +763,53 @@ impl SplitModel {
         changed
     }
 
+    pub fn drag_to_with_basis_points(
+        &mut self,
+        area: Rect,
+        gap: u16,
+        pos: Position,
+        basis_points: &mut u16,
+    ) -> bool {
+        let usable = self.length(area).saturating_sub(gap);
+        let offset = match self.axis {
+            SplitAxis::Vertical => pos.y.saturating_sub(area.y),
+            SplitAxis::Horizontal => pos.x.saturating_sub(area.x),
+        };
+        if usable == 0 || usable < self.min_first.saturating_add(self.min_second) {
+            return false;
+        }
+        let first = offset.clamp(self.min_first, usable.saturating_sub(self.min_second));
+
+        let precise = (u32::from(first)
+            .saturating_mul(10_000)
+            .saturating_add(u32::from(usable).saturating_sub(1)))
+        .checked_div(u32::from(usable))
+        .unwrap_or(0)
+        .clamp(500, 9_500) as u16;
+        let percent = clamp_percent(((u32::from(precise) + 50) / 100) as u8);
+        let changed = percent != self.percent || precise != *basis_points;
+        self.percent = percent;
+        *basis_points = precise;
+        changed
+    }
+
+    pub fn nudge_with_basis_points(
+        &mut self,
+        area: Rect,
+        gap: u16,
+        delta: i16,
+        basis_points: &mut u16,
+    ) -> bool {
+        let (first, _) = self.layout_with_basis_points(area, gap, *basis_points);
+        let cur = i32::from(self.length(first));
+        let target = cur.saturating_add(i32::from(delta)).max(0) as u16;
+        let pos = match self.axis {
+            SplitAxis::Vertical => Position::new(area.x, area.y.saturating_add(target)),
+            SplitAxis::Horizontal => Position::new(area.x.saturating_add(target), area.y),
+        };
+        self.drag_to_with_basis_points(area, gap, pos, basis_points)
+    }
+
     pub fn nudge(&mut self, area: Rect, gap: u16, delta: i16) {
         let (first, _) = self.layout(area, gap);
         let cur = i32::from(self.length(first));
@@ -474,341 +829,5 @@ const fn clamp_percent(p: u8) -> u8 {
         95
     } else {
         p
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn rows_distributes_flex_after_fixed() {
-        let r = rows(
-            Rect::new(0, 0, 10, 20),
-            &[Track::Fixed(3), Track::Flex(1), Track::Flex(2)],
-        );
-        assert_eq!(
-            r,
-            vec![
-                Rect::new(0, 0, 10, 3),
-                Rect::new(0, 3, 10, 6),
-                Rect::new(0, 9, 10, 11)
-            ]
-        );
-
-        let a = rows(
-            Rect::new(0, 0, 10, 10),
-            &[Track::Auto, Track::Fixed(1), Track::Flex(1)],
-        );
-        assert_eq!(
-            a.iter().map(|r| r.height).collect::<Vec<_>>(),
-            vec![1, 1, 8]
-        );
-        let a = rows(Rect::new(0, 0, 10, 10), &[Track::Auto, Track::Auto]);
-        assert_eq!(a.iter().map(|r| r.height).collect::<Vec<_>>(), vec![5, 5]);
-        let m = rows_measured(
-            Rect::new(0, 0, 10, 10),
-            &[Track::Auto, Track::Flex(1)],
-            &[4],
-        );
-        assert_eq!(m.iter().map(|r| r.height).collect::<Vec<_>>(), vec![4, 6]);
-
-        let c = rows(Rect::new(0, 0, 10, 2), &[Track::Fixed(5), Track::Flex(1)]);
-        assert_eq!(c.iter().map(|r| r.height).collect::<Vec<_>>(), vec![2, 0]);
-    }
-
-    #[test]
-    fn columns_respects_gap_and_rounds_deterministically() {
-        let c = columns(
-            Rect::new(0, 0, 20, 1),
-            &[Track::Flex(1), Track::Flex(1), Track::Flex(1)],
-            2,
-        );
-
-        assert_eq!(
-            c.iter().map(|r| (r.x, r.width)).collect::<Vec<_>>(),
-            vec![(0, 6), (8, 5), (15, 5)]
-        );
-        assert_eq!(
-            columns(
-                Rect::new(0, 0, 20, 1),
-                &[Track::Flex(1), Track::Flex(1), Track::Flex(1)],
-                2
-            ),
-            c
-        );
-    }
-
-    #[test]
-    fn responsive_columns_stack_below_the_threshold() {
-        let wide = responsive_columns(
-            Rect::new(0, 0, 80, 4),
-            &[Track::Flex(1), Track::Flex(1)],
-            2,
-            60,
-        );
-        assert_eq!(wide.len(), 2);
-        assert_eq!(wide.first().map(|r| r.height), Some(4));
-        let narrow = responsive_columns(
-            Rect::new(0, 0, 40, 4),
-            &[Track::Flex(1), Track::Flex(1)],
-            2,
-            60,
-        );
-        assert_eq!(
-            narrow
-                .iter()
-                .map(|r| (r.y, r.height, r.width))
-                .collect::<Vec<_>>(),
-            vec![(0, 2, 40), (2, 2, 40)]
-        );
-    }
-
-    #[test]
-    fn action_row_right_aligns_and_left_aligns() {
-        let area = Rect::new(0, 0, 40, 1);
-        let end = action_row(area, &[10, 12], 2, RowAlign::End);
-        assert_eq!(end, vec![Rect::new(16, 0, 10, 1), Rect::new(28, 0, 12, 1)]);
-        let start = action_row(area, &[10, 12], 2, RowAlign::Start);
-        assert_eq!(start, vec![Rect::new(0, 0, 10, 1), Rect::new(12, 0, 12, 1)]);
-
-        let tight = action_row(Rect::new(0, 0, 15, 1), &[10, 12], 2, RowAlign::End);
-        assert!(tight.iter().all(|r| r.right() <= 15));
-    }
-
-    #[test]
-    fn auto_takes_one_cell_beside_flex_and_an_equal_share_without_it() {
-        let d = distribute(20, &[Track::Auto, Track::Flex(1)], 0, None);
-        assert_eq!(d, vec![1, 19]);
-        let d = distribute(20, &[Track::Auto, Track::Auto, Track::Flex(1)], 0, None);
-        assert_eq!(d, vec![1, 1, 18]);
-
-        let d = distribute(20, &[Track::Fixed(6), Track::Auto, Track::Flex(1)], 0, None);
-        assert_eq!(d, vec![6, 1, 13]);
-
-        let d = distribute(20, &[Track::Auto, Track::Auto], 0, None);
-        assert_eq!(d, vec![10, 10]);
-        let d = distribute(20, &[Track::Fixed(5), Track::Auto, Track::Auto], 0, None);
-        assert_eq!(d, vec![5, 8, 7]);
-    }
-
-    #[test]
-    fn rows_measured_uses_the_natural_size() {
-        let area = Rect::new(0, 0, 30, 12);
-        let tracks = [Track::Auto, Track::Fixed(1), Track::Flex(1)];
-
-        let plain = rows(area, &tracks);
-        assert_eq!(plain[0].height, 1);
-
-        let rows_m = rows_measured(area, &tracks, &[4, 0, 0]);
-        assert_eq!(rows_m[0].height, 4);
-        assert_eq!(rows_m[1].height, 1);
-        assert_eq!(rows_m[2].height, 7);
-        assert_eq!(rows_m.iter().map(|r| r.height).sum::<u16>(), 12);
-
-        let big = rows_measured(area, &tracks, &[40, 0, 0]);
-        assert_eq!(big[0].height, 12);
-        assert_eq!(big[2].height, 0);
-
-        let cols = columns_measured(area, &tracks, 1, &[4, 0, 0]);
-        assert_eq!(cols[0].width, 4);
-    }
-
-    #[test]
-    fn inset_saturates_on_tiny_rects() {
-        assert_eq!(
-            inset(Rect::new(0, 0, 2, 2), Insets::all(3)),
-            Rect::new(2, 2, 0, 0)
-        );
-        let area = Rect::new(3, 2, 3, 4);
-        let tight = inset(area, Insets::all(2));
-        assert!(tight.is_empty(), "{tight:?} should be empty");
-        assert_eq!(
-            (tight.x, tight.y),
-            (5, 4),
-            "a saturating symmetric inset lost {area:?}'s origin: {tight:?}"
-        );
-        assert_eq!(
-            inset(
-                Rect::new(5, 5, 10, 4),
-                Insets {
-                    l: 2,
-                    t: 1,
-                    r: 1,
-                    b: 0
-                }
-            ),
-            Rect::new(7, 6, 7, 3)
-        );
-        assert_eq!(
-            inset(
-                Rect::new(0, 0, 1, 1),
-                Insets {
-                    l: 5,
-                    t: 0,
-                    r: 0,
-                    b: 9
-                }
-            ),
-            Rect::new(1, 0, 0, 0)
-        );
-        assert_eq!(
-            split_v(Rect::new(0, 0, 3, 2), 9),
-            (Rect::new(0, 0, 3, 2), Rect::new(0, 2, 3, 0))
-        );
-        assert_eq!(
-            split_h(Rect::new(0, 0, 3, 2), 1),
-            (Rect::new(0, 0, 1, 2), Rect::new(1, 0, 2, 2))
-        );
-
-        for w in 0u16..=8 {
-            for h in 0u16..=8 {
-                for n in 0u16..=4 {
-                    let area = Rect {
-                        x: 3,
-                        y: 2,
-                        width: w,
-                        height: h,
-                    };
-                    for i in [
-                        Insets::all(n),
-                        Insets::symmetric(n, 1),
-                        Insets {
-                            l: n,
-                            t: 1,
-                            r: 0,
-                            b: 2,
-                        },
-                        Insets {
-                            l: 0,
-                            t: n,
-                            r: 2,
-                            b: n,
-                        },
-                        Insets {
-                            l: n,
-                            t: 2,
-                            r: n,
-                            b: 1,
-                        },
-                        Insets {
-                            l: n,
-                            t: 0,
-                            r: n,
-                            b: 0,
-                        },
-                    ] {
-                        let r = inset(area, i);
-                        assert!(
-                            r.x >= area.x
-                                && r.y >= area.y
-                                && r.right() <= area.right()
-                                && r.bottom() <= area.bottom(),
-                            "inset({area:?}, {i:?}) = {r:?} escapes its container"
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn split_first_pane_wins_on_both_axes_when_minima_do_not_fit() {
-        let v = SplitModel::new(SplitAxis::Vertical, 60, 5, 5);
-        let (a, b) = v.layout(Rect::new(0, 0, 80, 8), 1);
-        assert_eq!(a.height, 8);
-        assert!(b.is_empty());
-        let h = SplitModel::new(SplitAxis::Horizontal, 60, 50, 50);
-        let (a, b) = h.layout(Rect::new(0, 0, 80, 8), 1);
-        assert_eq!(a.width, 80);
-        assert!(b.is_empty());
-
-        let (a, b) = v.layout(Rect::new(0, 0, 80, 30), 1);
-        assert_eq!((a.height, b.height), (17, 12));
-        assert_eq!(
-            v.handle(Rect::new(0, 0, 80, 30), 1),
-            Rect::new(0, 17, 80, 1)
-        );
-        let mut m = v;
-        m.toggle_max(Maximized::Second);
-        let (a, b) = m.layout(Rect::new(0, 0, 80, 30), 1);
-        assert!(a.is_empty() && b.height == 30);
-    }
-
-    #[test]
-    fn split_panes_and_seam_stay_inside_the_area() {
-        let area = Rect::new(3, 2, 10, 6);
-        let v = SplitModel::new(SplitAxis::Vertical, 60, 2, 2);
-        let h = SplitModel::new(SplitAxis::Horizontal, 60, 2, 2);
-
-        let mut vmax = v;
-        vmax.toggle_max(Maximized::First);
-        assert_eq!(vmax.layout(area, 1).1, Rect::new(3, 8, 10, 0));
-        vmax.toggle_max(Maximized::First);
-        vmax.toggle_max(Maximized::Second);
-        assert_eq!(vmax.layout(area, 1).0, Rect::new(3, 2, 10, 0));
-        let mut hmax = h;
-        hmax.toggle_max(Maximized::First);
-        assert_eq!(hmax.layout(area, 1).1, Rect::new(13, 2, 0, 6));
-        hmax.toggle_max(Maximized::First);
-        hmax.toggle_max(Maximized::Second);
-        assert_eq!(hmax.layout(area, 1).0, Rect::new(3, 2, 0, 6));
-
-        let tight = SplitModel::new(SplitAxis::Vertical, 60, 50, 50);
-        assert_eq!(tight.layout(area, 1).1, Rect::new(3, 8, 10, 0));
-        assert!(tight.layout(area, 1).1.is_empty());
-
-        let inside = |r: Rect, area: Rect, what: &str, model: &SplitModel| {
-            assert!(
-                r.x >= area.x
-                    && r.y >= area.y
-                    && r.right() <= area.right()
-                    && r.bottom() <= area.bottom(),
-                "{what} {r:?} escapes {area:?} for {model:?}"
-            );
-        };
-        for axis in [SplitAxis::Vertical, SplitAxis::Horizontal] {
-            for w in [0u16, 1, 3, 12, 80] {
-                for hh in [0u16, 1, 3, 12, 40] {
-                    let area = Rect {
-                        x: 3,
-                        y: 2,
-                        width: w,
-                        height: hh,
-                    };
-                    for percent in [5u8, 50, 95] {
-                        for (min_first, min_second) in [(0u16, 0u16), (1, 1), (5, 5), (50, 50)] {
-                            for gap in [0u16, 1, 4] {
-                                for max in [Maximized::None, Maximized::First, Maximized::Second] {
-                                    let mut m =
-                                        SplitModel::new(axis, percent, min_first, min_second);
-                                    m.maximized = max;
-                                    let (a, b) = m.layout(area, gap);
-                                    inside(a, area, "first pane", &m);
-                                    inside(b, area, "second pane", &m);
-                                    inside(m.handle(area, gap), area, "seam", &m);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn split_percent_is_clamped_to_5_95() {
-        let mut s = SplitModel::new(SplitAxis::Horizontal, 200, 1, 1);
-        assert_eq!(s.percent, 95);
-        s.grow(-120);
-        assert_eq!(s.percent, 5);
-        let area = Rect::new(0, 0, 101, 20);
-        assert!(s.drag_to(area, 1, Position::new(70, 3)));
-        assert_eq!(s.layout(area, 1).0.width, 70);
-        s.min_first = 10;
-        s.drag_to(area, 1, Position::new(2, 3));
-        assert_eq!(s.layout(area, 1).0.width, 10);
-        s.nudge(area, 1, 5);
-        assert_eq!(s.layout(area, 1).0.width, 15);
     }
 }

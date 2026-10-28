@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 d67f78dce6a50b78826a09dc8778d9c389b52881 Alexey Zhokhov <alexey@zhokhov.com> 1792239804 +0700	branch: Created from HEAD
+d67f78dce6a50b78826a09dc8778d9c389b52881 bb15bc7c5789344d11715f056e4756044e7d255a Alexey Zhokhov <alexey@zhokhov.com> 1792240651 +0700	commit: test(visual): wait only for text the new state shows; fix the new_tab flake
+bb15bc7c5789344d11715f056e4756044e7d255a 1b42802a747f6bb3cb3f0fa320deea5171151ef6 Alexey Zhokhov <alexey@zhokhov.com> 1792242724 +0700	commit (amend): test(visual): settle captures on the app's answer; fix the new_tab flake
+1b42802a747f6bb3cb3f0fa320deea5171151ef6 8644321f3aa8b5697e8e4e55c4d972971949d967 Alexey Zhokhov <alexey@zhokhov.com> 1792243371 +0700	rebase (finish): refs/heads/flake-new-tab onto ebc0ebaad86c3b473cbd8fd9f40d1ce255a759f9

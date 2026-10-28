@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 8a9b2880762dd56a7cb33d45275067bb26c4caad Alexey Zhokhov <alexey@zhokhov.com> 1792602162 +0700	branch: Created from origin/parity/termrock-visual-baseline
+8a9b2880762dd56a7cb33d45275067bb26c4caad 86ce4ce5e23b874307f1466582287696a246c404 agent-e <agent-e@example.com> 1792614127 +0700	commit: fix(tablepro): compose the footer through one shared component
+86ce4ce5e23b874307f1466582287696a246c404 6c54aeda635d7ead5deea155a876aaa5f63c3cdb Alexey Zhokhov <alexey@zhokhov.com> 1792614632 +0700	commit: test(tablepro): re-bless the digest baseline after the footer fix
+6c54aeda635d7ead5deea155a876aaa5f63c3cdb bd6db925a6bb568c91dcaa461fc4897ce9343a1c Alexey Zhokhov <alexey@zhokhov.com> 1792616052 +0700	commit: fix(tablepro): hide explorer metadata when one row cannot fit it
+bd6db925a6bb568c91dcaa461fc4897ce9343a1c 25297e0ab8e08539d8f1d112b833d9f255d46890 Alexey Zhokhov <alexey@zhokhov.com> 1792617624 +0700	commit: fix(tablepro): drop the size gated filter card focus
+25297e0ab8e08539d8f1d112b833d9f255d46890 764f24da29d08208a10b61c1a4ba06fa5759791b Alexey Zhokhov <alexey@zhokhov.com> 1792620440 +0700	commit: fix(tablepro): restore the reference footer ink

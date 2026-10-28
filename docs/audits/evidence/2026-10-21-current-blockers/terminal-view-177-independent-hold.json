@@ -1,0 +1,85 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "decision": "HOLD",
+  "reviewed_source_commit": "177a3d4415021724ac2624aede92a94aada139a8",
+  "before_commit": "6841e67ed4d240d9b39478b2e99f39ff48b8189b",
+  "already_pushed_integration_commit": "2f74af500e5ea906b024a1e01569d10022b64103",
+  "source_blob_verified_identical_in_source_and_integration": "4ea384abd199905565f426b6934d4db1763a6f8a",
+  "scope": "Independent source, native package tests and unchanged public-consumer real-runtime probes in separate sparse worktrees and distinct per-revision Cargo targets. No source edits or pushes. No helpers.",
+  "findings": [
+    {
+      "id": "T1",
+      "priority": "P1",
+      "status": "introduced-regression",
+      "path": "crates/termrock-terminal/src/terminal_view.rs",
+      "lines": [
+        412,
+        427,
+        430,
+        432,
+        460
+      ],
+      "title": "Pointer capture collapses a completed inside drag to a single cell",
+      "evidence": "Unchanged public Runtime/Harness probe inside_drag_preserves_full_selected_range passes on6841 and fails on177. Drag(1,1)->(5,1) previously leaves normalized selection(1,1,1,5); now leaves(1,5,1,5). New capture changes delivery to runtime.rs pointer_captured: mouse up queuesRelease,DragEnd,Click while inside captured bounds. TerminalView clears selecting onRelease/DragEnd, then treats trailingClick as anotherPress and overwrites anchor and selection at release cell. This is not the pre-existing selectingtrue problem and not an incoming262Viewport failure.",
+      "repair": "Keep capture, real typing and cursor ownership. Make selection start/drag/finish handling distinguish trailing click from a new press; do not reset the completed drag selection onClick. Add an unchanged before/after regression asserting selected text/range, capture and selecting lifecycle for inside/outside release and subsequent move. Fix at TerminalView or a demonstrated shared pointer contract, not Jackin."
+    },
+    {
+      "id": "T2",
+      "priority": "P2",
+      "status": "pre-existing-required-gap",
+      "path": "crates/termrock-terminal/src/terminal_view.rs",
+      "lines": [
+        412,
+        430,
+        460
+      ],
+      "title": "A released click leaves selectingtrue",
+      "evidence": "Same unchanged real-runtime release_clears_selecting_after_click fails before and after. Release clears selecting but subsequentClick sets ittrue again. Runtime capture is released; component selection lifecycle is not complete. Author native pointer test only checks capture_ownerNone and misses selecting.",
+      "repair": "Resolve or explicitly record this remaining selection lifecycle gap; do not claim complete drag/release/cancel behavior from the existing8native tests. It is not counted as a newly introduced failure."
+    }
+  ],
+  "positive_evidence": [
+    "Native cargo nextest run -p termrock-terminal --all-targets --features termrock-runtime/testing --no-fail-fast: before5/5pass, after8/8pass,0skip.",
+    "Identical10external probes: before6pass4fail, after8pass2fail,0skip. Newly green: actual pointer capture; plainASCII/wideChar/Backspace/Enter/combiningUnicodeCRLFPaste forwarding; paste restored after modal close. Newly red: inside drag selection. Persistentred: selecting after releasedclick.",
+    "Focused ReadOnly and SelectionOnly do not forward Char/Backspace/Enter/Paste. Modal owns paste and visible cursor; closing modal restores terminal focus and paste routing. FocusedReadOnly case introduces no cursor diagnostic.",
+    "Unchanged exhaustive TerminalViewState literal compiles before/after; no fields or public field types changed. TerminalInteraction/InputToken/TerminalAction/TerminalCursor APIs unchanged.",
+    "Interactive registration reuses existing register_editor and EDITING state; no editor draft buffer, second input system, application object, hidden control or production fixture import introduced by this patch.",
+    "Cursor-cell REVERSED/UNDERLINED repaint removed; source position is published through existing runtime request. Public source has no shape; defaultBlock only, no frozenCapsule shape parity claimed.",
+    "Exact candidate strict scoped Clippy cargo clippy -p termrock-terminal --all-targets --features termrock-runtime/testing -- -D warnings exits0; git diff --check oversourcecommit exits0."
+  ],
+  "ownership_api_review": {
+    "public_compatibility": "No breaking public signature/state field change found; exhaustive consumer check passes.",
+    "state_ownership": "No new persistent state introduced. Existing self.selection override and state.selection duplication remains outside this increment.",
+    "errors_and_concurrency": "No new unsafe code, thread primitive or independent concurrency failure identified. Existing capture return is ignored; principal observed lifecycle failure isT1.",
+    "application_adoption": "No Jackin application source changed by177; it cannot establish actual frozenCapsule behavior or thin-consumer acceptance."
+  },
+  "remaining_gaps": [
+    "No actual frozen/candidate CLI Tuiscotti comparison, wholeworkspaceNextest/Clippy/CI or application acceptance performed.",
+    "No source-selected cursor shape API; publicTerminalCursor onlyposition/visible. DefaultBlock is a bounded existing-runtime request, not frozenBar parity.",
+    "Shared viewport/scroll/render reuse, selection clipping/graphemes/revision behavior, follow policy, style/patch behavior and full cancellation remain unresolved source contracts inherited from earlier implementation.",
+    "Incoming262ac80ed Viewport/Jackin/Menu regressions are separate; this source patch only changes TerminalView and its audit.",
+    "External fixtures compile with unused-Response warnings because their assertions inspect runtime/app state; scoped productionClippy is a distinct command and passed. No test or expected frame was weakened."
+  ],
+  "repair_sequence": [
+    "FixT1 and coverT2 in shared TerminalView lifecycle without reverting real editing-owner registration or reintroducing cursor-cell painters.",
+    "Repeat identical10external probes against original6841,177andcorrectedsource; keep distinct targets and preserve these failures.",
+    "Expand source cursor/focus/modal/selection tests as required by the next bounded increment; then independent review before acceptance.",
+    "Application migration and full frozenCLI parity remain separate required work."
+  ],
+  "evidence_files": {
+    "after-clippy.log": "78591aaa84e6690e2767a41de6c53f48f9db4d5957bd24518766460a3f5e5ee0",
+    "after-consumer-Cargo.toml": "3733ed51a0be05a1156f0141a5bf20c87e4a3be7a9797ddc13be050d88d19279",
+    "after-consumer.log": "351c5bfe2bdb52663d1bd470219d6c57932e2272fc95e9becdc7bb659baf15f2",
+    "after-consumer.rs": "58f8cac5d5039257f0fd3b650b974d6025686c7c8d6b35358e2b57099de32a18",
+    "after-nextest.log": "4d28b17df31ae3166445d7299034257d6c7a22853256a9046f53310212d4bb85",
+    "before-consumer-Cargo.toml": "7075c39b24017ebc88a819e415fad78dec524cdfc11f2caa01675bac46010b9c",
+    "before-consumer.log": "34e3bc8a20e979bf60f0e481a37ce0f18970edd2e397d26fccb96835443016da",
+    "before-consumer.rs": "58f8cac5d5039257f0fd3b650b974d6025686c7c8d6b35358e2b57099de32a18",
+    "before-nextest.log": "9eadc22c23480c1307c84b701e978f929145039420637b075c4145041d51b478",
+    "clippy-status.json": "dfe50a8d5492f6cbf6e957f190b884172173854aacf7c0728d2046627c08a3a0",
+    "consumer-run.py": "d5855b3f3166862c697f71243f83aa0fe989c852147180339bcc820d7a11b04d",
+    "consumer-status.json": "2d6ea4c1e843eb2e93ea3fa862a94898eb7ae6c46d6ffa60483e19fcdf205403",
+    "native-status.json": "0c9dea51c4c0e3021fef91669b3d45485ac741fcb9304759c68d4984dd54daf3",
+    "run.py": "e77a7a1a54e4f9281a0f39590f33a6123d1b12a7bbdbab3963a81720bd1cda8b"
+  }
+}

@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 39aaf8d5e1dab5cf1c613c0bb7e76638d89d57af Alexey Zhokhov <alexey@zhokhov.com> 1792506301 +0700	branch: Created from 39aaf8d5e1dab5cf1c613c0bb7e76638d89d57af
+39aaf8d5e1dab5cf1c613c0bb7e76638d89d57af 23f911902a6ab518f525fce00fa63fd7df48d8a2 Alexey Zhokhov <alexey@zhokhov.com> 1792506991 +0700	commit: fix(overlays): resolve dialog layout consistently
+23f911902a6ab518f525fce00fa63fd7df48d8a2 9c64f948f262acf953687dfccb3f9f7dea27fc9a Alexey Zhokhov <alexey@zhokhov.com> 1792507935 +0700	commit: fix(overlays): restore frozen dialog layout metrics
+9c64f948f262acf953687dfccb3f9f7dea27fc9a 86226a2442f37621bbef91dd50b9b7bc3104659b Alexey Zhokhov <alexey@zhokhov.com> 1792508479 +0700	commit: fix(overlays): measure effective dialog shortcuts

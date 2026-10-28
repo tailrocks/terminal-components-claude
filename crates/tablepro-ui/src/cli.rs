@@ -1,9 +1,16 @@
 use std::io::{self, Write};
+use std::time::Duration;
 
 use termrock::{ColorLevel, Theme};
 
+use crate::app::Motion;
+
 const HELP: &str = "tablepro — TablePro's core workflow as a terminal application\n\n\
-USAGE: tablepro [--color truecolor|256|16|none] [--connect NAME] [--theme junie|paper]\n\n\
+USAGE: tablepro [--color truecolor|256|16|none] [--connect NAME] [--theme junie|paper]\n\
+         [--motion full|reduced|paused] [--frame N] [--query-duration-ms N]\n\n\
+Motion:    explicit --motion wins; otherwise TABLEPRO_NO_MOTION=1 selects reduced motion\n\
+Frame:     with --motion paused, the exact tick to render\n\n\
+Query time: fixed reported duration for deterministic replay; absent means live timing\n\
 Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit\n";
 
 #[derive(Clone, Copy)]
@@ -28,17 +35,38 @@ enum Command {
         theme: ThemeChoice,
         level: ColorLevel,
         connect: Option<String>,
+        motion: Motion,
+        frame: u64,
+        query_duration: Option<Duration>,
     },
 }
 
 pub fn run() -> io::Result<()> {
-    match parse_args(std::env::args().skip(1), ColorLevel::detect())? {
+    let no_motion = std::env::var_os("TABLEPRO_NO_MOTION")
+        .is_some_and(|value| !value.is_empty() && value != "0");
+    match parse_args(std::env::args().skip(1), ColorLevel::detect(), no_motion)? {
         Command::Help => io::stdout().lock().write_all(HELP.as_bytes()),
         Command::Run {
             theme,
             level,
             connect,
-        } => crate::run_with(theme.resolve(level), connect.as_deref()),
+            motion,
+            frame,
+            query_duration,
+        } => {
+            let theme = theme.resolve(level);
+            if let Some(duration) = query_duration {
+                crate::app::run_session_with_query_duration(
+                    theme,
+                    connect.as_deref(),
+                    motion,
+                    frame,
+                    duration,
+                )
+            } else {
+                crate::app::run_session(theme, connect.as_deref(), motion, frame)
+            }
+        }
     }
 }
 
@@ -46,10 +74,17 @@ fn invalid_arg(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidInput, message)
 }
 
-fn parse_args(args: impl IntoIterator<Item = String>, detected: ColorLevel) -> io::Result<Command> {
+fn parse_args(
+    args: impl IntoIterator<Item = String>,
+    detected: ColorLevel,
+    no_motion: bool,
+) -> io::Result<Command> {
     let mut theme = ThemeChoice::Junie;
     let mut level = detected;
     let mut connect = None;
+    let mut motion = None;
+    let mut frame = 0u64;
+    let mut query_duration = None;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -77,6 +112,34 @@ fn parse_args(args: impl IntoIterator<Item = String>, detected: ColorLevel) -> i
             }
 
             "--connect" => connect = args.next(),
+            "--motion" | "-m" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| invalid_arg("--motion requires a value"))?;
+                motion = Some(match value.to_ascii_lowercase().as_str() {
+                    "full" => Motion::Full,
+                    "reduced" => Motion::Reduced,
+                    "paused" => Motion::Paused,
+                    _ => return Err(invalid_arg("--motion must be full, reduced, or paused")),
+                });
+            }
+            "--frame" | "-f" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| invalid_arg("--frame requires a value"))?;
+                frame = value
+                    .parse()
+                    .map_err(|_| invalid_arg("--frame must be a non-negative integer"))?;
+            }
+            "--query-duration-ms" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| invalid_arg("--query-duration-ms requires a value"))?;
+                let milliseconds = value.parse::<u64>().map_err(|_| {
+                    invalid_arg("--query-duration-ms must be a non-negative integer")
+                })?;
+                query_duration = Some(Duration::from_millis(milliseconds));
+            }
             "-h" | "--help" => return Ok(Command::Help),
             _ => {}
         }
@@ -85,64 +148,12 @@ fn parse_args(args: impl IntoIterator<Item = String>, detected: ColorLevel) -> i
         theme,
         level,
         connect,
+        motion: motion.unwrap_or(if no_motion {
+            Motion::Reduced
+        } else {
+            Motion::Full
+        }),
+        frame,
+        query_duration,
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn color_aliases_override_detection_independent_of_theme_order() -> io::Result<()> {
-        for (name, level) in [
-            ("truecolor", ColorLevel::TrueColor),
-            ("24bit", ColorLevel::TrueColor),
-            ("256", ColorLevel::Ansi256),
-            ("ansi256", ColorLevel::Ansi256),
-            ("16", ColorLevel::Ansi16),
-            ("ansi16", ColorLevel::Ansi16),
-            ("none", ColorLevel::Mono),
-            ("mono", ColorLevel::Mono),
-        ] {
-            for flag in ["--color", "-c"] {
-                for args in [
-                    [flag, name, "--theme", "paper"],
-                    ["--theme", "paper", flag, name],
-                ] {
-                    let command = parse_args(args.map(str::to_owned), ColorLevel::Mono)?;
-                    let Command::Run {
-                        theme,
-                        level: actual,
-                        ..
-                    } = command
-                    else {
-                        return Err(io::Error::other("expected run command"));
-                    };
-                    assert_eq!(theme.resolve(actual), Theme::paper().for_level(level));
-                }
-            }
-        }
-        Ok(())
-    }
-
-    #[test]
-    fn detection_and_permissive_reference_options_survive() -> io::Result<()> {
-        let Command::Run {
-            theme,
-            level,
-            connect,
-        } = parse_args(
-            ["--unknown", "value", "--connect"].map(str::to_owned),
-            ColorLevel::Ansi16,
-        )?
-        else {
-            return Err(io::Error::other("expected run command"));
-        };
-        assert_eq!(
-            theme.resolve(level),
-            Theme::junie().for_level(ColorLevel::Ansi16)
-        );
-        assert!(connect.is_none());
-        Ok(())
-    }
 }

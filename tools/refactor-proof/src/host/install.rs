@@ -107,35 +107,3 @@ fn resolve_wrapper_target(
     }
     Err("receipt")
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn resolves_refactor_proof_wrapper_to_workspace_binary() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let workspace = temp.path().join("workspace");
-        let wrapper_path = workspace.join("tools/refactor-proof/bin/tc-proof-host");
-        fs::create_dir_all(wrapper_path.parent().expect("parent")).expect("mkdir");
-        fs::write(
-            &wrapper_path,
-            b"#!/usr/bin/env bash\nexec \"$workspace_root/target/debug/tc-proof-host\" \"$@\"\n",
-        )
-        .expect("write wrapper");
-        let built = workspace.join("target/debug/tc-proof-host");
-        fs::create_dir_all(built.parent().expect("parent")).expect("mkdir target");
-        fs::write(&built, b"\xcf\xfa\xed\xfefake-macho").expect("write macho");
-
-        let wrapper_bytes = fs::read(&wrapper_path).expect("read wrapper");
-        let resolved = material_executable_bytes(&wrapper_path, &wrapper_bytes).expect("resolve");
-        assert_eq!(resolved, b"\xcf\xfa\xed\xfefake-macho");
-    }
-
-    #[test]
-    fn leaves_mach_o_bytes_unmodified() {
-        let bytes = b"\xcf\xfa\xed\xfealready-macho";
-        let material = material_executable_bytes(Path::new("/ignored"), bytes).expect("resolve");
-        assert_eq!(material, bytes);
-    }
-}

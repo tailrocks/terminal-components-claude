@@ -1,0 +1,212 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "reviewer": "/root/menu_reason_independent_review",
+  "created_utc": "2026-10-21T05:16:24.798481+00:00",
+  "reviewed_commit": "c78e449b5d4f7f41f1f53d94260bde9aff2c068f",
+  "base_commit": "6841e67ed4d240d9b39478b2e99f39ff48b8189b",
+  "decision": "HOLD: new reason fallback defect remains; inherited disabled pressed contract gap also requires resolution or explicit coordinator disposition.",
+  "contract_sha256": "95a36ea84f66c7fa5bb5f7c0fb082f8259e10604475e3a4d0b01844d84fd660f",
+  "findings": [
+    {
+      "id": "MENU-REASON-01",
+      "priority": "P2",
+      "classification": "new feature correctness defect",
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "lines": [
+        646,
+        655
+      ],
+      "problem": "status_reason chooses the pointed item before checking whether it supplies an eligible reason. A disabled pointed row without a reason suppresses the still-highlighted disabled cursor row explanation. Frozen OptionList::status instead performs pointed.and_then(reason).or_else(highlighted.and_then(reason)).",
+      "reproduction": "Public Consumer: Run enabled, Commit.reason(\"Choose a target\"), Unavailable.disabled(true); skip_disabled(false), clear_on_leave(true). Down highlights Commit and displays its reason; mouse Move to Unavailable row at (4,3) leaves cursor=1 but removes the reason.",
+      "evidence": "external-nextest.log and external-reason-probes.rs::pointed_disabled_without_reason_falls_back_to_highlighted_reason",
+      "required_fix": "Resolve an eligible nonempty disabled reason for the pointed row first, then fall back to the visible highlighted row. Add the real-runtime regression including a reasonless disabled row and an empty reason."
+    },
+    {
+      "id": "MENU-REASON-02",
+      "priority": "P2",
+      "classification": "pre-existing behavior, unfulfilled explicit increment contract",
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "lines": [
+        996,
+        1004
+      ],
+      "problem": "draw_row inserts PRESSED for the runtime pressed target even when item.disabled. Pointer Down on an unavailable row changes its full-cell appearance to pressed white/black BOLD. The new reason API automatically disables items, but its tests only verify nonactivation after release and miss the held frame.",
+      "reproduction": "Public Consumer: hover disabled Commit row then mouse Down at (4,2); complete row cells change from highlighted blue to pressed white/black BOLD. Identical disabled(bool) probe also fails at 6841 base, so this is not claimed as a newly introduced regression.",
+      "evidence": "external-nextest.log; default-before-corrected-nextest.log; before-disabled-pressed-probe.rs",
+      "required_fix": "Keep disabled pointer controls out of pressed styling/capture mechanics at the responsible shared layer, with held/drag/cancel regression proof. Coordinate the effect on existing default disabled-menu frames explicitly rather than silently folding a broader change into this increment."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-overlays --all-targets --no-fail-fast",
+      "exit": 0,
+      "passed": 133,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native-nextest.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-reason-independent-external-20261021/Cargo.toml --no-fail-fast",
+      "exit": 100,
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0,
+      "scope": "Two independent public API/runtime reason probes, captured before adding separate default comparison target.",
+      "log": "external-nextest.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-reason-independent-external-before-20261021/Cargo.toml --test default --no-fail-fast",
+      "exit": 0,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "log": "default-before-final-nextest.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-reason-independent-external-20261021/Cargo.toml --test default --no-fail-fast",
+      "exit": 0,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "log": "default-after-final-nextest.log"
+    },
+    {
+      "command": "cargo clippy -p termrock-overlays --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "clippy-fmt.log"
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit": 0,
+      "log": "clippy-fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "log": "clippy-fmt.log"
+    }
+  ],
+  "default_compatibility": {
+    "result": "32 complete Cell-field snapshots equal byte for byte, with direct press-before-release selection behavior also unchanged.",
+    "profiles": [
+      "TrueColor",
+      "Ansi256",
+      "Ansi16",
+      "Mono"
+    ],
+    "per_profile_steps": [
+      "initial",
+      "hover enabled Commit",
+      "Home",
+      "End",
+      "Down",
+      "same-position Move",
+      "Down",
+      "Up"
+    ],
+    "cells_per_frame": 240,
+    "total_cell_observations": 7680,
+    "bytes_each": 1023736,
+    "sha256_each": "1bf37c86f96c7fe4bca64a9411db5425b66e2efbd21855dab72d93a0365e5167",
+    "files": [
+      "default-before-full-cells.txt",
+      "default-after-full-cells.txt"
+    ],
+    "limits": "These snapshots contain all ratatui Cell debug fields; cursor/focus/terminal modes are not included in this comparison and are not asserted as fully proven."
+  },
+  "rejected_hypotheses": [
+    {
+      "hypothesis": "Unconditional hover_suppressed changes default no-reason keyboard/hover frames.",
+      "disposition": "Not reproduced. Paired full-cell event sequence is identical."
+    },
+    {
+      "hypothesis": "A hovered row must have an identical entire appearance before and after Home.",
+      "disposition": "Invalid probe: the keyboard cursor/focus legitimately changes. Initial assertions failed both revisions and were preserved as rejected fixture evidence in default-before-nextest.log/default-after-nextest.log and initial-default.rs copies."
+    }
+  ],
+  "source_review": {
+    "api_compatibility": "Added fields are private; no existing public struct literals or action enums broken. Borrowed MenuItem::reason and const getters/builders preserve lifetime/configuration ownership. MenuBar padding repair restores label painting through its inset title rect; native existing padding regression test is green.",
+    "ownership": "Menu owns reason selection/rendering; no app object, replay assets, hidden controls, extra renderer, unsafe code, or new runtime state system introduced by reviewed diff. HELP is decoration and style/slot API is reused.",
+    "theme_scope": "Only MENU DEFAULT HELP muted recipe added; no global tokens or unrelated family edits."
+  },
+  "coverage_gaps": [
+    "No real CLI paired application capture or Capsule adoption; no product parity acceptance.",
+    "Complete overlay-stack/inactive HELP styling, arbitrary all-disabled/open-close/dynamic-data lifecycle, exhaustive narrow heights and profile/style combinations were not independently proven.",
+    "Default paired comparison covers a fixed 40x6 public test consumer, not every existing menu flow or terminal size.",
+    "Before reason API is absent, so the new fallback regression is a current behavior failure against the frozen contract, not a same-source executable pre-feature proof."
+  ],
+  "artifacts": {
+    "before-disabled-pressed-probe.rs": {
+      "sha256": "d453346d10afeae4a92dbfd31849af8c49b531943b71892bb62a62e688170330",
+      "bytes": 1858
+    },
+    "clippy-fmt.log": {
+      "sha256": "b893ce7ceb602d5a59445369898b645ec9b3167c05bd42cf13f19e2a09c8713d",
+      "bytes": 4369
+    },
+    "default-after-corrected-nextest.log": {
+      "sha256": "a0698560a0385d3480e8d2d2e5e7ba9e2dbcad619fc08ed886890d6927650aa9",
+      "bytes": 753
+    },
+    "default-after-final-nextest.log": {
+      "sha256": "da4df12e7894652784c033608f41afc7c3af208d5ab2b67119cd2e481ad9c0f3",
+      "bytes": 1086
+    },
+    "default-after-frames.txt": {
+      "sha256": "53f17b57839b3e5e1e0bbab505da8c8a7379c96534451b221dd68eabcb15580f",
+      "bytes": 37810
+    },
+    "default-after-full-cells.txt": {
+      "sha256": "1bf37c86f96c7fe4bca64a9411db5425b66e2efbd21855dab72d93a0365e5167",
+      "bytes": 1023736
+    },
+    "default-after-nextest.log": {
+      "sha256": "e4f26b5c864606e472b719b5c6c2270606bfbd47d0829a3c042ad74cf9995a66",
+      "bytes": 17544
+    },
+    "default-before-corrected-nextest.log": {
+      "sha256": "68d9cc77dbbd04973e3fbe3f79088fc1084809f644ae277f80b18485b5391168",
+      "bytes": 12685
+    },
+    "default-before-final-nextest.log": {
+      "sha256": "bf1b62890e5b8390833ea5093644198604f607239bbb87e4201b883b4a85e5f0",
+      "bytes": 1071
+    },
+    "default-before-frames.txt": {
+      "sha256": "53f17b57839b3e5e1e0bbab505da8c8a7379c96534451b221dd68eabcb15580f",
+      "bytes": 37810
+    },
+    "default-before-full-cells.txt": {
+      "sha256": "1bf37c86f96c7fe4bca64a9411db5425b66e2efbd21855dab72d93a0365e5167",
+      "bytes": 1023736
+    },
+    "default-before-nextest.log": {
+      "sha256": "fc0f6c0d8e55c2ccfad65809abd3c81479164478eee1df62242593fcc38834f3",
+      "bytes": 18028
+    },
+    "external-default-probes.rs": {
+      "sha256": "93aadc1598f71790ae1a6c7be19504536475dca3b3bfdac0e0664d70e8475e0c",
+      "bytes": 2702
+    },
+    "external-nextest.log": {
+      "sha256": "bfcebae1b03ba4a4aad8f696f7a84dba1dcebf33f2dae43391d469df5410e69e",
+      "bytes": 18485
+    },
+    "external-reason-probes.rs": {
+      "sha256": "635c7c699d935c08288f35686c7660904d2aee671117d5fd186d57e2e938ffd3",
+      "bytes": 2502
+    },
+    "menu-reason-independent-external-20261021-initial-default.rs": {
+      "sha256": "87ae544fe278a0ddabd947254a65c087023e9e449db3b97a8767dc6a88bb48df",
+      "bytes": 2095
+    },
+    "menu-reason-independent-external-before-20261021-initial-default.rs": {
+      "sha256": "87ae544fe278a0ddabd947254a65c087023e9e449db3b97a8767dc6a88bb48df",
+      "bytes": 2095
+    },
+    "native-nextest.log": {
+      "sha256": "bbc704fbab92944be13b7706ad5cabbf51e77f8fa772ff155dd16ae8fbd46888",
+      "bytes": 21743
+    }
+  }
+}

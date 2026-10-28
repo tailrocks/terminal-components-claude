@@ -1,0 +1,39 @@
+{
+  "review_commit": "7c39792f54eb7715209aa265cc9dc7c663e0dee6",
+  "tree": "dac8944cf44f71772d8e2c12775dfa54d9f67dd5",
+  "scope": "Read-only review of doc inventory guard repair; no product, manifest, workflow, or source edits; no applications or helper agent launched.",
+  "commands": [
+    {
+      "command": "git worktree add --detach /private/tmp/termrock-nextest-docguard-review-7c397 7c39792f54eb7715209aa265cc9dc7c663e0dee6",
+      "result": "exit 0; complete detached source copy materialized"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/private/tmp/termrock-docguard-target-7c397 cargo nextest run --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --test doc_inventory --no-tests fail",
+      "result": "exit 0; 6 passed, 0 skipped; includes full tracked workspace inventory test, cfg_attr trivia, Rust/edition/mode fences, unlabeled/indented Rust, block/doc-attribute fixtures, and negative ordinary/raw/cooked source-string/non-Rust fence fixtures"
+    },
+    {
+      "command": "rg -n \"^\\s*/\\*!\" --glob \"*.rs\"; rg -n \"/\\*!\" --glob \"*.rs\" crates",
+      "result": "no current inner block doc comments found (does not remove parser coverage gap)"
+    }
+  ],
+  "confirmed_repairs": [
+    "cfg_attr doc = token recognition is insensitive to whitespace/newline/comments and nested block comments",
+    "Cargo metadata target source paths are checked for tracked existence independent of extension",
+    "tracked literal include! inputs recurse and are canonicalized; escaped and dynamic paths fail closed",
+    "ordinary Rust raw/cooked strings and non-Rust fences are covered by negative fixtures",
+    "full inventory gate executes in nextest integration test"
+  ],
+  "finding": {
+    "severity": "medium",
+    "location": "crates/termrock-xtask/src/doc_inventory.rs: scan_rust_source, in_block comment handling",
+    "problem": "Valid Rustdoc inner block comments beginning /*! are classified as ordinary block comments by the starts_with(\"/*\") && !starts_with(\"/**\") branch. Their documentation is skipped, so Rust examples in /*! ... */ can evade the guard. The real tracked tree currently has no /*! occurrences, but future docs can bypass the required guard. Existing tests cover /**, //! and /// but not /*!.",
+    "fix": "Treat /*! as a Rustdoc block comment and scan its inner contents analogously to /**; add positive detection plus false-positive/comment-string fixtures."
+  },
+  "decision": "Repair is effective for the previously reported cfg_attr trivia and non-RS include gaps, but guard is not yet fully fail-closed due to /*! omission. Do not clear guard or disable generated doctest tasks until fixed and independently rerun.",
+  "coverage_gaps": [
+    "No source mutation or synthetic new Rustdoc inner-block input was run; code-path inspection demonstrates the omission.",
+    "No separate app, behavior, CI generation, or doctest-policy acceptance was performed.",
+    "This review does not approve doctest=false."
+  ],
+  "worktree_status": "clean at review end; detached separate copy"
+}

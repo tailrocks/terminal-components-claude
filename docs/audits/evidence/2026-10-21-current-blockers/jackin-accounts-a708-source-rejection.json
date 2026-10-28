@@ -1,0 +1,94 @@
+{
+  "schema": "independent-source-audit-v1",
+  "reviewer": "/root/tablepro_name_edit_architect",
+  "created_at": "2026-10-21T02:16:40.981953+00:00",
+  "decision": "blocked",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "repository_edits": false,
+  "expected_artifact_edits": false,
+  "tests_executed": [],
+  "captures_executed": false,
+  "key_access": false,
+  "limitations": [
+    "Source audit only. No actual frame or application execution proves visual or functional parity.",
+    "All findings require recorded disposition; deleting the old replay filename is not acceptance."
+  ],
+  "source_commit": "a708390e2f32cde313f36c8c915a0e8146558560",
+  "findings": [
+    {
+      "id": "JA-1",
+      "severity": "P1",
+      "locations": [
+        "crates/jackin-preview-app/src/app.rs:7582-7615",
+        "crates/jackin-preview-app/src/app/accounts_detail_view.rs:6-157"
+      ],
+      "problem": "The exact80x24/TrueColor/accent/AccountsMixed/paused selector persists and additionally requires exact account ID acct-claude-work, cursor4 and status label. The view constructs fixed11rows, Work selection, pre-truncated archived label, fixed summary/timers, offset0, total23 and fixed detail facts without live account data.",
+      "required_fix": "Remove this selector and static presentation dataset; derive full untruncated row/detail data from the application model and stable keys."
+    },
+    {
+      "id": "JA-2",
+      "severity": "P1",
+      "locations": [
+        "crates/jackin-preview-app/src/app.rs:9872-9874",
+        "crates/termrock-feedback/src/accounts_detail.rs:37-64",
+        "crates/termrock-feedback/src/accounts_detail.rs:303-367"
+      ],
+      "problem": "The full-screen painter runs after live application composition and repaints the tree/detail band. It registers no IDs or hit regions, consumes no component state and has no update/action contract. It paints a keyboard focus gutter whenever row.selected is true, even without focus or active-layer information. Underlying controls remain the interaction implementation.",
+      "required_fix": "Use the existing shared tree/list selection and focus/input contract, with public slots and a master-detail block. Do not create a second tree renderer or infer focus from selection."
+    },
+    {
+      "id": "JA-3",
+      "severity": "P2",
+      "locations": [
+        "crates/termrock-feedback/src/accounts_detail.rs:105-120"
+      ],
+      "problem": "Scrollbar visible count uses rows.len even when the row loop clips to the available viewport. For 11 supplied rows at height16, only3 rows fit but thumb math still uses visible11. The thumb has no shared hover/press/drag/input state.",
+      "required_fix": "Resolve actual viewport and scroll state once through the shared list/scrollbar implementation; use the same bounds for drawing and input."
+    },
+    {
+      "id": "JA-4",
+      "severity": "P2",
+      "locations": [
+        "crates/termrock-feedback/src/accounts_detail.rs:192-197",
+        "crates/termrock-feedback/src/accounts_detail.rs:315-367",
+        "crates/termrock-feedback/src/accounts_detail.rs:397-433"
+      ],
+      "problem": "Row name painting is clipped to the entire screen right edge rather than the reserved row-name slot, after borders are already painted. Long or narrow-view names can overwrite the right border and conflict with metadata. The application supplies one already-truncated label rather than a general truncation policy.",
+      "required_fix": "Use shared row slots with measured metadata/alert reservations and grapheme-aware cell-width truncation; test long names, Unicode and narrow views."
+    },
+    {
+      "id": "JA-5",
+      "severity": "P2",
+      "locations": [
+        "crates/termrock-feedback/src/accounts_detail.rs:49-86",
+        "crates/termrock-feedback/src/accounts_detail.rs:105-108",
+        "crates/termrock-feedback/src/accounts_detail.rs:322-331"
+      ],
+      "problem": "The API owns a complete accounts screen with header, tree, detail band and hints, fixed six-row detail geometry, literal RGB state colors and caller-chosen faded row. It lacks generic measurement/content-slot/state contracts and duplicates shared list/scrollbar/focus mechanics.",
+      "required_fix": "Compose generic shell/master-detail/list/detail components with semantic style configuration. Keep account domain facts outside Termrock and edge fading derived from actual shared scroll geometry."
+    }
+  ],
+  "reference_contract": [
+    "Frozen src/bin/jackin_preview/screens/accounts.rs:157-337 builds rows from World and stable selection, updates content length, and ensures selected rows remain visible.",
+    "Frozen accounts.rs:1289-1345 computes summary from live accounts, viewport from resolved panel, visible_range from ScrollState, and row focus independently from selection.",
+    "Frozen accounts.rs:1360-1407 measures metadata, reserves alert width and truncates complete labels to available cell width.",
+    "The accounts.rs source file is byte-identical between fixed baseline and fixed design."
+  ],
+  "positive_differences": [
+    "No RUNS table or snapshot import exists in these two new files. That alone does not establish semantic rendering.",
+    "Unlike capsule_menu, the local put helper delegates to Ui::paint_str; the scalar-loop combining-character defect was not found here. Unicode behavior was not executed.",
+    "This increment adds no cursor registration; its existing draw-path comment requests a hidden cursor. No new invisible-cursor defect is attributed to this commit."
+  ],
+  "replacement_plan": [
+    "Derive account row and detail view data from World, preserving stable keys, full labels and live summary/status values.",
+    "Use shared tree/list and scrollbar state, focus and hit regions; add needed row slots to the responsible shared component.",
+    "Compose the detail band through a generic measured master-detail block; remove the post-composition painter and exact test selectors together.",
+    "Test reordered/changed/empty/large account data, focus transfer, active overlays, scrolling/drag, Unicode and adjacent sizes; run paired frozen CLI journeys before acceptance."
+  ],
+  "source_sha256": {
+    "crates/jackin-preview-app/src/app.rs": "ce8a8fdac6c2a5ee769c11789d9917e44d12f1003b22d890bf29fef3382ad161",
+    "crates/jackin-preview-app/src/app/accounts_detail_view.rs": "cd7f6dcfcff336e45311b616627cee9538322d012147df27edde5154ca7b7a27",
+    "crates/termrock-feedback/src/accounts_detail.rs": "d82a137f63bc9a87adc4f0ddbf112a276af8189c3ffe759a15f23e0fe8f8e763"
+  }
+}

@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 31fbae05c4978f8432443d93d1c6ef56b04050f0 Alexey Zhokhov <alexey@zhokhov.com> 1792556636 +0700	branch: Created from origin/parity/termrock-visual-baseline
+31fbae05c4978f8432443d93d1c6ef56b04050f0 638642731b2f0fa0cc01bfbd1c9fc3d48ebb1ae0 Alexey Zhokhov <alexey@zhokhov.com> 1792556874 +0700	commit: feat(runner): bound owned live verification
+638642731b2f0fa0cc01bfbd1c9fc3d48ebb1ae0 14bee2db097876479f005a82b04cafe4b09c7eeb Alexey Zhokhov <alexey@zhokhov.com> 1792556912 +0700	rebase (finish): refs/heads/wip/canonical-verify-owned-20261021 onto 161284db95710d9d2d0290a28a31fc7fd53da838
+14bee2db097876479f005a82b04cafe4b09c7eeb 6aa010c6a38650de2a4c6dc7c2d4c891459645cc Alexey Zhokhov <alexey@zhokhov.com> 1792557475 +0700	commit: fix(runner): fail closed after owned verify output
+6aa010c6a38650de2a4c6dc7c2d4c891459645cc c9adf3c2607efbbd8b36f5a4acdd7ea6d520863b Alexey Zhokhov <alexey@zhokhov.com> 1792557493 +0700	rebase (finish): refs/heads/wip/canonical-verify-owned-20261021 onto 277c420e89e5c016e2f0cdf6385e86258a236d2b
+c9adf3c2607efbbd8b36f5a4acdd7ea6d520863b 5891c8727ff814e329ac6042a80a35adfc900099 Alexey Zhokhov <alexey@zhokhov.com> 1792557551 +0700	commit: docs: record stage three verification correction
+5891c8727ff814e329ac6042a80a35adfc900099 74801c0df180c4ac09f4832713ced8bafce9858a Alexey Zhokhov <alexey@zhokhov.com> 1792557913 +0700	commit (merge): merge: retain reviewed owned verify lifecycle history
+74801c0df180c4ac09f4832713ced8bafce9858a f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4 Alexey Zhokhov <alexey@zhokhov.com> 1792558002 +0700	commit: docs: close owned verify audit wording finding

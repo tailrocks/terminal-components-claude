@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 706b4a68c0f2468123529bbb7ed387e8819108c0 Alexey Zhokhov <alexey@zhokhov.com> 1792234065 +0700	branch: Created from HEAD
+706b4a68c0f2468123529bbb7ed387e8819108c0 bfa653935fc38248db24d45ac0d0924e058ba0fe Alexey Zhokhov <alexey@zhokhov.com> 1792235260 +0700	commit: feat(ui): the standard Edit context menu on every text widget (M3)
+bfa653935fc38248db24d45ac0d0924e058ba0fe e894a152e05acda1b9907c83416e16f1d58fe795 Alexey Zhokhov <alexey@zhokhov.com> 1792235547 +0700	commit: feat(widgets): default context menus from the key map for DataGrid and ChipBar (M22)
+e894a152e05acda1b9907c83416e16f1d58fe795 ce603b854e643cf10626100b000b6c23a145eb71 Alexey Zhokhov <alexey@zhokhov.com> 1792236062 +0700	commit: docs(audits): mouse #3 and #22 fixed by the Edit menu and key-map context items (S13, WIP)

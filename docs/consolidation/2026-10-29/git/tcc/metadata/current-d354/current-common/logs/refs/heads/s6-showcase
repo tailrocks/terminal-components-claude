@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 f87273a4a38163897ffcd78fa944aafe57ceec9c Alexey Zhokhov <alexey@zhokhov.com> 1792176703 +0700	branch: Created from f87273a4a
+f87273a4a38163897ffcd78fa944aafe57ceec9c 47116164bd1ebd60f8b9293ed01b71f5c1c1955f Alexey Zhokhov <alexey@zhokhov.com> 1792177524 +0700	commit: feat(showcase): the shell runs on PointerRouter
+47116164bd1ebd60f8b9293ed01b71f5c1c1955f 99cf8b225fe110395c1b4ab904b8c48d3f781156 Alexey Zhokhov <alexey@zhokhov.com> 1792178433 +0700	commit: fix(showcase): drift fixes on the router, each driven through the app
+99cf8b225fe110395c1b4ab904b8c48d3f781156 823cb979e58add97bc59c307aa70e9c064f7ad93 Alexey Zhokhov <alexey@zhokhov.com> 1792178447 +0700	commit: refactor(showcase): scrolling, terminal, settings and panel pages route by owner
+823cb979e58add97bc59c307aa70e9c064f7ad93 a4fccfad2c93be593c4a93dc0d3123e9a6e6208e Alexey Zhokhov <alexey@zhokhov.com> 1792178447 +0700	commit: refactor(showcase): table, grid and form pages route by owner
+a4fccfad2c93be593c4a93dc0d3123e9a6e6208e e0809f23e1fc23ffaeafa487e5b78b990a659c62 Alexey Zhokhov <alexey@zhokhov.com> 1792178447 +0700	commit: refactor(showcase): text, list and tree pages route by owner
+e0809f23e1fc23ffaeafa487e5b78b990a659c62 9900c8d0d7a1a6da7822985d5dccff6f564b9551 Alexey Zhokhov <alexey@zhokhov.com> 1792178447 +0700	commit: refactor(showcase): navigation and chrome pages route by owner
+9900c8d0d7a1a6da7822985d5dccff6f564b9551 8b1fd3179717e6599417f38e0321387c8e23bb2b Alexey Zhokhov <alexey@zhokhov.com> 1792178688 +0700	commit: wip: legacy removal
+8b1fd3179717e6599417f38e0321387c8e23bb2b 53160bc9703424d8fbb08bf15903f4e27cb53ded Alexey Zhokhov <alexey@zhokhov.com> 1792178689 +0700	commit: wip: lib fixes
+53160bc9703424d8fbb08bf15903f4e27cb53ded 55c0598d5ea59be9ac900db6158a8df0f124dcb7 Alexey Zhokhov <alexey@zhokhov.com> 1792178715 +0700	branch: Reset to HEAD
+55c0598d5ea59be9ac900db6158a8df0f124dcb7 573f4930faf4955e7b4cd0bebf5773fe0d030f37 Alexey Zhokhov <alexey@zhokhov.com> 1792178940 +0700	commit: fixup overlay site
+573f4930faf4955e7b4cd0bebf5773fe0d030f37 3da920200d6e5c89551d73a091b6d5bcadba69f7 Alexey Zhokhov <alexey@zhokhov.com> 1792178947 +0700	branch: Reset to HEAD

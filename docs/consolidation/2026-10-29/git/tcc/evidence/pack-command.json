@@ -1,0 +1,35 @@
+{
+  "argv": [
+    "git",
+    "-C",
+    "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+    "pack-objects",
+    "--stdout",
+    "--threads=2",
+    "--no-reuse-delta"
+  ],
+  "baseline": "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+  "chunk_count": 97,
+  "chunk_size_bytes": 50331648,
+  "completion": true,
+  "cwd": "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+  "ended_at_utc": "2026-10-28T19:43:25.556034+00:00",
+  "env_policy": {
+    "GIT_NO_LAZY_FETCH": "1",
+    "GIT_NO_REPLACE_OBJECTS": "1",
+    "GIT_OPTIONAL_LOCKS": "0"
+  },
+  "exit_code": 0,
+  "flags": [
+    "--stdout",
+    "--no-reuse-delta"
+  ],
+  "pack_bytes": 4847685238,
+  "pack_sha256": "3524526d4accf5bb689fb2ab5b4896728802c25a59c7fc5864756239d9133c85",
+  "started_at_utc": "2026-10-28T19:19:29.745149+00:00",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdin_file": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/pack-input-objects.oids",
+  "stdin_oid_count": 152827,
+  "stdin_sha256": "42680f1f94d19a88a11a2e004893f7a4c2fd754bc0b92d7aaa9560af7580250d",
+  "threads": 2
+}

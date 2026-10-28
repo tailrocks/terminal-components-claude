@@ -1,0 +1,143 @@
+{
+  "archive_group": "plan-root",
+  "classification": "complete plan-root Git store and clean worktree; separate repository identity, not the PR38 TCC Git repository",
+  "group_id": "ODB-GROUP-001",
+  "inventory_revision": "git-store-groups-addendum-v2",
+  "no_source_or_Git_mutation": true,
+  "object_input": {
+    "TCC_baseline": {
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/physical-objects.tsv",
+      "queried_again": false,
+      "sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+      "typed_object_count": 257216
+    },
+    "TCC_exclusion": "All 77 typed objects have full SHA-1 OIDs absent from the canonical TCC physical OID list; no source objects are excluded from this group.",
+    "baseline_comparison": {
+      "missing_from_TCC": 77,
+      "present_in_TCC": 0,
+      "type_size_mismatches": 0
+    },
+    "complete_stored_typed_object_list": {
+      "format": "space-delimited OID type size",
+      "object_count": 77,
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/objects/ODB-GROUP-001.typed-oid-type-size.tsv",
+      "sha256": "59b55efcb663e99b5890beb844e22e5c540591da8703c37e0734dcae0f6e6ffc",
+      "sha256_oid_type_size_set": "692e4016f687381a65903a8d554770ae5e2876138d4e033db7197df5a6fc6dba"
+    },
+    "cross_group_overlap": {
+      "conflict_oids": [],
+      "group_a": "ODB-GROUP-001",
+      "group_b": "ODB-GROUP-010",
+      "intersection_count": 7,
+      "intersection_oid_set_sha256": "bb23acd5cf141a33bd22b52856d5ccf30dd20053a03a997ec265704d8737d7e0",
+      "type_size_conflict_count": 0
+    },
+    "deduplicated_against_TCC_missing_typed_list": {
+      "count": 77,
+      "format": "tab-delimited OID type size",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/objects/non-tcc-inputs/plan-root-missing-from-tcc.tsv",
+      "sha256": "fd42ee80eedd7f2237fe331dfd7f63c9f65b7582274021a9b34887116695862d"
+    },
+    "raw_pack_preservation_note": "ODB-GROUP-010 is a distinct 78,860-byte T01 plan-fixture pack whose 7 objects are a subset of this group; preserve its raw pack and alias custody separately if fixture evidence is retained."
+  },
+  "source": {
+    "HEAD": {
+      "oid": "5af24dcb49a7983eb504ff7db647e099fb491b3a",
+      "symbolic": "refs/heads/main"
+    },
+    "common_dir": "/Users/donbeave/termrock-pr38-plan/.git",
+    "dependency_boundaries": {
+      "alternates": false,
+      "git_annex_payload_present": false,
+      "git_lfs_payload_present": false,
+      "grafts": false,
+      "http_alternates": false,
+      "modules_dir_present": false,
+      "promisor_config_keys": [],
+      "shallow": false,
+      "sharedindex_files": []
+    },
+    "git_dir": "/Users/donbeave/termrock-pr38-plan/.git",
+    "index": {
+      "bytes": 2056,
+      "path": "/Users/donbeave/termrock-pr38-plan/.git/index",
+      "sha256": "e594216f5f9631263ed1bdf36a0b0421b2ad2fd2fbf40b9e66888aa649d6a40c"
+    },
+    "object_format": "sha1",
+    "pack": {
+      "index_bytes": 3228,
+      "index_path": "/Users/donbeave/termrock-pr38-plan/.git/objects/pack/pack-675d97316e84e153be879abeecce49d01236cf7d.idx",
+      "pack_bytes": 214451,
+      "pack_path": "/Users/donbeave/termrock-pr38-plan/.git/objects/pack/pack-675d97316e84e153be879abeecce49d01236cf7d.pack",
+      "pack_sha256": "0e271423221cd7d7a74ea81bab6983c3adaf3c479c2ca05af8191e05ba45775f",
+      "pack_sha_source": "direct-read-sha256",
+      "reverse_index_bytes": 360,
+      "reverse_index_path": "/Users/donbeave/termrock-pr38-plan/.git/objects/pack/pack-675d97316e84e153be879abeecce49d01236cf7d.rev"
+    },
+    "reflogs": {
+      "entries": 3,
+      "files_count": 3,
+      "files_manifest_sha256": "0f3e5fe33256e06fc3f14eddd4e5c6f59447ff16b5c557e72f55035cd52dec0c",
+      "output_sha256": "4bb00ffde8b5338caaf7bb0fb2e47e708ebd270b9bca71ea5cbb29930a15b3e0",
+      "returncode": 0
+    },
+    "refmap": {
+      "bytes": 264,
+      "count": 3,
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-v1/metadata/refmaps/0042debff66b9d4fc6b6ffadbc66b6aeb98789d6b70b5d7c6c12742943a044ff.raw",
+      "sha256": "0042debff66b9d4fc6b6ffadbc66b6aeb98789d6b70b5d7c6c12742943a044ff"
+    },
+    "refs": [
+      {
+        "object_type": "commit",
+        "oid": "5af24dcb49a7983eb504ff7db647e099fb491b3a",
+        "refname": "refs/heads/main",
+        "symref": null,
+        "upstream": "refs/remotes/origin/main"
+      },
+      {
+        "object_type": "commit",
+        "oid": "5af24dcb49a7983eb504ff7db647e099fb491b3a",
+        "refname": "refs/remotes/origin/HEAD",
+        "symref": "refs/remotes/origin/main",
+        "upstream": null
+      },
+      {
+        "object_type": "commit",
+        "oid": "5af24dcb49a7983eb504ff7db647e099fb491b3a",
+        "refname": "refs/remotes/origin/main",
+        "symref": null,
+        "upstream": null
+      }
+    ],
+    "remote_proof": "Not queried in this read-only inventory; local origin refs only.",
+    "remote_url_sanitized": "github.com:donbeave/termrock-pr38-plan.git",
+    "repository_identity": "git@github.com:donbeave/termrock-pr38-plan.git",
+    "status": {
+      "index_sha256": "e594216f5f9631263ed1bdf36a0b0421b2ad2fd2fbf40b9e66888aa649d6a40c",
+      "porcelain_entries": 0,
+      "raw_porcelain_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "staged_diff_hashes": {},
+      "untracked_paths": [],
+      "xy_counts": {}
+    },
+    "tree_and_index_special_files": {
+      "HEAD_entry_count": 23,
+      "HEAD_gitlinks": [],
+      "HEAD_special_blobs": [],
+      "index_gitlinks": [],
+      "index_special_paths": []
+    },
+    "worktree_file_manifest": {
+      "file_count": 23,
+      "includes_codex_project_config_manifest": {
+        "entry_count": 5,
+        "path": "/private/tmp/pr38-consolidation-inventory-20261029/global/plan-project-configs.jsonl",
+        "sha256": "443edbb9b068c59642b503162e60339652c75f698bfdc98722885a5f08c39e16"
+      },
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/global/plan-root-files.jsonl",
+      "sha256": "ed4b4418ec1f14d421840dec4564de0d3cf90296bd2a1d5c9285d15baf9886b6"
+    },
+    "worktree_path": "/Users/donbeave/termrock-pr38-plan"
+  }
+}

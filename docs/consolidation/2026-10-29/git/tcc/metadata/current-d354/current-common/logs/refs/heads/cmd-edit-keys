@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 3d9b58dc077d791e81f17989364404a0c0611baf Alexey Zhokhov <alexey@zhokhov.com> 1792151411 +0700	branch: Created from HEAD
+3d9b58dc077d791e81f17989364404a0c0611baf c426efca26cae10a6c37fe85a03d3caba0f28988 Alexey Zhokhov <alexey@zhokhov.com> 1792152095 +0700	commit: feat(edit): bind the macOS editing chords in every text widget
+c426efca26cae10a6c37fe85a03d3caba0f28988 64c0760748469d7a79de0c74965e18c1d700975d Alexey Zhokhov <alexey@zhokhov.com> 1792152095 +0700	commit: docs(audits): record the macOS editing chords decision and status
+64c0760748469d7a79de0c74965e18c1d700975d ed5147275456e01b5b469b5eca0bad6a63ace97d Alexey Zhokhov <alexey@zhokhov.com> 1792152111 +0700	rebase (finish): refs/heads/cmd-edit-keys onto 9f9cf503722518103584189051f47ffbc95478d0

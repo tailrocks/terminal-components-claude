@@ -19,8 +19,6 @@ ratatui.workspace = true
 ratatui-core.workspace = true
 
 [features]
-testing = []
 
-[dev-dependencies]
-termrock-runtime = { workspace = true, features = ["testing"] }
-termrock-test-support.workspace = true
+[lib]
+doctest = false

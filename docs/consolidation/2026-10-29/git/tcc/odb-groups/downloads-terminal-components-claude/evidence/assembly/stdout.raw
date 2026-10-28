@@ -1,0 +1,16 @@
+{
+  "checksum_sha256": "91e12dbc66b83a82afc4a0d09578503a1d4943f99d6490a80353301b21c43e89",
+  "chunk_count": 6,
+  "ended_utc": "2026-10-28T21:45:38.787724+00:00",
+  "group": "/Users/donbeave/Projects/termrock-pr38-shared-20261028/docs/consolidation/2026-10-29/git/tcc/odb-groups/downloads-terminal-components-claude",
+  "group_bytes": 532676677,
+  "group_file_count": 3766,
+  "max_chunk_bytes": 50331648,
+  "object_bytes": 527290548,
+  "objects": 3747,
+  "portable_map_sha256": "74146555520b46e3b8453414176efe0786732815fdcf1920b8550e1d04e4faeb",
+  "receipt_sha256": "7c03b0ab3e3c6265f07a380c196f73d1d2ea691de47067bf403885f89e750d07",
+  "safety_decision_sha256": "62741c0691cbe965afc0621738e2ed796ecf3e8e9fc3fa65a04a9aa8e935030b",
+  "source_map_sha256": "9340f7bb886247105a78dddf7ef8c28deddc585bbf740394d7255ccbe7063bbf",
+  "started_utc": "2026-10-28T21:45:36.531403+00:00"
+}

@@ -1,0 +1,8 @@
+{
+  "preimage": "41f705abaabafc3e9630c64b8e41fa1e965d659159b45b026b7934bd3c32346a",
+  "rejected": "84764ed7c608628ff82ab4014db4cbe48d2f4b4a05e3fa0f7c101b51b354ca2e",
+  "independent_review": "dc622b2137dc6a244aa754ed0a83d7d0de1f25aa78b8b8755ce3949a12d2a6b1",
+  "preimage_git_blob": "6de3fa5a291c4427a360eabab99b39f2c2b95909",
+  "rejected_git_blob": "23726ab2481c8ef933bf301c15f4e7200c97b6ae",
+  "changed_expected_entries": 38
+}

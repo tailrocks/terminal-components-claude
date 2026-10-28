@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 99b719d85a0714c88484240dbc9184f110b518d4 Alexey Zhokhov <alexey@zhokhov.com> 1792501001 +0700	branch: Created from HEAD
+99b719d85a0714c88484240dbc9184f110b518d4 85c26ae10ce10c9789985e8be19500517b40553d Alexey Zhokhov <alexey@zhokhov.com> 1792501649 +0700	commit: fix(tablepro): restore tab picker contracts
+85c26ae10ce10c9789985e8be19500517b40553d 7e38a850a44e3fe51309a695e4e29f3d87b65f32 Alexey Zhokhov <alexey@zhokhov.com> 1792501650 +0700	rebase (finish): refs/heads/parity/tablepro-live-contracts-20261020 onto 407d727f9f952bafcbb842e8be341ffb32120e4e
+7e38a850a44e3fe51309a695e4e29f3d87b65f32 bcb51e8c4c980d92aa9fde3cca0307d56c62ff44 Alexey Zhokhov <alexey@zhokhov.com> 1792502085 +0700	commit: fix(tablepro): match picker discard and focus rules
+bcb51e8c4c980d92aa9fde3cca0307d56c62ff44 4ab81ae474b86ca3f3c74fe6e79328c20f7c6826 Alexey Zhokhov <alexey@zhokhov.com> 1792503305 +0700	commit: fix(tablepro): restore explorer command and footer focus

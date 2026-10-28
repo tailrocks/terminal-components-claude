@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 f02d43e299278db7980a2cc2bf0a303868aa24cc Alexey Zhokhov <alexey@zhokhov.com> 1792489610 +0700	branch: Created from origin/parity/termrock-visual-baseline
+f02d43e299278db7980a2cc2bf0a303868aa24cc b2e547e6a60ee800a8b870b29d3b82a526c600d7 Alexey Zhokhov <alexey@zhokhov.com> 1792490037 +0700	commit: feat(grid): add reusable table sorting behavior
+b2e547e6a60ee800a8b870b29d3b82a526c600d7 caf8eb20ff0dd706debc1c7f1681440eea36960a Alexey Zhokhov <alexey@zhokhov.com> 1792490055 +0700	rebase (finish): refs/heads/parity/table-component-20261020 onto af29b053ca0a623c5d8cd9830e743a039fb715d1
+caf8eb20ff0dd706debc1c7f1681440eea36960a f7184e3105db72e20d92fbc48b78c5ef37aa331b Alexey Zhokhov <alexey@zhokhov.com> 1792490510 +0700	commit: fix(grid): reconcile table keys and sort events
+f7184e3105db72e20d92fbc48b78c5ef37aa331b 79ca3393836d8f7ef1c82f0ffdab3fdd92fc37bb Alexey Zhokhov <alexey@zhokhov.com> 1792490869 +0700	commit: feat(grid): add baseline table geometry and range metadata
+79ca3393836d8f7ef1c82f0ffdab3fdd92fc37bb 27d4deaae4f2c4341931456306cb4cd5719e6a2e Alexey Zhokhov <alexey@zhokhov.com> 1792490930 +0700	commit: fix(grid): restore table bounds after horizontal layout
+27d4deaae4f2c4341931456306cb4cd5719e6a2e 3031e93b8a714d855d63325afb3d19116020b72f Alexey Zhokhov <alexey@zhokhov.com> 1792491799 +0700	commit: fix(table): make horizontal scrolling reliable
+3031e93b8a714d855d63325afb3d19116020b72f 9dfe618de9b7ef2cea679f20530f9c89c2bd83e5 Alexey Zhokhov <alexey@zhokhov.com> 1792491987 +0700	commit: fix(table): reset horizontal scroll after resize
+9dfe618de9b7ef2cea679f20530f9c89c2bd83e5 a1b55a5eff2f3fde7b63e478379f76151f525532 Alexey Zhokhov <alexey@zhokhov.com> 1792492113 +0700	commit: test(table): verify resize and axis isolation
+a1b55a5eff2f3fde7b63e478379f76151f525532 f0899c71b1e06ebdd5181c85488c8f0fd916adea Alexey Zhokhov <alexey@zhokhov.com> 1792493120 +0700	commit: fix(grid): restore table baseline sort and tone styles

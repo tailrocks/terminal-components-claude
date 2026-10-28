@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 8d143340d4b8b7e1c5de9e7b01569579c2c6712b Alexey Zhokhov <alexey@zhokhov.com> 1792531365 +0700	branch: Created from 8d143340d4b8b7e1c5de9e7b01569579c2c6712b
+8d143340d4b8b7e1c5de9e7b01569579c2c6712b 9b7505e533a318e0166c60e02b1964700f323b59 Alexey Zhokhov <alexey@zhokhov.com> 1792531880 +0700	commit: test: guard Rust documentation examples in nextest
+9b7505e533a318e0166c60e02b1964700f323b59 e74db607a006c9c15e3360c0a8ac9cd891ade2fd Alexey Zhokhov <alexey@zhokhov.com> 1792531895 +0700	rebase (finish): refs/heads/wip/nextest-doc-inventory-guard-20261021 onto 1a34e019c0666780cec58ab8c187477569e68242
+e74db607a006c9c15e3360c0a8ac9cd891ade2fd 400c6332beca5028eab7839ae09ee32b410554a0 Alexey Zhokhov <alexey@zhokhov.com> 1792532009 +0700	commit: test: harden documentation inventory guard
+400c6332beca5028eab7839ae09ee32b410554a0 1d354b3180d4b9acaa9abba2da3726b6f62051f9 Alexey Zhokhov <alexey@zhokhov.com> 1792532918 +0700	commit: test(xtask): close doc inventory syntax gaps
+1d354b3180d4b9acaa9abba2da3726b6f62051f9 7c39792f54eb7715209aa265cc9dc7c663e0dee6 Alexey Zhokhov <alexey@zhokhov.com> 1792532969 +0700	commit: docs(audit): fix doc guard evidence path
+7c39792f54eb7715209aa265cc9dc7c663e0dee6 fcb0d8d2fb32859c2aea03c3135fbe42955e9a7b Alexey Zhokhov <alexey@zhokhov.com> 1792533277 +0700	commit: test(xtask): scan inner Rustdoc block comments

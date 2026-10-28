@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 13ef730455a96fcf0bfbf80fa7e621a3da6c2033 Alexey Zhokhov <alexey@zhokhov.com> 1792548362 +0700	branch: Created from origin/parity/termrock-visual-baseline
+13ef730455a96fcf0bfbf80fa7e621a3da6c2033 6f42d1567c2be1db4f950b3a0fcc0676aeb30d91 Alexey Zhokhov <alexey@zhokhov.com> 1792549045 +0700	commit: feat(frozen-runner): add owned prepare lifecycle
+6f42d1567c2be1db4f950b3a0fcc0676aeb30d91 80cd90f3a78ee9dc51b8ef543a98043321751d42 Alexey Zhokhov <alexey@zhokhov.com> 1792549048 +0700	rebase (finish): refs/heads/wip/canonical-stage1-owned-20261021 onto 0c888dbb33cfb9499ed626cc966f285cf53d0019
+80cd90f3a78ee9dc51b8ef543a98043321751d42 d6b2edb66bc11f60c3a9e8ecfae1dd8bf3af1d9b Alexey Zhokhov <alexey@zhokhov.com> 1792549554 +0700	commit: fix(frozen-runner): fail closed on observer errors
+d6b2edb66bc11f60c3a9e8ecfae1dd8bf3af1d9b a46842108149a1421030e4a040c890fadecc671e Alexey Zhokhov <alexey@zhokhov.com> 1792549920 +0700	commit: fix(frozen-runner): bound orphan cleanup grace
+a46842108149a1421030e4a040c890fadecc671e a2eddc95534bb665ff8e8512e24027c5c63099e5 Alexey Zhokhov <alexey@zhokhov.com> 1792551443 +0700	commit: docs: record independent owned-prepare lifecycle clearance
+a2eddc95534bb665ff8e8512e24027c5c63099e5 9cd3f9f733065b452d13926ca0ae28049c0840dd Alexey Zhokhov <alexey@zhokhov.com> 1792551446 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

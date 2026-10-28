@@ -130,6 +130,20 @@ pub enum Role {
     DisabledFg,
     DisabledBg,
     ReadOnlyFg,
+
+    StatusBarBg,
+
+    StatusBarFg,
+
+    StatusAccent,
+
+    ChromeRule,
+
+    ScrollTrack,
+
+    ScrollThumb,
+
+    TagInk,
     Syntax(SyntaxRole),
     Meter(MeterRole),
     Custom(Color),

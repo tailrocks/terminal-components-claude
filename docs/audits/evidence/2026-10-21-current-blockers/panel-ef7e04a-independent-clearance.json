@@ -1,0 +1,148 @@
+{
+  "reviewed_commit": "ef7e04a91713739e99460bc4839d5c0fb066d855",
+  "parent_commit": "4db067a8a183bc7d7ee7027432d7afe82a613352",
+  "reviewer": "/root/panel_composition_review",
+  "review_type": "Independent medium-effort source and runtime review",
+  "created_utc": "2026-10-21T03:24:43.224731+00:00",
+  "decision": "Cleared for the bounded generic Panel composition implementation. No actionable defect found. This is not application parity or Showcase acceptance.",
+  "actionable_findings": [],
+  "source_review": [
+    {
+      "path": "crates/termrock-controls/src/panel.rs:140-259",
+      "assessment": "Panel::inner, legacy measure, and body-aware measurement share the same saturating inset calculation. Legacy measure and draw behavior remain unchanged. The new method preserves loose/tight constraints and combines body minimum/preferred dimensions with existing title, metadata and badge requirements."
+    },
+    {
+      "path": "crates/termrock/src/composition.rs:87-136",
+      "assessment": "The adapter borrows the real Panel and child; existing Panel::draw runs once and delegates its logical body to the existing composition resolver. It adds no widget renderer, alternate input path, synthetic focus registration, or application-specific selector."
+    },
+    {
+      "path": "crates/termrock/src/composition.rs:385-520",
+      "assessment": "Whole-tree depth validation includes the otherwise opaque Panel descendants before measurement or drawing. Internal expect calls depend on that validated depth invariant. The iterative Group destructor handles Group and Panel descendants; independent 8,000 nested-Panel rejection and drop completed without stack overflow."
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/composition.rs:341-370",
+      "assessment": "draw_at uses the existing measurement, width remeasurement, resolution, clipping and leaf dispatch. The logical root remains independent of the inherited visible clip. Default draw delegates with the same ui.full logical root and clip as before."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-runtime -p termrock-controls -p termrock --test panel_badge --test panel_composition_consumer --lib --no-fail-fast",
+      "exit_code": 0,
+      "passed": 369,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native.log"
+    },
+    {
+      "command": "cargo clippy -p termrock-controls -p termrock-runtime -p termrock --all-targets -- -D warnings",
+      "exit_code": 0,
+      "log": "strict-clippy.log"
+    },
+    {
+      "command": "rustfmt --edition 2024 --check <all changed Rust files>",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check ef7e04a^ ef7e04a",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo nextest run --manifest-path after/Cargo.toml --no-fail-fast (initial public consumer/probes)",
+      "exit_code": 0,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "log": "after-public-corrected.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path after/Cargo.toml --test edges --no-fail-fast",
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "log": "after-edges.log",
+      "coverage": [
+        "Different Weather domain labels, normal public Panel/Button/Group APIs",
+        "8,000 nested Panels: both measure and draw reject before any Panel or Button registration; complete tree safely drops",
+        "PreserveMinimum overflow: fully clipped second button has no registered region; visible button region stays inside clip and receives keyboard traversal",
+        "279 ordered zero/narrow/adjacent resize views: widths 0..30 by heights 0..8; every real Panel/Button registered region remains inside the view"
+      ]
+    },
+    {
+      "command": "cargo nextest run --manifest-path before/Cargo.toml --test probes --no-fail-fast",
+      "exit_code": 100,
+      "passed": 1,
+      "failed": 2,
+      "skipped": 0,
+      "log": "before-public-v2.log",
+      "explanation": "The common unchanged probes compile on the parent through explicitly declared compatibility extension traits: old Panel::measure ignores the unavailable body callback and old CompositionSlots::draw has no separate logical root. Both new contract assertions fail against those genuine parent public implementations."
+    },
+    {
+      "command": "cargo nextest run --manifest-path after/Cargo.toml --test probes --no-fail-fast",
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "log": "after-public-v2.log",
+      "explanation": "Identical probe source selects the new inherent methods on the candidate; compatibility traits are unused. Body measurement and logical-root clipping assertions pass."
+    }
+  ],
+  "revision_isolation": {
+    "before_source": "/private/tmp/panel-independent-before-4db067a-20261021",
+    "before_target": "/private/tmp/panel-independent-target-before-4db067a-20261021",
+    "after_source": "/private/tmp/panel-independent-ef7e04a-20261021",
+    "after_target": "/private/tmp/panel-independent-target-ef7e04a-20261021",
+    "notes": "Separate detached sparse copies and target paths were used for each revision. Compiler logs identify the expected source paths."
+  },
+  "default_compatibility": {
+    "equal": true,
+    "records": 28,
+    "bytes": 59554,
+    "sha256": "5123627fef05968091d75193c7d7f27cda4cf92effbae3752f639a684de1efa2",
+    "coverage": "Card and Framed Panel, zero/narrow/normal sizes, Unicode title/meta/badge and button labels, plus existing wrapping composition. Records include complete buffer Debug representation, focus, cursor, real button bounds, and legacy Panel measure/inner geometry. This is a bounded TestBackend before/after compatibility sample, not a frozen real-CLI comparison."
+  },
+  "test_harness_incidents": [
+    {
+      "log": "after-public.log",
+      "description": "The first independent harness compile returned E0308 because the reviewer omitted a semicolon in the TestBackend draw closure. Only the external artifact was corrected. This was not a production finding."
+    }
+  ],
+  "limitations": [
+    "No application source changed or adopted the new adapter.",
+    "No Showcase capability demonstration or coverage gate was added or accepted.",
+    "No complete real-CLI/tuiscotti frozen product comparison was run.",
+    "No full workspace Nextest or Clippy gate was run; the native and lint commands are scoped to the affected packages and targets.",
+    "The new named Panel header/footer slots and mixed-content scrolling remain outside this increment.",
+    "The external edge harness emits non-failing unused-import/unused-result warnings. The production affected-package strict Clippy command passed."
+  ],
+  "changed_file_sha256": {
+    "crates/termrock-controls/src/panel.rs": "b0f47f2e13ed050bf9f5eb2ce990c56d5768ae011d49a2f7ef6b7dbb194bf2bb",
+    "crates/termrock-controls/tests/panel_badge.rs": "8c272c4adadd864575db66142d32e4b7d2df5686fce8da396da88e60d3f0563d",
+    "crates/termrock-runtime/src/ui/composition.rs": "06da27a836617e83020f97978fb58d23830ed62e493a40d0a3b5e391cef1e15c",
+    "crates/termrock/src/composition.rs": "403456d0bf6ba21ffe55ebe1aaaeb07e6c1c129837c8b4ebdd718ee5f3deeee4",
+    "crates/termrock/tests/panel_composition_consumer.rs": "a12cca32dfee91b13871548cf6f984b7b9d23e8b29716143ccecbf128e56362b",
+    "docs/audits/panel-composition-contract-20261021.md": "fcaf0752d27b18b3c2bb39046cd9ffd94a42507d3ab03ee8ef55ab4e94af491c"
+  },
+  "artifacts": {
+    "after-default.txt": "69cd85e03c0b102340180ab99adf72ddc82b9ae6343f75cd3ad68416c380278e",
+    "before-public-v2.log": "ff1a96b82b80f07eab3c20b92c89e1555dd6f72e4673af421848d7d0b5e28cab",
+    "strict-clippy.log": "1b4a2a0900a1e6f6a833e2db00eb92c07ffa99dc652abb43083935141e1a35b1",
+    "after-public-v2.log": "a188029545859af99991ad36ba61ac3e2a428ad7724b8a5dfb4590569df5f03c",
+    "after-public-corrected.log": "d4b30e9feb37617dba9e987beaf42539522b318b8522d3ad2b8ed8966cf32421",
+    "after-edges.log": "7ffd9351cafaf2f89188affb1b9eb8e197314d64855523d2153e9f6f4352ad29",
+    "before-default.txt": "69cd85e03c0b102340180ab99adf72ddc82b9ae6343f75cd3ad68416c380278e",
+    "native.log": "e21d8f063d97fb2ec1f5630ac4cc32fd45d8c30c58e72d6a222f213a444aa36c",
+    "before-public.log": "63948de2b524bd1123114ac8aa9648670176ff95989c969001338f187fb6b2c0",
+    "after-public.log": "c80aa06e5a27c4694a07dfce4ab24e7765d5644cf1f33eefb61114c119a96fa1",
+    "before-default-v2.txt": "5123627fef05968091d75193c7d7f27cda4cf92effbae3752f639a684de1efa2",
+    "after-default-v2.txt": "5123627fef05968091d75193c7d7f27cda4cf92effbae3752f639a684de1efa2",
+    "before/Cargo.toml": "b12353f83dcd432edccdf89cec5bd3f3fa06d2dab49302f64a65d27a20481aa9",
+    "before/Cargo.lock": "77a03899e952ae0470be41e0ed5d9e67f64cf35b689ad618a784f757aaaf4c08",
+    "after/Cargo.toml": "3815817c37dc2234be613dfa6a023616b6855a83ace16c512bfc9be5beeebcf4",
+    "after/Cargo.lock": "347c8548b076788f525127a8eafd8a6b01cfb6c886319468003fe6390a2fcd6c",
+    "after/tests/edges.rs": "7ecb8d427cecc5470604841f2c5ecda478e453d21017a880472c5bd9cb453332",
+    "after/tests/facade.rs": "89e953e93a73ba031930826e472749d41aac37dd1056d242d5d96baec09c242a",
+    "after/tests/probes.rs": "7cfda429bf6ba6bef966085575dd27cdf4910933873392d173b52fda79c9f201",
+    "before/tests/probes.rs": "7cfda429bf6ba6bef966085575dd27cdf4910933873392d173b52fda79c9f201"
+  }
+}

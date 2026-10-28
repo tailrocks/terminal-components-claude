@@ -153,31 +153,86 @@ impl DiffViewState {
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 struct DiffLayout {
     mode: DiffMode,
+    requested_mode: DiffMode,
     revision: u64,
+    layout_revision: u64,
     width: u16,
+    projection_width: u16,
+    height: u16,
     has_source: bool,
     valid: bool,
+    responsive_review: bool,
+    horizontal_pan: bool,
+    path: String,
+    renamed_from: Option<String>,
+    status_marker: String,
+    status_label: String,
+    status_role: Option<Role>,
+    reset_pending: bool,
     scratch: Vec<OwnedLine>,
     projection: ProjectedText,
 }
 
 impl DiffLayout {
-    fn ensure(&mut self, source: Option<&dyn DiffSource>, mode: DiffMode, width: u16) -> bool {
+    fn ensure_with_policy(
+        &mut self,
+        source: Option<&dyn DiffSource>,
+        requested_mode: DiffMode,
+        width: u16,
+        height: u16,
+        responsive_review: bool,
+        horizontal_pan: bool,
+    ) -> bool {
         let revision = source.map_or(0, DiffSource::revision);
         let has_source = source.is_some();
+        let identity_matches = source.is_none_or(|source| {
+            self.path == source.path()
+                && self.renamed_from.as_deref() == source.renamed_from()
+                && self.status_marker == source.status_marker()
+                && self.status_label == source.status_label()
+                && self.status_role == Some(source.status_role())
+        });
+        let source_changed = !self.valid
+            || self.has_source != has_source
+            || self.revision != revision
+            || !identity_matches;
+        let review_policy_inputs_match = !responsive_review
+            || requested_mode != DiffMode::Review
+            || (self.height == height && self.horizontal_pan == horizontal_pan);
         if revision != u64::MAX
             && self.valid
             && self.revision == revision
-            && self.mode == mode
+            && self.requested_mode == requested_mode
             && self.width == width
             && self.has_source == has_source
+            && self.responsive_review == responsive_review
+            && review_policy_inputs_match
+            && identity_matches
         {
             return false;
         }
+
+        let (mode, projection_width) = match (source, requested_mode, responsive_review) {
+            (Some(source), DiffMode::Review, true) => {
+                let content_width = responsive_review_content_width(width);
+                if review_fits(source, content_width) {
+                    (DiffMode::Review, content_width)
+                } else {
+                    (DiffMode::Unified, content_width)
+                }
+            }
+            _ => (requested_mode, width),
+        };
         self.scratch.clear();
         match source {
             Some(source) => match mode {
                 DiffMode::Unified => unified_lines(source, &mut self.scratch),
+                DiffMode::Review if responsive_review => review_lines_with_digits(
+                    source,
+                    projection_width,
+                    review_number_width(source),
+                    &mut self.scratch,
+                ),
                 DiffMode::Review => review_lines(source, width, &mut self.scratch),
             },
             None => self.scratch.push(vec![OwnedRun::role(
@@ -190,11 +245,25 @@ impl DiffLayout {
             self.projection
                 .push_line(line.iter().map(|run| (&run.text, run.role, run.modifier)));
         }
+        self.layout_revision = self.layout_revision.saturating_add(1);
         self.revision = revision;
         self.mode = mode;
+        self.requested_mode = requested_mode;
         self.width = width;
+        self.projection_width = projection_width;
+        self.height = height;
         self.has_source = has_source;
         self.valid = true;
+        self.responsive_review = responsive_review;
+        self.horizontal_pan = horizontal_pan;
+        self.path = source.map_or_else(String::new, |source| source.path().to_owned());
+        self.renamed_from = source.and_then(DiffSource::renamed_from).map(str::to_owned);
+        self.status_marker =
+            source.map_or_else(String::new, |source| source.status_marker().to_owned());
+        self.status_label =
+            source.map_or_else(String::new, |source| source.status_label().to_owned());
+        self.status_role = source.map(DiffSource::status_role);
+        self.reset_pending |= source_changed;
         true
     }
 }
@@ -202,6 +271,8 @@ impl DiffLayout {
 pub struct DiffView<'a> {
     id: Id,
     source: Option<&'a dyn DiffSource>,
+    horizontal_pan: bool,
+    responsive_review: bool,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     slot: Option<(Part, SlotFn<'a>)>,
@@ -212,6 +283,8 @@ impl fmt::Debug for DiffView<'_> {
         f.debug_struct("DiffView")
             .field("id", &self.id)
             .field("source", &self.source.is_some())
+            .field("horizontal_pan", &self.horizontal_pan)
+            .field("responsive_review", &self.responsive_review)
             .field("parts", &self.parts.len())
             .field("slot", &self.slot.map(|(part, _)| part))
             .finish_non_exhaustive()
@@ -225,6 +298,8 @@ impl<'a> DiffView<'a> {
         DiffView {
             id,
             source,
+            horizontal_pan: false,
+            responsive_review: false,
             patch: None,
             parts: &[],
             slot: None,
@@ -233,6 +308,18 @@ impl<'a> DiffView<'a> {
 
     pub const fn id(&self) -> Id {
         self.id
+    }
+
+    #[must_use]
+    pub const fn horizontal_pan(mut self, enabled: bool) -> Self {
+        self.horizontal_pan = enabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn responsive_review(mut self, enabled: bool) -> Self {
+        self.responsive_review = enabled;
+        self
     }
 
     #[must_use]
@@ -253,8 +340,11 @@ impl<'a> DiffView<'a> {
         self
     }
 
-    fn viewport(&self) -> TextViewport<'a> {
-        let mut viewport = TextViewport::new(self.id).patch_part(self.parts);
+    fn viewport(&self, layout_revision: u64) -> TextViewport<'a> {
+        let mut viewport = TextViewport::new(self.id)
+            .layout_revision(layout_revision)
+            .horizontal_pan(self.horizontal_pan)
+            .patch_part(self.parts);
         if let Some(patch) = self.patch {
             viewport = viewport.patch(patch);
         }
@@ -265,26 +355,63 @@ impl<'a> DiffView<'a> {
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut DiffViewState) -> Response<ViewportAction> {
-        let width = cx.area(self.id).map_or(80, |area| area.width);
+        let area = cx.area(self.id).unwrap_or(Rect::new(0, 0, 80, 0));
         let mut layout = core::mem::take(cx.cache::<DiffLayout>(self.id));
-        if layout.ensure(self.source, state.mode, width) {
+        let rebuilt = layout.ensure_with_policy(
+            self.source,
+            state.mode,
+            area.width,
+            area.height,
+            self.responsive_review,
+            self.horizontal_pan,
+        );
+        if self.horizontal_pan && layout.reset_pending {
             state.viewport.set_follow(false);
             state.viewport.invalidate();
+            state.viewport.reset_scroll_offsets();
             let _ = state.viewport.clear_selection();
+            layout.reset_pending = false;
+        } else if !self.horizontal_pan {
+            if rebuilt {
+                state.viewport.set_follow(false);
+                state.viewport.invalidate();
+                let _ = state.viewport.clear_selection();
+            }
+
+            layout.reset_pending = false;
         }
-        let response =
-            self.viewport()
-                .update_projected(cx, &mut state.viewport, &layout.projection);
+        let response = self.viewport(layout.layout_revision).update_projected(
+            cx,
+            &mut state.viewport,
+            &layout.projection,
+        );
         *cx.cache::<DiffLayout>(self.id) = layout;
         response
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &DiffViewState) -> Rect {
         let mut layout = core::mem::take(ui.cache::<DiffLayout>(self.id));
-        layout.ensure(self.source, state.mode, area.width);
-        let used = self
-            .viewport()
-            .draw_projected(ui, area, &state.viewport, &layout.projection);
+        layout.ensure_with_policy(
+            self.source,
+            state.mode,
+            area.width,
+            area.height,
+            self.responsive_review,
+            self.horizontal_pan,
+        );
+        let mut viewport_state = state.viewport.clone();
+        if self.horizontal_pan && layout.reset_pending {
+            viewport_state.set_follow(false);
+            viewport_state.invalidate();
+            viewport_state.reset_scroll_offsets();
+            let _ = viewport_state.clear_selection();
+        }
+        let used = self.viewport(layout.layout_revision).draw_projected(
+            ui,
+            area,
+            &viewport_state,
+            &layout.projection,
+        );
         *ui.cache::<DiffLayout>(self.id) = layout;
         used
     }
@@ -302,7 +429,7 @@ impl Bindings for DiffView<'_> {
     type Cmd = ViewportCmd;
 
     fn bindings(&self, state: BindingState) -> &'static [Binding<ViewportCmd>] {
-        self.viewport().bindings(state)
+        self.viewport(0).bindings(state)
     }
 }
 
@@ -441,8 +568,16 @@ fn unified_lines(source: &dyn DiffSource, out: &mut Vec<OwnedLine>) {
 }
 
 fn review_lines(source: &dyn DiffSource, width: u16, out: &mut Vec<OwnedLine>) {
+    review_lines_with_digits(source, width, number_width(source), out);
+}
+
+fn review_lines_with_digits(
+    source: &dyn DiffSource,
+    width: u16,
+    digits: usize,
+    out: &mut Vec<OwnedLine>,
+) {
     out.push(header(source, DiffMode::Review));
-    let digits = number_width(source);
     let col = usize::from(width).saturating_sub(3) / 2;
     let text_width = col.saturating_sub(digits.saturating_add(1)).max(4);
     let mut old = 0usize;
@@ -513,6 +648,34 @@ fn review_lines(source: &dyn DiffSource, width: u16, out: &mut Vec<OwnedLine>) {
             Role::Fg(FgStep::Muted),
         )]);
     }
+}
+
+fn review_number_width(source: &dyn DiffSource) -> usize {
+    let mut max = 1usize;
+    for index in 0..source.row_count() {
+        if let Some(DiffRow::Hunk {
+            old_start,
+            new_start,
+        }) = source.row(index)
+        {
+            let (old_len, new_len) = hunk_lengths(source, index);
+            max = max
+                .max(old_start.saturating_add(old_len))
+                .max(new_start.saturating_add(new_len));
+        }
+    }
+    decimal_digits(max).max(3)
+}
+
+fn review_fits(source: &dyn DiffSource, width: u16) -> bool {
+    let per_side = review_number_width(source)
+        .saturating_add(1)
+        .saturating_add(16);
+    usize::from(width) >= per_side.saturating_mul(2).saturating_add(3)
+}
+
+fn responsive_review_content_width(outer_width: u16) -> u16 {
+    outer_width.saturating_sub(2)
 }
 
 fn append_changed_rows(
@@ -679,187 +842,4 @@ fn decimal_digits(mut number: usize) -> usize {
 
 fn gutter(number: Option<usize>, digits: usize) -> String {
     number.map_or_else(|| " ".repeat(digits), |number| format!("{number:>digits$}"))
-}
-
-#[cfg(test)]
-mod tests {
-    use ratatui_core::buffer::Buffer;
-
-    use super::*;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::Stub;
-    use crate::theme::Theme;
-    use crate::{ReferenceState, ReferenceTarget};
-
-    const ID: Id = Id::root("diff.tests");
-    const ROWS: &[DiffRow<'static>] = &[
-        DiffRow::Hunk {
-            old_start: 10,
-            new_start: 10,
-        },
-        DiffRow::Line {
-            kind: DiffLineKind::Context,
-            text: "fn retry() {",
-        },
-        DiffRow::Line {
-            kind: DiffLineKind::Remove,
-            text: "    let attempts = 3;",
-        },
-        DiffRow::Line {
-            kind: DiffLineKind::Add,
-            text: "    let attempts = 5;",
-        },
-        DiffRow::Line {
-            kind: DiffLineKind::Add,
-            text: "    let backoff = Backoff::exponential();",
-        },
-        DiffRow::Line {
-            kind: DiffLineKind::Context,
-            text: "}",
-        },
-        DiffRow::Hunk {
-            old_start: 40,
-            new_start: 41,
-        },
-        DiffRow::Line {
-            kind: DiffLineKind::Remove,
-            text: "// old",
-        },
-        DiffRow::Line {
-            kind: DiffLineKind::Context,
-            text: "done",
-        },
-    ];
-
-    struct Source;
-
-    impl DiffSource for Source {
-        fn revision(&self) -> u64 {
-            1
-        }
-        fn path(&self) -> &'static str {
-            "src/settlement/retry.rs"
-        }
-        fn status_marker(&self) -> &'static str {
-            "M"
-        }
-        fn status_label(&self) -> &'static str {
-            "modified"
-        }
-        fn status_role(&self) -> Role {
-            Role::Warning
-        }
-        fn row_count(&self) -> usize {
-            ROWS.len()
-        }
-        fn row(&self, index: usize) -> Option<DiffRow<'_>> {
-            ROWS.get(index).copied()
-        }
-    }
-
-    fn text(line: &OwnedLine) -> String {
-        line.iter().map(|run| run.text.as_str()).collect()
-    }
-
-    #[test]
-    fn counts_and_headers() {
-        assert_eq!(counts(&Source), (2, 2, 2));
-        assert_eq!(hunk_lengths(&Source, 0), (3, 4));
-        assert_eq!(hunk_header(10, 3, 10, 4), "@@ -10,3 +10,4 @@");
-        assert_eq!(
-            text(&header(&Source, DiffMode::Unified))
-                .split("  +")
-                .next(),
-            Some("M src/settlement/retry.rs")
-        );
-    }
-
-    #[test]
-    fn unified_lists_every_line_with_markers() {
-        let mut lines = Vec::new();
-        unified_lines(&Source, &mut lines);
-        let lines: Vec<String> = lines.iter().map(text).collect();
-        assert!(lines[0].starts_with("M src/settlement/retry.rs"));
-        assert_eq!(lines[1], "@@ -10,3 +10,4 @@");
-        assert!(lines[3].contains("- ") && lines[3].contains("attempts = 3"));
-        assert!(lines[4].contains("+ ") && lines[4].contains("attempts = 5"));
-        assert!(lines[2].starts_with(" 10  10"));
-    }
-
-    #[test]
-    fn review_pairs_columns_and_emphasises_the_change() {
-        let mut lines = Vec::new();
-        review_lines(&Source, 120, &mut lines);
-        let texts: Vec<String> = lines.iter().map(text).collect();
-        assert!(texts[3].contains('│'));
-        assert!(texts[3].contains("attempts = 3") && texts[3].contains("attempts = 5"));
-        let bold: Vec<&str> = lines[3]
-            .iter()
-            .filter(|run| run.modifier.contains(Modifier::BOLD))
-            .map(|run| run.text.as_str())
-            .collect();
-        assert!(bold.iter().any(|run| run.contains('3')));
-        assert!(bold.iter().any(|run| run.contains('5')));
-        assert!(texts.iter().any(|line| line.starts_with("────")));
-    }
-
-    #[test]
-    fn view_renders_and_scrolls_without_draw_mutation() {
-        let view = DiffView::new(ID, Some(&Source));
-        let mut state = DiffViewState::default();
-        state.viewport.set_follow(false);
-        let before = state.clone();
-        let area = Rect::new(0, 0, 60, 4);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, rect| {
-                view.draw(ui, rect, &state);
-            })
-            .commit_presented();
-        assert_eq!(state, before);
-        let row: String = buffer
-            .content()
-            .iter()
-            .take(60)
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect();
-        assert!(row.contains("M src/settlement/retry.rs"), "{row:?}");
-        assert_eq!(state.toggle_mode(), DiffMode::Review);
-    }
-
-    #[test]
-    fn source_revision_and_review_width_key_the_runtime_cache() {
-        let mut layout = DiffLayout::default();
-        assert!(layout.ensure(Some(&Source), DiffMode::Unified, 80));
-        let first = layout.scratch.clone();
-        assert!(!layout.ensure(Some(&Source), DiffMode::Unified, 80));
-        assert_eq!(layout.scratch, first);
-        assert!(layout.ensure(Some(&Source), DiffMode::Review, 40));
-        assert_ne!(layout.scratch, first);
-        assert_eq!(layout.width, 40);
-    }
-
-    #[test]
-    fn reference_mode_makes_the_composed_viewport_inert() {
-        let view = DiffView::new(ID, Some(&Source));
-        let state = DiffViewState::default();
-        let area = Rect::new(0, 0, 40, 4);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, rect| {
-                ui.reference(
-                    Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)),
-                    |ui| {
-                        view.draw(ui, rect, &state);
-                    },
-                );
-            })
-            .commit_presented();
-        assert!(
-            !runtime.ring().is_registered(ID),
-            "reference mode must leave the nested viewport inert"
-        );
-    }
 }

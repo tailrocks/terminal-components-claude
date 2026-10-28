@@ -1,9 +1,13 @@
+use std::sync::LazyLock;
+use std::time::Duration;
+
 use termrock::author::PaintStyle;
 use termrock::{
-    ActionKey, Button, ContextMenu, Cx, Family, FilterList, FilterListState, FrameRead, GlyphRole,
-    Id, Item, ItemKey, LayerSize, Menu, MenuBar, MenuItem, MenuState, Modifier, Part, Picker,
-    PickerAction, PickerChain, PickerChainState, PickerStage, PickerState, Position, Rect,
-    Response, ScreenAlign, ScrollState, StateFlags, Surface, Ui, Variant, width,
+    ActionKey, Binding, Button, Chord, Color, ContextMenu, Cx, EmptyState, Family, FilterList,
+    FilterListState, FrameRead, GlyphRole, Id, Item, ItemKey, KeyCode, KeyModifiers, LayerSize,
+    Menu, MenuBar, MenuItem, MenuState, Modifier, Part, Picker, PickerAction, PickerChain,
+    PickerChainState, PickerStage, PickerState, Position, Rect, Response, ScreenAlign, ScrollState,
+    SelectionPolicy, StateFlags, Surface, Ui, Variant, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -11,6 +15,17 @@ use super::{Page, PageUpdate, frame};
 const OPEN_QUICK: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.quick");
 const OPEN_TABS: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.tabs");
 const OPEN_LEVEL: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.level");
+const OPEN_COMMANDS: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.commands");
+const OPEN_REMOTE: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.remote");
+const REMOTE_RETRY_ACTION: ActionKey = ActionKey::application("showcase.pickers.remote.retry");
+const REMOTE_RETRY_BINDINGS: &[Binding<()>] = &[Binding {
+    action: REMOTE_RETRY_ACTION,
+    chord: Some(Chord::with(KeyCode::Char('r'), KeyModifiers::NONE)),
+    cmd: (),
+    label: "Retry",
+    priority: 70,
+    visible: true,
+}];
 const PICKER: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.layer");
 const FILTER: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.filter");
 const CHAIN: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.chain");
@@ -27,6 +42,15 @@ enum PickerKind {
     Quick,
     Tabs,
     Level,
+    Commands,
+    Remote,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RemoteStatus {
+    Loading,
+    Error,
+    Ready,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -258,7 +282,124 @@ const CHAIN_STAGES: &[PickerStage<'static>] = &[
     PickerStage::new(ItemKey::Num(303), "Result"),
 ];
 
-fn picker(kind: PickerKind, item_count: usize) -> Picker<'static, Item<'static>> {
+const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
+const SECTION_CAPTION: &str = "the live widget";
+const SECTION_WIDE: u16 = 76;
+const BLURB: &str =
+    "One modal list for files, tabs and levels: search, scope, tag, alternate action.";
+const QUICK_NOTE: &str = "Quick: fuzzy as you type, Tab scope, Alt+Enter alternate · Tabs: live, Delete closes · Level: no search box · Commands: disabled rows say why · Remote: loads, r retries";
+const APPLIED_META: &str = "read back from a built picker";
+const LAST_ACTION: &str = "none yet · QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled";
+const OPEN_TAB_LINE: &str = "Query 1 · orders · order_items · History";
+const FETCH_TICKS: u8 = 3;
+
+static COMMAND_ITEMS: LazyLock<[Item<'static>; 6]> = LazyLock::new(|| {
+    [
+        Item::new(ItemKey::text("run.query"), "Run query")
+            .glyph("▶")
+            .detail("run.query")
+            .group("Commands"),
+        Item::new(ItemKey::text("run.explain"), "Explain query")
+            .glyph("?")
+            .detail("run.explain")
+            .group("Commands"),
+        Item::new(ItemKey::text("results.export"), "Export results…")
+            .glyph("⇩")
+            .detail("Run a query first")
+            .group("Commands")
+            .disabled(true),
+        Item::new(ItemKey::text("edit.format"), "Format SQL")
+            .glyph("≡")
+            .detail("edit.format")
+            .group("Commands"),
+        Item::new(ItemKey::text("tx.commit"), "Commit transaction")
+            .glyph("✓")
+            .detail("No open transaction")
+            .group("Commands")
+            .disabled(true),
+        Item::new(ItemKey::text("conn.reconnect"), "Reconnect")
+            .glyph("↻")
+            .detail("conn.reconnect")
+            .group("Commands"),
+    ]
+});
+
+static REMOTE_ITEMS: LazyLock<[Item<'static>; 5]> = LazyLock::new(|| {
+    [
+        Item::new(ItemKey::text("origin/main"), "main")
+            .glyph("⎇")
+            .detail("origin")
+            .group("origin"),
+        Item::new(ItemKey::text("origin/feat/rate-limit"), "feat/rate-limit")
+            .glyph("⎇")
+            .detail("origin")
+            .group("origin"),
+        Item::new(
+            ItemKey::text("origin/fix/session-expiry"),
+            "fix/session-expiry",
+        )
+        .glyph("⎇")
+        .detail("origin")
+        .group("origin"),
+        Item::new(
+            ItemKey::text("origin/chore/uuid-sessions"),
+            "chore/uuid-sessions",
+        )
+        .glyph("⎇")
+        .detail("origin")
+        .group("origin"),
+        Item::new(ItemKey::text("origin/release/4.2"), "release/4.2")
+            .glyph("⎇")
+            .detail("origin")
+            .group("origin"),
+    ]
+});
+const CARD_GAP: u16 = 1;
+const VALUE_MIN: u16 = 12;
+const SCROLL_ROOM: u16 = 2;
+
+const CANVAS: u32 = 0x00_00_00;
+const SURFACE: u32 = 0x11_11_11;
+const WHITE: u32 = 0xff_ff_ff;
+const SECONDARY: u32 = 0xb3_b3_b3;
+const MUTED: u32 = 0x8a_8a_8a;
+const FAINT: u32 = 0x73_73_73;
+const RULE: u32 = 0x3a_3a_3a;
+const ACCENT: u32 = 0x48_e0_54;
+const TAB_ACTIVE: u32 = 0x27_27_2a;
+const ON_ACCENT: u32 = 0x19_19_1c;
+const THUMB: u32 = 0x80_80_80;
+const TRACK: u32 = 0x47_47_47;
+
+const LAUNCHERS: &[(&str, bool)] = &[
+    ("Open quickly", true),
+    ("Switch tab", false),
+    ("Choose a level", false),
+    ("Run command", false),
+    ("Remote branch", false),
+];
+
+const APPLIED: &[(&str, &str)] = &[
+    ("Size", "width 64 · max rows 12 · Center"),
+    ("Fit", "margin 1 · Center · backdrop keeps 1 bottom rows"),
+    ("Rows", "cursor Fill · Delete secondary on · nav desktop"),
+    ("Close", "Esc on · outside click on"),
+    (
+        "Text",
+        "placeholder “Type to search…” · no matches: “No matches — Esc clears the search” · hints “per picker”",
+    ),
+    (
+        "Commands",
+        "▶ Run query (run.query) · ⇩ Export results… (results.export, disabled: Run a query first) · ✓ Commit transaction (tx.commit, disabled: No open transaction)",
+    ),
+    ("Remote", "Loading, then Ready"),
+];
+
+fn picker(
+    kind: PickerKind,
+    item_count: usize,
+    remote_status: RemoteStatus,
+) -> Picker<'static, Item<'static>> {
     let (title, placeholder, searchable, width, height) = match kind {
         PickerKind::Quick => {
             let rows = item_count.clamp(1, 12) as u16;
@@ -275,6 +416,8 @@ fn picker(kind: PickerKind, item_count: usize) -> Picker<'static, Item<'static>>
         }
         PickerKind::Tabs => ("Open tabs", "Filter tabs…", true, 48, 11),
         PickerKind::Level => ("Safe Mode · this connection", "", false, 112, 11),
+        PickerKind::Commands => ("Run command", "Commands…", true, 64, 11),
+        PickerKind::Remote => ("Remote branches · origin", "", false, 56, 11),
     };
     let picker = Picker::new(PICKER)
         .title(title)
@@ -282,10 +425,30 @@ fn picker(kind: PickerKind, item_count: usize) -> Picker<'static, Item<'static>>
         .searchable(searchable)
         .size(LayerSize::Fixed(width, height))
         .align(ScreenAlign::Center);
-    if matches!(kind, PickerKind::Quick) {
-        picker.scopes(SCOPES)
-    } else {
-        picker
+    match kind {
+        PickerKind::Quick => picker
+            .scopes(SCOPES)
+            .selection_policy(SelectionPolicy::FirstEnabledOnFilterChange),
+        PickerKind::Commands => picker
+            .hints("↑↓ Move · Enter Run · Esc Close")
+            .delete_is_secondary(false),
+        PickerKind::Remote => picker
+            .hints("↑↓ Move · Enter Check out · r Retry · Esc Close")
+            .delete_is_secondary(false)
+            .empty(match remote_status {
+                RemoteStatus::Loading => EmptyState::Loading {
+                    label: "Fetching branches from origin…",
+                },
+                RemoteStatus::Error => EmptyState::Error {
+                    message: "Could not reach origin",
+                    detail: Some("Press r to retry"),
+                },
+                RemoteStatus::Ready => EmptyState::Empty {
+                    title: "No branches",
+                    hint: None,
+                },
+            }),
+        PickerKind::Tabs | PickerKind::Level => picker,
     }
 }
 
@@ -299,6 +462,14 @@ fn tabs_button() -> Button<'static> {
 
 fn level_button() -> Button<'static> {
     Button::new(OPEN_LEVEL, "Choose a level").variant(Variant::SECONDARY)
+}
+
+fn commands_button() -> Button<'static> {
+    Button::new(OPEN_COMMANDS, "Run command").variant(Variant::SECONDARY)
+}
+
+fn remote_button() -> Button<'static> {
+    Button::new(OPEN_REMOTE, "Remote branch").variant(Variant::SECONDARY)
 }
 
 fn filter_list() -> FilterList<'static, Item<'static>> {
@@ -317,64 +488,401 @@ fn context_menu() -> ContextMenu<'static> {
     ContextMenu::at(CONTEXT, CONTEXT_ITEMS, Position::new(0, 0)).title("Context")
 }
 
-fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
-    let mut surface = ui.surface_style();
-    surface = surface.remove_modifier(Modifier::all());
-    let mut panel = ui.with_surface(Surface::Surface, |ui| {
-        ui.style(
-            Family::PANEL,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        )
-        .style
-    });
-    panel = panel.remove_modifier(Modifier::all());
-    ui.fill(body, surface);
-    ui.fill(
-        Rect {
-            x: body.x.saturating_add(2),
-            width: body.width.saturating_sub(2),
-            ..body
-        },
-        panel,
-    );
-    for (row, line) in lines.iter().enumerate() {
-        let Ok(row) = u16::try_from(row) else {
-            break;
-        };
-        if row > body.height {
+fn rgb(hex: u32) -> Color {
+    Color::Rgb(
+        ((hex >> 16) & 0xff) as u8,
+        ((hex >> 8) & 0xff) as u8,
+        (hex & 0xff) as u8,
+    )
+}
+
+fn ink(fg: u32, bg: u32) -> PaintStyle {
+    PaintStyle::new().fg(rgb(fg)).bg(rgb(bg))
+}
+
+fn tab_width(label: &str) -> u16 {
+    width(label).saturating_add(3)
+}
+
+fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    let mut x = area.x;
+    let mut tab_end = area.x;
+    for (index, label) in SECTIONS.iter().enumerate() {
+        let w = tab_width(label);
+        if x.saturating_add(w) > area.right() {
             break;
         }
-        let row_area = Rect {
-            y: body.y.saturating_add(row),
-            height: 1,
-            ..body
+        let style = if index == 0 {
+            ink(WHITE, TAB_ACTIVE)
+                .remove_modifier(Modifier::all())
+                .add_modifier(Modifier::BOLD)
+        } else {
+            ink(SECONDARY, CANVAS).remove_modifier(Modifier::all())
         };
-        if row >= 7 && !(8..16).contains(&row) {
+        ui.fill(Rect::new(x, area.y, w, 1), style);
+        ui.paint_str(
+            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
+            label,
+            style,
+        );
+        tab_end = x.saturating_add(w);
+        x = tab_end.saturating_add(1);
+    }
+    if area.width >= SECTION_WIDE {
+        let caption_width = width(SECTION_CAPTION);
+        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
+        if caption_x > tab_end.saturating_add(2) {
+            ui.paint_str(
+                Rect::new(caption_x, area.y, caption_width, 1),
+                SECTION_CAPTION,
+                ink(FAINT, CANVAS),
+            );
+        }
+    }
+    if area.height < 2 {
+        return;
+    }
+    let rule_y = area.y.saturating_add(1);
+    ui.paint_str(
+        Rect {
+            y: rule_y,
+            height: 1,
+            ..area
+        },
+        &"─".repeat(usize::from(area.width)),
+        ink(RULE, CANVAS),
+    );
+    let active = tab_width(SECTIONS[0]).min(area.width);
+    ui.paint_str(
+        Rect::new(area.x, rule_y, active, 1),
+        &"━".repeat(usize::from(active)),
+        ink(ACCENT, CANVAS),
+    );
+}
+
+fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
+    ui.fill(card, ink(WHITE, SURFACE).remove_modifier(Modifier::all()));
+    if card.height == 0 || card.width < 4 {
+        return;
+    }
+    let text_x = card.x.saturating_add(2);
+    let text_w = card.width.saturating_sub(4);
+    ui.paint_str(
+        Rect::new(text_x, card.y, text_w, 1),
+        title,
+        ink(SECONDARY, SURFACE),
+    );
+    if !meta.is_empty() {
+        let meta_w = width(meta);
+        if meta_w < text_w {
+            ui.paint_str(
+                Rect::new(
+                    text_x.saturating_add(text_w.saturating_sub(meta_w)),
+                    card.y,
+                    meta_w,
+                    1,
+                ),
+                meta,
+                ink(FAINT, SURFACE),
+            );
+        }
+    }
+    if card.height > 1 && text_w > 0 {
+        ui.paint_str(
+            Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
+            &"─".repeat(usize::from(text_w)),
+            ink(RULE, SURFACE),
+        );
+    }
+}
+
+fn card_inner(card: Rect) -> Rect {
+    Rect {
+        x: card.x.saturating_add(2),
+        y: card.y.saturating_add(2),
+        width: card.width.saturating_sub(4),
+        height: card.height.saturating_sub(3),
+    }
+}
+
+fn paint_face(ui: &mut Ui<'_>, origin: Rect, label: &str, primary: bool) {
+    let columns = width(label).saturating_add(2);
+    let area = Rect {
+        width: columns.min(origin.width),
+        height: 1,
+        ..origin
+    };
+    if area.is_empty() {
+        return;
+    }
+    let (fg, bg) = if primary {
+        (ON_ACCENT, ACCENT)
+    } else {
+        (WHITE, TAB_ACTIVE)
+    };
+    let mut text = ink(fg, bg).remove_modifier(Modifier::all());
+    if primary {
+        text = text.add_modifier(Modifier::BOLD);
+    }
+    ui.fill(area, text);
+
+    ui.fill(
+        Rect::new(area.x, area.y, 1, 1),
+        ink(bg, bg).remove_modifier(Modifier::BOLD),
+    );
+    if area.width > 1 {
+        ui.paint_str(
+            Rect::new(
+                area.x.saturating_add(1),
+                area.y,
+                area.width.saturating_sub(1),
+                1,
+            ),
+            label,
+            text,
+        );
+    }
+}
+
+fn button_lines(room: u16) -> Vec<Vec<usize>> {
+    let mut lines: Vec<Vec<usize>> = Vec::new();
+    let mut used = 0u16;
+    for (index, (label, _)) in LAUNCHERS.iter().enumerate() {
+        let button_w = width(label).saturating_add(2);
+        let need = if used == 0 {
+            button_w
+        } else {
+            used.saturating_add(2).saturating_add(button_w)
+        };
+        if lines.is_empty() || (need > room && used > 0) {
+            lines.push(Vec::new());
+            used = button_w;
+        } else {
+            used = need;
+        }
+        if let Some(line) = lines.last_mut() {
+            line.push(index);
+        }
+    }
+    lines
+}
+
+fn wrap_lines(text: &str, columns: u16) -> Vec<String> {
+    let columns = columns.max(1);
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    let mut line_w = 0u16;
+    for word in text.split(' ') {
+        let word_w = width(word);
+        if line.is_empty() {
+            line.push_str(word);
+            line_w = word_w;
+        } else if line_w.saturating_add(1).saturating_add(word_w) <= columns {
+            line.push(' ');
+            line.push_str(word);
+            line_w = line_w.saturating_add(1).saturating_add(word_w);
+        } else {
+            lines.push(std::mem::take(&mut line));
+            line.push_str(word);
+            line_w = word_w;
+        }
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+    lines
+}
+
+struct PropLine {
+    label: Option<String>,
+    value: String,
+    value_x: u16,
+}
+
+fn label_column(rows: &[(&str, &str)], columns: u16) -> Option<u16> {
+    let full = rows
+        .iter()
+        .map(|(label, _)| width(label).saturating_add(2))
+        .max()
+        .unwrap_or(2);
+    (columns.saturating_sub(full) >= VALUE_MIN).then_some(full)
+}
+
+fn layout_props(rows: &[(&str, &str)], columns: u16) -> Vec<PropLine> {
+    let mut out = Vec::new();
+    let Some(column) = label_column(rows, columns) else {
+        let value_x = 2.min(columns.saturating_sub(1));
+        let value_w = columns.saturating_sub(value_x).max(1);
+        for (label, value) in rows {
+            out.push(PropLine {
+                label: Some((*label).to_owned()),
+                value: String::new(),
+                value_x: 0,
+            });
+            for line in wrap_lines(value, value_w) {
+                out.push(PropLine {
+                    label: None,
+                    value: line,
+                    value_x,
+                });
+            }
+        }
+        return out;
+    };
+    let value_w = columns.saturating_sub(column).max(1);
+    for (label, value) in rows {
+        let mut lines = wrap_lines(value, value_w).into_iter();
+        if let Some(first) = lines.next() {
+            out.push(PropLine {
+                label: Some((*label).to_owned()),
+                value: first,
+                value_x: column,
+            });
+        }
+        for line in lines {
+            out.push(PropLine {
+                label: None,
+                value: line,
+                value_x: column,
+            });
+        }
+    }
+    out
+}
+
+fn paint_props(ui: &mut Ui<'_>, inner: Rect, rows: &[(&str, &str)]) {
+    if inner.is_empty() {
+        return;
+    }
+    for (index, line) in layout_props(rows, inner.width).iter().enumerate() {
+        let Ok(index) = u16::try_from(index) else {
+            break;
+        };
+        let y = inner.y.saturating_add(index);
+        if y >= inner.bottom() {
+            break;
+        }
+        if let Some(label) = &line.label {
+            ui.paint_str(
+                Rect::new(inner.x, y, width(label).min(inner.width), 1),
+                label,
+                ink(MUTED, SURFACE),
+            );
+        }
+        if line.value.is_empty() || line.value_x >= inner.width {
             continue;
         }
-        if let Some(rest) = line.strip_prefix("  ") {
-            ui.paint_str(
-                Rect {
-                    width: 2,
-                    ..row_area
-                },
-                "  ",
-                panel,
-            );
-            ui.paint_str(
-                Rect {
-                    x: row_area.x.saturating_add(2),
-                    width: row_area.width.saturating_sub(2),
-                    ..row_area
-                },
-                rest,
-                panel,
-            );
-        } else {
-            ui.paint_str(row_area, line, panel);
+        ui.paint_str(
+            Rect::new(
+                inner.x.saturating_add(line.value_x),
+                y,
+                inner.width.saturating_sub(line.value_x),
+                1,
+            ),
+            &line.value,
+            ink(WHITE, SURFACE),
+        );
+    }
+}
+
+fn open_height(width: u16) -> u16 {
+    let inner = width.saturating_sub(4).max(1);
+    let rows = u16::try_from(button_lines(inner).len()).unwrap_or(u16::MAX);
+    let note = u16::try_from(wrap_lines(QUICK_NOTE, inner).len()).unwrap_or(u16::MAX);
+    rows.saturating_add(1)
+        .saturating_add(note)
+        .saturating_add(3)
+}
+
+fn applied_height(width: u16) -> u16 {
+    let inner = width.saturating_sub(4).max(1);
+    let rows = u16::try_from(layout_props(APPLIED, inner).len()).unwrap_or(u16::MAX);
+    rows.saturating_add(3)
+}
+
+fn result_lines<'a>(
+    result: &'a str,
+    detail: &'a str,
+    level: &'a str,
+    opened: &'a str,
+) -> [(&'a str, &'a str); 6] {
+    let chosen = if result == "none" {
+        "nothing yet"
+    } else {
+        result
+    };
+    let detail = if detail.is_empty() { "—" } else { detail };
+    [
+        ("Chosen", chosen),
+        ("Detail", detail),
+        ("Level", level),
+        ("Open tabs", OPEN_TAB_LINE),
+        ("Last action", LAST_ACTION),
+        ("Pickers opened", opened),
+    ]
+}
+
+fn results_height(width: u16, rows: &[(&str, &str)]) -> u16 {
+    let inner = width.saturating_sub(4).max(1);
+    let count = u16::try_from(layout_props(rows, inner).len()).unwrap_or(u16::MAX);
+    count.saturating_add(3)
+}
+
+fn playground_height(width: u16, rows: &[(&str, &str)]) -> u16 {
+    open_height(width)
+        .saturating_add(CARD_GAP)
+        .saturating_add(applied_height(width))
+        .saturating_add(CARD_GAP)
+        .saturating_add(results_height(width, rows))
+}
+
+fn scroll_view(area: Rect, rows: &[(&str, &str)]) -> (Rect, bool, u16) {
+    let mut vertical = false;
+    let mut content_h = playground_height(area.width, rows);
+    for _ in 0..3 {
+        let view_w = area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 });
+        content_h = playground_height(view_w, rows);
+        let next = area.width > SCROLL_ROOM && content_h > area.height;
+        if next == vertical {
+            break;
         }
+        vertical = next;
+    }
+    let view = Rect {
+        width: area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 }),
+        ..area
+    };
+    (view, vertical, content_h)
+}
+
+fn thumb_len(viewport: u16, track: u16, content: u16) -> u16 {
+    if content <= viewport || track == 0 {
+        return track;
+    }
+    let len = u32::from(viewport).saturating_mul(u32::from(track)) / u32::from(content);
+    u16::try_from(len).unwrap_or(u16::MAX).max(1).min(track)
+}
+
+fn paint_page_scrollbar(ui: &mut Ui<'_>, area: Rect, content_h: u16) {
+    let thumb = thumb_len(area.height, area.height, content_h);
+    let x = area.right().saturating_sub(1);
+    for row in 0..area.height {
+        let on = row < thumb;
+        ui.paint_str(
+            Rect::new(x, area.y.saturating_add(row), 1, 1),
+            if on { "┃" } else { "┆" },
+            ink(if on { THUMB } else { TRACK }, CANVAS),
+        );
     }
 }
 
@@ -387,27 +895,6 @@ fn style(
     flags: StateFlags,
 ) -> PaintStyle {
     ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
-}
-
-fn paint_segment(
-    ui: &mut Ui<'_>,
-    body: Rect,
-    row: u16,
-    prefix: &str,
-    text: &str,
-    style: PaintStyle,
-) {
-    let x = body.x.saturating_add(width(prefix));
-    ui.paint_str(
-        Rect {
-            x,
-            y: body.y.saturating_add(row),
-            width: body.right().saturating_sub(x),
-            height: 1,
-        },
-        text,
-        style,
-    );
 }
 
 fn match_ordinals(label: &str, query: &str) -> Vec<usize> {
@@ -455,6 +942,34 @@ fn picker_content(area: Rect) -> Rect {
     }
 }
 
+fn picker_label_matches(label: &str, query: &str) -> bool {
+    if query.is_empty() {
+        return true;
+    }
+    let mut wanted = query.chars().flat_map(char::to_lowercase);
+    let mut next = wanted.next();
+    for character in label.chars().flat_map(char::to_lowercase) {
+        if Some(character) == next {
+            next = wanted.next();
+            if next.is_none() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn picker_visible_items<'a>(
+    kind: PickerKind,
+    items: &'a [Item<'static>],
+    query: &str,
+) -> Vec<&'a Item<'static>> {
+    items
+        .iter()
+        .filter(|item| kind != PickerKind::Commands || picker_label_matches(item.label, query))
+        .collect()
+}
+
 fn paint_picker(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -462,6 +977,7 @@ fn paint_picker(
     state: &PickerState,
     items: &[Item<'static>],
     scope: QuickScope,
+    remote_status: RemoteStatus,
 ) {
     let content = picker_content(area);
     if content.is_empty() {
@@ -475,6 +991,8 @@ fn paint_picker(
         PickerKind::Quick => ("Open quickly", "Files and tasks…", 3u16),
         PickerKind::Tabs => ("Open tabs", "Filter tabs…", 3u16),
         PickerKind::Level => ("Safe Mode · this connection", "", 1u16),
+        PickerKind::Commands => ("Run command", "Commands…", 3u16),
+        PickerKind::Remote => ("Remote branches · origin", "", 1u16),
     };
     let title_style = picker_style(ui, Part::TITLE, live);
     ui.paint_str(
@@ -505,7 +1023,7 @@ fn paint_picker(
         );
     }
 
-    if !matches!(kind, PickerKind::Level) {
+    if !matches!(kind, PickerKind::Level | PickerKind::Remote) {
         let query = Rect {
             y: content.y.saturating_add(1),
             height: 1,
@@ -536,6 +1054,8 @@ fn paint_picker(
         }
         PickerKind::Tabs => "↑↓ Move · Enter Switch · Delete Close tab · Esc Close",
         PickerKind::Level => "↑↓ Move · Enter Set level · Esc Keep",
+        PickerKind::Commands => "↑↓ Move · Enter Run · Esc Close",
+        PickerKind::Remote => "↑↓ Move · Enter Check out · r Retry · Esc Close",
     };
     let footer_y = content.bottom().saturating_sub(1);
     let list_height = content.height.saturating_sub(list_offset).saturating_sub(1);
@@ -544,26 +1064,70 @@ fn paint_picker(
         height: list_height,
         ..content
     };
-    let has_scrollbar = items.len() > usize::from(list.height);
+    let visible_items = picker_visible_items(kind, items, state.query());
+    if kind == PickerKind::Remote && items.is_empty() {
+        let empty = match remote_status {
+            RemoteStatus::Loading => EmptyState::Loading {
+                label: "Fetching branches from origin…",
+            },
+            RemoteStatus::Error => EmptyState::Error {
+                message: "Could not reach origin",
+                detail: Some("Press r to retry"),
+            },
+            RemoteStatus::Ready => EmptyState::Empty {
+                title: "No branches",
+                hint: None,
+            },
+        };
+        let _ = empty.draw(ui, list, 0);
+    }
+    if kind == PickerKind::Commands && visible_items.is_empty() && !state.query().is_empty() {
+        let _ = EmptyState::Empty {
+            title: "No matches",
+            hint: None,
+        }
+        .draw(ui, list, 0);
+    }
+    let has_scrollbar = visible_items.len() > usize::from(list.height);
     let row_width = list.width.saturating_sub(u16::from(has_scrollbar));
-    let label_width = items
+    let label_width = visible_items
         .iter()
         .map(|item| width(item.label))
         .max()
         .unwrap_or(6)
         .clamp(6, (row_width * 45 / 100).max(6));
-    let tag_width = items
+    let tag_width = visible_items
         .iter()
         .filter_map(|item| item.tag.map(width))
         .max()
         .unwrap_or(0);
-    let group_width = items
+    let group_width = visible_items
         .iter()
         .filter_map(|item| item.group.map(width))
         .max()
         .unwrap_or(0);
     let mut last_group = None;
-    for (row_index, item) in items.iter().take(usize::from(list.height)).enumerate() {
+
+    let command_scroll = if kind == PickerKind::Commands {
+        let mut scroll = *state.list().scroll();
+        scroll.apply_layout(usize::from(list.height), visible_items.len());
+        Some(scroll)
+    } else {
+        None
+    };
+    let (row_offset, row_count) = command_scroll.as_ref().map_or_else(
+        || (0, usize::from(list.height)),
+        |scroll| {
+            let range = scroll.visible_range();
+            (range.start, range.len())
+        },
+    );
+    for (row_index, item) in visible_items
+        .iter()
+        .skip(row_offset)
+        .take(row_count)
+        .enumerate()
+    {
         let Ok(row_index) = u16::try_from(row_index) else {
             break;
         };
@@ -574,11 +1138,14 @@ fn paint_picker(
             ..list
         };
         let focused = state.cursor() == Some(item.key);
-        let row_flags = if focused {
+        let mut row_flags = if focused {
             live | StateFlags::FOCUSED
         } else {
             StateFlags::empty()
         };
+        if item.disabled {
+            row_flags |= StateFlags::DISABLED;
+        }
         let row_style = picker_style(ui, Part::CONTAINER, row_flags);
         let gutter_style = picker_style(ui, Part::GUTTER, row_flags);
         let icon_style = picker_style(ui, Part::ICON, row_flags).remove_modifier(Modifier::BOLD);
@@ -678,10 +1245,15 @@ fn paint_picker(
         }
     }
     if has_scrollbar {
-        let mut scroll = ScrollState::new(items.len());
-        scroll.set_viewport(usize::from(list.height));
-        scroll.scroll_to(state.list().scroll().offset());
-        let (thumb_start, thumb_len) = scroll.thumb(usize::from(list.height));
+        let (thumb_start, thumb_len) = command_scroll.as_ref().map_or_else(
+            || {
+                let mut scroll = ScrollState::new(visible_items.len());
+                scroll.set_viewport(usize::from(list.height));
+                scroll.scroll_to(state.list().scroll().offset());
+                scroll.thumb(usize::from(list.height))
+            },
+            |scroll| scroll.thumb(usize::from(list.height)),
+        );
         let track_style = ui
             .style(
                 Family::SCROLLBAR,
@@ -730,187 +1302,147 @@ fn paint_picker(
     );
 }
 
-fn paint_historical(
+fn paint_launchers(ui: &mut Ui<'_>, inner: Rect) {
+    let lines = button_lines(inner.width);
+    for (row, line) in lines.iter().enumerate() {
+        let Ok(row) = u16::try_from(row) else {
+            break;
+        };
+        let y = inner.y.saturating_add(row);
+        if y >= inner.bottom() {
+            break;
+        }
+        let mut x = inner.x;
+        for &index in line {
+            let Some((label, primary)) = LAUNCHERS.get(index) else {
+                continue;
+            };
+            let button_w = width(label).saturating_add(2);
+            if x >= inner.right() {
+                break;
+            }
+            let room = inner.right().saturating_sub(x);
+            let hit = Rect::new(x, y, button_w.min(room), 1);
+            match index {
+                1 => {
+                    tabs_button().draw(ui, hit);
+                }
+                2 => {
+                    level_button().draw(ui, hit);
+                }
+                3 => {
+                    commands_button().draw(ui, hit);
+                }
+                4 => {
+                    remote_button().draw(ui, hit);
+                }
+                _ => {}
+            }
+            paint_face(ui, Rect::new(x, y, room, 1), label, *primary);
+            x = x.saturating_add(button_w).saturating_add(2);
+        }
+    }
+}
+
+fn paint_open(ui: &mut Ui<'_>, card: Rect) {
+    if card.width > 2 {
+        quick_button().draw(
+            ui,
+            Rect::new(
+                card.x.saturating_add(2),
+                card.y,
+                width("Open quickly").saturating_add(2),
+                1,
+            ),
+        );
+    }
+    paint_card_chrome(ui, card, "Open a picker", "Enter · click");
+    let inner = card_inner(card);
+    if inner.is_empty() {
+        return;
+    }
+    let rows = u16::try_from(button_lines(inner.width).len()).unwrap_or(0);
+    paint_launchers(ui, inner);
+    let note_y = inner.y.saturating_add(rows).saturating_add(1);
+    for (index, line) in wrap_lines(QUICK_NOTE, inner.width).iter().enumerate() {
+        let Ok(index) = u16::try_from(index) else {
+            break;
+        };
+        let y = note_y.saturating_add(index);
+        if y >= inner.bottom() {
+            break;
+        }
+        ui.paint_str(
+            Rect::new(inner.x, y, inner.width, 1),
+            line,
+            ink(MUTED, SURFACE),
+        );
+    }
+}
+
+fn paint_applied(ui: &mut Ui<'_>, card: Rect) {
+    paint_card_chrome(ui, card, "Applied", APPLIED_META);
+    paint_props(ui, card_inner(card), APPLIED);
+}
+
+fn paint_results(
     ui: &mut Ui<'_>,
-    body: Rect,
+    card: Rect,
     result: &str,
-    detail_text: &str,
+    detail: &str,
     level: &str,
-    opened: u32,
+    opened: &str,
 ) {
-    let panel = style(
-        ui,
-        Surface::Surface,
-        Family::PANEL,
-        Variant::DEFAULT,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let title = style(
-        ui,
-        Surface::Surface,
-        Family::PANEL,
-        Variant::DEFAULT,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let detail = style(
-        ui,
-        Surface::Surface,
-        Family::PANEL,
-        Variant::DEFAULT,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let primary = style(
-        ui,
-        Surface::Surface,
-        Family::BUTTON,
-        Variant::PRIMARY,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let secondary = style(
-        ui,
-        Surface::Surface,
-        Family::BUTTON,
-        Variant::SECONDARY,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let primary_gutter = style(
-        ui,
-        Surface::Surface,
-        Family::BUTTON,
-        Variant::PRIMARY,
-        Part::GUTTER,
-        StateFlags::empty(),
-    );
-    let secondary_gutter = style(
-        ui,
-        Surface::Surface,
-        Family::BUTTON,
-        Variant::SECONDARY,
-        Part::GUTTER,
-        StateFlags::empty(),
-    );
-    let primary_gutter = primary_gutter.remove_modifier(Modifier::all());
-    let primary_gutter = primary
-        .as_style()
-        .bg
-        .map_or(primary_gutter, |background| primary_gutter.fg(background));
-    let secondary_gutter = secondary_gutter.remove_modifier(Modifier::all());
-    let secondary_gutter = secondary
-        .as_style()
-        .bg
-        .map_or(secondary_gutter, |background| {
-            secondary_gutter.fg(background)
-        });
-    paint_segment(ui, body, 0, "  ", "Open a picker", title);
-    ui.fill(
-        Rect {
-            x: body.x.saturating_add(width("  ")),
-            y: body.y.saturating_add(2),
-            width: width("▎Open quickly "),
-            height: 1,
-        },
-        primary,
-    );
-    ui.fill(
-        Rect {
-            x: body.x.saturating_add(width("  ▎Open quickly   ")),
-            y: body.y.saturating_add(2),
-            width: width("▎Switch tab "),
-            height: 1,
-        },
-        secondary,
-    );
-    ui.fill(
-        Rect {
-            x: body
-                .x
-                .saturating_add(width("  ▎Open quickly   ▎Switch tab   ")),
-            y: body.y.saturating_add(2),
-            width: width("▎Choose a level "),
-            height: 1,
-        },
-        secondary,
-    );
-    paint_segment(ui, body, 2, "  ", "▎", primary_gutter);
-    paint_segment(ui, body, 2, "  ▎", "Open quickly", primary);
-    paint_segment(ui, body, 2, "  ▎Open quickly   ", "▎", secondary_gutter);
-    paint_segment(ui, body, 2, "  ▎Open quickly   ▎", "Switch tab", secondary);
-    paint_segment(
-        ui,
-        body,
-        2,
-        "  ▎Open quickly   ▎Switch tab   ",
-        "▎",
-        secondary_gutter,
-    );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "  ▎Open quickly   ▎Switch tab   ▎",
-        "Choose a level",
-        secondary,
-    );
-    paint_segment(
-        ui,
-        body,
-        4,
-        "  ",
-        "Quick: fuzzy over files and tasks, Tab cycles the scope, Alt+Enter is the alternate actio…",
-        detail,
-    );
-    paint_segment(ui, body, 8, "  ", "Result", title);
-    paint_segment(ui, body, 10, "  ", "Chosen", detail);
-    paint_segment(
-        ui,
-        body,
-        10,
-        "  Chosen          ",
-        if result == "none" {
-            "nothing yet"
-        } else {
-            result
-        },
-        panel,
-    );
-    paint_segment(ui, body, 11, "  ", "Detail", detail);
-    paint_segment(
-        ui,
-        body,
-        11,
-        "  Detail          ",
-        if detail_text.is_empty() {
-            "—"
-        } else {
-            detail_text
-        },
-        panel,
-    );
-    paint_segment(ui, body, 12, "  ", "Level", detail);
-    paint_segment(ui, body, 12, "  Level           ", level, panel);
-    paint_segment(ui, body, 13, "  ", "Open tabs", detail);
-    paint_segment(
-        ui,
-        body,
-        13,
-        "  Open tabs       ",
-        "Query 1 · orders · order_items · History",
-        panel,
-    );
-    paint_segment(ui, body, 14, "  ", "Pickers opened", detail);
-    paint_segment(
-        ui,
-        body,
-        14,
-        "  Pickers opened  ",
-        &opened.to_string(),
-        panel,
-    );
+    paint_card_chrome(ui, card, "Result", "PickerAction");
+    let rows = result_lines(result, detail, level, opened);
+    paint_props(ui, card_inner(card), &rows);
+}
+
+fn paint_playground(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    result: &str,
+    detail: &str,
+    level: &str,
+    opened: &str,
+) {
+    if area.is_empty() {
+        return;
+    }
+    let rows = result_lines(result, detail, level, opened);
+    let (view, vertical, content_h) = scroll_view(area, &rows);
+    let content = Rect::new(view.x, view.y, view.width, content_h);
+    ui.with_area(view, |ui| {
+        let open_h = open_height(content.width);
+        let applied_h = applied_height(content.width);
+        let mut y = content.y;
+        if open_h > 0 {
+            paint_open(ui, Rect::new(content.x, y, content.width, open_h));
+        }
+        y = y.saturating_add(open_h).saturating_add(CARD_GAP);
+        if applied_h > 0 {
+            paint_applied(ui, Rect::new(content.x, y, content.width, applied_h));
+        }
+        y = y.saturating_add(applied_h).saturating_add(CARD_GAP);
+
+        let mut results_h = results_height(content.width, &rows);
+        if !vertical {
+            results_h = results_h.max(view.bottom().saturating_sub(y));
+        }
+        if results_h > 0 {
+            paint_results(
+                ui,
+                Rect::new(content.x, y, content.width, results_h),
+                result,
+                detail,
+                level,
+                opened,
+            );
+        }
+    });
+    if vertical {
+        paint_page_scrollbar(ui, area, content_h);
+    }
 }
 
 #[derive(Debug, Default)]
@@ -927,6 +1459,10 @@ pub struct PickersPage {
     detail: String,
     level: usize,
     opened: u32,
+    remote_ticks: Option<u8>,
+    remote_error: bool,
+    remote_fail_on_completion: bool,
+    remote_fetches: u8,
 }
 
 impl PickersPage {
@@ -944,6 +1480,10 @@ impl PickersPage {
             detail: String::new(),
             level: 3,
             opened: 0,
+            remote_ticks: None,
+            remote_error: false,
+            remote_fail_on_completion: false,
+            remote_fetches: 0,
         }
     }
 
@@ -964,6 +1504,19 @@ impl PickersPage {
             PickerKind::Quick => &self.items,
             PickerKind::Tabs => TABS_ITEMS,
             PickerKind::Level => LEVEL_ITEMS,
+            PickerKind::Commands => &COMMAND_ITEMS[..],
+            PickerKind::Remote if self.remote_ticks.is_some() || self.remote_error => &[],
+            PickerKind::Remote => &REMOTE_ITEMS[..],
+        }
+    }
+
+    fn remote_status(&self) -> RemoteStatus {
+        if self.remote_ticks.is_some() {
+            RemoteStatus::Loading
+        } else if self.remote_error {
+            RemoteStatus::Error
+        } else {
+            RemoteStatus::Ready
         }
     }
 
@@ -979,13 +1532,17 @@ impl PickersPage {
         {
             self.state.set_cursor(self.level, item.key);
         }
+        if kind == PickerKind::Remote {
+            self.remote_fetches = self.remote_fetches.saturating_add(1);
+
+            self.remote_fail_on_completion = self.remote_fetches == 2;
+            self.remote_error = false;
+            self.remote_ticks = Some(FETCH_TICKS);
+            cx.request_repaint_after(Duration::from_millis(40));
+        }
         self.opened = self.opened.saturating_add(1);
-        let items = match kind {
-            PickerKind::Quick => self.items.as_slice(),
-            PickerKind::Tabs => TABS_ITEMS,
-            PickerKind::Level => LEVEL_ITEMS,
-        };
-        let spec = picker(kind, items.len()).layer(cx, items);
+        let items = self.items(kind);
+        let spec = picker(kind, items.len(), self.remote_status()).layer(cx, items);
         cx.open_layer(PICKER, spec);
     }
 }
@@ -1012,6 +1569,46 @@ impl Page for PickersPage {
             self.open_picker(cx, PickerKind::Level);
         }
         result |= level.erase();
+        let commands = commands_button().update(cx);
+        if commands.activated() && !cx.is_open(PICKER) {
+            self.open_picker(cx, PickerKind::Commands);
+        }
+        result |= commands.erase();
+        let remote = remote_button().update(cx);
+        if remote.activated() && !cx.is_open(PICKER) {
+            self.open_picker(cx, PickerKind::Remote);
+        }
+        result |= remote.erase();
+        if self.open_kind == Some(PickerKind::Remote)
+            && self.remote_error
+            && cx.is_open(PICKER)
+            && cx.intents(PICKER).any(|intent| {
+                matches!(
+                    intent,
+                    termrock::Intent::Binding(action) if action == REMOTE_RETRY_ACTION
+                )
+            })
+        {
+            self.remote_ticks = Some(FETCH_TICKS);
+            self.remote_error = false;
+            self.remote_fail_on_completion = false;
+            cx.request_repaint_after(Duration::from_millis(40));
+            result |= Response::changed();
+        }
+        if cx.update_cause() == termrock::UpdateCause::Tick
+            && self.open_kind == Some(PickerKind::Remote)
+            && cx.is_open(PICKER)
+            && let Some(ticks) = self.remote_ticks
+        {
+            if ticks > 1 {
+                self.remote_ticks = Some(ticks.saturating_sub(1));
+                cx.request_repaint_after(Duration::from_millis(40));
+            } else {
+                self.remote_ticks = None;
+                self.remote_error = self.remote_fail_on_completion;
+                result |= Response::changed();
+            }
+        }
         result |= filter_list()
             .update(cx, &mut self.filter_state, REFERENCE_ITEMS)
             .erase();
@@ -1024,8 +1621,12 @@ impl Page for PickersPage {
             PickerKind::Quick => self.items.as_slice(),
             PickerKind::Tabs => TABS_ITEMS,
             PickerKind::Level => LEVEL_ITEMS,
+            PickerKind::Commands => &COMMAND_ITEMS[..],
+            PickerKind::Remote if self.remote_ticks.is_some() || self.remote_error => &[],
+            PickerKind::Remote => &REMOTE_ITEMS[..],
         };
-        let action = picker(kind, items.len()).update(cx, &mut self.state, items);
+        let remote_status = self.remote_status();
+        let action = picker(kind, items.len(), remote_status).update(cx, &mut self.state, items);
         let action_value = action.action_ref().copied();
         result |= action.erase();
         if let Some(action) = action_value {
@@ -1057,100 +1658,79 @@ impl Page for PickersPage {
                     };
                     self.rebuild_quick_items();
                 }
-                PickerAction::QueryChanged | PickerAction::Back | PickerAction::Scope(_) => {}
+
+                PickerAction::Back => {}
+                PickerAction::QueryChanged | PickerAction::Scope(_) => {}
             }
         }
         result.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
-            ui,
-            area,
-            self.title(),
-            "One modal list for files, tabs and levels: search, scope, tag, alternate action",
-            |ui, body| {
-                quick_button().draw(
-                    ui,
+        frame(ui, area, self.title(), BLURB, |ui, body| {
+            ui.fill(body, ink(WHITE, CANVAS).remove_modifier(Modifier::all()));
+            if body.height > 2 {
+                ui.fill(
                     Rect {
-                        x: body.x.saturating_add(width("  ")),
-                        y: body.y,
-                        width: body.width.saturating_sub(width("  ")),
-                        height: 1,
-                    },
-                );
-                tabs_button().draw(
-                    ui,
-                    Rect {
-                        x: body.x.saturating_add(width("  ▎Open quickly   ")),
                         y: body.y.saturating_add(2),
-                        width: body
-                            .right()
-                            .saturating_sub(body.x.saturating_add(width("  ▎Open quickly   "))),
                         height: 1,
+                        ..body
                     },
+                    ink(WHITE, CANVAS),
                 );
-                level_button().draw(
-                    ui,
-                    Rect {
-                        x: body
-                            .x
-                            .saturating_add(width("  ▎Open quickly   ▎Switch tab   ")),
-                        y: body.y.saturating_add(2),
-                        width: body.right().saturating_sub(
-                            body.x
-                                .saturating_add(width("  ▎Open quickly   ▎Switch tab   ")),
-                        ),
-                        height: 1,
-                    },
-                );
-                ui.reference(None, |ui| {
-                    filter_list().draw(ui, body, &self.filter_state, REFERENCE_ITEMS);
-                    picker_chain().draw(ui, body, &self.chain_state);
-                    menu_bar().draw(ui, body, &self.menu_state);
-                    context_menu().draw(ui, body, &self.context_state);
-                });
-                paint_body(
-                    ui,
-                    body,
-                    &[
-                        "  Open a picker",
-                        "",
-                        "  ▎Open quickly   ▎Switch tab   ▎Choose a level",
-                        "",
-                        "  Quick: fuzzy over files and tasks, Tab cycles the scop…",
-                        "",
-                        "",
-                        "",
-                        "  Result",
-                        "",
-                        "  Chosen          nothing yet",
-                        "  Detail          —",
-                        "  Level           Safe Mode",
-                        "  Open tabs       Query 1 · orders · order_items · History",
-                        "  Pickers opened  0",
-                        "",
-                        "",
-                        "",
-                    ],
-                );
+            }
+            paint_section_strip(
+                ui,
+                Rect {
+                    height: 2.min(body.height),
+                    ..body
+                },
+            );
+            let top = body.y.saturating_add(3);
+            if top < body.bottom() {
                 let level = LEVEL_ITEMS
                     .get(self.level)
                     .map_or("Safe Mode", |item| item.label);
-                paint_historical(ui, body, &self.result, &self.detail, level, self.opened);
-            },
-        );
+                let opened = self.opened.to_string();
+                paint_playground(
+                    ui,
+                    Rect {
+                        y: top,
+                        height: body.bottom().saturating_sub(top),
+                        ..body
+                    },
+                    &self.result,
+                    &self.detail,
+                    level,
+                    &opened,
+                );
+            }
+        });
         if let Some(kind) = self.open_kind {
+            let remote_status = self.remote_status();
             ui.layer(PICKER, |ui, layer| {
                 let items = self.items(kind);
-                picker(kind, items.len()).draw(ui, layer, &self.state, items);
-                paint_picker(ui, layer, kind, &self.state, items, self.quick_scope);
+                picker(kind, items.len(), remote_status).draw(ui, layer, &self.state, items);
+                paint_picker(
+                    ui,
+                    layer,
+                    kind,
+                    &self.state,
+                    items,
+                    self.quick_scope,
+                    remote_status,
+                );
+                if kind == PickerKind::Remote && remote_status == RemoteStatus::Error {
+                    ui.publish_additional_bindings(PICKER, ui.state(PICKER), REMOTE_RETRY_BINDINGS);
+                }
             });
         }
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
-        if self.open_kind.is_some() {
+        if self.open_kind == Some(PickerKind::Remote) && self.remote_error {
+            &[("r", "Retry"), ("Esc", "Close")]
+        } else if self.open_kind.is_some() {
             &[("Esc", "Close")]
         } else {
             &[("Enter", "Open")]

@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 f2f6eb716c4a512be3dc9423742fa06e86879b32 Alexey Zhokhov <alexey@zhokhov.com> 1792512950 +0700	branch: Created from HEAD
+f2f6eb716c4a512be3dc9423742fa06e86879b32 0d7f38bac1ce4420036d930e1f90ad05459732de Alexey Zhokhov <alexey@zhokhov.com> 1792513033 +0700	reset: moving to refs/heads/parity/ordinary-cli-partition-20261020
+0d7f38bac1ce4420036d930e1f90ad05459732de 073c635f7546741bb2e2271494201ccaf0823086 Alexey Zhokhov <alexey@zhokhov.com> 1792513271 +0700	commit (merge): Merge latest parity branch into ordinary CLI partition work
+073c635f7546741bb2e2271494201ccaf0823086 0788272e2bf9f5dfaa03d5cff4090bcaaadf9ed9 Alexey Zhokhov <alexey@zhokhov.com> 1792513567 +0700	commit: test: add paired CLI TERM profiles
+0788272e2bf9f5dfaa03d5cff4090bcaaadf9ed9 8207fbd009a3ced805e07ac734572cbd65078de7 Alexey Zhokhov <alexey@zhokhov.com> 1792513586 +0700	commit (merge): Merge latest PR 38 target

@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 f46caa2ce68966d319ffbb4cf03428e8234368f3 Alexey Zhokhov <alexey@zhokhov.com> 1792587359 +0700	branch: Created from f46caa2ce68966d319ffbb4cf03428e8234368f3
+f46caa2ce68966d319ffbb4cf03428e8234368f3 cd1af58378631bebadc64de7459b01060babb52c Alexey Zhokhov <alexey@zhokhov.com> 1792587988 +0700	commit: fix(picker): keep default row ink readable on custom surfaces
+cd1af58378631bebadc64de7459b01060babb52c c932adb5ee29ef8ed9f90cc022c39cb9c0472e5d Alexey Zhokhov <alexey@zhokhov.com> 1792589103 +0700	commit: fix(picker): scope contrast fallback to authored backgrounds

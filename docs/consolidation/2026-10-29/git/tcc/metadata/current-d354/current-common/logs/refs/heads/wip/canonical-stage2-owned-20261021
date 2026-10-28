@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 f8f3a576f2149b58d6e05ecfa42acb1f7605c307 Alexey Zhokhov <alexey@zhokhov.com> 1792552367 +0700	branch: Created from HEAD
+f8f3a576f2149b58d6e05ecfa42acb1f7605c307 bade66edf925abb2e130221a9f0d0c3c369fd3f6 Alexey Zhokhov <alexey@zhokhov.com> 1792552796 +0700	commit: feat(verification): own prepare-live lifecycle
+bade66edf925abb2e130221a9f0d0c3c369fd3f6 0825481788e62dc91b628abce3d279e46ceddca5 Alexey Zhokhov <alexey@zhokhov.com> 1792552818 +0700	rebase (finish): refs/heads/wip/canonical-stage2-owned-20261021 onto a130b4041847772d4fa6f3533bb0490546dc2437
+0825481788e62dc91b628abce3d279e46ceddca5 d66e18a7f53d7185397438591983a6b2791b4460 Alexey Zhokhov <alexey@zhokhov.com> 1792552891 +0700	commit: fix(verification): pin owned prepare-live cohort
+d66e18a7f53d7185397438591983a6b2791b4460 4e04be07a15377f902316633e859c41a9ba50d58 Alexey Zhokhov <alexey@zhokhov.com> 1792553473 +0700	commit: fix owned prepare live lifecycle review findings

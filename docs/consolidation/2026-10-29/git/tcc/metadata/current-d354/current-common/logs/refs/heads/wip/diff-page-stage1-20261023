@@ -1,0 +1,16 @@
+0000000000000000000000000000000000000000 67c4519f9346c5071fc23d63f1f68a5e74e88214 Alexey Zhokhov <alexey@zhokhov.com> 1792709170 +0700	branch: Created from refs/remotes/origin/parity/termrock-visual-baseline
+67c4519f9346c5071fc23d63f1f68a5e74e88214 b17ae40cec96ffd35bb7a9a4b8f5032a7d409ea8 Alexey Zhokhov <alexey@zhokhov.com> 1792718891 +0700	commit: feat(showcase): add interactive Diff page body
+b17ae40cec96ffd35bb7a9a4b8f5032a7d409ea8 aa172b5330ff1437162c6633b2827f8b553799e5 Alexey Zhokhov <alexey@zhokhov.com> 1792720637 +0700	commit: fix(showcase): complete diff state specimens
+aa172b5330ff1437162c6633b2827f8b553799e5 e66d1f2d773d36524275184ed3fa728f7d0d490b Alexey Zhokhov <alexey@zhokhov.com> 1792721990 +0700	commit: fix(showcase): reserve rows for responsive diff cards
+e66d1f2d773d36524275184ed3fa728f7d0d490b 72187f48570aebc8b8ef9e720117a5f757fd581f Alexey Zhokhov <alexey@zhokhov.com> 1792722197 +0700	rebase (finish): refs/heads/wip/diff-page-stage1-20261023 onto a9ac6dd444e3e51a03cefa99cba34497a9bf8ca1
+72187f48570aebc8b8ef9e720117a5f757fd581f dd4773c49a6b5c7d4729c876b2e28e6b12bcaaa8 Alexey Zhokhov <alexey@zhokhov.com> 1792722717 +0700	commit: feat(showcase): route Diff placeholder to live page
+dd4773c49a6b5c7d4729c876b2e28e6b12bcaaa8 cec11bd9183df22250d3d5e12c16dfc8b7717bf1 Alexey Zhokhov <alexey@zhokhov.com> 1792723380 +0700	rebase (finish): refs/heads/wip/diff-page-stage1-20261023 onto c10aa4fdb64620d5409b60f1058065f22fed9b56
+cec11bd9183df22250d3d5e12c16dfc8b7717bf1 86380a1ec68b79c6a7603c5202c25a6cb854b1a1 Alexey Zhokhov <alexey@zhokhov.com> 1792724722 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+86380a1ec68b79c6a7603c5202c25a6cb854b1a1 82ff9cd14c96ebe4e68f81e0f89e2cc57eabb76b Alexey Zhokhov <alexey@zhokhov.com> 1792725554 +0700	commit: feat(controls): configure fixed master-detail sizing
+82ff9cd14c96ebe4e68f81e0f89e2cc57eabb76b 83074f618366781c14c20d9d6a09e55554abce08 Alexey Zhokhov <alexey@zhokhov.com> 1792725812 +0700	rebase (finish): refs/heads/wip/diff-page-stage1-20261023 onto 078fd59c0cc5a7cce3504470731c9dd2360c161d
+83074f618366781c14c20d9d6a09e55554abce08 b890a0948cc807f0977e79e9aa860940ab189863 Alexey Zhokhov <alexey@zhokhov.com> 1792726555 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+b890a0948cc807f0977e79e9aa860940ab189863 eb7942a6cec9f7a8df18e1b3fc4fa52860a454e5 Alexey Zhokhov <alexey@zhokhov.com> 1792727692 +0700	commit: feat(controls): opt into exact seam drag movement
+eb7942a6cec9f7a8df18e1b3fc4fa52860a454e5 4f8bdb6c109930daaecd9f958dcd98e6c847a27e Alexey Zhokhov <alexey@zhokhov.com> 1792728863 +0700	commit: feat(showcase): add master-detail page body
+4f8bdb6c109930daaecd9f958dcd98e6c847a27e 9fda5e90eba69af52ddf3159e39b95943c814b60 Alexey Zhokhov <alexey@zhokhov.com> 1792730101 +0700	commit: fix(showcase): align drawer promise and states
+9fda5e90eba69af52ddf3159e39b95943c814b60 ec2885f22adb2046671a7ce27afc20c4c39b9ec2 Alexey Zhokhov <alexey@zhokhov.com> 1792730426 +0700	rebase (finish): refs/heads/wip/diff-page-stage1-20261023 onto d0ee31f332c3abe4bf19528ff57b7936970f657f
+ec2885f22adb2046671a7ce27afc20c4c39b9ec2 9eec48b778f11b89860e8025bb5f99308a4b4364 Alexey Zhokhov <alexey@zhokhov.com> 1792730876 +0700	commit: feat(showcase-ui): route master-detail page

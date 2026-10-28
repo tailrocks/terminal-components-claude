@@ -9,3 +9,7 @@ license.workspace = true
 ratatui.workspace = true
 termrock-core.workspace = true
 unicode-segmentation.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

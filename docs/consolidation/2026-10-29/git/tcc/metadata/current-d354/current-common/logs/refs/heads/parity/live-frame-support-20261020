@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 c7701ccd8e5991baec9916aa7e48f13aa46da5f0 Alexey Zhokhov <alexey@zhokhov.com> 1792485642 +0700	branch: Created from origin/parity/termrock-visual-baseline
+c7701ccd8e5991baec9916aa7e48f13aa46da5f0 62e430af6265225f1438ccdcfe8b3275e1474418 Alexey Zhokhov <alexey@zhokhov.com> 1792486020 +0700	commit: test: add live paired CLI frame helper
+62e430af6265225f1438ccdcfe8b3275e1474418 b2108a421229bf47f55c4dedd00c442cf32ca999 Alexey Zhokhov <alexey@zhokhov.com> 1792486045 +0700	commit: test: preflight duplicate paired capture outputs
+b2108a421229bf47f55c4dedd00c442cf32ca999 bc3b10391ac837ad34fb4ba97cd99f35f0acbb74 Alexey Zhokhov <alexey@zhokhov.com> 1792486404 +0700	commit: test: reject paired frame path aliases
+bc3b10391ac837ad34fb4ba97cd99f35f0acbb74 d9c631dad2cc6f7db0789d4747e1d871e95c088a Alexey Zhokhov <alexey@zhokhov.com> 1792486809 +0700	commit: fix(test): bound paired checkpoint filenames

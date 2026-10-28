@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 a3e367e8f5f13cfd07992e00cef62f9687e5fc51 Alexey Zhokhov <alexey@zhokhov.com> 1792153530 +0700	branch: Created from HEAD
+a3e367e8f5f13cfd07992e00cef62f9687e5fc51 151d46261043d2931638051141a22ee267b70617 Alexey Zhokhov <alexey@zhokhov.com> 1792154123 +0700	commit: feat(scrollbar): one thumb glyph; rest, hover and pressed in colour
+151d46261043d2931638051141a22ee267b70617 077230a0ab2d2ea2e12c6092c380a5b7a14ba423 Alexey Zhokhov <alexey@zhokhov.com> 1792154123 +0700	commit: test(visual): re-approve showcase thumbs after the single-glyph thumb
+077230a0ab2d2ea2e12c6092c380a5b7a14ba423 dcd46101cb277056820f4b187acc577040fd0821 Alexey Zhokhov <alexey@zhokhov.com> 1792154130 +0700	rebase (finish): refs/heads/thumb-tabs onto 3073208926745a7135af24a163cc6c277bae19d2
+dcd46101cb277056820f4b187acc577040fd0821 f13463b78c17898b6d1a7bbb742f7eaaa6ab987b Alexey Zhokhov <alexey@zhokhov.com> 1792154308 +0700	rebase (finish): refs/heads/thumb-tabs onto c77e7cde56dabc03437a1beeff6c3588a17bda40
+f13463b78c17898b6d1a7bbb742f7eaaa6ab987b 7ed0f81d05d7d77ec881e88ec07d506b5a8471ce Alexey Zhokhov <alexey@zhokhov.com> 1792154997 +0700	commit: feat(tabs): the active tab shows the accent on the active layer
+7ed0f81d05d7d77ec881e88ec07d506b5a8471ce 0ba9f3f9084178dec6fc766e5dcb7abb71022b82 Alexey Zhokhov <alexey@zhokhov.com> 1792154997 +0700	commit: test(visual): re-approve showcase settings tabs for the accent rule
+0ba9f3f9084178dec6fc766e5dcb7abb71022b82 97177a4f60c0d010244a014094700d2229516da6 Alexey Zhokhov <alexey@zhokhov.com> 1792154997 +0700	commit: docs(agents): tab selection takes the accent on the active layer
+97177a4f60c0d010244a014094700d2229516da6 7ed0f81d05d7d77ec881e88ec07d506b5a8471ce Alexey Zhokhov <alexey@zhokhov.com> 1792155009 +0700	reset: moving to 7ed0f81d0
+7ed0f81d05d7d77ec881e88ec07d506b5a8471ce f765c31cd6e35f167871f0271635e69b8794477c Alexey Zhokhov <alexey@zhokhov.com> 1792155010 +0700	commit (amend): feat(tabs): the active tab shows the accent on the active layer
+f765c31cd6e35f167871f0271635e69b8794477c 4437e8c7e6071fd0a1b593df7c9c34037dd8064e Alexey Zhokhov <alexey@zhokhov.com> 1792155011 +0700	cherry-pick: test(visual): re-approve showcase settings tabs for the accent rule
+4437e8c7e6071fd0a1b593df7c9c34037dd8064e e97ebc138c886644e4d902d575030bdf2d0541ec Alexey Zhokhov <alexey@zhokhov.com> 1792155011 +0700	cherry-pick: docs(agents): tab selection takes the accent on the active layer
+e97ebc138c886644e4d902d575030bdf2d0541ec bc3a9cfa91cbf20324a6077e2690cb43f51772a6 Alexey Zhokhov <alexey@zhokhov.com> 1792155020 +0700	rebase (finish): refs/heads/thumb-tabs onto 8c03f15b5f8de11bc561383d503f9df958222e9d

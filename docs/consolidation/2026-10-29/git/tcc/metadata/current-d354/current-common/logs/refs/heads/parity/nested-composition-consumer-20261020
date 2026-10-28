@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 6e81c0034989b11321e64cc2da0bb617c37b896c Alexey Zhokhov <alexey@zhokhov.com> 1792509495 +0700	branch: Created from 6e81c0034989b11321e64cc2da0bb617c37b896c
+6e81c0034989b11321e64cc2da0bb617c37b896c 3ac65f81356c756514e5168de4f5e6e8a0d38fb0 Alexey Zhokhov <alexey@zhokhov.com> 1792509753 +0700	commit: feat(composition): support typed nested groups
+3ac65f81356c756514e5168de4f5e6e8a0d38fb0 d4f7bfbaf69554c12d8e0ad6ec8357d010099a20 Alexey Zhokhov <alexey@zhokhov.com> 1792509934 +0700	commit: docs: update nested composition audit
+d4f7bfbaf69554c12d8e0ad6ec8357d010099a20 10b5f3ba29cce588451e82f065864bc6514d6d95 Alexey Zhokhov <alexey@zhokhov.com> 1792514664 +0700	commit (merge): Merge remote-tracking branch 'origin/parity/termrock-visual-baseline' into parity/nested-composition-consumer-20261020
+10b5f3ba29cce588451e82f065864bc6514d6d95 bfdcea778262df118dbd4554a580830ef72c2c8c Alexey Zhokhov <alexey@zhokhov.com> 1792514687 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 3322d32a87b20a0afe13c490d013bd75f8f3852d Alexey Zhokhov <alexey@zhokhov.com> 1792555488 +0700	branch: Created from origin/parity/termrock-visual-baseline
+3322d32a87b20a0afe13c490d013bd75f8f3852d f6828e28179fca7a24884676ed1d3a812193f2ec Alexey Zhokhov <alexey@zhokhov.com> 1792555803 +0700	commit: fix(editors): dedent code editor with BackTab
+f6828e28179fca7a24884676ed1d3a812193f2ec 318eec536691ccf82eab207139b84fb9e4512061 Alexey Zhokhov <alexey@zhokhov.com> 1792555885 +0700	commit: fix(editors): preserve BackTab change response on no-op
+318eec536691ccf82eab207139b84fb9e4512061 2505fec7a4041154e8d7ff1c1ccd26c9efcd51dd Alexey Zhokhov <alexey@zhokhov.com> 1792555898 +0700	rebase (finish): refs/heads/wip/editor-backtab-dedent-20261021 onto 160cd7006f82c55e285e54fe1c23e3ee0d8c7775
+2505fec7a4041154e8d7ff1c1ccd26c9efcd51dd b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049 Alexey Zhokhov <alexey@zhokhov.com> 1792556385 +0700	commit: fix(editors): dedent BackTab at grapheme boundaries

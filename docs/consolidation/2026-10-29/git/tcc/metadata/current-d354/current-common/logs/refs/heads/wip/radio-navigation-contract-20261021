@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 501cd02170cfb6cebab9be4c6ecb9e69425b475c Alexey Zhokhov <alexey@zhokhov.com> 1792549795 +0700	branch: Created from origin/parity/termrock-visual-baseline
+501cd02170cfb6cebab9be4c6ecb9e69425b475c 55377f09c1d2d2d13f819a727337cfa18dd8d17f Alexey Zhokhov <alexey@zhokhov.com> 1792550364 +0700	commit: fix: define radio navigation selection policy
+55377f09c1d2d2d13f819a727337cfa18dd8d17f 3eb883324a6aa3d4eddf4b643c0d4d3c2f38e2ed Alexey Zhokhov <alexey@zhokhov.com> 1792550372 +0700	cherry-pick: fix(tablepro): start new connection drafts blank
+3eb883324a6aa3d4eddf4b643c0d4d3c2f38e2ed 9410255938d6ac99cd86d0f625d9ddfeafb35c5b Alexey Zhokhov <alexey@zhokhov.com> 1792550648 +0700	commit: test(tablepro): validate radio enter on a valid draft
+9410255938d6ac99cd86d0f625d9ddfeafb35c5b e8b65260555a3d46b389f97a2f443f42f8404aef Alexey Zhokhov <alexey@zhokhov.com> 1792550659 +0700	rebase (finish): refs/heads/wip/radio-navigation-contract-20261021 onto 4f40bb294da89bbfcb2a6716c88a3158427aa0b2
+e8b65260555a3d46b389f97a2f443f42f8404aef 6af98cff33ae4810cdc51bca706f0b88040d25d8 Alexey Zhokhov <alexey@zhokhov.com> 1792551455 +0700	commit: fix: choose radio destination after cancelled pointer press
+6af98cff33ae4810cdc51bca706f0b88040d25d8 1b677b30c7a21a3415a1752ae8208abe2a445dd7 Alexey Zhokhov <alexey@zhokhov.com> 1792551592 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+1b677b30c7a21a3415a1752ae8208abe2a445dd7 bfdc8a1a14ddde6b5c869a5a6a8eb8a669fee361 Alexey Zhokhov <alexey@zhokhov.com> 1792552027 +0700	commit: test(tablepro): split radio contract fixture checks

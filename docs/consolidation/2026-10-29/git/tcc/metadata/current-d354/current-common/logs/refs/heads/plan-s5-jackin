@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 78bd45b9c42b883dc1667c32a304e7e77de7880b Alexey Zhokhov <alexey@zhokhov.com> 1792165853 +0700	branch: Created from HEAD
+78bd45b9c42b883dc1667c32a304e7e77de7880b c2472c5fdaa6a363708b4ddd156f0e7ab7a7dae1 Alexey Zhokhov <alexey@zhokhov.com> 1792167351 +0700	commit: fix(form): a clean Esc an editing field passes on cancels the form
+c2472c5fdaa6a363708b4ddd156f0e7ab7a7dae1 61715c6debb701c63e517f41f97fa3badeae72a7 Alexey Zhokhov <alexey@zhokhov.com> 1792167353 +0700	commit: fix(layers): an info dialog's detail scrollbar drags as a layer
+61715c6debb701c63e517f41f97fa3badeae72a7 08136cff462d67fa8b572314f41120456002c95d Alexey Zhokhov <alexey@zhokhov.com> 1792167362 +0700	commit: refactor(jackin): one ShellLayers stack instead of the Modal enum (S5)
+08136cff462d67fa8b572314f41120456002c95d 9d125be2ce33491a633fa5243ca6b025f4b874d7 Alexey Zhokhov <alexey@zhokhov.com> 1792167463 +0700	rebase (finish): refs/heads/plan-s5-jackin onto 615f43d826da80a610520b7f77cef5e626d0f452
+9d125be2ce33491a633fa5243ca6b025f4b874d7 521e1437e1463d242a04603c9fc42c5bf1e451af Alexey Zhokhov <alexey@zhokhov.com> 1792167478 +0700	commit (amend): refactor(jackin): one ShellLayers stack instead of the Modal enum (S5)

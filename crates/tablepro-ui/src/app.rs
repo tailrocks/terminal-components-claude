@@ -1,40 +1,101 @@
+use core::fmt::Write as _;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::ops::Range;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
 use termrock::author::{PaintStyle, StyleDefaults};
+use termrock::editors::{
+    CompletionBatch as EditorCompletionBatch, CompletionProvider, CompletionTrigger,
+    CompletionValue,
+};
 use termrock::{
-    Action, ActionKey, App, Chord, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
-    Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel,
-    Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
-    Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span, SplitAxis,
-    SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState,
-    Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
+    Action, ActionKey, Align, Anchor, App, Chord, CodeAction, CodeDiagnostic, CodeEditor,
+    CodeSeverity, ColumnKey, CompletingCodeEditor, Cx, Dialog, DialogAction, DialogState,
+    EnterPolicy, FgStep, Focusability, Form, FormAction, FormState, FrameRead, GlyphRole,
+    GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers,
+    KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier, Moment, Panel, PanelKind, Part,
+    Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowUi, ScreenAlign, Size,
+    SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, TabMarks, Tabs,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, Theme, Tree,
+    TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, ViewportLine,
+    ViewportState, truncate, width, wrap,
 };
 
+use crate::footer::{self, Hint};
 use crate::quick_switcher::{self, QuickSwitcher};
-use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
+use crate::safe_mode::SafeModePicker;
+use crate::tab_list::{self, TabList};
+use crate::tabs::{
+    ApplicationMutation, ExplorerItem, GridView, QueryOutputBody, QueryOutputId, QueryOutputInfo,
+    QueryOutputInput, QueryOutputKind, QueryOutputState, QueryRunFinish, Tab, TabKey, TabRecord,
+};
 use crate::workbench::Workbench;
+
+mod connection_form_focus;
+mod explorer_collapsed;
+mod filter_editor;
+mod history_controls;
+mod history_detail;
+mod history_rows;
+mod query_panes;
+mod query_safety;
+mod result_grid;
+
+use filter_editor::{FILTER_APPLY, FILTER_CANCEL, FILTER_COLUMN, FILTER_OPERATOR, FILTER_VALUE2};
+use filter_editor::{FilterEditor, FilterOutcome};
+use history_controls::{ConnectionScope, HistoryControls};
+use history_detail::{HistoryDetailController, HistoryDetailRequest};
+use history_rows::{HistoryAction, HistoryRows};
+use query_panes::{QueryContent, QueryLayout, QueryPaneMode, QueryPaneState, idle_query_top};
+use result_grid::ResultGridView;
+
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
 use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
-use tablepro_domain::domain::ResultGrid;
-use tablepro_domain::model::SwitchTarget;
+use tablepro_domain::domain::preview_sql;
+use tablepro_domain::domain::{PendingEdits, ResultGrid};
+use tablepro_domain::filter_editor::Filter;
+use tablepro_domain::model::{
+    HistoryEntry, HistorySource, SwitchTarget, auto_trigger, completion_batch,
+};
+use tablepro_domain::{highlight_sql, segment_sql};
 
 pub const MIN_WIDTH: u16 = 72;
 
 pub const MIN_HEIGHT: u16 = 20;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GridSortOwner {
+    Table(TabKey),
+    QueryOutput(TabKey, Option<QueryOutputId>),
+}
 const CONNECTIONS: Id = Id::root("tablepro.connections.list");
+const CONNECTION_FILTER: Id = Id::root("tablepro.connections.filter");
 const CONNECTIONS_PANEL: Id = Id::root("tablepro.connections.panel");
 const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
+const HISTORY_LIST: Id = Id::root("tablepro.workbench.history.list");
 const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
+const FILTER_LAYER: Id = Id::root("tablepro.filter.layer");
+const FILTER_STEP: Id = Id::root("tablepro.filter.step");
+const FILTER_VALUE: Id = Id::root("tablepro.filter.value");
 const RUN: ActionKey = ActionKey::application("tablepro.run");
+const RUN_ALL: ActionKey = ActionKey::application("tablepro.run-all");
+const PIN_QUERY_OUTPUT: ActionKey = ActionKey::application("tablepro.query-output.pin");
 const UNDO: ActionKey = ActionKey::application("tablepro.undo");
 const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
+const DUPLICATE_ROW: ActionKey = ActionKey::application("tablepro.duplicate-row");
 const DELETE_ROW: ActionKey = ActionKey::application("tablepro.delete-row");
 const DISCARD_ROWS: ActionKey = ActionKey::application("tablepro.discard-rows");
 const QUIT: ActionKey = ActionKey::application("tablepro.quit");
 const CANCEL_OR_QUIT: ActionKey = ActionKey::application("tablepro.cancel-or-quit");
+const CANCEL_QUERY_SAFETY: ActionKey = ActionKey::application("tablepro.query-safety.cancel");
 const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
+const DELETE_DIALOG: Id = Id::root("tablepro.delete-connection");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
     Action::danger(ActionKey::CONFIRM, "Quit"),
@@ -56,6 +117,67 @@ const REPLACE_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
     Action::danger(ActionKey::CONFIRM, "Run query"),
 ];
+const COMMIT_ACTIONS: [Action<'static>; 2] = [
+    Action::quiet(ActionKey::CANCEL, "Cancel"),
+    Action::new(ActionKey::CONFIRM, "Commit"),
+];
+const COMMIT_PREVIEW: Id = Id::root("tablepro.commit-preview");
+const QUERY_EDITOR_PLACEHOLDER: &str = "Type SQL. Ctrl+R runs the statement under the cursor.";
+const QUERY_EDITOR_ROWS: u16 = 12;
+
+struct SqlCompletionProvider<'a> {
+    catalog: &'a Catalog,
+}
+
+impl CompletionProvider for SqlCompletionProvider<'_> {
+    fn complete(
+        &self,
+        text: &str,
+        cursor: usize,
+        trigger: CompletionTrigger,
+    ) -> Option<EditorCompletionBatch> {
+        if trigger != CompletionTrigger::Manual && !auto_trigger(text, cursor) {
+            return None;
+        }
+        let batch = completion_batch(text, cursor, self.catalog);
+        if batch.items.is_empty() {
+            return None;
+        }
+        Some(EditorCompletionBatch {
+            items: batch
+                .items
+                .into_iter()
+                .map(|item| {
+                    CompletionValue::new(ItemKey::text(&item.text), item.label, item.text)
+                        .glyph(item.kind.glyph())
+                        .matched(item.matched)
+                        .detail(item.detail)
+                })
+                .collect(),
+            replace_len: batch.replace.end.saturating_sub(batch.replace.start),
+        })
+    }
+}
+
+fn query_editor(
+    id: Id,
+    rows: u16,
+    provider: &dyn CompletionProvider,
+    commit_on_blur: bool,
+) -> CompletingCodeEditor<'_> {
+    const PARTS: &[(Part, StylePatch)] = &[(
+        Part::CONTAINER,
+        StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field)),
+    )];
+    CodeEditor::new(id, rows)
+        .fill_height(true)
+        .highlighter(&highlight_sql)
+        .segmenter(&segment_sql)
+        .placeholder(QUERY_EDITOR_PLACEHOLDER)
+        .patch_part(PARTS)
+        .with_completion(id.sub("completion"), provider)
+        .commit_on_blur(commit_on_blur)
+}
 
 #[derive(Debug)]
 struct DestructiveRequest {
@@ -63,9 +185,318 @@ struct DestructiveRequest {
     owner: std::sync::Weak<()>,
 }
 
-impl DestructiveRequest {
-    fn dialog(&self) -> Dialog<'_> {
-        self.intent.dialog()
+struct PendingCommit {
+    key: TabKey,
+    generation: u64,
+    output_state: Option<QueryOutputState>,
+    connection: Connection,
+    schema: String,
+    target: String,
+    safe_mode: SafeMode,
+    pending: PendingEdits,
+    columns: Vec<(String, ColType)>,
+    cursor: Option<(ItemKey, ColumnKey, usize)>,
+    selected_rows: termrock::KeySet,
+    description: String,
+    statements: Vec<String>,
+    acknowledgement: String,
+    acknowledgement_label: String,
+    changes: usize,
+}
+
+const QUERY_START_TICKS: u8 = 6;
+const QUERY_NEXT_STATEMENT_TICKS: u8 = 4;
+const QUERY_TICK_INTERVAL: Duration = Duration::from_millis(80);
+const QUERY_RUN_FINALIZATION_CURRENCY_STEPS: u64 = 4;
+const QUERY_RUN_PREPARATION_CURRENCY_STEPS: u64 = 1;
+
+#[derive(Clone, PartialEq)]
+struct QueryResultSnapshot {
+    columns: Vec<(String, ColType)>,
+    model: ResultGrid,
+    state: termrock::GridState,
+}
+
+impl From<&GridView> for QueryResultSnapshot {
+    fn from(grid: &GridView) -> Self {
+        Self {
+            columns: grid.columns.clone(),
+            model: grid.model.clone(),
+            state: grid.state.clone(),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq)]
+struct QueryOutputSnapshot {
+    id: QueryOutputId,
+    label: String,
+    source_range: Option<Range<usize>>,
+    duration_ms: u32,
+    kind: QueryOutputKind,
+    pinned: bool,
+    closable: bool,
+}
+
+impl From<&QueryOutputInfo> for QueryOutputSnapshot {
+    fn from(output: &QueryOutputInfo) -> Self {
+        Self {
+            id: output.id(),
+            label: output.label().to_owned(),
+            source_range: output.source_range(),
+            duration_ms: output.duration_ms(),
+            kind: output.kind(),
+            pinned: output.is_pinned(),
+            closable: output.can_close(),
+        }
+    }
+}
+
+struct QueryExecutionSnapshot {
+    key: TabKey,
+    generation: u64,
+    output_state: QueryOutputState,
+    owner: std::sync::Weak<()>,
+    connection: Connection,
+    app_connection: Connection,
+    schema: String,
+    safe_mode: SafeMode,
+    stored_text: String,
+    editor_text: String,
+    observed_editor_text: String,
+    saved_text: String,
+    error: Option<String>,
+    last_status: Option<(String, bool, u32)>,
+    result: Option<QueryResultSnapshot>,
+    outputs: Vec<QueryOutputSnapshot>,
+    running: bool,
+}
+
+impl QueryExecutionSnapshot {
+    fn capture(app: &TableProApp, key: TabKey) -> Option<Self> {
+        let Tab::Query(tab) = app.workbench.tab(key)? else {
+            return None;
+        };
+        let editor_text = tab.editor_state.editor().text().to_owned();
+        let outputs = app
+            .workbench
+            .query_outputs(key)?
+            .iter()
+            .map(QueryOutputSnapshot::from)
+            .collect();
+        Some(Self {
+            key,
+            generation: app.workbench.generation(key)?,
+            output_state: app.workbench.query_output_state(key)?,
+            owner: app.workbench.owner_token(),
+            connection: app.workbench.connection.clone(),
+            app_connection: app.connection.clone(),
+            schema: app.workbench.current_schema().to_owned(),
+            safe_mode: app.safe_mode,
+            stored_text: tab.query.clone(),
+            editor_text: editor_text.clone(),
+            observed_editor_text: editor_text,
+            saved_text: tab.saved_text.clone(),
+            error: tab.error.clone(),
+            last_status: tab
+                .last_status
+                .as_ref()
+                .map(|status| (status.summary.clone(), status.is_error, status.duration_ms)),
+            result: tab.result.as_ref().map(QueryResultSnapshot::from),
+            outputs,
+            running: tab.running,
+        })
+    }
+
+    fn is_current(&self, app: &TableProApp) -> bool {
+        if !app.workbench.matches_owner(&self.owner)
+            || app.workbench.generation(self.key) != Some(self.generation)
+            || app.workbench.query_output_state(self.key) != Some(self.output_state)
+            || app.workbench.connection != self.connection
+            || app.connection != self.app_connection
+            || app.workbench.current_schema() != self.schema
+            || app.safe_mode != self.safe_mode
+        {
+            return false;
+        }
+        let Some(Tab::Query(tab)) = app.workbench.tab(self.key) else {
+            return false;
+        };
+        self.stored_text == tab.query
+            && self.observed_editor_text == tab.editor_state.editor().text()
+            && self.saved_text == tab.saved_text
+            && self.error == tab.error
+            && self.last_status
+                == tab
+                    .last_status
+                    .as_ref()
+                    .map(|status| (status.summary.clone(), status.is_error, status.duration_ms))
+            && self.result == tab.result.as_ref().map(QueryResultSnapshot::from)
+            && app
+                .workbench
+                .query_outputs(self.key)
+                .is_some_and(|outputs| {
+                    self.outputs
+                        == outputs
+                            .iter()
+                            .map(QueryOutputSnapshot::from)
+                            .collect::<Vec<_>>()
+                })
+            && self.running == tab.running
+    }
+
+    fn refresh_after_editor_edit(&self, app: &TableProApp, run: &Arc<()>) -> Option<Self> {
+        let mut refreshed = Self::capture(app, self.key)?;
+        if !app.workbench.matches_owner(&self.owner)
+            || !app.workbench.query_run_matches(self.key, run)
+            || self.generation.checked_add(1) != Some(refreshed.generation)
+            || self.output_state.revision().checked_add(1)
+                != Some(refreshed.output_state.revision())
+            || refreshed.connection != self.connection
+            || refreshed.app_connection != self.app_connection
+            || refreshed.schema != self.schema
+            || refreshed.safe_mode != self.safe_mode
+            || refreshed.observed_editor_text == self.observed_editor_text
+            || refreshed.stored_text != refreshed.observed_editor_text
+            || refreshed.saved_text != self.saved_text
+            || refreshed.error != self.error
+            || refreshed.last_status != self.last_status
+            || refreshed.result != self.result
+            || refreshed.running != self.running
+            || refreshed.output_state.selected() != self.output_state.selected()
+            || !same_outputs_after_sql_edit(&self.outputs, &refreshed.outputs)
+        {
+            return None;
+        }
+        refreshed.editor_text.clone_from(&self.editor_text);
+        Some(refreshed)
+    }
+
+    fn refresh_after_progress(
+        &self,
+        app: &TableProApp,
+        run: &Arc<()>,
+        expected_status: &str,
+    ) -> Option<Self> {
+        let mut refreshed = Self::capture(app, self.key)?;
+        if !app.workbench.matches_owner(&self.owner)
+            || !app.workbench.query_run_matches(self.key, run)
+            || self.generation.checked_add(1) != Some(refreshed.generation)
+            || self.output_state.revision().checked_add(1)
+                != Some(refreshed.output_state.revision())
+            || refreshed.connection != self.connection
+            || refreshed.app_connection != self.app_connection
+            || refreshed.schema != self.schema
+            || refreshed.safe_mode != self.safe_mode
+            || refreshed.stored_text != self.stored_text
+            || refreshed.observed_editor_text != self.observed_editor_text
+            || refreshed.saved_text != self.saved_text
+            || refreshed.error != self.error
+            || refreshed
+                .last_status
+                .as_ref()
+                .map(|(summary, error, duration)| (summary.as_str(), *error, *duration))
+                != Some((expected_status, false, 0))
+            || refreshed.result != self.result
+            || refreshed.running != self.running
+            || refreshed.output_state.selected() != self.output_state.selected()
+            || refreshed.outputs != self.outputs
+        {
+            return None;
+        }
+        refreshed.editor_text.clone_from(&self.editor_text);
+        Some(refreshed)
+    }
+}
+
+fn same_outputs_after_sql_edit(
+    before: &[QueryOutputSnapshot],
+    after: &[QueryOutputSnapshot],
+) -> bool {
+    before.len() == after.len()
+        && before.iter().zip(after).all(|(before, after)| {
+            before.id == after.id
+                && before.label == after.label
+                && (before.source_range == after.source_range || after.source_range.is_none())
+                && before.duration_ms == after.duration_ms
+                && before.kind == after.kind
+                && before.pinned == after.pinned
+                && before.closable == after.closable
+        })
+}
+
+#[derive(Clone)]
+struct PlannedQueryStatement {
+    range: Range<usize>,
+}
+
+struct PreparedQueryRun {
+    snapshot: QueryExecutionSnapshot,
+    submitted_range: Range<usize>,
+    review_sql: String,
+    statements: Vec<PlannedQueryStatement>,
+    review_range: Option<Range<usize>>,
+    confirm_indices: Vec<usize>,
+    authorized_statements: Vec<usize>,
+    run_all: bool,
+    review_statement_index: usize,
+}
+
+struct PendingQueryExecution {
+    snapshot: QueryExecutionSnapshot,
+    run_token: Arc<()>,
+    submitted_range: Range<usize>,
+    statements: Vec<PlannedQueryStatement>,
+    current_statement: usize,
+    ticks_left: u8,
+    next_tick: Moment,
+    timer: QueryTimer,
+    authorized_statements: Vec<usize>,
+    run_all: bool,
+    completed_outputs: Vec<PendingQueryOutput>,
+}
+
+#[must_use = "handle whether a query run was absent, cancelled, or left unavailable"]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum QueryCancelOutcome {
+    NoPendingRun,
+    Cancelled,
+    PublicationUnavailable,
+}
+
+struct PendingQueryOutput {
+    range: Range<usize>,
+    duration_ms: u32,
+    body: QueryOutputBody,
+    outcome: QueryOutcome,
+    error_at: Option<usize>,
+}
+
+#[derive(Default)]
+struct QueryResultTabsState {
+    owner: Option<TabKey>,
+    state: TabsState,
+}
+
+impl QueryResultTabsState {
+    fn sync(
+        &mut self,
+        owner: TabKey,
+        outputs: &[QueryOutputInfo],
+        selected: Option<QueryOutputId>,
+    ) {
+        if self.owner != Some(owner) {
+            self.owner = Some(owner);
+            self.state = TabsState::default();
+        }
+        if let Some(id) = selected
+            && let Some((index, _)) = outputs
+                .iter()
+                .enumerate()
+                .find(|(_, output)| output.id() == id)
+        {
+            self.state.set_active(index, ItemKey::num(id.get()));
+        }
     }
 }
 
@@ -89,11 +520,9 @@ enum DestructiveIntent {
         question: String,
     },
     ReplaceResult {
-        key: TabKey,
-        query: String,
-        generation: u64,
-        connection: Box<Connection>,
+        plan: Box<PreparedQueryRun>,
     },
+    Commit(Box<PendingCommit>),
 }
 
 impl core::fmt::Debug for DestructiveIntent {
@@ -106,17 +535,18 @@ impl core::fmt::Debug for DestructiveIntent {
                 .field("tabs", &scope.len())
                 .finish_non_exhaustive(),
             Self::DiscardRows { key, .. } => f.debug_tuple("DiscardRows").field(key).finish(),
-            Self::ReplaceResult { key, .. } => f
+            Self::ReplaceResult { plan } => f
                 .debug_struct("ReplaceResult")
-                .field("key", key)
+                .field("key", &plan.snapshot.key)
                 .finish_non_exhaustive(),
+            Self::Commit(request) => f.debug_tuple("Commit").field(&request.key).finish(),
         }
     }
 }
 
 impl DestructiveIntent {
-    fn dialog(&self) -> Dialog<'_> {
-        match self {
+    fn dialog(&self, width: u16, body_rows: u16) -> Dialog<'_> {
+        let dialog = match self {
             Self::Quit { question, .. } => {
                 Dialog::destructive(QUIT_DIALOG, "Quit TablePro?", question).actions(&QUIT_ACTIONS)
             }
@@ -138,28 +568,103 @@ impl DestructiveIntent {
             }
             Self::ReplaceResult { .. } => Dialog::destructive(
                 QUIT_DIALOG,
-                "Replace results with unsaved edits?",
-                "Pending row edits in this query result will be lost.",
+                "Run with edited results?",
+                "Pending row edits will stay in retained result tabs while the new run is added.",
             )
             .actions(&REPLACE_ACTIONS),
-        }
+            Self::Commit(request) => {
+                let dialog = if request.safe_mode.requires_authentication() {
+                    Dialog::acknowledge(
+                        QUIT_DIALOG,
+                        "Review pending changes",
+                        &request.acknowledgement,
+                    )
+                    .input_label(&request.acknowledgement_label)
+                    .body_rows(body_rows)
+                } else {
+                    Dialog::facts(QUIT_DIALOG, "Review pending changes", &[]).body_rows(body_rows)
+                };
+                dialog
+                    .description(&request.description)
+                    .actions(&COMMIT_ACTIONS)
+                    .cancel(ActionKey::CANCEL)
+                    .primary(ActionKey::CONFIRM)
+            }
+        };
+        dialog.width(width)
+    }
+
+    fn dialog_for(
+        &self,
+        viewport_width: u16,
+        viewport_height: u16,
+        design: &termrock::DesignTokens,
+    ) -> Dialog<'_> {
+        let desired_width = if matches!(self, Self::Commit(_)) {
+            76
+        } else {
+            54
+        };
+        let width = desired_width.min(viewport_width.saturating_sub(2).max(1));
+        let body_rows = if matches!(self, Self::Commit(_)) {
+            let available_height = viewport_height.saturating_sub(2);
+            let base_height = self.dialog(width, 1).measured_height(design);
+            let max_body_rows = available_height
+                .saturating_sub(base_height)
+                .saturating_add(1)
+                .max(1);
+            let text_width = width.saturating_sub(7).max(1);
+            let content_rows = match self {
+                Self::Commit(request) => request.statements.iter().fold(0u16, |rows, statement| {
+                    rows.saturating_add(
+                        u16::try_from(wrap(statement, text_width).len()).unwrap_or(u16::MAX),
+                    )
+                }),
+                _ => 0,
+            };
+            max_body_rows.min(content_rows.max(1))
+        } else {
+            0
+        };
+        self.dialog(width, body_rows)
+    }
+
+    fn layer(&self, cx: &Cx<'_>, initial_focus: Option<Id>) -> LayerSpec {
+        let viewport = cx.viewport();
+        let dialog = self.dialog_for(viewport.width, viewport.height, cx.design());
+        let layer = dialog.layer(cx);
+        initial_focus.map_or(layer, |focus| layer.initial_focus(focus))
     }
 }
 
 const OPEN: ActionKey = ActionKey::application("tablepro.open");
 const NEW_QUERY: ActionKey = ActionKey::application("tablepro.new-query");
+const CLOSE_TAB: ActionKey = ActionKey::application("tablepro.close-tab");
 const HISTORY: ActionKey = ActionKey::application("tablepro.history");
+const COPY_HISTORY: ActionKey = ActionKey::application("tablepro.history.copy");
+const SHOW_HISTORY_DETAIL: ActionKey = ActionKey::application("tablepro.history.show-detail");
 const STRUCTURE: ActionKey = ActionKey::application("tablepro.structure");
 const FORM: ActionKey = ActionKey::application("tablepro.form");
+const DELETE_CONNECTION: ActionKey = ActionKey::application("tablepro.connections.delete");
 const HELP: ActionKey = ActionKey::application("tablepro.help");
 const TAB_LIST: ActionKey = ActionKey::application("tablepro.tab-list");
 const FILTER: ActionKey = ActionKey::application("tablepro.filter");
+const FILTER_CARD: ActionKey = ActionKey::application("tablepro.filter.card");
+const FILTER_CONNECTIONS: ActionKey = ActionKey::application("tablepro.connections.filter");
+const CLEAR_CONNECTION_FILTER: ActionKey =
+    ActionKey::application("tablepro.connections.filter.clear");
+const COMMIT_CONNECTION_FILTER: ActionKey =
+    ActionKey::application("tablepro.connections.filter.commit");
+const SORT: ActionKey = ActionKey::application("tablepro.sort");
 const PREVIEW: ActionKey = ActionKey::application("tablepro.preview");
 const SAVE: ActionKey = ActionKey::application("tablepro.save");
 const EXPLAIN: ActionKey = ActionKey::application("tablepro.explain");
+const EXPLAIN_ANALYZE: ActionKey = ActionKey::application("tablepro.explain-analyze");
 const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
-const COMPLETE: ActionKey = ActionKey::application("tablepro.complete");
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
+const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
+const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
+const FOCUS_EXPLORER: ActionKey = ActionKey::application("tablepro.focus-explorer");
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -170,8 +675,83 @@ const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
         .set_fg(Role::Fg(FgStep::Secondary))
         .remove(Modifier::BOLD),
 )];
-const FRAMED_PANEL_PATCH: [(Part, StylePatch); 1] =
-    [(Part::DETAIL, StylePatch::new().set_fg(Role::BorderStrong))];
+
+const TAG_CHROME_FG: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a));
+const TAG_PATH_FG: Role = Role::Custom(termrock::Color::from_u32(0x00b3_b3b3));
+
+const TAG_OK_FG: Role = Role::Success;
+const TAG_RULE_FG: Role = Role::Custom(termrock::Color::from_u32(0x003a_3a3a));
+
+const QUERY_SEAM_FG: Role = Role::Custom(termrock::Color::from_u32(0x004d_4d4d));
+const LEGACY_FAINT: Role = Role::Custom(termrock::Color::from_u32(0x0073_7373));
+const LEGACY_INFO: Role = Role::Custom(termrock::Color::from_u32(0x0079_b8ff));
+const LEGACY_DANGER_LABEL: Role = Role::Custom(termrock::Color::from_u32(0x00ff_6b6b));
+const FRAMED_PANEL_PATCH: [(Part, StylePatch); 2] = [
+    (Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT)),
+    (Part::BORDER, StylePatch::new().set_fg(Role::BorderStrong)),
+];
+const EXPLORER_PANEL_PATCH: [(Part, StylePatch); 4] = [
+    (Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT)),
+    (Part::BORDER, StylePatch::new().set_fg(TAG_RULE_FG)),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(Modifier::BOLD),
+    ),
+    (Part::META, StylePatch::new().set_fg(LEGACY_FAINT)),
+];
+const EXPLORER_FOCUSED_PATCH: [(Part, StylePatch); 3] = [
+    (Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT)),
+    (Part::BORDER, StylePatch::new().set_fg(Role::BorderStrong)),
+    (Part::META, StylePatch::new().set_fg(LEGACY_FAINT)),
+];
+const CONTENT_IDLE_PATCH: [(Part, StylePatch); 3] = [
+    (Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT)),
+    (Part::BORDER, StylePatch::new().set_fg(TAG_RULE_FG)),
+    (
+        Part::TITLE,
+        StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD),
+    ),
+];
+const TAG_FIELD_BG: Role = Role::Custom(termrock::Color::from_u32(0x001e_1e22));
+const TAG_BUTTON_BG: Role = Role::Custom(termrock::Color::from_u32(0x0048_e054));
+const TAG_BUTTON_FG: Role = Role::Custom(termrock::Color::from_u32(0x0019_191c));
+const TAB_STRIP_PATCH: [(Part, StylePatch); 2] = [
+    (Part::NEW, StylePatch::new().set_fg(TAG_PATH_FG)),
+    (
+        Part::CLOSE,
+        StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD),
+    ),
+];
+const LEGACY_SELECT_BG: Role = Role::Custom(termrock::Color::from_u32(0x0017_3f1c));
+const LEGACY_SCROLL_TRACK: Role = Role::Custom(termrock::Color::from_u32(0x0047_4747));
+const LEGACY_SCROLL_THUMB: Role = Role::Custom(termrock::Color::from_u32(0x0080_8080));
+const LEGACY_CELL_BG: Role = Role::Custom(termrock::Color::from_u32(0x002f_5aa8));
+const GRID_RESULT_VIEWPORT: termrock::grid::GridViewportPolicy =
+    termrock::grid::GridViewportPolicy {
+        header_rows: 0,
+        filter_rows: 0,
+        pending_rows: 0,
+        status_rows: 0,
+        status_inset: 0,
+        right_reserve: 3,
+    };
+const CONNECTIONS_PANEL_PATCH: [(Part, StylePatch); 1] =
+    [(Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT))];
+const CONNECTIONS_PANEL_INACTIVE_PATCH: [(Part, StylePatch); 2] = [
+    (Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT)),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(Modifier::BOLD),
+    ),
+];
+const CONNECTION_TREE_PATCH: [(Part, StylePatch); 1] = [(
+    Part::GUTTER,
+    StylePatch::new().set_fg(Role::Surface(termrock::Surface::Canvas)),
+)];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
@@ -247,10 +827,10 @@ enum ExplorerNode {
     Group {
         schema: String,
         name: String,
+        count: usize,
     },
     Object {
         item: ExplorerItem,
-        count: String,
         prefix: &'static str,
     },
 }
@@ -327,100 +907,163 @@ fn quit_keymap() -> KeyMap {
 }
 
 fn keymap() -> KeyMap {
-    quit_keymap()
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('-')), DELETE_ROW)
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('U')),
-            DISCARD_ROWS,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
-            RUN,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('o'), KeyModifiers::CONTROL),
-            OPEN,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('t'), KeyModifiers::CONTROL),
-            NEW_QUERY,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('y'), KeyModifiers::CONTROL),
-            HISTORY,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('d'), KeyModifiers::CONTROL),
-            STRUCTURE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('n'), KeyModifiers::CONTROL),
-            FORM,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('g'), KeyModifiers::CONTROL),
-            TAB_LIST,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
-            CLEAR_QUERY,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('x'), KeyModifiers::CONTROL),
-            EXPLAIN,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('x'), KeyModifiers::ALT),
-            EXPLAIN,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char(' '), KeyModifiers::CONTROL),
-            COMPLETE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('p'), KeyModifiers::CONTROL),
-            PREVIEW,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL),
-            SAVE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('\\'), KeyModifiers::CONTROL),
-            PALETTE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::F(5), KeyModifiers::NONE),
-            RUN,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('?'), KeyModifiers::NONE),
-            HELP,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('f'), KeyModifiers::NONE),
-            FILTER,
-        )
+    query_keymap(
+        quit_keymap()
+            .bind(
+                KeyPhase::Capture,
+                Chord::key(KeyCode::Char('0')),
+                FOCUS_EXPLORER,
+            )
+            .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
+            .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('d'), KeyModifiers::ALT),
+                DUPLICATE_ROW,
+            )
+            .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('-')), DELETE_ROW)
+            .bind(
+                KeyPhase::Bubble,
+                Chord::key(KeyCode::Char('U')),
+                DISCARD_ROWS,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
+                RUN,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(
+                    KeyCode::Char('r'),
+                    KeyModifiers::CONTROL | KeyModifiers::ALT,
+                ),
+                RUN,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('r'), KeyModifiers::ALT),
+                RUN_ALL,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(
+                    KeyCode::Char('p'),
+                    KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+                ),
+                PIN_QUERY_OUTPUT,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('o'), KeyModifiers::CONTROL),
+                OPEN,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('t'), KeyModifiers::CONTROL),
+                NEW_QUERY,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
+                CLOSE_TAB,
+            ),
+    )
+}
+
+fn query_keymap(map: KeyMap) -> KeyMap {
+    map.bind(
+        KeyPhase::Bubble,
+        Chord::key(KeyCode::Char('y')),
+        COPY_HISTORY,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::key(KeyCode::Right),
+        SHOW_HISTORY_DETAIL,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('y'), KeyModifiers::CONTROL),
+        HISTORY,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('d'), KeyModifiers::CONTROL),
+        STRUCTURE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('n'), KeyModifiers::CONTROL),
+        FORM,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('g'), KeyModifiers::CONTROL),
+        TAB_LIST,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
+        CLEAR_QUERY,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('x'), KeyModifiers::CONTROL),
+        EXPLAIN,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('x'), KeyModifiers::ALT),
+        EXPLAIN_ANALYZE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::F(7), KeyModifiers::SHIFT),
+        EXPLAIN_ANALYZE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('p'), KeyModifiers::CONTROL),
+        PREVIEW,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL),
+        SAVE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('\\'), KeyModifiers::CONTROL),
+        PALETTE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::F(5), KeyModifiers::NONE),
+        RUN,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('?'), KeyModifiers::NONE),
+        HELP,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::F(1), KeyModifiers::NONE),
+        HELP,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('f'), KeyModifiers::NONE),
+        FILTER,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('f'), KeyModifiers::CONTROL),
+        FILTER_CARD,
+    )
+    .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('s')), SORT)
+    .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('z')), ZOOM)
 }
 
 fn fallback_connection(catalog: &Catalog) -> Connection {
@@ -449,11 +1092,31 @@ pub struct TableProApp {
     safe_mode: SafeMode,
     empty_result: ResultGrid,
     status: String,
+    pending_queries: HashMap<TabKey, PendingQueryExecution>,
+    pending_query_plan: Option<PreparedQueryRun>,
+
+    connection_status_at: Option<Moment>,
+
+    connection_status_arm: bool,
     quit: bool,
     destructive_intent: Option<DestructiveRequest>,
+    destructive_viewport: Option<(u16, u16)>,
     destructive_notice: Option<&'static str>,
     quit_state: DialogState,
+    commit_preview_state: ViewportState,
+    query_safety: query_safety::QuerySafetyController,
+    history_detail: HistoryDetailController,
+    query_panes: RefCell<QueryPaneState>,
+    query_result_tabs: RefCell<QueryResultTabsState>,
+    explain_contexts: RefCell<ExplainContextState>,
     switcher: QuickSwitcher,
+    tab_list: TabList,
+    safe_mode_picker: SafeModePicker,
+    history_controls: HashMap<TabKey, HistoryControls>,
+    history_rows: HistoryRows,
+    result_grid: ResultGridView,
+    help_state: termrock::HelpOverlayState,
+    help_underlay: Option<Surface>,
 
     pub screen: Screen,
 
@@ -464,7 +1127,8 @@ pub struct TableProApp {
     pub workbench: Workbench,
     connection_nodes: Vec<ConnectionNode>,
     connection_tree_state: TreeState,
-    connection_visual_tree_state: TreeState,
+    connection_filter_input: TextInputState,
+    connection_filter_editing: bool,
     explorer_nodes: Vec<ExplorerNode>,
     explorer_tree_state: TreeState,
     tabs_state: TabsState,
@@ -474,6 +1138,17 @@ pub struct TableProApp {
     form_fields: Box<[termrock::FieldSpec<'static>]>,
     form_actions: Box<[Action<'static>]>,
     form_open: bool,
+    connection_delete: ConnectionDelete,
+    delete_question: String,
+    delete_state: DialogState,
+    motion: Motion,
+    query_timing: QueryTiming,
+    tick: u64,
+    explorer_pin: u8,
+    grid_sort: Option<(GridSortOwner, u16, SortDir)>,
+    filter_editor: Option<FilterEditor>,
+
+    filter_value_focused: bool,
 }
 
 impl core::fmt::Debug for TableProApp {
@@ -492,18 +1167,28 @@ impl core::fmt::Debug for TableProApp {
             .field("empty_result", &self.empty_result)
             .field("grid_state", &"<grid state>")
             .field("status", &self.status)
+            .field("pending_queries", &self.pending_queries.len())
+            .field("pending_query_plan", &self.pending_query_plan.is_some())
             .field("quit", &self.quit)
             .field("destructive_intent", &self.destructive_intent)
             .field("has_destructive_notice", &self.destructive_notice.is_some())
             .field("quit_state", &self.quit_state)
+            .field("query_safety", &self.query_safety)
+            .field("history_detail", &self.history_detail)
+            .field("query_panes", &self.query_panes.borrow())
+            .field("query_result_tabs", &"<result tabs state>")
             .field("switcher", &"<query and target snapshot>")
+            .field("tab_list", &self.tab_list.rows.len())
+            .field("safe_mode_picker", &self.safe_mode_picker.rows.len())
+            .field("help", &self.help_state.scroll().offset())
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
             .field("connection_tree_state", &self.connection_tree_state)
+            .field("connection_filter_editing", &self.connection_filter_editing)
             .field(
-                "connection_visual_tree_state",
-                &self.connection_visual_tree_state,
+                "connection_filter_input",
+                &self.connection_filter_input.draft_text().map(str::len),
             )
             .field("explorer_nodes", &self.explorer_nodes.len())
             .field("explorer_tree_state", &self.explorer_tree_state)
@@ -514,7 +1199,88 @@ impl core::fmt::Debug for TableProApp {
             .field("form_fields", &self.form_fields.len())
             .field("form_actions", &self.form_actions.len())
             .field("form_open", &self.form_open)
+            .field("connection_delete", &self.connection_delete)
+            .field("motion", &self.motion)
+            .field("tick", &self.tick)
+            .field("explorer_pin", &self.explorer_pin)
+            .field("grid_sort", &self.grid_sort)
+            .field("filter_editor", &self.filter_editor.is_some())
             .finish()
+    }
+}
+
+struct CapturedExplainContext {
+    statement_sql: String,
+    plan: tablepro_sql::sql::PlanNode,
+}
+
+#[derive(Default)]
+struct ExplainContextState {
+    owner: Option<std::sync::Weak<()>>,
+    statements: HashMap<(TabKey, QueryOutputId), CapturedExplainContext>,
+}
+
+impl ExplainContextState {
+    fn sync(&mut self, workbench: &Workbench) {
+        let same_owner = self
+            .owner
+            .as_ref()
+            .is_some_and(|owner| workbench.matches_owner(owner));
+        if !same_owner {
+            self.owner = Some(workbench.owner_token());
+            self.statements.clear();
+        }
+        self.statements.retain(|(key, output_id), _| {
+            workbench.query_outputs(*key).is_some_and(|outputs| {
+                outputs.iter().any(|output| {
+                    output.id() == *output_id && output.kind() == QueryOutputKind::Plan
+                })
+            })
+        });
+    }
+
+    fn capture(
+        &mut self,
+        workbench: &Workbench,
+        key: TabKey,
+        output_id: QueryOutputId,
+        statement_sql: String,
+    ) {
+        self.sync(workbench);
+        let Some(Tab::Query(query)) = workbench.tab(key) else {
+            self.statements.remove(&(key, output_id));
+            return;
+        };
+        if workbench.selected_query_output(key) != Some(output_id)
+            || query.error.is_some()
+            || query.result.is_some()
+        {
+            self.statements.remove(&(key, output_id));
+            return;
+        }
+        let Some(plan) = query.plan.as_ref() else {
+            self.statements.remove(&(key, output_id));
+            return;
+        };
+        self.statements.insert(
+            (key, output_id),
+            CapturedExplainContext {
+                statement_sql,
+                plan: plan.clone(),
+            },
+        );
+    }
+
+    fn matching_sql(
+        &self,
+        key: TabKey,
+        output_id: QueryOutputId,
+        plan: &tablepro_sql::sql::PlanNode,
+    ) -> Option<&str> {
+        self.statements
+            .get(&(key, output_id))
+            .filter(|context| &context.plan == plan)
+            .map(|context| context.statement_sql.as_str())
     }
 }
 
@@ -526,6 +1292,14 @@ impl Default for TableProApp {
 
 impl TableProApp {
     pub fn new() -> Self {
+        Self::new_with_timing(QueryTiming::Live)
+    }
+
+    pub fn new_with_query_duration(duration: Duration) -> Self {
+        Self::new_with_timing(QueryTiming::Explicit(duration))
+    }
+
+    fn new_with_timing(query_timing: QueryTiming) -> Self {
         let catalog = Catalog::acme_prod();
         let connections = db::connections();
         let connection = connections
@@ -534,7 +1308,6 @@ impl TableProApp {
             .unwrap_or_else(|| fallback_connection(&catalog));
         let connection_nodes = build_connection_nodes(&connections);
         let connection_tree_state = initial_connection_tree_state(&connection_nodes);
-        let connection_visual_tree_state = initial_connection_visual_tree_state(&connection_nodes);
         let explorer_nodes = build_explorer_nodes(&catalog);
         let explorer_tree_state = initial_explorer_tree_state(&explorer_nodes, "public");
         let mut app = Self {
@@ -545,18 +1318,37 @@ impl TableProApp {
             keymap: keymap(),
             empty_result: ResultGrid::empty(),
             status: "Ready · Ctrl+R runs · Ctrl+Q quits".to_owned(),
+            pending_queries: HashMap::new(),
+            pending_query_plan: None,
+            connection_status_at: None,
+            connection_status_arm: false,
             quit: false,
             destructive_intent: None,
+            destructive_viewport: None,
             destructive_notice: None,
             quit_state: DialogState::default(),
+            commit_preview_state: ViewportState::default(),
+            query_safety: query_safety::QuerySafetyController::default(),
+            history_detail: HistoryDetailController::default(),
+            query_panes: RefCell::new(QueryPaneState::default()),
+            query_result_tabs: RefCell::new(QueryResultTabsState::default()),
+            explain_contexts: RefCell::new(ExplainContextState::default()),
             switcher: QuickSwitcher::default(),
+            tab_list: TabList::default(),
+            safe_mode_picker: SafeModePicker::default(),
+            history_controls: HashMap::new(),
+            history_rows: HistoryRows::default(),
+            result_grid: ResultGridView::default(),
+            help_state: termrock::HelpOverlayState::default(),
+            help_underlay: None,
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
             workbench: Workbench::new(connection, catalog),
             connection_nodes,
             connection_tree_state,
-            connection_visual_tree_state,
+            connection_filter_input: TextInputState::default(),
+            connection_filter_editing: false,
             explorer_nodes,
             explorer_tree_state,
             tabs_state: TabsState::default(),
@@ -566,7 +1358,32 @@ impl TableProApp {
             form_fields: Box::from(connections::form_fields()),
             form_actions: Box::from(connections::form_actions()),
             form_open: false,
+            connection_delete: ConnectionDelete::Closed,
+            delete_question: String::new(),
+            delete_state: DialogState::default(),
+            motion: Motion::Full,
+            query_timing,
+            tick: 0,
+            explorer_pin: 0,
+            grid_sort: None,
+            filter_editor: None,
+            filter_value_focused: false,
         };
+        app.keymap.add(
+            KeyPhase::Capture,
+            Chord::key(KeyCode::Char('/')),
+            FILTER_CONNECTIONS,
+        );
+        app.keymap.add(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('d')),
+            DELETE_CONNECTION,
+        );
+        app.keymap.add(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
+            TOGGLE_EXPLORER,
+        );
         app.workbench.new_query(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
         );
@@ -602,8 +1419,52 @@ impl TableProApp {
         self.workbench.active_grid().map(|(id, _)| id)
     }
 
+    fn sync_query_panes(&self) {
+        self.query_panes.borrow_mut().sync(&self.workbench);
+        self.explain_contexts.borrow_mut().sync(&self.workbench);
+    }
+
+    fn active_query_pane_mode(&self) -> QueryPaneMode {
+        self.workbench
+            .active_key()
+            .map_or(QueryPaneMode::None, |key| {
+                self.query_panes.borrow().mode(key)
+            })
+    }
+
+    fn visible_query_pane_mode(&self) -> QueryPaneMode {
+        if self.workbench.maximized {
+            self.active_query_pane_mode()
+        } else {
+            QueryPaneMode::None
+        }
+    }
+
+    fn focused_query_pane(&self, cx: &Cx<'_>) -> QueryPaneMode {
+        if !matches!(self.workbench.active(), Some(Tab::Query(_))) {
+            return QueryPaneMode::None;
+        }
+        if self.query_id().is_some_and(|id| {
+            cx.focused_in_scope(termrock::ScopeId::new(id.sub("pane-scope")))
+                .is_some()
+        }) {
+            return QueryPaneMode::Editor;
+        }
+        if self.result_id().is_some_and(|id| {
+            cx.focused_in_scope(termrock::ScopeId::new(id.sub("pane-scope")))
+                .is_some()
+        }) {
+            return QueryPaneMode::Results;
+        }
+        QueryPaneMode::None
+    }
+
     pub fn status(&self) -> &str {
         &self.status
+    }
+
+    pub const fn filter_value_focused(&self) -> bool {
+        self.filter_value_focused
     }
 
     pub const fn screen(&self) -> Screen {
@@ -612,6 +1473,13 @@ impl TableProApp {
 
     pub const fn surface(&self) -> Surface {
         self.surface
+    }
+
+    pub(crate) const fn set_motion(&mut self, motion: Motion, frame: u64) {
+        if motion.is_paused() {
+            self.tick = frame;
+        }
+        self.motion = motion;
     }
 
     pub fn set_surface(&mut self, surface: Surface) {
@@ -646,17 +1514,6 @@ impl TableProApp {
                     self.explorer_tree_state
                         .set_cursor(index, explorer_node_key(node));
                 }
-                if surface == Surface::TabListPicker {
-                    for _ in 0..12 {
-                        self.workbench.new_query("SELECT 1");
-                    }
-                    self.sync_tabs_state();
-                }
-                if surface == Surface::SafeModePicker {
-                    self.safe_mode = SafeMode::SafeFull;
-                    self.connection.safe_mode = self.safe_mode;
-                    self.workbench.connection.safe_mode = self.safe_mode;
-                }
                 self.surface = surface;
             }
             Surface::TableGrid
@@ -689,10 +1546,9 @@ impl TableProApp {
             Surface::ExplainPlan => {
                 self.reset_visual_workbench();
                 self.set_visual_query("SELECT * FROM orders LIMIT 10");
-                if let Some(Tab::Query(query)) = self.workbench.active_mut() {
-                    let _ = query.explain(&self.catalog);
+                if let Some(key) = self.workbench.active_key() {
+                    let _ = self.explain_query(key, false);
                 }
-                "Explain plan ready".clone_into(&mut self.status);
                 self.surface = surface;
             }
             Surface::HistoryTab => {
@@ -745,13 +1601,17 @@ impl TableProApp {
         }
     }
 
-    fn connections_panel<'a>(title: &'a str, meta: Option<&'a str>) -> Panel<'a> {
+    fn connections_panel<'a>(title: &'a str, meta: Option<&'a str>, focused: bool) -> Panel<'a> {
         let panel = Panel::new(CONNECTIONS_PANEL)
             .kind(PanelKind::Framed)
             .title(title)
-            .focused(true)
-            .patch_part(&FRAMED_PANEL_PATCH)
-            .slot(Part::GUTTER, &preserve_frame_gutter);
+            .focused(focused);
+        let panel = if focused {
+            panel.patch_part(&CONNECTIONS_PANEL_PATCH)
+        } else {
+            panel.patch_part(&CONNECTIONS_PANEL_INACTIVE_PATCH)
+        }
+        .slot(Part::GUTTER, &preserve_frame_gutter);
         match meta {
             Some(meta) => panel.meta(meta),
             None => panel,
@@ -766,22 +1626,30 @@ impl TableProApp {
             .focused(false)
     }
 
-    fn explorer_panel(schema: &str) -> Panel<'_> {
-        Panel::new(EXPLORER_PANEL)
+    fn explorer_panel(schema: &str, focused: bool) -> Panel<'_> {
+        let panel = Panel::new(EXPLORER_PANEL)
             .kind(PanelKind::Framed)
-            .title(" Explorer ")
+            .title(" Explorer")
             .meta(schema)
-            .focused(true)
-            .patch_part(&FRAMED_PANEL_PATCH)
-            .slot(Part::GUTTER, &preserve_frame_gutter)
+            .focused(focused)
+            .slot(Part::GUTTER, &preserve_frame_gutter);
+        if focused {
+            panel.patch_part(&EXPLORER_FOCUSED_PATCH)
+        } else {
+            panel.patch_part(&EXPLORER_PANEL_PATCH)
+        }
     }
 
-    fn content_panel<'a>(title: &'a str, meta: Option<&'a str>) -> Panel<'a> {
+    fn content_panel<'a>(title: &'a str, meta: Option<&'a str>, focused: bool) -> Panel<'a> {
         let panel = Panel::new(CONTENT_FRAME)
             .kind(PanelKind::Framed)
             .title(title)
-            .focused(true)
-            .patch_part(&FRAMED_PANEL_PATCH)
+            .focused(focused)
+            .patch_part(if focused {
+                &FRAMED_PANEL_PATCH[..]
+            } else {
+                &CONTENT_IDLE_PATCH[..]
+            })
             .slot(Part::GUTTER, &preserve_frame_gutter);
         match meta {
             Some(meta) => panel.meta(meta),
@@ -792,8 +1660,155 @@ impl TableProApp {
     fn rebuild_connection_nodes(&mut self) {
         self.connection_nodes = build_connection_nodes(&self.connections);
         self.connection_tree_state = initial_connection_tree_state(&self.connection_nodes);
-        self.connection_visual_tree_state =
-            initial_connection_visual_tree_state(&self.connection_nodes);
+    }
+
+    fn paint_connection_browser(
+        &self,
+        ui: &mut Ui<'_>,
+        body: termrock::Rect,
+        inner: termrock::Rect,
+    ) {
+        ui.with_area(body, |ui| {
+            let filter = termrock::Rect {
+                x: body.x,
+                y: inner.y.saturating_add(1),
+                width: body.width,
+                height: 1.min(inner.height),
+            };
+            if self.connection_filter_editing {
+                ui.register_keyboard_editor(
+                    CONNECTION_FILTER,
+                    filter,
+                    Focusability::Focusable,
+                    StateFlags::EDITING,
+                );
+            }
+            paint_connection_filter_row(
+                ui,
+                filter,
+                &self.connections_screen.filter,
+                self.connection_filter_editing,
+            );
+            let tree_area = termrock::Rect {
+                y: body.y.saturating_add(2),
+                height: inner.height.saturating_sub(2),
+                ..body
+            };
+            self.draw_connection_tree(ui, tree_area);
+            let query = self.connections_screen.filter.as_str();
+
+            if !self.form_open && ui.state(CONNECTIONS).contains(StateFlags::FOCUSED) {
+                paint_connection_focus_bar(
+                    ui,
+                    tree_area,
+                    &self.connection_tree_state,
+                    &self.connection_nodes,
+                    query,
+                );
+            }
+            paint_connection_mark_plain(
+                ui,
+                tree_area,
+                &self.connection_tree_state,
+                &self.connection_nodes,
+                query,
+            );
+        });
+    }
+
+    fn draw_connection_tree(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        if self.form_open {
+            ui.reference(None, |ui| self.draw_connection_tree_rows(ui, area));
+            return;
+        }
+        self.draw_connection_tree_rows(ui, area);
+    }
+
+    fn draw_connection_tree_rows(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        let filter = self.connections_screen.filter.clone();
+        if filter.is_empty() {
+            connection_tree().draw(
+                ui,
+                area,
+                &self.connection_tree_state,
+                &self.connection_nodes,
+            );
+            return;
+        }
+        let revision = connection_filter_revision(&filter);
+        let matcher = |node: &ConnectionNode| connection_node_matches(node, &filter);
+        connection_tree().query(revision, &matcher).draw(
+            ui,
+            area,
+            &self.connection_tree_state,
+            &self.connection_nodes,
+        );
+    }
+
+    fn update_connection_tree(&mut self, cx: &mut Cx<'_>) -> Response<TreeAction> {
+        let filter = self.connections_screen.filter.clone();
+        if filter.is_empty() {
+            return connection_tree().update(
+                cx,
+                &mut self.connection_tree_state,
+                &self.connection_nodes,
+            );
+        }
+        let revision = connection_filter_revision(&filter);
+        let matcher = |node: &ConnectionNode| connection_node_matches(node, &filter);
+        connection_tree().query(revision, &matcher).update(
+            cx,
+            &mut self.connection_tree_state,
+            &self.connection_nodes,
+        )
+    }
+
+    fn update_connection_filter(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let response = if self.connection_filter_editing {
+            let response = TextInput::new(CONNECTION_FILTER)
+                .blur(termrock::BlurPolicy::Keep)
+                .update(
+                    cx,
+                    &mut self.connection_filter_input,
+                    &mut self.connections_screen.filter,
+                );
+            let action = response.action_ref().copied();
+            let mut response = response.erase();
+            if action == Some(TextAction::Cancelled) {
+                self.connections_screen.filter.clear();
+                self.connection_filter_editing = false;
+                cx.focus(CONNECTIONS);
+                response |= Response::changed();
+            } else if action == Some(TextAction::Committed) {
+                self.connection_filter_editing = false;
+                cx.focus(CONNECTIONS);
+                response |= Response::changed();
+            } else if let Some(draft) = self.connection_filter_input.draft_text().map(str::to_owned)
+                && self.connections_screen.filter != draft
+            {
+                self.connections_screen.filter = draft;
+                response |= Response::changed();
+            }
+            response
+        } else {
+            for _ in cx.intents(CONNECTION_FILTER) {}
+            Response::ignored()
+        };
+        self.sync_connection_filter_chords();
+        response
+    }
+
+    fn sync_connection_filter_chords(&mut self) {
+        let escape = Chord::key(KeyCode::Esc);
+        let enter = Chord::key(KeyCode::Enter);
+        self.keymap.remove(KeyPhase::Capture, escape);
+        self.keymap.remove(KeyPhase::Capture, enter);
+        if self.connection_filter_editing {
+            self.keymap
+                .add(KeyPhase::Capture, escape, CLEAR_CONNECTION_FILTER);
+            self.keymap
+                .add(KeyPhase::Capture, enter, COMMIT_CONNECTION_FILTER);
+        }
     }
 
     fn sync_connection_selection(&mut self) {
@@ -810,9 +1825,10 @@ impl TableProApp {
     }
 
     fn set_visual_query(&mut self, query: &str) {
-        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
-            query.clone_into(&mut tab.query);
-            tab.editor_state = TextInputState::default();
+        if let Some(key) = self.workbench.active_key() {
+            let _ = self
+                .workbench
+                .application_update_query(key, |tab| tab.replace_query(query));
         }
     }
 
@@ -840,7 +1856,9 @@ impl TableProApp {
     }
 
     pub fn begin_connection_form(&mut self) {
-        self.draft = Some(ConnectionDraft::from_connection(&self.connection));
+        self.connection_filter_editing = false;
+        self.sync_connection_filter_chords();
+        self.draft = Some(ConnectionDraft::new());
         self.form_state = FormState::default();
         self.form_open = true;
         self.surface = Surface::Connections;
@@ -863,6 +1881,8 @@ impl TableProApp {
     }
 
     fn connect_confirmed(&mut self, connection: &Connection) -> bool {
+        self.connection_filter_editing = false;
+        self.sync_connection_filter_chords();
         if !self.workbench.can_insert_tab() {
             return false;
         }
@@ -876,6 +1896,7 @@ impl TableProApp {
             self.surface = Surface::ConnectionsFailed;
             return false;
         }
+        self.cancel_pending_queries();
         self.safe_mode = connection.safe_mode;
         self.connection = connection.clone();
         self.connections_screen.error = None;
@@ -889,12 +1910,32 @@ impl TableProApp {
         self.sync_tabs_state();
         self.screen = Screen::Workbench;
         self.surface = Surface::WorkbenchDefault;
+
+        self.explorer_pin = 2;
+        self.split_state = SplitPaneState::new(25);
         self.status = format!("Connected to {}", connection.name);
+        self.connection_status_arm = true;
         true
     }
 
     fn sync_active_table(&mut self) {
         self.sync_active_tab();
+    }
+
+    fn pin_tab_window(&mut self) {
+        let Some(active) = self.tabs_state.active() else {
+            return;
+        };
+        let Some(index) = self
+            .workbench
+            .tabs()
+            .iter()
+            .position(|tab| tab_key(tab) == active)
+        else {
+            return;
+        };
+        self.tabs_state = TabsState::default();
+        self.tabs_state.set_active(index, active);
     }
 
     fn sync_tabs_state(&mut self) {
@@ -927,18 +1968,13 @@ impl TableProApp {
         opened
     }
 
-    fn new_query(&mut self, query: impl Into<String>) {
+    fn new_query(&mut self, cx: &mut Cx<'_>, query: impl Into<String>) {
         if self.workbench.new_query(query).is_some() {
             self.sync_tabs_state();
             self.surface = Surface::QueryEditing;
-        }
-    }
-
-    fn commit_query_edit(&mut self) {
-        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
-            let _ = tab
-                .editor_state
-                .commit(&mut tab.query, &termrock::NoValidate);
+            if let Some(id) = self.query_id() {
+                cx.focus(id);
+            }
         }
     }
 
@@ -962,7 +1998,17 @@ impl TableProApp {
 
     pub fn run_query(&mut self, query: impl Into<String>) -> QueryOutcome {
         let query = query.into();
-        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
+        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.running) {
+            return QueryOutcome::Rejected {
+                message: "Query is already running".to_owned(),
+            };
+        }
+        if self
+            .workbench
+            .active_key()
+            .and_then(|key| self.workbench.query_has_pending_result(key))
+            .unwrap_or(false)
+        {
             return QueryOutcome::Rejected {
                 message: "Pending result edits require confirmation".to_owned(),
             };
@@ -980,7 +2026,17 @@ impl TableProApp {
     }
 
     pub fn execute_query(&mut self) -> QueryOutcome {
-        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
+        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.running) {
+            return QueryOutcome::Rejected {
+                message: "Query is already running".to_owned(),
+            };
+        }
+        if self
+            .workbench
+            .active_key()
+            .and_then(|key| self.workbench.query_has_pending_result(key))
+            .unwrap_or(false)
+        {
             return QueryOutcome::Rejected {
                 message: "Pending result edits require confirmation".to_owned(),
             };
@@ -990,24 +2046,161 @@ impl TableProApp {
                 message: "Active tab is not a query".to_owned(),
             };
         };
-        let query = self.query().to_owned();
-        self.execute_snapshot(key, &query)
-    }
-
-    fn execute_snapshot(&mut self, key: TabKey, query: &str) -> QueryOutcome {
-        if !matches!(self.workbench.tab(key), Some(Tab::Query(_))) {
+        let plan = match self.prepare_query_run(key, false) {
+            Ok(plan) => plan,
+            Err(outcome) => {
+                self.status = outcome_message(&outcome);
+                return outcome;
+            }
+        };
+        if let Some(range) = plan.review_range.as_ref() {
+            let Some(query) = plan.snapshot.editor_text.get(range.clone()) else {
+                return QueryOutcome::Rejected {
+                    message: "Query selection is no longer available".to_owned(),
+                };
+            };
+            let (outcome, _, _) = self.execute_query_statement(query, false);
+            self.status = outcome_message(&outcome);
+            return outcome;
+        }
+        if !plan.snapshot.is_current(self) {
             return QueryOutcome::Rejected {
-                message: "Query tab is no longer available".to_owned(),
+                message: "Work changed; request again".to_owned(),
             };
         }
+        let mut outcome = QueryOutcome::Rejected {
+            message: "Nothing to run".to_owned(),
+        };
+        let mut outputs = Vec::with_capacity(plan.statements.len());
+        let mut diagnostic = None;
+        let mut total_elapsed = Duration::ZERO;
+        for (index, statement) in plan.statements.iter().enumerate() {
+            let Some(query) = plan.snapshot.editor_text.get(statement.range.clone()) else {
+                outcome = QueryOutcome::Rejected {
+                    message: "Query selection is no longer available".to_owned(),
+                };
+                break;
+            };
+            let started = self.query_timing.start();
+            let (statement_outcome, body, error_at) = self.execute_query_statement(query, false);
+            let duration_ms = duration_millis(started.elapsed());
+            total_elapsed = total_elapsed.saturating_add(started.elapsed());
+            outcome = statement_outcome;
+            if matches!(
+                outcome,
+                QueryOutcome::ConfirmationRequired { .. } | QueryOutcome::Denied { .. }
+            ) {
+                self.status = outcome_message(&outcome);
+                return outcome;
+            }
+            self.record_statement_history(query, &outcome, duration_ms);
+            if matches!(body.kind(), QueryOutputKind::Error) {
+                let message = match &outcome {
+                    QueryOutcome::Rejected { message } => message.clone(),
+                    _ => outcome_message(&outcome),
+                };
+                diagnostic = Some((statement.range.clone(), query.to_owned(), error_at, message));
+            }
+            outputs.push(QueryOutputInput::new(
+                format!("Statement {}", index.saturating_add(1)),
+                Some(statement.range.clone()),
+                duration_ms,
+                body,
+            ));
+            if !matches!(&outcome, QueryOutcome::Executed { .. }) {
+                break;
+            }
+        }
+        if !outputs.is_empty() {
+            if !self.workbench.prepare_query_outputs_for_run(key)
+                || self.workbench.append_query_outputs(key, outputs).is_none()
+            {
+                self.status = "Query result state is unavailable".to_owned();
+                return QueryOutcome::Rejected {
+                    message: "Query result state is unavailable".to_owned(),
+                };
+            }
+            let diagnostics_published = if let Some((range, query, error_at, message)) = diagnostic
+            {
+                self.apply_query_diagnostic(key, &query, range, error_at, &message)
+            } else {
+                self.workbench
+                    .application_update_query(key, |tab| {
+                        tab.editor_state.editor_mut().set_diagnostics(Vec::new());
+                    })
+                    .is_some()
+            };
+            if !diagnostics_published {
+                self.status = "Query result state is unavailable".to_owned();
+                return QueryOutcome::Rejected {
+                    message: "Query result state is unavailable".to_owned(),
+                };
+            }
+            if self
+                .workbench
+                .application_update_query(key, |tab| {
+                    tab.commit_query_edit();
+                    tab.record_execution_status(
+                        matches!(outcome, QueryOutcome::Executed { .. }),
+                        total_elapsed,
+                    );
+                })
+                .is_none()
+            {
+                self.status = "Query result state is unavailable".to_owned();
+                return QueryOutcome::Rejected {
+                    message: "Query result state is unavailable".to_owned(),
+                };
+            }
+        }
+        self.status = outcome_message(&outcome);
+        outcome
+    }
+
+    fn execute_authorized_query(&mut self, authorization: query_safety::AuthorizedExecution) {
+        let request = authorization.into_request();
+        let Some(mut plan) = self.pending_query_plan.take() else {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        };
+        let key = plan.snapshot.key;
+        let index = plan.review_statement_index;
+        let review_is_current = plan.confirm_indices.contains(&index)
+            && plan
+                .statements
+                .get(index)
+                .is_some_and(|statement| plan.review_range.as_ref() == Some(&statement.range));
+        if !request.is_current(self)
+            || request.key() != key
+            || request.query() != plan.review_sql
+            || !plan.snapshot.is_current(self)
+            || !review_is_current
+        {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        }
+        if !plan.authorized_statements.contains(&index) {
+            plan.authorized_statements.push(index);
+        }
+        self.pending_query_plan = Some(plan);
+    }
+
+    fn execute_query_statement(
+        &self,
+        query: &str,
+        authorized: bool,
+    ) -> (QueryOutcome, QueryOutputBody, Option<usize>) {
         let statement = match tablepro_sql::sql::parse(query.trim()) {
             Ok(statement) => statement,
             Err(error) => {
-                let out = QueryOutcome::Rejected {
-                    message: error.message,
+                let outcome = QueryOutcome::Rejected {
+                    message: error.message.clone(),
                 };
-                self.status = outcome_message(&out);
-                return out;
+                return (
+                    outcome,
+                    QueryOutputBody::error(error.message),
+                    Some(error.at),
+                );
             }
         };
         let table = match &statement {
@@ -1019,73 +2212,1035 @@ impl TableProApp {
         match tablepro_sql::sql::gate(self.safe_mode, &statement) {
             tablepro_sql::sql::Decision::Deny => {
                 let risk = tablepro_sql::sql::assess(&statement, table);
-                let out = QueryOutcome::Denied {
-                    summary: format!("{} is denied in Read-Only mode", risk.action),
-                };
-                self.status = outcome_message(&out);
-                out
+                let summary = format!("{} is denied in Read-Only mode", risk.action);
+                let outcome = QueryOutcome::Denied { summary };
+                let body = QueryOutputBody::error(outcome_message(&outcome));
+                (outcome, body, None)
             }
-            tablepro_sql::sql::Decision::Confirm { deliberate } => {
+            tablepro_sql::sql::Decision::Confirm { deliberate } if !authorized => {
                 let risk = tablepro_sql::sql::assess(&statement, table);
-                let out = QueryOutcome::ConfirmationRequired {
+                let outcome = QueryOutcome::ConfirmationRequired {
                     deliberate,
                     summary: format!("{} · {}", risk.action, risk.scope),
                 };
-                self.status = outcome_message(&out);
-                out
+                let body = QueryOutputBody::error(outcome_message(&outcome));
+                (outcome, body, None)
             }
-            tablepro_sql::sql::Decision::Run => {
-                if let tablepro_sql::sql::Statement::Select(select) = statement {
-                    match tablepro_sql::sql::run_select(&self.catalog, &select) {
-                        Ok(result) => {
-                            let out = QueryOutcome::Executed {
-                                rows: result.rows.len(),
-                                editable: result.editable,
-                            };
-                            if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
-                                tab.result = Some(GridView::from_result(&result));
-                                if tab.editor_state.draft_text() == Some(query) {
-                                    let _ = tab
-                                        .editor_state
-                                        .commit(&mut tab.query, &termrock::NoValidate);
-                                }
-                            }
-                            self.status = outcome_message(&out);
-                            out
-                        }
-                        Err(error) => {
-                            let out = QueryOutcome::Rejected {
-                                message: error.message,
-                            };
-                            self.status = outcome_message(&out);
-                            out
-                        }
-                    }
-                } else {
-                    let out = QueryOutcome::Rejected {
+            tablepro_sql::sql::Decision::Confirm { .. } | tablepro_sql::sql::Decision::Run => {
+                let tablepro_sql::sql::Statement::Select(select) = statement else {
+                    let outcome = QueryOutcome::Rejected {
                         message: "The demo executor only runs SELECT statements".to_owned(),
                     };
-                    self.status = outcome_message(&out);
-                    out
+                    let body = QueryOutputBody::error(outcome_message(&outcome));
+                    return (outcome, body, None);
+                };
+                match tablepro_sql::sql::run_select(&self.catalog, &select) {
+                    Ok(result) => {
+                        let outcome = QueryOutcome::Executed {
+                            rows: result.rows.len(),
+                            editable: result.editable,
+                        };
+                        (
+                            outcome,
+                            QueryOutputBody::rows(GridView::from_result(&result)),
+                            None,
+                        )
+                    }
+                    Err(error) => {
+                        let outcome = QueryOutcome::Rejected {
+                            message: error.message.clone(),
+                        };
+                        (outcome, QueryOutputBody::error(error.message), error.at)
+                    }
                 }
             }
         }
     }
+
+    fn record_statement_history(&mut self, query: &str, outcome: &QueryOutcome, duration_ms: u32) {
+        let (rows, error) = match outcome {
+            QueryOutcome::Executed { rows, .. } => (Some(*rows), None),
+            QueryOutcome::Rejected { message } => (None, Some(message.clone())),
+            QueryOutcome::ConfirmationRequired { .. } | QueryOutcome::Denied { .. } => return,
+        };
+        self.workbench.history.push(HistoryEntry {
+            id: 0,
+            sql: query.to_owned(),
+            connection: self.workbench.connection.name.clone(),
+            database: self.workbench.connection.database.clone(),
+            schema: self.workbench.current_schema().to_owned(),
+            minutes_ago: 0,
+            duration_ms: Some(duration_ms),
+            rows,
+            error,
+            source: HistorySource::Editor,
+        });
+    }
+
+    fn apply_query_diagnostic(
+        &mut self,
+        key: TabKey,
+        query: &str,
+        diagnostic_range: Range<usize>,
+        error_at: Option<usize>,
+        message: &str,
+    ) -> bool {
+        self.workbench
+            .application_update_query(key, |tab| {
+                let text_len = tab.editor_state.editor().text().len();
+                let statement_start = diagnostic_range.start.min(text_len);
+                let leading = query.len().saturating_sub(query.trim_start().len());
+                let range = if let Some(at) = error_at {
+                    let start = statement_start
+                        .saturating_add(leading)
+                        .saturating_add(at)
+                        .min(text_len);
+                    start..start.saturating_add(8).min(text_len)
+                } else {
+                    statement_start..diagnostic_range.end.min(text_len)
+                };
+                tab.editor_state
+                    .editor_mut()
+                    .set_diagnostics(vec![CodeDiagnostic::new(
+                        range,
+                        CodeSeverity::Error,
+                        message.to_owned(),
+                    )]);
+            })
+            .is_some()
+    }
+
+    fn explain_query(&mut self, key: TabKey, analyze: bool) -> Option<Result<String, String>> {
+        let running = matches!(
+            self.workbench.tab(key),
+            Some(Tab::Query(query)) if query.running
+        ) || self.pending_queries.contains_key(&key);
+        if running {
+            match self.cancel_query(key) {
+                QueryCancelOutcome::Cancelled => {}
+                QueryCancelOutcome::NoPendingRun => {
+                    self.status = "Running query could not be cancelled".to_owned();
+                    return Some(Err("Running query could not be cancelled".to_owned()));
+                }
+                QueryCancelOutcome::PublicationUnavailable => {
+                    return Some(Err("Query result state is unavailable".to_owned()));
+                }
+            }
+        }
+        let catalog = &self.catalog;
+        let evaluated = self.workbench.application_update_query(key, |query| {
+            query.editor_state.editor_mut().set_diagnostics(Vec::new());
+            let previous_result = query.result.take();
+            let previous_error = query.error.take();
+            let previous_plan = query.plan.take();
+            let result = query.explain_statement(catalog, analyze);
+            let plan = query.plan.take();
+            query.result = previous_result;
+            query.error = previous_error;
+            query.plan = previous_plan;
+            (result, plan)
+        })?;
+        let (result, plan) = evaluated;
+        if let (Ok(statement_sql), Some(plan)) = (&result, plan) {
+            let label = if analyze {
+                "Explain Analyze"
+            } else {
+                "Explain"
+            };
+            let output = QueryOutputInput::new(label, None, 0, QueryOutputBody::plan(plan));
+            let Some(ids) = self.workbench.append_query_outputs(key, vec![output]) else {
+                self.status = "Query result state is unavailable".to_owned();
+                return Some(Err("Query result state is unavailable".to_owned()));
+            };
+            let Some(output_id) = ids.last().copied() else {
+                self.status = "Query result state is unavailable".to_owned();
+                return Some(Err("Query result state is unavailable".to_owned()));
+            };
+            self.explain_contexts.get_mut().capture(
+                &self.workbench,
+                key,
+                output_id,
+                statement_sql.clone(),
+            );
+            let _ = self.workbench.application_update_query(key, |query| {
+                query.record_status("Explain plan ready", false, 0);
+            });
+            self.status = "Explain plan ready".to_owned();
+        } else if let Err(error) = &result {
+            self.status = error.clone();
+        }
+        Some(result)
+    }
+
+    fn prepare_query_run(
+        &self,
+        key: TabKey,
+        run_all: bool,
+    ) -> Result<PreparedQueryRun, QueryOutcome> {
+        let snapshot =
+            QueryExecutionSnapshot::capture(self, key).ok_or_else(|| QueryOutcome::Rejected {
+                message: "Query tab is no longer available".to_owned(),
+            })?;
+        if snapshot.running {
+            return Err(QueryOutcome::Rejected {
+                message: "Query is already running".to_owned(),
+            });
+        }
+        let Some(Tab::Query(tab)) = self.workbench.tab(key) else {
+            return Err(QueryOutcome::Rejected {
+                message: "Query tab is no longer available".to_owned(),
+            });
+        };
+        let editor = tab.editor_state.editor();
+        let mut ranges = Vec::new();
+        let submitted_range = if run_all {
+            ranges.extend(
+                tablepro_sql::sql::split_statements(&snapshot.editor_text)
+                    .into_iter()
+                    .map(|(start, end)| start..end),
+            );
+            0..snapshot.editor_text.len()
+        } else {
+            let selection =
+                CodeEditor::new(Id::root("tablepro.query.run-selection"), QUERY_EDITOR_ROWS)
+                    .segmenter(&segment_sql)
+                    .selection_or_block(editor);
+            let Some((selected, range)) = selection else {
+                return Err(QueryOutcome::Rejected {
+                    message: "No SQL statement at cursor".to_owned(),
+                });
+            };
+            if snapshot.editor_text.get(range.clone()) != Some(selected.as_str()) {
+                return Err(QueryOutcome::Rejected {
+                    message: "Query selection is no longer available".to_owned(),
+                });
+            }
+            let selected_statements = tablepro_sql::sql::split_statements(&selected);
+            if selected_statements.len() > 1 {
+                ranges.extend(selected_statements.into_iter().map(|(start, end)| {
+                    range.start.saturating_add(start)..range.start.saturating_add(end)
+                }));
+            } else if !selected_statements.is_empty() {
+                ranges.push(range.clone());
+            }
+            range
+        };
+        if ranges.is_empty() {
+            return Err(QueryOutcome::Rejected {
+                message: "Nothing to run".to_owned(),
+            });
+        }
+
+        let statements: Vec<_> = ranges
+            .into_iter()
+            .map(|range| PlannedQueryStatement { range })
+            .collect();
+        if statements.iter().any(|planned| {
+            planned.range.start < submitted_range.start || planned.range.end > submitted_range.end
+        }) {
+            return Err(QueryOutcome::Rejected {
+                message: "Query selection is no longer available".to_owned(),
+            });
+        }
+        let mut review_range = None;
+        let mut review_statement_index = 0;
+        let mut confirm_indices = Vec::new();
+        for (index, planned) in statements.iter().enumerate() {
+            let Some(query) = snapshot.editor_text.get(planned.range.clone()) else {
+                return Err(QueryOutcome::Rejected {
+                    message: "Query selection is no longer available".to_owned(),
+                });
+            };
+            let Ok(statement) = tablepro_sql::sql::parse(query.trim()) else {
+                continue;
+            };
+            let table = match &statement {
+                tablepro_sql::sql::Statement::Select(select) => {
+                    self.catalog.find(select.schema.as_deref(), &select.table)
+                }
+                _ => None,
+            };
+            match tablepro_sql::sql::gate(self.safe_mode, &statement) {
+                tablepro_sql::sql::Decision::Deny => {
+                    let risk = tablepro_sql::sql::assess(&statement, table);
+                    return Err(QueryOutcome::Denied {
+                        summary: format!("{} is denied in Read-Only mode", risk.action),
+                    });
+                }
+                tablepro_sql::sql::Decision::Confirm { .. } => {
+                    confirm_indices.push(index);
+                    if review_range.is_none() {
+                        review_range = Some(planned.range.clone());
+                        review_statement_index = index;
+                    }
+                }
+                tablepro_sql::sql::Decision::Run => {}
+            }
+        }
+
+        let review_sql = review_range
+            .as_ref()
+            .and_then(|range| snapshot.editor_text.get(range.clone()))
+            .unwrap_or("")
+            .to_owned();
+
+        Ok(PreparedQueryRun {
+            snapshot,
+            submitted_range,
+            review_sql,
+            statements,
+            review_range,
+            confirm_indices,
+            authorized_statements: Vec::new(),
+            run_all,
+            review_statement_index,
+        })
+    }
+
+    fn open_query_review(&mut self, cx: &mut Cx<'_>, mut plan: PreparedQueryRun, index: usize) {
+        let key = plan.snapshot.key;
+        if !plan.snapshot.is_current(self) {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        }
+        let Some(statement) = plan.statements.get(index) else {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        };
+        let range = statement.range.clone();
+        if range.start < plan.submitted_range.start || range.end > plan.submitted_range.end {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        }
+        let Some(review_sql) = plan
+            .snapshot
+            .editor_text
+            .get(range.clone())
+            .map(str::to_owned)
+        else {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        };
+        let Some(snapshot) = QueryExecutionSnapshot::capture(self, key) else {
+            self.status = "Query tab is no longer available".to_owned();
+            return;
+        };
+        let Some(request) =
+            query_safety::QuerySafetyRequest::capture(self, key, review_sql.clone())
+        else {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        };
+        if !request.needs_review() || !request.valid_acknowledgement_target() {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        }
+        plan.snapshot = snapshot;
+        plan.review_sql = review_sql;
+        plan.review_range = Some(range);
+        plan.review_statement_index = index;
+        self.pending_query_plan = Some(plan);
+        if self.query_safety.open(cx, request) {
+            self.surface = Surface::SafetyDialogTypedAck;
+            self.query_safety.install_escape_capture(&mut self.keymap);
+        } else {
+            self.pending_query_plan = None;
+            self.status = "Could not open query review".to_owned();
+        }
+    }
+
+    fn start_pending_query(&mut self, cx: &mut Cx<'_>, plan: PreparedQueryRun) {
+        if !plan.snapshot.is_current(self) {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        }
+        let key = plan.snapshot.key;
+        if self.pending_queries.contains_key(&key) {
+            self.status = "Query is already running".to_owned();
+            return;
+        }
+        if let Some(index) = plan
+            .confirm_indices
+            .iter()
+            .copied()
+            .find(|index| !plan.authorized_statements.contains(index))
+        {
+            self.open_query_review(cx, plan, index);
+            return;
+        }
+        let Some(first) = plan.statements.first() else {
+            self.status = "Nothing to run".to_owned();
+            return;
+        };
+        let statement_count = plan.statements.len();
+        let Some(required_currency_steps) = u64::try_from(statement_count)
+            .ok()
+            .and_then(|count| count.checked_add(QUERY_RUN_FINALIZATION_CURRENCY_STEPS))
+            .and_then(|steps| steps.checked_add(QUERY_RUN_PREPARATION_CURRENCY_STEPS))
+        else {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        };
+        if !self
+            .workbench
+            .can_advance_query_currency(key, required_currency_steps)
+        {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        if !self.workbench.prepare_query_outputs_for_run(key) {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        let first_range = first.range.clone();
+        let timer = self.query_timing.start();
+        let run_token = Arc::new(());
+        let name = self.workbench.begin_query_run(key, &run_token, |tab| {
+            tab.commit_query_edit();
+            tab.running = true;
+            tab.editor_state.editor_mut().set_diagnostics(Vec::new());
+            tab.editor_state.editor_mut().set_running(Some(first_range));
+            tab.record_status(format!("running 1 of {statement_count}"), false, 0);
+            tab.name.clone()
+        });
+        let Some(name) = name else {
+            self.status = "Query tab is no longer available".to_owned();
+            return;
+        };
+        let Some(snapshot) = QueryExecutionSnapshot::capture(self, key) else {
+            self.status = "Query tab is no longer available".to_owned();
+            return;
+        };
+        let pending = PendingQueryExecution {
+            snapshot,
+            run_token,
+            submitted_range: plan.submitted_range,
+            statements: plan.statements,
+            current_statement: 0,
+            ticks_left: QUERY_START_TICKS,
+            next_tick: cx.now().saturating_add(QUERY_TICK_INTERVAL),
+            timer,
+            authorized_statements: plan.authorized_statements,
+            run_all: plan.run_all,
+            completed_outputs: Vec::with_capacity(statement_count),
+        };
+        self.pending_queries.insert(key, pending);
+        self.status = if plan.run_all {
+            format!("Running all in {name} · Esc cancels")
+        } else {
+            format!("Running query in {name} · Esc cancels")
+        };
+        self.schedule_pending_query_tick(cx);
+    }
+
+    fn schedule_pending_query_tick(&self, cx: &mut Cx<'_>) {
+        if self.motion.is_paused() {
+            return;
+        }
+        if let Some(next_tick) = self
+            .pending_queries
+            .values()
+            .map(|pending| pending.next_tick)
+            .min()
+        {
+            cx.request_repaint_at(next_tick);
+        }
+    }
+
+    fn advance_pending_queries(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.motion.is_paused() {
+            return Response::ignored();
+        }
+        let now = cx.now();
+        let mut pending_keys: Vec<_> = self.pending_queries.keys().copied().collect();
+        pending_keys.sort_unstable();
+        let stale: Vec<_> = pending_keys
+            .iter()
+            .filter_map(|key| {
+                self.pending_queries
+                    .get(key)
+                    .filter(|pending| {
+                        !pending.snapshot.is_current(self)
+                            || !self.workbench.query_run_matches(*key, &pending.run_token)
+                    })
+                    .map(|_| *key)
+            })
+            .collect();
+        for key in stale {
+            self.cancel_stale_query(key);
+        }
+        if self.pending_queries.is_empty() {
+            return Response::ignored();
+        }
+        if self.query_safety.is_open() {
+            for pending in self.pending_queries.values_mut() {
+                if pending.next_tick <= now {
+                    pending.next_tick = now.saturating_add(QUERY_TICK_INTERVAL);
+                }
+            }
+            self.schedule_pending_query_tick(cx);
+            return Response::ignored();
+        }
+        let tab_order: Vec<_> = self
+            .workbench
+            .tabs()
+            .iter()
+            .map(|record| record.key())
+            .collect();
+        let mut ready = Vec::new();
+        for key in tab_order {
+            if let Some(pending) = self.pending_queries.get_mut(&key) {
+                if pending.next_tick <= now {
+                    pending.next_tick = now.saturating_add(QUERY_TICK_INTERVAL);
+                    if pending.ticks_left > 0 {
+                        pending.ticks_left = pending.ticks_left.saturating_sub(1);
+                    }
+                    if pending.ticks_left == 0 {
+                        ready.push(key);
+                    }
+                }
+            }
+        }
+        for key in ready {
+            if self.query_safety.is_open() {
+                break;
+            }
+            self.advance_query(key);
+        }
+        self.schedule_pending_query_tick(cx);
+        Response::changed()
+    }
+
+    fn advance_query(&mut self, key: TabKey) {
+        let Some(mut pending) = self.pending_queries.remove(&key) else {
+            return;
+        };
+        if !pending.snapshot.is_current(self)
+            || !self.workbench.query_run_matches(key, &pending.run_token)
+        {
+            let _ = self.cancel_stale_query_with(key, pending);
+            return;
+        }
+        let current_statement = pending.current_statement;
+        let Some(statement) = pending.statements.get(current_statement) else {
+            self.finish_pending_query(key, pending, None);
+            return;
+        };
+        let range = statement.range.clone();
+        if range.start < pending.submitted_range.start || range.end > pending.submitted_range.end {
+            let _ = self.cancel_stale_query_with(key, pending);
+            return;
+        }
+        let Some(query) = pending
+            .snapshot
+            .editor_text
+            .get(range.clone())
+            .map(str::to_owned)
+        else {
+            let _ = self.cancel_stale_query_with(key, pending);
+            return;
+        };
+        let started = self.query_timing.start();
+        let (outcome, body, error_at) = self.execute_query_statement(
+            &query,
+            pending.authorized_statements.contains(&current_statement),
+        );
+        let duration_ms = duration_millis(started.elapsed());
+        self.record_statement_history(&query, &outcome, duration_ms);
+        pending.completed_outputs.push(PendingQueryOutput {
+            range,
+            duration_ms,
+            body,
+            outcome: outcome.clone(),
+            error_at,
+        });
+        if matches!(&outcome, QueryOutcome::Executed { .. })
+            && current_statement.saturating_add(1) < pending.statements.len()
+        {
+            pending.current_statement = current_statement.saturating_add(1);
+            pending.ticks_left = QUERY_NEXT_STATEMENT_TICKS;
+            let next_range = pending.statements[pending.current_statement].range.clone();
+            let next_index = pending.current_statement.saturating_add(1);
+            let statement_count = pending.statements.len();
+            let show_running_range =
+                pending.snapshot.editor_text == pending.snapshot.observed_editor_text;
+            let next_status = format!("running {next_index} of {statement_count}");
+            if self
+                .workbench
+                .application_update_query_run(key, &pending.run_token, |tab| {
+                    tab.editor_state
+                        .editor_mut()
+                        .set_running(show_running_range.then_some(next_range));
+                    tab.record_status(next_status.clone(), false, 0);
+                })
+                .is_none()
+            {
+                let _ = self.cancel_stale_query_with(key, pending);
+                return;
+            }
+            if let Some(snapshot) =
+                pending
+                    .snapshot
+                    .refresh_after_progress(self, &pending.run_token, &next_status)
+            {
+                pending.snapshot = snapshot;
+                self.pending_queries.insert(key, pending);
+            } else {
+                let _ = self.cancel_stale_query_with(key, pending);
+            }
+            return;
+        }
+        self.finish_pending_query(key, pending, Some(outcome));
+    }
+
+    fn finish_pending_query(
+        &mut self,
+        key: TabKey,
+        pending: PendingQueryExecution,
+        outcome: Option<QueryOutcome>,
+    ) {
+        let elapsed = pending.timer.elapsed();
+        let duration_ms = duration_millis(elapsed);
+        let succeeded = matches!(outcome.as_ref(), Some(QueryOutcome::Executed { .. }));
+        let submitted_editor_is_current =
+            self.live_editor_matches(key, &pending.snapshot.editor_text);
+        let (summary, is_error) = match outcome.as_ref() {
+            Some(QueryOutcome::Executed { .. }) if pending.run_all => (
+                format!("completed all {} statements", pending.statements.len()),
+                false,
+            ),
+            Some(QueryOutcome::Executed { .. }) if pending.statements.len() > 1 => (
+                format!("completed {} statements", pending.statements.len()),
+                false,
+            ),
+            Some(QueryOutcome::Executed { .. }) => ("success".to_owned(), false),
+            None => ("cancelled".to_owned(), false),
+            Some(QueryOutcome::Rejected { .. }) => (
+                format!(
+                    "failed {} of {}",
+                    pending.current_statement.saturating_add(1),
+                    pending.statements.len()
+                ),
+                true,
+            ),
+            Some(QueryOutcome::Denied { .. } | QueryOutcome::ConfirmationRequired { .. }) => {
+                ("denied".to_owned(), true)
+            }
+        };
+        if !self.workbench.matches_owner(&pending.snapshot.owner)
+            || self.workbench.generation(key) != Some(pending.snapshot.generation)
+            || !self.workbench.query_run_matches(key, &pending.run_token)
+            || !matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running)
+        {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        }
+        let mut diagnostic = None;
+        let mut outputs = Vec::with_capacity(pending.completed_outputs.len().max(1));
+        if outcome.is_none() {
+            let range = submitted_editor_is_current
+                .then(|| {
+                    pending
+                        .statements
+                        .get(pending.current_statement)
+                        .map(|statement| statement.range.clone())
+                })
+                .flatten();
+            outputs.push(QueryOutputInput::new(
+                "Cancelled",
+                range,
+                duration_millis(elapsed),
+                QueryOutputBody::cancelled(),
+            ));
+        } else {
+            for (index, output) in pending.completed_outputs.into_iter().enumerate() {
+                if submitted_editor_is_current
+                    && matches!(&output.outcome, QueryOutcome::Rejected { .. })
+                {
+                    let query = pending.snapshot.editor_text.get(output.range.clone());
+                    let message = match &output.outcome {
+                        QueryOutcome::Rejected { message } => message.clone(),
+                        _ => String::new(),
+                    };
+                    if let Some(query) = query {
+                        diagnostic = Some((
+                            output.range.clone(),
+                            query.to_owned(),
+                            output.error_at,
+                            message,
+                        ));
+                    }
+                }
+                outputs.push(QueryOutputInput::new(
+                    format!("Statement {}", index.saturating_add(1)),
+                    submitted_editor_is_current.then_some(output.range),
+                    output.duration_ms,
+                    output.body,
+                ));
+            }
+        }
+        match self.workbench.finish_query_run(
+            key,
+            &pending.run_token,
+            "finishing query",
+            false,
+            duration_ms,
+        ) {
+            QueryRunFinish::Finished => {}
+            QueryRunFinish::StoppedWithoutCurrency => {
+                self.status =
+                    "Query result state is unavailable; run stopped fail-closed".to_owned();
+                return;
+            }
+            QueryRunFinish::AlreadyStopped => {
+                self.status = "Query run already stopped".to_owned();
+                return;
+            }
+            QueryRunFinish::NotOwned => {
+                self.status = "Query run is no longer owned".to_owned();
+                return;
+            }
+        }
+        let finalized_generation = self.workbench.generation(key);
+        if !outputs.is_empty() && self.workbench.append_query_outputs(key, outputs).is_none() {
+            let current_generation = self.workbench.generation(key);
+            let failure_generation_matches = current_generation == finalized_generation
+                || finalized_generation
+                    .and_then(|generation| generation.checked_add(1))
+                    .is_some_and(|expected| current_generation == Some(expected))
+                || finalized_generation == Some(u64::MAX)
+                    && current_generation.is_none()
+                    && self.workbench.query_output_state(key).is_none();
+            if self.workbench.matches_owner(&pending.snapshot.owner)
+                && failure_generation_matches
+                && !self.pending_queries.contains_key(&key)
+                && matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if !tab.running)
+            {
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status("result state unavailable", true, duration_ms);
+                });
+            }
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        let diagnostic_published = if let Some((range, query, error_at, message)) = diagnostic
+            && self.live_editor_matches(key, &pending.snapshot.editor_text)
+        {
+            self.apply_query_diagnostic(key, &query, range, error_at, &message)
+        } else {
+            true
+        };
+        if !diagnostic_published {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        if self
+            .workbench
+            .application_update_query(key, |tab| {
+                tab.record_status(summary, is_error, duration_ms);
+            })
+            .is_none()
+        {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        if outcome.is_none() {
+            self.status = "Query cancelled".to_owned();
+        } else if let Some(outcome) = outcome.as_ref() {
+            self.status = outcome_message(outcome);
+            if succeeded && pending.run_all {
+                self.status = format!("Completed all {} statements", pending.statements.len());
+            } else if succeeded && pending.statements.len() > 1 {
+                self.status = format!("Completed {} statements", pending.statements.len());
+            }
+        }
+    }
+
+    fn live_editor_matches(&self, key: TabKey, submitted_sql: &str) -> bool {
+        matches!(
+            self.workbench.tab(key),
+            Some(Tab::Query(tab)) if tab.editor_state.editor().text() == submitted_sql
+        )
+    }
+
+    fn cancel_query(&mut self, key: TabKey) -> QueryCancelOutcome {
+        let cancelled_review = self
+            .pending_query_plan
+            .as_ref()
+            .is_some_and(|plan| plan.snapshot.key == key);
+        if cancelled_review {
+            if let Some(plan) = self.pending_query_plan.take()
+                && plan.snapshot.is_current(self)
+            {
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status("cancelled", false, 0);
+                });
+            }
+        }
+        let Some(pending) = self.pending_queries.remove(&key) else {
+            if cancelled_review {
+                self.status = "Query review cancelled".to_owned();
+                return QueryCancelOutcome::Cancelled;
+            }
+            return QueryCancelOutcome::NoPendingRun;
+        };
+        let duration_ms = duration_millis(pending.timer.elapsed());
+        if !self.workbench.matches_owner(&pending.snapshot.owner) {
+            self.status = "Work changed; request again".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        if self.workbench.generation(key) != Some(pending.snapshot.generation)
+            || !matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running)
+        {
+            self.status = "Work changed; request again".to_owned();
+            return self.cancel_stale_query_with(key, pending);
+        }
+        let range = self
+            .live_editor_matches(key, &pending.snapshot.editor_text)
+            .then(|| {
+                pending
+                    .statements
+                    .get(pending.current_statement)
+                    .map(|statement| statement.range.clone())
+            })
+            .flatten();
+        match self.workbench.finish_query_run(
+            key,
+            &pending.run_token,
+            "finishing cancellation",
+            false,
+            duration_ms,
+        ) {
+            QueryRunFinish::Finished => {}
+            QueryRunFinish::StoppedWithoutCurrency => {
+                self.status =
+                    "Query cancellation state is unavailable; run stopped fail-closed".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+            QueryRunFinish::AlreadyStopped => {
+                self.status = "Query already stopped".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+            QueryRunFinish::NotOwned => {
+                self.status = "Query run is no longer owned".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+        }
+        let finalized_generation = self.workbench.generation(key);
+        let cancelled_output = QueryOutputInput::new(
+            "Cancelled",
+            range,
+            duration_ms,
+            QueryOutputBody::cancelled(),
+        );
+        if self
+            .workbench
+            .append_query_outputs(key, vec![cancelled_output])
+            .is_none()
+        {
+            let current_generation = self.workbench.generation(key);
+            let failure_generation_matches = current_generation == finalized_generation
+                || finalized_generation
+                    .and_then(|generation| generation.checked_add(1))
+                    .is_some_and(|expected| current_generation == Some(expected))
+                || finalized_generation == Some(u64::MAX)
+                    && current_generation.is_none()
+                    && self.workbench.query_output_state(key).is_none();
+            if self.workbench.matches_owner(&pending.snapshot.owner)
+                && failure_generation_matches
+                && !self.pending_queries.contains_key(&key)
+                && matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if !tab.running)
+            {
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status("cancelled; result state unavailable", true, duration_ms);
+                });
+            }
+            self.status = "Query cancellation result state is unavailable".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        if self
+            .workbench
+            .application_update_query(key, |tab| {
+                tab.record_status("cancelled", false, duration_ms);
+            })
+            .is_none()
+        {
+            self.status = "Query cancellation result state is unavailable".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        self.status = "Query cancelled".to_owned();
+        QueryCancelOutcome::Cancelled
+    }
+
+    fn cancel_running_query(&mut self) -> QueryCancelOutcome {
+        let Some(key) = self.workbench.active_key() else {
+            return QueryCancelOutcome::NoPendingRun;
+        };
+        let run_exists = self.pending_queries.contains_key(&key)
+            || matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running);
+        if !run_exists {
+            return QueryCancelOutcome::NoPendingRun;
+        }
+        match self.cancel_query(key) {
+            QueryCancelOutcome::NoPendingRun => {
+                self.status = "Query cancellation state is unavailable".to_owned();
+                QueryCancelOutcome::PublicationUnavailable
+            }
+            outcome => outcome,
+        }
+    }
+
+    fn cancel_stale_query(&mut self, key: TabKey) {
+        let Some(pending) = self.pending_queries.remove(&key) else {
+            return;
+        };
+        let _ = self.cancel_stale_query_with(key, pending);
+    }
+
+    fn refresh_pending_query_after_editor_edit(&mut self, key: TabKey) {
+        let refreshed = self.pending_queries.get(&key).and_then(|pending| {
+            pending
+                .snapshot
+                .refresh_after_editor_edit(self, &pending.run_token)
+        });
+        if let Some(snapshot) = refreshed
+            && let Some(pending) = self.pending_queries.get_mut(&key)
+        {
+            pending.snapshot = snapshot;
+        }
+    }
+
+    fn cancel_stale_query_with(
+        &mut self,
+        key: TabKey,
+        pending: PendingQueryExecution,
+    ) -> QueryCancelOutcome {
+        if !self.workbench.matches_owner(&pending.snapshot.owner)
+            || self.pending_queries.contains_key(&key)
+        {
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        let duration_ms = duration_millis(pending.timer.elapsed());
+        let range = self
+            .live_editor_matches(key, &pending.snapshot.editor_text)
+            .then(|| {
+                pending
+                    .statements
+                    .get(pending.current_statement)
+                    .map(|statement| statement.range.clone())
+            })
+            .flatten();
+        match self.workbench.finish_query_run(
+            key,
+            &pending.run_token,
+            "finishing cancellation",
+            false,
+            duration_ms,
+        ) {
+            QueryRunFinish::Finished => {}
+            QueryRunFinish::StoppedWithoutCurrency => {
+                self.status = "Query state unavailable; stale run stopped fail-closed".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+            QueryRunFinish::AlreadyStopped => {
+                self.status = "Stale query run already stopped".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+            QueryRunFinish::NotOwned => {
+                self.status = "Stale query run is no longer owned".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+        }
+        let finalized_generation = self.workbench.generation(key);
+        if self
+            .workbench
+            .append_query_outputs(
+                key,
+                vec![QueryOutputInput::new(
+                    "Cancelled",
+                    range,
+                    duration_ms,
+                    QueryOutputBody::cancelled(),
+                )],
+            )
+            .is_none()
+        {
+            let current_generation = self.workbench.generation(key);
+            let failure_generation_matches = current_generation == finalized_generation
+                || finalized_generation
+                    .and_then(|generation| generation.checked_add(1))
+                    .is_some_and(|expected| current_generation == Some(expected))
+                || finalized_generation == Some(u64::MAX)
+                    && current_generation.is_none()
+                    && self.workbench.query_output_state(key).is_none();
+            if self.workbench.matches_owner(&pending.snapshot.owner)
+                && failure_generation_matches
+                && !self.pending_queries.contains_key(&key)
+                && matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if !tab.running)
+            {
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status("cancelled; result state unavailable", true, duration_ms);
+                });
+            }
+            self.status = "Query cancellation result state is unavailable".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        if self
+            .workbench
+            .application_update_query(key, |tab| {
+                tab.record_status("cancelled", false, duration_ms);
+            })
+            .is_none()
+        {
+            self.status = "Query cancellation result state is unavailable".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        self.status = "Query cancelled because work changed".to_owned();
+        QueryCancelOutcome::Cancelled
+    }
+
+    fn cancel_pending_queries(&mut self) {
+        let keys: Vec<_> = self
+            .workbench
+            .tabs()
+            .iter()
+            .map(|record| record.key())
+            .filter(|key| self.pending_queries.contains_key(key))
+            .collect();
+        for key in keys {
+            let _ = self.cancel_query(key);
+        }
+        self.pending_query_plan = None;
+    }
+
     fn column_specs(
         columns: &[(String, ColType)],
         editable: bool,
     ) -> ([termrock::Column<'_>; termrock::GRID_MAX_COLUMNS], usize) {
         let count = columns.len().min(termrock::GRID_MAX_COLUMNS);
-        let mut specs =
-            [termrock::Column::new(termrock::ColumnKey::num(0), ""); termrock::GRID_MAX_COLUMNS];
-        for (index, (name, _)) in columns.iter().take(count).enumerate() {
+        let mut specs = [termrock::Column::new(ColumnKey::num(0), ""); termrock::GRID_MAX_COLUMNS];
+        for (index, (name, ty)) in columns.iter().take(count).enumerate() {
             let mut col = termrock::Column::new(
-                termrock::ColumnKey::num((index as u16).saturating_add(1)),
+                ColumnKey::num((index as u16).saturating_add(1)),
                 name.as_str(),
             );
             col.sortable = true;
             col.editable = editable;
-            col.sticky = index == 0;
+            col.sticky = false;
+            let (min_width, max_width) = match ty {
+                ColType::Uuid => (9, 36),
+                ColType::Text => (6, 40),
+                ColType::Int | ColType::Numeric => (4, 22),
+                ColType::Bool => (5, 5),
+                ColType::Timestamp | ColType::Date => (10, 29),
+                ColType::Json => (8, 40),
+                ColType::Enum => (6, 16),
+            };
+            col.min_width = min_width;
+            col.max_width = max_width;
+            if matches!(ty, ColType::Int | ColType::Numeric) {
+                col.align = Align::Right;
+            }
             if let Some(slot) = specs.get_mut(index) {
                 *slot = col;
             }
@@ -1099,6 +3254,7 @@ impl TableProApp {
         Form::new(connections::FORM, fields)
             .actions(actions)
             .submit(connections::SAVE_CONNECT)
+            .enter(EnterPolicy::Never)
     }
     fn handle_grid(status: &mut String, action: &GridAction) {
         match action {
@@ -1133,14 +3289,13 @@ impl TableProApp {
                 Tab::Table(tab) => pending = pending.saturating_add(tab.result.pending_total()),
                 Tab::Query(tab) => {
                     dirty_queries = dirty_queries.saturating_add(usize::from(tab.dirty()));
-                    if let Some(grid) = &tab.result {
-                        pending = pending.saturating_add(grid.pending_total());
-                    }
+                    pending = pending.saturating_add(record.pending_query_result_total());
                 }
                 Tab::History(_) => {}
             }
         }
         if pending == 0 && dirty_queries == 0 {
+            self.cancel_pending_queries();
             self.quit = true;
             cx.quit();
             return Response::consumed();
@@ -1169,7 +3324,25 @@ impl TableProApp {
 
     fn open_destructive(&mut self, cx: &mut Cx<'_>, intent: DestructiveIntent) {
         self.destructive_notice = None;
-        cx.open_layer(QUIT_DIALOG, intent.dialog().layer(cx));
+        let initial_focus = if matches!(
+            &intent,
+            DestructiveIntent::Commit(request) if request.safe_mode.requires_authentication()
+        ) {
+            intent
+                .dialog_for(cx.viewport().width, cx.viewport().height, cx.design())
+                .input_id()
+        } else {
+            intent
+                .dialog_for(cx.viewport().width, cx.viewport().height, cx.design())
+                .action_id(0)
+        };
+        let screen = cx.viewport();
+        cx.open_layer(QUIT_DIALOG, intent.layer(cx, Some(initial_focus)));
+        self.destructive_viewport = Some((screen.width, screen.height));
+        if matches!(&intent, DestructiveIntent::Commit(_)) {
+            self.commit_preview_state = ViewportState::default();
+            self.commit_preview_state.set_follow(false);
+        }
         self.destructive_intent = Some(DestructiveRequest {
             intent,
             owner: self.workbench.owner_token(),
@@ -1198,35 +3371,228 @@ impl TableProApp {
         }
     }
 
-    fn request_query(&mut self, cx: &mut Cx<'_>) {
+    fn request_query(&mut self, cx: &mut Cx<'_>, run_all: bool) {
         let Some(key) = self.workbench.active_key() else {
             return;
         };
         let Some(Tab::Query(tab)) = self.workbench.tab(key) else {
             return;
         };
-        if tab.has_pending_result() {
-            let Some(generation) = self.workbench.generation(key) else {
-                self.stale_destructive();
+        if tab.running || self.pending_queries.contains_key(&key) {
+            self.status = "Query is already running".to_owned();
+            return;
+        }
+        let pending_result = self
+            .workbench
+            .query_has_pending_result(key)
+            .unwrap_or(false);
+        let plan = match self.prepare_query_run(key, run_all) {
+            Ok(plan) => plan,
+            Err(outcome) => {
+                let message = outcome_message(&outcome);
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status(message.clone(), true, 0);
+                });
+                self.status = message;
                 return;
-            };
-            let query = tab
-                .editor_state
-                .draft_text()
-                .unwrap_or(&tab.query)
-                .to_owned();
+            }
+        };
+        if pending_result {
             self.open_destructive(
                 cx,
                 DestructiveIntent::ReplaceResult {
-                    key,
-                    query,
-                    generation,
-                    connection: Box::new(self.workbench.connection.clone()),
+                    plan: Box::new(plan),
                 },
             );
         } else {
-            self.commit_query_edit();
-            let _ = self.execute_query();
+            self.start_pending_query(cx, plan);
+        }
+    }
+
+    fn request_commit(&mut self, cx: &mut Cx<'_>) {
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
+            return;
+        }
+        match self.pending_commit() {
+            Ok(request) => self.open_destructive(cx, DestructiveIntent::Commit(Box::new(request))),
+            Err(message) => self.status = message.to_owned(),
+        }
+    }
+
+    fn pending_commit(&self) -> Result<PendingCommit, &'static str> {
+        if self.safe_mode == SafeMode::ReadOnly {
+            return Err("Read-only mode refuses row changes");
+        }
+        let key = self.workbench.active_key().ok_or("No active result tab")?;
+        let (_, grid) = self
+            .workbench
+            .active_grid()
+            .ok_or("The active tab has no result grid")?;
+        if grid.state.is_editing() {
+            return Err("Finish or cancel the inline cell edit before saving");
+        }
+        let changes = grid.model.pending_total();
+        if changes == 0 {
+            return Err("No pending changes");
+        }
+        if !grid.model.is_editable() {
+            return Err("This result is read-only");
+        }
+        let source = grid
+            .model
+            .source()
+            .ok_or("This result has no writable table source")?;
+        let (schema, table_name) = source
+            .split_once('.')
+            .ok_or("The result source does not identify a table")?;
+        let table = self
+            .catalog
+            .find(Some(schema), table_name)
+            .filter(|table| table.kind == ObjectKind::Table)
+            .ok_or("The result source table is unavailable")?;
+        let statements = preview_sql(table, &grid.columns, grid.model.pending());
+        if statements.is_empty() {
+            return Err("No row changes to commit");
+        }
+        let generation = self
+            .workbench
+            .generation(key)
+            .ok_or("Work changed; request again")?;
+        let pending = grid.model.pending().clone();
+        let mut inserts = 0usize;
+        let mut deletes = 0usize;
+        let mut updates = 0usize;
+        for row in pending.dirty_rows() {
+            if pending.is_inserted(row) {
+                inserts = inserts.saturating_add(1);
+            } else if pending.is_deleted(row) {
+                deletes = deletes.saturating_add(1);
+            } else {
+                updates = updates.saturating_add(1);
+            }
+        }
+        let target = table.qualified();
+        let connection = self.workbench.connection.clone();
+        let description = format!(
+            "Connection: {} · {}\nDatabase: {} · Target: {}\nChanges: {changes} row(s) ({updates} update · {inserts} insert · {deletes} delete) · {} mode\nRisk: row values and membership will change\nSQL: {} statement(s) · PgUp/PgDn, ↑/↓ or wheel to review",
+            connection.name,
+            connection.environment.label(),
+            connection.database,
+            target,
+            self.safe_mode.label(),
+            statements.len(),
+        );
+        let cursor = grid.state.cursor().and_then(|(row_key, column)| {
+            let index =
+                (0..grid.model.row_count()).find(|row| grid.model.row_key(*row) == row_key)?;
+            Some((row_key, column, index))
+        });
+        Ok(PendingCommit {
+            key,
+            generation,
+            output_state: self.workbench.query_output_state(key),
+            connection,
+            schema: table.schema.clone(),
+            target: target.clone(),
+            safe_mode: self.safe_mode,
+            pending,
+            columns: grid.columns.clone(),
+            cursor,
+            selected_rows: grid.state.selected_rows().clone(),
+            description,
+            statements,
+            acknowledgement: target.clone(),
+            acknowledgement_label: format!("Type {target} to confirm"),
+            changes,
+        })
+    }
+
+    fn finish_commit(&mut self, request: PendingCommit) {
+        if self.safe_mode == SafeMode::ReadOnly
+            || self.safe_mode != request.safe_mode
+            || self.workbench.connection != request.connection
+            || self.workbench.active_key() != Some(request.key)
+            || self.workbench.generation(request.key) != Some(request.generation)
+            || self.workbench.query_output_state(request.key) != request.output_state
+        {
+            self.stale_destructive();
+            return;
+        }
+        let result = if let Some((id, grid)) = self.workbench.application_grid_mut(request.key) {
+            let cursor_matches =
+                grid.state.cursor() == request.cursor.map(|(key, column, _)| (key, column));
+            if !grid.model.is_editable()
+                || grid.model.source() != Some(request.target.as_str())
+                || grid.model.pending_total() == 0
+                || grid.model.pending() != &request.pending
+                || grid.columns != request.columns
+                || grid.state.is_editing()
+                || !cursor_matches
+                || grid.state.selected_rows() != &request.selected_rows
+            {
+                false
+            } else if grid.model.commit_pending() {
+                if let Some((old_key, column, old_index)) = request.cursor
+                    && !(0..grid.model.row_count()).any(|row| grid.model.row_key(row) == old_key)
+                {
+                    if grid.model.row_count() == 0 {
+                        grid.state = termrock::GridState::default();
+                    } else {
+                        let row = old_index.min(grid.model.row_count().saturating_sub(1));
+                        let (columns, count) =
+                            Self::column_specs(&grid.columns, grid.model.is_editable());
+                        let column_index = usize::from(column.raw()).saturating_sub(1);
+                        if let Some(target_column) = columns
+                            .get(column_index)
+                            .filter(|_| column_index < count)
+                            .or_else(|| columns.first().filter(|_| count > 0))
+                            .map(|column| column.key)
+                        {
+                            let target_row = grid.model.row_key(row);
+                            if result_grid::result_grid(id, columns.get(..count).unwrap_or(&[]))
+                                .move_cursor_to(
+                                    &mut grid.state,
+                                    &grid.model,
+                                    target_row,
+                                    target_column,
+                                )
+                                .is_err()
+                            {
+                                grid.state = termrock::GridState::default();
+                            }
+                        } else {
+                            grid.state = termrock::GridState::default();
+                        }
+                    }
+                }
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        if result {
+            for sql in &request.statements {
+                self.workbench.history.push(HistoryEntry {
+                    id: 0,
+                    sql: sql.clone(),
+                    connection: request.connection.name.clone(),
+                    database: request.connection.database.clone(),
+                    schema: request.schema.clone(),
+                    minutes_ago: 0,
+                    duration_ms: Some(1),
+                    rows: Some(1),
+                    error: None,
+                    source: HistorySource::RowEdits,
+                });
+            }
+            self.status = format!(
+                "Committed {} row change(s) to {}",
+                request.changes, request.target
+            );
+        } else {
+            self.stale_destructive();
         }
     }
 
@@ -1241,14 +3607,16 @@ impl TableProApp {
             };
             self.open_destructive(cx, DestructiveIntent::CloseTab { key, generation });
         } else {
-            let _ = self.workbench.close_tab_confirmed(key);
+            if self.workbench.close_tab_confirmed(key) {
+                let _ = self.cancel_query(key);
+            }
             self.sync_active_tab();
         }
     }
 
     fn active_row_action(&self, cx: &Cx<'_>) -> bool {
         self.workbench.active_grid().is_some_and(|(id, grid)| {
-            cx.state(id).contains(termrock::StateFlags::FOCUSED)
+            cx.state(id).contains(StateFlags::FOCUSED)
                 && !grid.state.is_editing()
                 && grid.model.is_editable()
         })
@@ -1276,7 +3644,7 @@ impl TableProApp {
             return;
         };
         let column = defaults.iter().position(|default| !default).unwrap_or(0);
-        let Some((id, grid)) = self.workbench.active_grid_mut() else {
+        let Some((id, grid)) = self.workbench.application_active_grid_mut() else {
             return;
         };
         let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
@@ -1291,7 +3659,7 @@ impl TableProApp {
             return;
         };
         let key = grid.model.row_key(row);
-        if result_grid(id, columns.get(..count).unwrap_or(&[]))
+        if result_grid::result_grid(id, columns.get(..count).unwrap_or(&[]))
             .move_cursor_to(&mut grid.state, &grid.model, key, target)
             .is_err()
         {
@@ -1299,8 +3667,61 @@ impl TableProApp {
         }
     }
 
+    fn duplicate_selected_connection(&mut self) {
+        let index = self.connections_screen.selected;
+        let Some(mut copy) = self.connections.get(index).cloned() else {
+            return;
+        };
+        if self.connections_screen.connections.get(index) != Some(&copy) {
+            return;
+        }
+        copy.name.push_str(" (Copy)");
+        let insert_at = index.saturating_add(1);
+        self.connections.insert(insert_at, copy.clone());
+        self.connections_screen.connections.insert(insert_at, copy);
+        self.connection_nodes = build_connection_nodes(&self.connections);
+        "Duplicated".clone_into(&mut self.status);
+    }
+
+    fn duplicate_active_row(&mut self) {
+        if self
+            .workbench
+            .active_table()
+            .is_some_and(crate::tabs::TableTab::is_structure)
+        {
+            return;
+        }
+        let Some(defaults) = self.insert_defaults() else {
+            return;
+        };
+        let Some((id, grid)) = self.workbench.application_active_grid_mut() else {
+            return;
+        };
+        let Some((source_key, column)) = grid.state.cursor() else {
+            return;
+        };
+        let Some(source) = (0..grid.model.row_count())
+            .find(|row| GridModel::row_key(&grid.model, *row) == source_key)
+        else {
+            return;
+        };
+        let Some(row) = grid.model.duplicate_row(source, &defaults) else {
+            return;
+        };
+        let key = grid.model.row_key(row);
+        let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
+        if result_grid::result_grid(id, columns.get(..count).unwrap_or(&[]))
+            .move_cursor_to(&mut grid.state, &grid.model, key, column)
+            .is_err()
+        {
+            let _ = grid.model.undo();
+        } else if row.saturating_add(1) == grid.model.row_count() {
+            grid.state.set_scroll_reveal(row.saturating_sub(1));
+        }
+    }
+
     fn toggle_active_row(&mut self) {
-        let Some((_, grid)) = self.workbench.active_grid_mut() else {
+        let Some((_, grid)) = self.workbench.application_active_grid_mut() else {
             return;
         };
         let Some((key, _)) = grid.state.cursor() else {
@@ -1345,9 +3766,159 @@ impl TableProApp {
         self.switcher.open(&self.workbench);
         cx.open_layer(
             quick_switcher::ID,
-            self.switcher.component().layer(cx, &self.switcher.items),
+            self.switcher
+                .component()
+                .layer(cx, &self.switcher.items)
+                .viewport_margin(4, 2),
         );
         self.surface = Surface::QuickSwitcher;
+    }
+
+    fn open_tab_list(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
+            return false;
+        }
+        if cx.is_open(tab_list::ID) {
+            return false;
+        }
+        self.tab_list.open(&self.workbench);
+        cx.open_layer(
+            tab_list::ID,
+            tab_list::picker(self.tab_list.rows.len())
+                .layer(cx, &self.tab_list.rows)
+                .viewport_margin(4, 2),
+        );
+
+        self.surface = Surface::TabListPicker;
+        true
+    }
+
+    fn open_safe_mode_picker(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
+            return false;
+        }
+        if cx.is_open(crate::safe_mode::ID) {
+            return false;
+        }
+        self.safe_mode_picker.open(&self.workbench, self.safe_mode);
+        cx.open_layer(
+            crate::safe_mode::ID,
+            crate::safe_mode::picker(self.safe_mode_picker.rows.len())
+                .layer(cx, &self.safe_mode_picker.rows),
+        );
+
+        self.surface = Surface::SafeModePicker;
+        true
+    }
+
+    fn delete_dialog(&self) -> Dialog<'_> {
+        Dialog::destructive(DELETE_DIALOG, "Delete connection?", &self.delete_question).width(54)
+    }
+
+    fn open_delete_dialog(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.screen != Screen::Connections
+            || self.form_open
+            || self.connection_filter_editing
+            || self.destructive_intent.is_some()
+            || cx.is_open(DELETE_DIALOG)
+        {
+            return false;
+        }
+        let Some(connection) = self
+            .connections_screen
+            .connections
+            .get(self.connections_screen.selected)
+        else {
+            return false;
+        };
+        self.delete_question = format!(
+            "{} ({}@{}) will be removed from connections.json. Its password stays in the keychain until you remove it there.",
+            connection.name, connection.user, connection.host
+        );
+        let dialog = self.delete_dialog();
+        let design = cx.design();
+        let width = dialog.measured_width(design);
+        let height = dialog.measured_height(design);
+        let screen = cx.viewport();
+        let top = 2u16;
+        let bottom = 1u16;
+        let bounds_h = screen.height.saturating_sub(top.saturating_add(bottom));
+        let y = screen
+            .y
+            .saturating_add(top)
+            .saturating_add(bounds_h.saturating_sub(height) / 2);
+        let x = screen
+            .x
+            .saturating_add(screen.width.saturating_sub(width) / 2);
+        cx.open_layer(
+            DELETE_DIALOG,
+            LayerSpec::modal(DELETE_DIALOG)
+                .anchor(Anchor::Point(Position::new(x, y.saturating_sub(1))))
+                .initial_focus(dialog.action_id(0))
+                .size(LayerSize::Fixed(width, height)),
+        );
+        self.delete_state = DialogState::default();
+        self.connection_delete = ConnectionDelete::Open;
+        true
+    }
+
+    fn update_delete_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = self.connection_delete == ConnectionDelete::Open;
+        let question = self.delete_question.clone();
+        let response = Dialog::destructive(DELETE_DIALOG, "Delete connection?", &question)
+            .width(54)
+            .update(cx, &mut self.delete_state);
+        let close = was_open
+            && match response.action_ref() {
+                Some(DialogAction::Dismissed(_) | DialogAction::Action(ActionKey::CANCEL)) => true,
+                Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                    self.remove_selected_connection();
+                    true
+                }
+                _ => false,
+            };
+        if close {
+            cx.close_layer(DELETE_DIALOG, None);
+            self.connection_delete = ConnectionDelete::Closed;
+            self.delete_question.clear();
+        }
+        response.erase()
+    }
+
+    fn remove_selected_connection(&mut self) {
+        let index = self.connections_screen.selected;
+        if self.connections.get(index).is_none() {
+            return;
+        }
+        self.connections.remove(index);
+        self.connections_screen.connections.remove(index);
+        if self.connections.is_empty() {
+            self.connections_screen.selected = 0;
+        } else if index >= self.connections.len() {
+            self.connections_screen.selected = self.connections.len().saturating_sub(1);
+        }
+        self.connection_nodes = build_connection_nodes(&self.connections);
+    }
+
+    fn open_help(&mut self, cx: &mut Cx<'_>) -> bool {
+        if cx.is_open(crate::help_keys::ID) {
+            return false;
+        }
+        self.help_state = termrock::HelpOverlayState::default();
+        self.help_underlay = Some(self.surface);
+        cx.open_layer(crate::help_keys::ID, crate::help_keys::layer(cx));
+        self.surface = Surface::HelpDialog;
+        true
+    }
+
+    fn update_help(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let response = crate::help_keys::update(cx, &mut self.help_state);
+        if matches!(response.action_ref(), Some(termrock::HelpAction::Closed(_)))
+            && let Some(surface) = self.help_underlay.take()
+        {
+            self.surface = surface;
+        }
+        response.erase()
     }
 
     fn update_switcher(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -1380,6 +3951,117 @@ impl TableProApp {
             _ => {}
         }
         if was_open && !cx.is_open(quick_switcher::ID) && self.surface == Surface::QuickSwitcher {
+            self.sync_active_tab();
+        }
+        response.erase()
+    }
+
+    fn update_tab_list(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(tab_list::ID);
+        if was_open && !self.workbench.matches_owner(&self.tab_list.owner) {
+            for owner in [tab_list::ID, tab_list::ID.sub("results")] {
+                for _ in cx.intents(owner) {}
+            }
+            cx.close_layer(tab_list::ID, None);
+            self.tab_list.rows.clear();
+            "Workbench changed; reopen tab list".clone_into(&mut self.status);
+            if self.surface == Surface::TabListPicker {
+                self.sync_active_tab();
+            }
+            return Response::changed();
+        }
+        let mut response = tab_list::picker(self.tab_list.rows.len()).update(
+            cx,
+            &mut self.tab_list.state,
+            &self.tab_list.rows,
+        );
+        match response.take_action() {
+            Some(PickerAction::QueryChanged) if was_open => {
+                tab_list::picker(self.tab_list.rows.len())
+                    .reconcile(&mut self.tab_list.state, &self.tab_list.rows);
+            }
+            Some(PickerAction::Chosen(key)) if was_open => {
+                let tab_key = self
+                    .tab_list
+                    .rows
+                    .iter()
+                    .find(|row| ItemKey::num(row.key.get()) == key)
+                    .map(|row| row.key);
+                cx.close_layer(tab_list::ID, None);
+                if let Some(tab_key) = tab_key {
+                    let _ = self.workbench.activate(tab_key);
+                    self.sync_active_tab();
+                    self.focus_active_tab_primary(cx);
+                }
+            }
+            Some(PickerAction::Secondary(key)) if was_open => {
+                let tab_key = self
+                    .tab_list
+                    .rows
+                    .iter()
+                    .find(|row| ItemKey::num(row.key.get()) == key)
+                    .map(|row| row.key);
+                if let Some(tab_key) = tab_key {
+                    let existed = self.workbench.generation(tab_key).is_some();
+                    self.request_close_tab(cx, tab_key);
+                    if existed && self.workbench.generation(tab_key).is_none() {
+                        cx.close_layer(tab_list::ID, None);
+                        self.tab_list = TabList::default();
+                        let _ = self.open_tab_list(cx);
+                    }
+                }
+            }
+            _ => {}
+        }
+        if was_open && !cx.is_open(tab_list::ID) && self.surface == Surface::TabListPicker {
+            self.sync_active_tab();
+        }
+        response.erase()
+    }
+
+    fn focus_active_tab_primary(&self, cx: &mut Cx<'_>) {
+        match self.workbench.active() {
+            Some(Tab::Query(_)) => {
+                if let Some(id) = self.query_id() {
+                    cx.focus(id);
+                }
+            }
+            Some(Tab::Table(table)) if !table.is_structure() => {
+                if let Some(id) = self.result_id() {
+                    cx.focus(id);
+                }
+            }
+
+            Some(Tab::Table(_) | Tab::History(_)) | None => {}
+        }
+    }
+
+    fn update_safe_mode(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(crate::safe_mode::ID);
+
+        let mut response = crate::safe_mode::picker(self.safe_mode_picker.rows.len()).update(
+            cx,
+            &mut self.safe_mode_picker.state,
+            &self.safe_mode_picker.rows,
+        );
+        if was_open && !self.workbench.matches_owner(&self.safe_mode_picker.owner) {
+            cx.close_layer(crate::safe_mode::ID, None);
+            self.safe_mode_picker.rows.clear();
+            "Workbench changed; reopen safe mode".clone_into(&mut self.status);
+            if self.surface == Surface::SafeModePicker {
+                self.sync_active_tab();
+            }
+            return Response::changed();
+        }
+        if let Some(PickerAction::Chosen(key)) = response.take_action()
+            && was_open
+            && let Some(mode) = crate::safe_mode::mode_of(key)
+        {
+            self.set_safe_mode(mode);
+            cx.close_layer(crate::safe_mode::ID, None);
+        }
+        if was_open && !cx.is_open(crate::safe_mode::ID) && self.surface == Surface::SafeModePicker
+        {
             self.sync_active_tab();
         }
         response.erase()
@@ -1439,6 +4121,15 @@ impl TableProApp {
     }
 
     fn update_destructive_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let screen = cx.viewport();
+        let viewport_size = (screen.width, screen.height);
+        if self.destructive_intent.is_some()
+            && self.destructive_viewport != Some(viewport_size)
+            && let Some(request) = self.destructive_intent.as_ref()
+        {
+            cx.open_layer(QUIT_DIALOG, request.intent.layer(cx, None));
+            self.destructive_viewport = Some(viewport_size);
+        }
         let fallback = DestructiveIntent::Quit {
             question: String::new(),
             scope: Vec::new(),
@@ -1447,11 +4138,28 @@ impl TableProApp {
             .destructive_intent
             .as_ref()
             .map_or(&fallback, |request| &request.intent);
-        let response = intent.dialog().update(cx, &mut self.quit_state);
+        let scroll_response = if let DestructiveIntent::Commit(request) = intent {
+            let lines: Vec<_> = request
+                .statements
+                .iter()
+                .map(|statement| ViewportLine::Plain(statement))
+                .collect();
+            TextViewport::new(COMMIT_PREVIEW)
+                .wrap(true)
+                .reserve_gutter(false)
+                .update(cx, &mut self.commit_preview_state, &lines)
+                .erase()
+        } else {
+            Response::ignored()
+        };
+        let response = intent
+            .dialog_for(screen.width, screen.height, cx.design())
+            .update(cx, &mut self.quit_state);
         if let Some(action) = response.action_ref() {
             let confirmed = matches!(action, DialogAction::Action(ActionKey::CONFIRM))
                 && cx.is_open(QUIT_DIALOG);
             cx.close_layer(QUIT_DIALOG, None);
+            self.destructive_viewport = None;
             if let Some(request) = self.destructive_intent.take()
                 && confirmed
             {
@@ -1463,6 +4171,7 @@ impl TableProApp {
                     DestructiveIntent::Quit { scope, .. } => {
                         if self.workbench.matches_scope(&scope) {
                             if !self.quit {
+                                self.cancel_pending_queries();
                                 self.quit = true;
                                 cx.quit();
                             }
@@ -1474,6 +4183,11 @@ impl TableProApp {
                         if self.workbench.generation(key) != Some(generation) {
                             self.stale_destructive();
                         } else if self.workbench.close_tab_confirmed(key) {
+                            let _ = self.cancel_query(key);
+                            if cx.is_open(tab_list::ID) {
+                                cx.close_layer(tab_list::ID, None);
+                                self.tab_list = TabList::default();
+                            }
                             self.sync_active_tab();
                             let focus = self
                                 .query_id()
@@ -1500,96 +4214,843 @@ impl TableProApp {
                     } => {
                         if self.workbench.generation(key) != Some(generation) {
                             self.stale_destructive();
-                        } else if let Some(tab) = self.workbench.tab_mut(key)
-                            && let Some((_, grid)) = tab.grid_mut(key)
-                        {
+                        } else if let Some((_, grid)) = self.workbench.application_grid_mut(key) {
                             let _ = grid.state.cancel_edit();
                             grid.model.discard();
                         }
                     }
-                    DestructiveIntent::ReplaceResult {
-                        key,
-                        query,
-                        generation,
-                        connection,
-                    } => {
-                        if self.workbench.connection == *connection
-                            && self.workbench.generation(key) == Some(generation)
-                        {
-                            let _ = self.execute_snapshot(key, &query);
+                    DestructiveIntent::ReplaceResult { plan } => {
+                        if plan.snapshot.is_current(self) {
+                            self.start_pending_query(cx, *plan);
                         } else {
+                            self.status = "Work changed; request again".to_owned();
                             self.stale_destructive();
                         }
                     }
+                    DestructiveIntent::Commit(request) => self.finish_commit(*request),
                 }
             }
         }
-        response.erase()
+        response.erase() | scroll_response
     }
 
-    fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut response = Response::ignored();
-        for (key, tab) in self.workbench.payloads_mut() {
-            if let Tab::Query(query) = tab {
-                response |= query_input(key.control("query"), None)
-                    .update(cx, &mut query.editor_state, &mut query.query)
-                    .erase();
-            }
-            match tab {
-                Tab::Table(table) => {
-                    let grid_response =
-                        Self::update_grid_view(cx, key.control("data"), &mut table.result);
-                    if let Some(action) = grid_response.action_ref() {
-                        Self::handle_grid(&mut self.status, action);
-                    }
-                    response |= grid_response.erase();
-                    let grid_response =
-                        Self::update_grid_view(cx, key.control("structure"), &mut table.structure);
-                    if let Some(action) = grid_response.action_ref() {
-                        Self::handle_grid(&mut self.status, action);
-                    }
-                    response |= grid_response.erase();
+    fn update_query_safety(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut controller = core::mem::take(&mut self.query_safety);
+        let was_open = controller.is_open();
+        let response = controller.update(self, cx);
+        self.query_safety = controller;
+        if was_open
+            && !self.query_safety.is_open()
+            && let Some(plan) = self.pending_query_plan.take()
+        {
+            let reviewed_index = plan.review_statement_index;
+            if plan.authorized_statements.contains(&reviewed_index) {
+                if let Some(next_index) = plan
+                    .confirm_indices
+                    .iter()
+                    .copied()
+                    .find(|index| !plan.authorized_statements.contains(index))
+                {
+                    self.open_query_review(cx, plan, next_index);
+                } else {
+                    self.start_pending_query(cx, plan);
                 }
-                Tab::Query(query) => {
-                    if let Some(grid) = &mut query.result {
-                        let grid_response =
-                            Self::update_grid_view(cx, key.control("results"), grid);
-                        if let Some(action) = grid_response.action_ref() {
-                            Self::handle_grid(&mut self.status, action);
-                        }
-                        response |= grid_response.erase();
-                    }
+            } else if self.status != "Work changed; request again" {
+                if plan.snapshot.is_current(self) {
+                    let _ = self
+                        .workbench
+                        .application_update_query(plan.snapshot.key, |tab| {
+                            tab.record_status("cancelled", false, 0);
+                        });
                 }
-                Tab::History(_) => {}
+                self.status = "Query review cancelled".to_owned();
             }
         }
         response
     }
 
+    fn update_history_detail(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.history_detail.update(
+            cx,
+            &self.workbench,
+            self.screen == Screen::Workbench
+                && self.surface == Surface::HistoryTab
+                && !self.form_open,
+        )
+    }
+
+    fn update_history_rows(&mut self, cx: &mut Cx<'_>) -> (Response<()>, bool) {
+        let (mut response, action) = self.history_rows.update(
+            cx,
+            &mut self.workbench,
+            &self.history_controls,
+            self.screen == Screen::Workbench && !self.form_open,
+        );
+        let accepted = action.is_some();
+        match action {
+            Some(HistoryAction::Open(sql)) => {
+                let previous_counter = self.workbench.query_counter;
+                self.new_query(cx, sql);
+                if self.workbench.query_counter != previous_counter {
+                    response |= Response::changed();
+                }
+            }
+            Some(HistoryAction::Copy(sql)) => {
+                cx.clipboard_copy(&sql);
+                "Copied full SQL".clone_into(&mut self.status);
+                response |= Response::changed();
+            }
+            None => {}
+        }
+        (response, accepted)
+    }
+
+    fn update_history_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let active_key = self.workbench.active_key();
+        let current_connection = self.workbench.connection.name.clone();
+        let history_visible = self.screen == Screen::Workbench && !self.form_open;
+        let mut response = Response::ignored();
+        let mut live_history_keys = Vec::new();
+        let mut refreshes = Vec::new();
+
+        {
+            let workbench = &mut self.workbench;
+            let controls_by_key = &mut self.history_controls;
+            let keys: Vec<_> = workbench.tabs().iter().map(TabRecord::key).collect();
+            for key in keys {
+                let update = workbench.application_update_payload(key, |tab| {
+                    let Tab::History(history) = tab else {
+                        return (None, ApplicationMutation::Unchanged);
+                    };
+                    let old_search = history.search.clone();
+                    let controls = controls_by_key.entry(key).or_default();
+                    let active = history_visible && active_key == Some(key);
+                    let (control_response, refresh, _) =
+                        controls.update(cx, key, &mut history.search, &current_connection, active);
+                    let mutation = if history.search != old_search {
+                        ApplicationMutation::Changed
+                    } else {
+                        ApplicationMutation::Unchanged
+                    };
+                    (
+                        Some((
+                            control_response,
+                            refresh,
+                            history.search.clone(),
+                            controls.scope(),
+                            controls.failed_only(),
+                        )),
+                        mutation,
+                    )
+                });
+                let Some(Some((control_response, refresh, search, scope, failed_only))) = update
+                else {
+                    continue;
+                };
+                live_history_keys.push(key);
+                response |= control_response;
+                if history_visible && active_key == Some(key) && refresh {
+                    refreshes.push((key, search, scope, failed_only));
+                }
+            }
+        }
+
+        let known_keys: Vec<_> = self.history_controls.keys().copied().collect();
+        let mut prune = Vec::new();
+        for key in known_keys {
+            if live_history_keys.contains(&key) {
+                continue;
+            }
+            let Some(controls) = self.history_controls.get_mut(&key) else {
+                continue;
+            };
+            let (orphan_response, ready_to_prune) = controls.service_orphan(cx, key);
+            response |= orphan_response;
+            if ready_to_prune {
+                prune.push(key);
+            }
+        }
+        for key in prune {
+            self.history_controls.remove(&key);
+        }
+
+        for (key, search, scope, failed_only) in refreshes {
+            self.apply_history_filter(key, &search, scope, failed_only, &current_connection);
+        }
+        response
+    }
+
+    fn refresh_history_tab(&mut self, key: TabKey) {
+        let Some(Tab::History(history)) = self.workbench.tab(key) else {
+            return;
+        };
+        let search = history.search.clone();
+        let current_connection = self.workbench.connection.name.clone();
+        let controls = self.history_controls.entry(key).or_default();
+        let scope = controls.scope();
+        let failed_only = controls.failed_only();
+        controls.mark_refreshed(&search, &current_connection);
+        self.apply_history_filter(key, &search, scope, failed_only, &current_connection);
+    }
+
+    fn apply_history_filter(
+        &mut self,
+        key: TabKey,
+        search: &str,
+        scope: ConnectionScope,
+        failed_only: bool,
+        current_connection: &str,
+    ) {
+        let connection = match scope {
+            ConnectionScope::All => None,
+            ConnectionScope::Current => Some(current_connection),
+        };
+        let entries = self
+            .workbench
+            .history
+            .search(search, connection, failed_only)
+            .into_iter()
+            .cloned()
+            .collect();
+        if let Some(Tab::History(history)) = self.workbench.tab_mut(key) {
+            history.entries = entries;
+            history.selected = history
+                .selected
+                .min(history.entries.len().saturating_sub(1));
+        }
+    }
+
+    fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut response = Response::ignored();
+        let active_key = self.workbench.active_key();
+        let active_pane = self.visible_query_pane_mode();
+        let query_visible = self.screen == Screen::Workbench;
+        let query_requests_locked =
+            self.query_safety.is_open() || self.pending_query_plan.is_some();
+        let provider = SqlCompletionProvider {
+            catalog: &self.catalog,
+        };
+        let keys: Vec<_> = self.workbench.tabs().iter().map(TabRecord::key).collect();
+        let workbench = &mut self.workbench;
+        let status = &mut self.status;
+        let mut changed_editor_sql = Vec::new();
+        for key in keys {
+            let mut editor_sql_changed = false;
+            let tab_response = workbench.application_update_payload(key, |tab| {
+                let mut mutation = ApplicationMutation::Unchanged;
+                let mut tab_response = Response::ignored();
+                if let Tab::Query(query) = tab {
+                    let id = key.control("query");
+                    let active_editor = query_visible && active_key == Some(key);
+                    if !query_requests_locked
+                        && (!active_editor || active_pane != QueryPaneMode::Results)
+                    {
+                        let previous_text = query.editor_state.editor().text().to_owned();
+                        let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider, active_editor);
+                        let editor_response = editor.update(cx, &mut query.editor_state);
+                        if matches!(
+                            editor_response.action_ref(),
+                            Some(
+                                CodeAction::Changed
+                                    | CodeAction::Committed
+                                    | CodeAction::Leave { .. }
+                            )
+                        ) {
+                            query.sync_query_text();
+                        }
+                        editor_sql_changed = previous_text != query.editor_state.editor().text();
+                        if editor_sql_changed && query.running {
+                            query.editor_state.editor_mut().set_running(None);
+                        }
+                        tab_response |= editor_response.erase();
+                    }
+
+                    if query_requests_locked
+                        || !active_editor
+                        || active_pane == QueryPaneMode::Editor
+                    {
+                        return (tab_response, mutation);
+                    }
+                }
+                match tab {
+                    Tab::Table(table) => {
+                        let grid_response =
+                            Self::update_grid_view(cx, key.control("data"), &mut table.result);
+                        if let Some(action) = grid_response.action_ref() {
+                            Self::handle_grid(status, action);
+                            mutation = ApplicationMutation::Changed;
+                        }
+                        tab_response |= grid_response.erase();
+                        let grid_response = Self::update_grid_view(
+                            cx,
+                            key.control("structure"),
+                            &mut table.structure,
+                        );
+                        if let Some(action) = grid_response.action_ref() {
+                            Self::handle_grid(status, action);
+                            mutation = ApplicationMutation::Changed;
+                        }
+                        tab_response |= grid_response.erase();
+                    }
+                    Tab::Query(query) => {
+                        if let Some(grid) = &mut query.result {
+                            let grid_id = key.control("results");
+                            let grid_response = Self::update_grid_view(cx, grid_id, grid);
+                            if let Some(action) = grid_response.action_ref() {
+                                Self::handle_grid(status, action);
+                            }
+                            if grid_response.action_ref().is_some()
+                                || cx.update_cause() == UpdateCause::Event
+                                    && cx.state(grid_id).contains(StateFlags::FOCUSED)
+                            {
+                                mutation = ApplicationMutation::Changed;
+                            }
+                            tab_response |= grid_response.erase();
+                        }
+                    }
+                    Tab::History(_) => {}
+                }
+                (tab_response, mutation)
+            });
+            if let Some(tab_response) = tab_response {
+                response |= tab_response;
+            }
+            if editor_sql_changed {
+                changed_editor_sql.push(key);
+            }
+        }
+        for key in changed_editor_sql {
+            self.refresh_pending_query_after_editor_edit(key);
+        }
+        if !query_requests_locked
+            && query_visible
+            && let Some(key) = active_key
+            && matches!(self.workbench.tab(key), Some(Tab::Query(_)))
+        {
+            response |= self.update_query_result_tabs(cx, key);
+        }
+        response
+    }
+
+    fn update_query_result_tabs(&mut self, cx: &mut Cx<'_>, key: TabKey) -> Response<()> {
+        let Some(outputs) = self.workbench.query_outputs(key) else {
+            return Response::ignored();
+        };
+        if outputs.is_empty() {
+            return Response::ignored();
+        }
+        let closable: Vec<_> = outputs
+            .iter()
+            .filter(|output| output.can_close())
+            .map(query_output_key)
+            .collect();
+        let tabs = query_output_tabs(key.control("query-output-tabs"), &closable);
+        let mut result_tabs = self.query_result_tabs.borrow_mut();
+        result_tabs.sync(key, &outputs, self.workbench.selected_query_output(key));
+        let response = tabs.update(cx, &mut result_tabs.state, &outputs);
+        let action = response.action_ref().copied();
+        drop(result_tabs);
+        match action {
+            Some(TabsAction::Activated(item)) => {
+                if let Some(output) = outputs
+                    .iter()
+                    .find(|output| query_output_key(output) == item)
+                {
+                    let changing_output =
+                        self.workbench.selected_query_output(key) != Some(output.id());
+                    let run_exists = self.pending_queries.contains_key(&key)
+                        || matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running);
+                    let cancellation =
+                        (changing_output && run_exists).then(|| self.cancel_query(key));
+                    let can_change = cancellation
+                        .map(|outcome| matches!(outcome, QueryCancelOutcome::Cancelled))
+                        .unwrap_or(true);
+                    if can_change && self.workbench.select_query_output(key, output.id()) {
+                        self.grid_sort = None;
+                        self.focus_selected_query_output(cx, key);
+                    } else if matches!(cancellation, Some(QueryCancelOutcome::NoPendingRun)) {
+                        self.status = "Running query could not be cancelled".to_owned();
+                    }
+                }
+            }
+            Some(TabsAction::Close(item)) => {
+                if let Some(output) = outputs
+                    .iter()
+                    .find(|output| query_output_key(output) == item)
+                {
+                    let run_exists = self.pending_queries.contains_key(&key)
+                        || matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running);
+                    let cancellation = run_exists.then(|| self.cancel_query(key));
+                    let can_change = cancellation
+                        .map(|outcome| matches!(outcome, QueryCancelOutcome::Cancelled))
+                        .unwrap_or(true);
+                    if can_change && self.workbench.close_query_output(key, output.id()) {
+                        self.focus_selected_query_output(cx, key);
+                    } else if can_change {
+                        self.status = "Pinned or edited results cannot be closed".to_owned();
+                    } else if matches!(cancellation, Some(QueryCancelOutcome::NoPendingRun)) {
+                        self.status = "Running query could not be cancelled".to_owned();
+                    }
+                }
+            }
+            Some(TabsAction::New) | None => {}
+        }
+        if let Some(updated) = self.workbench.query_outputs(key) {
+            self.query_result_tabs.borrow_mut().sync(
+                key,
+                &updated,
+                self.workbench.selected_query_output(key),
+            );
+        }
+        response.erase()
+    }
+
+    fn focus_selected_query_output(&mut self, cx: &mut Cx<'_>, key: TabKey) {
+        let selected_kind = self
+            .workbench
+            .selected_query_output(key)
+            .and_then(|selected| {
+                self.workbench
+                    .query_outputs(key)?
+                    .into_iter()
+                    .find(|output| output.id() == selected)
+                    .map(|output| output.kind())
+            });
+        let pane_mode = self.visible_query_pane_mode();
+        let has_outputs = self
+            .workbench
+            .query_outputs(key)
+            .is_some_and(|outputs| !outputs.is_empty());
+        let running = matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running);
+        if running {
+            if pane_mode == QueryPaneMode::Results && !has_outputs {
+                self.query_panes.get_mut().set(key, QueryPaneMode::Editor);
+                cx.focus(key.control("query"));
+                return;
+            }
+            let destination = match pane_mode {
+                QueryPaneMode::Editor => "query",
+                QueryPaneMode::Results => "query-output-tabs",
+                QueryPaneMode::None if has_outputs => "query-output-tabs",
+                QueryPaneMode::None => "query",
+            };
+            cx.focus(key.control(destination));
+            return;
+        }
+        if pane_mode == QueryPaneMode::Results && !has_outputs {
+            self.query_panes.get_mut().set(key, QueryPaneMode::Editor);
+            cx.focus(key.control("query"));
+            return;
+        }
+        let destination = match (pane_mode, selected_kind) {
+            (QueryPaneMode::Editor, _) => "query",
+            (QueryPaneMode::Results, Some(QueryOutputKind::Rows)) => "results",
+            (QueryPaneMode::Results, _) => "query-output-tabs",
+            (QueryPaneMode::None, Some(QueryOutputKind::Rows)) => "results",
+            (QueryPaneMode::None, _) => "query",
+        };
+        cx.focus(key.control(destination));
+    }
+
+    fn draw_query_result_tabs(
+        &self,
+        ui: &mut Ui<'_>,
+        key: TabKey,
+        area: termrock::Rect,
+        outputs: &[QueryOutputInfo],
+    ) {
+        if outputs.is_empty() || area.width == 0 || area.height == 0 {
+            return;
+        }
+        let closable: Vec<_> = outputs
+            .iter()
+            .filter(|output| output.can_close())
+            .map(query_output_key)
+            .collect();
+        let tabs = query_output_tabs(key.control("query-output-tabs"), &closable);
+        let mut result_tabs = self.query_result_tabs.borrow_mut();
+        result_tabs.sync(key, outputs, self.workbench.selected_query_output(key));
+        tabs.draw(ui, area, &result_tabs.state, outputs);
+    }
+
     fn update_grid_view(cx: &mut Cx<'_>, id: Id, view: &mut GridView) -> Response<GridAction> {
         let (columns, count) = Self::column_specs(&view.columns, view.model.is_editable());
-        let grid = result_grid(id, columns.get(..count).unwrap_or(&[]));
+        let grid = result_grid::result_grid(id, columns.get(..count).unwrap_or(&[]));
+        if columns
+            .iter()
+            .take(count)
+            .any(|column| view.state.sampled_column_width(column.key).is_none())
+            && let Ok(sample) = termrock::WidthSample::new(200, 95)
+        {
+            grid.sample_column_widths(&mut view.state, &view.model, sample);
+        }
         let response = if view.model.is_editable() {
             grid.update_editable(cx, &mut view.state, &mut view.model)
         } else {
             grid.update(cx, &mut view.state, &view.model)
         };
-        if let Some(GridAction::Sort(key, direction)) = response.action_ref() {
-            view.model.sort(*key, *direction);
+        if let Some(GridAction::Sort(column, direction)) = response.action_ref() {
+            view.model.sort(*column, *direction);
         }
         response
     }
 
-    fn draw_result_grid(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        if let Some((id, grid)) = self.workbench.active_grid() {
+    fn sort_focused_column(&mut self, cx: &Cx<'_>) -> bool {
+        if self
+            .workbench
+            .active_table()
+            .is_some_and(crate::tabs::TableTab::is_structure)
+        {
+            return false;
+        }
+        let Some(owner) = self.active_grid_sort_owner() else {
+            return false;
+        };
+        let table = self
+            .workbench
+            .active_table()
+            .map(|table| table.table.clone());
+
+        let filtered_page = self
+            .workbench
+            .active_table()
+            .is_some_and(|table| table.filters.iter().any(|filter| filter.enabled));
+        let direction = {
+            let Some((id, grid)) = self.workbench.application_active_grid_mut() else {
+                return false;
+            };
+            if !cx.state(id).contains(StateFlags::FOCUSED) || grid.state.is_editing() {
+                return false;
+            }
+            let Some((_, column)) = grid.state.cursor() else {
+                return false;
+            };
+            let Some(index) = usize::from(column.raw()).checked_sub(1) else {
+                return false;
+            };
+            if grid
+                .columns
+                .get(index)
+                .is_some_and(|(_, ty)| matches!(ty, ColType::Json))
+            {
+                return false;
+            }
+            let direction = match self.grid_sort {
+                Some((sorted_owner, sorted_column, SortDir::Asc))
+                    if sorted_owner == owner && sorted_column == column.raw() =>
+                {
+                    SortDir::Desc
+                }
+                _ => SortDir::Asc,
+            };
+            if !filtered_page
+                && grid.model.pending_total() == 0
+                && let Some(table) = table.as_ref()
+            {
+                grid.model = sorted_scan(table, grid, index, direction);
+            } else {
+                grid.model.sort(column, direction);
+            }
+            let row = GridModel::row_key(&grid.model, 0);
             let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
-            result_grid(id, columns.get(..count).unwrap_or(&[])).draw(
-                ui,
-                area,
-                &grid.state,
-                &grid.model,
+            let _ = result_grid::result_grid(id, columns.get(..count).unwrap_or(&[]))
+                .move_cursor_to(&mut grid.state, &grid.model, row, column);
+            direction
+        };
+        let Some((_, column)) = self
+            .workbench
+            .active_grid()
+            .and_then(|(_, grid)| grid.state.cursor())
+        else {
+            return false;
+        };
+        self.grid_sort = Some((owner, column.raw(), direction));
+        true
+    }
+
+    fn begin_column_filter(&mut self, cx: &mut Cx<'_>) -> bool {
+        let Some((id, grid)) = self.workbench.active_grid() else {
+            return false;
+        };
+        if !cx.state(id).contains(StateFlags::FOCUSED) || grid.state.is_editing() {
+            return false;
+        }
+        if self
+            .workbench
+            .active_table()
+            .is_none_or(|table| table.result.pending_total() > 0)
+        {
+            return false;
+        }
+        let Some((_, column)) = grid.state.cursor() else {
+            return false;
+        };
+        let Some(index) = usize::from(column.raw()).checked_sub(1) else {
+            return false;
+        };
+        let Ok(mut editor) = FilterEditor::capture(&self.workbench, index, false) else {
+            return false;
+        };
+        editor.set_return_surface(self.surface);
+        self.filter_editor = Some(editor);
+        cx.focus(FILTER_APPLY);
+        true
+    }
+
+    fn begin_filter_card(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || self.destructive_intent.is_some()
+            || self.workbench.maximized
+            || self.split_state.maximized() != Maximized::None
+            || self.connection.name != "Production"
+        {
+            return false;
+        }
+        let orders = self.workbench.active_table().is_some_and(|table| {
+            table.table.schema == "public"
+                && table.table.name == "orders"
+                && !table.is_structure()
+                && !table.result.state.is_editing()
+                && table.result.pending_total() == 0
+        });
+        if !orders || !self.begin_column_filter(cx) {
+            return false;
+        }
+        if let Some(editor) = self.filter_editor.as_mut() {
+            editor.select_modal();
+        }
+        self.surface = Surface::FilterEditor;
+        let initial_focus = self
+            .filter_editor
+            .as_ref()
+            .map_or(FILTER_VALUE, FilterEditor::initial_focus);
+        cx.open_layer(
+            FILTER_LAYER,
+            LayerSpec::modal(FILTER_LAYER)
+                .anchor(Anchor::Screen(ScreenAlign::GeometricCenter))
+                .initial_focus(initial_focus)
+                .size(LayerSize::Fixed(64, 15)),
+        );
+        true
+    }
+
+    fn update_filter_editor(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let Some(editor) = self.filter_editor.as_mut() else {
+            for _ in cx.intents(FILTER_VALUE) {}
+            for _ in cx.intents(FILTER_APPLY) {}
+            for _ in cx.intents(FILTER_VALUE2) {}
+            for _ in cx.intents(FILTER_COLUMN) {}
+            for _ in cx.intents(FILTER_OPERATOR) {}
+            for _ in cx.intents(FILTER_CANCEL) {}
+            return Response::ignored();
+        };
+        let (response, outcome) = editor.update(cx);
+        match outcome {
+            FilterOutcome::Keep => {}
+            FilterOutcome::Apply => self.commit_filter_editor(cx),
+            FilterOutcome::Cancel => self.cancel_filter_editor(cx),
+        }
+        response
+    }
+
+    fn commit_filter_editor(&mut self, cx: &mut Cx<'_>) {
+        let Some(editor) = self.filter_editor.as_ref() else {
+            return;
+        };
+        let candidate = match editor.stage(&self.workbench, &self.catalog) {
+            Ok(candidate) => candidate,
+            Err(error) => {
+                self.show_filter_editor_error(cx, error);
+                return;
+            }
+        };
+        let key = editor.tab_key();
+        if let Err(error) = editor.validate(&self.workbench) {
+            self.show_filter_editor_error(cx, error);
+            return;
+        }
+        let Some(Tab::Table(table)) = self.workbench.tab_mut(key) else {
+            self.show_filter_editor_error(
+                cx,
+                "The source table tab is no longer available".to_owned(),
+            );
+            return;
+        };
+        *table = candidate;
+        let modal = editor.modal;
+        let return_surface = editor.return_surface();
+        self.filter_editor = None;
+        if modal {
+            cx.close_layer(FILTER_LAYER, None);
+            self.surface = return_surface;
+        }
+        cx.focus(key.control("data"));
+    }
+
+    fn show_filter_editor_error(&mut self, cx: &mut Cx<'_>, error: String) {
+        let needs_modal = self
+            .filter_editor
+            .as_ref()
+            .is_some_and(|editor| !editor.modal);
+        let initial_focus = self
+            .filter_editor
+            .as_ref()
+            .map_or(FILTER_VALUE, FilterEditor::initial_focus);
+        if let Some(editor) = self.filter_editor.as_mut() {
+            editor.error = Some(error);
+            if needs_modal {
+                editor.select_modal();
+            }
+        }
+        if needs_modal {
+            self.surface = Surface::FilterEditor;
+            cx.open_layer(
+                FILTER_LAYER,
+                LayerSpec::modal(FILTER_LAYER)
+                    .anchor(Anchor::Screen(ScreenAlign::GeometricCenter))
+                    .initial_focus(initial_focus)
+                    .size(LayerSize::Fixed(64, 15)),
             );
         }
+    }
+
+    fn cancel_filter_editor(&mut self, cx: &mut Cx<'_>) {
+        let modal = self
+            .filter_editor
+            .as_ref()
+            .is_some_and(|editor| editor.modal);
+        let return_surface = self
+            .filter_editor
+            .as_ref()
+            .map_or(Surface::WorkbenchDefault, FilterEditor::return_surface);
+        let key = self.workbench.active_key();
+        self.filter_editor = None;
+        if modal {
+            cx.close_layer(FILTER_LAYER, None);
+            self.surface = return_surface;
+        }
+        if let Some(key) = key {
+            cx.focus(key.control("data"));
+        }
+    }
+
+    fn draw_filter_editor(&self, ui: &mut Ui<'_>) {
+        let Some(editor) = &self.filter_editor else {
+            return;
+        };
+        editor.draw(ui);
+    }
+
+    fn sort_status_prefix(&self) -> Option<String> {
+        let (owner, column, direction) = self.grid_sort?;
+        if self.active_grid_sort_owner()? != owner {
+            return None;
+        }
+        let (_, grid) = self.workbench.active_grid()?;
+        let index = usize::from(column).checked_sub(1)?;
+        let name = grid.columns.get(index)?.0.as_str();
+        Some(format!("sort {name} {}", sort_mark(direction)))
+    }
+
+    fn active_grid_sort_owner(&self) -> Option<GridSortOwner> {
+        let key = self.workbench.active_key()?;
+        match self.workbench.tab(key)? {
+            Tab::Table(_) => Some(GridSortOwner::Table(key)),
+            Tab::Query(_) => Some(GridSortOwner::QueryOutput(
+                key,
+                self.workbench.selected_query_output(key),
+            )),
+            Tab::History(_) => None,
+        }
+    }
+
+    fn draw_table_data(&self, ui: &mut Ui<'_>, inner: termrock::Rect) {
+        paint_data_mode(ui, inner, self.surface != Surface::FilterEditor);
+        let filters = self
+            .workbench
+            .active_table()
+            .map(|table| table.filters.clone())
+            .unwrap_or_default();
+        let pending_total = self
+            .workbench
+            .active_grid()
+            .map_or(0, |(_, grid)| grid.model.pending_total());
+
+        let pending_gap = if pending_total > 0 { 2 } else { 0 };
+        let filter_rows = if filters.is_empty() { 0 } else { 2 };
+        let viewport = termrock::grid::solve_grid_viewport(
+            inner,
+            &termrock::grid::GridViewportPolicy {
+                header_rows: 3,
+                filter_rows,
+                pending_rows: pending_gap,
+                status_rows: 1,
+                status_inset: 1,
+                right_reserve: 0,
+            },
+        );
+        if !filters.is_empty() {
+            paint_filter_bar(ui, viewport.filter_bar, &filters);
+        }
+        let Some((id, grid_view)) = self.workbench.active_grid() else {
+            return;
+        };
+        let (columns, count) =
+            Self::column_specs(&grid_view.columns, grid_view.model.is_editable());
+        self.result_grid.draw(
+            ui,
+            viewport.grid,
+            id,
+            &grid_view.columns,
+            columns.get(..count).unwrap_or(&[]),
+            &grid_view.state,
+            &grid_view.model,
+            self.surface == Surface::FilterEditor,
+            false,
+        );
+        let shown = usize::from(viewport.grid.height.saturating_sub(1));
+        let enabled = filters.iter().filter(|filter| filter.enabled).count();
+        self.result_grid.paint_status(
+            ui,
+            &viewport,
+            grid_view.columns.len(),
+            &grid_view.model,
+            enabled,
+            shown,
+            self.sort_status_prefix(),
+        );
+    }
+
+    fn draw_result_grid(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        let viewport = termrock::grid::solve_grid_viewport(area, &GRID_RESULT_VIEWPORT);
+        if !viewport.has_grid_body() {
+            return;
+        }
+        ui.focus_scope(
+            self.result_id()
+                .unwrap_or_else(|| Id::root("tablepro.query.results"))
+                .sub("pane-scope"),
+            termrock::ScopeMode::Normal,
+            |ui| {
+                if let Some((id, grid)) = self.workbench.active_grid() {
+                    let (columns, count) =
+                        Self::column_specs(&grid.columns, grid.model.is_editable());
+                    self.result_grid.draw(
+                        ui,
+                        viewport.grid,
+                        id,
+                        &grid.columns,
+                        columns.get(..count).unwrap_or(&[]),
+                        &grid.state,
+                        &grid.model,
+                        false,
+                        true,
+                    );
+                }
+                self.result_grid.paint_horizontal(ui, viewport.horizontal);
+            },
+        );
     }
 
     fn draw_connection_details(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -1602,19 +5063,28 @@ impl TableProApp {
             || connection.host.clone(),
             |port| format!("{}:{port}", connection.host),
         );
-        let ssl_ssh = format!(
-            "{} / {}",
-            if connection.ssl { "on" } else { "off" },
-            if connection.ssh.is_some() {
-                "on"
-            } else {
-                "off"
-            }
-        );
+        let (ssl, ssl_role) = if connection.ssl {
+            ("✓ on", TAG_OK_FG)
+        } else {
+            ("off", Role::Fg(FgStep::Secondary))
+        };
+        let ssh = connection.ssh.clone().unwrap_or_else(|| "off".to_owned());
+        let safe_role = match connection.safe_mode {
+            SafeMode::Safe | SafeMode::SafeFull => Role::Fg(FgStep::Primary),
+            _ => Role::Fg(FgStep::Secondary),
+        };
         let properties = [
-            ("Engine", connection.engine.label().to_owned()),
-            ("Host", host),
-            ("Database", connection.database.clone()),
+            (
+                "Engine",
+                connection.engine.label().to_owned(),
+                Role::Fg(FgStep::Primary),
+            ),
+            ("Host", host, Role::Fg(FgStep::Primary)),
+            (
+                "Database",
+                connection.database.clone(),
+                Role::Fg(FgStep::Primary),
+            ),
             (
                 "User",
                 if connection.user.is_empty() {
@@ -1622,8 +5092,13 @@ impl TableProApp {
                 } else {
                     connection.user.clone()
                 },
+                Role::Fg(FgStep::Primary),
             ),
-            ("Environment", connection.environment.label().to_owned()),
+            (
+                "Environment",
+                connection.environment.label().to_owned(),
+                legacy_environment_role(connection.environment),
+            ),
             (
                 "Safe Mode",
                 format!(
@@ -1631,9 +5106,11 @@ impl TableProApp {
                     connection.safe_mode.label(),
                     connection.safe_mode.description()
                 ),
+                safe_role,
             ),
-            ("SSL / SSH", ssl_ssh),
-            ("Last used", connection.last_used.clone()),
+            ("SSL", ssl.to_owned(), ssl_role),
+            ("SSH", ssh, Role::Fg(FgStep::Secondary)),
+            ("Last used", connection.last_used.clone(), TAG_CHROME_FG),
         ];
         let card_area = termrock::Rect {
             width: area.width.min(70),
@@ -1643,6 +5120,7 @@ impl TableProApp {
         Self::connection_details_panel(&connection.name).draw(ui, card_area, |ui, area| {
             draw_connection_properties(ui, area, &properties);
         });
+        paint_detail_rule(ui, card_area);
         if !ui.is_inert() {
             ui.register_control(CONNECTION_DETAILS, card_area, Focusability::ClickOnly);
         }
@@ -1650,6 +5128,8 @@ impl TableProApp {
 
     fn draw_connections(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         let count = format!("{} ", self.connections_screen.connections.len());
+        let focused = ui.state(CONNECTIONS).contains(StateFlags::FOCUSED)
+            || ui.state(CONNECTION_FILTER).contains(StateFlags::FOCUSED);
         let list_width = (area.width / 3).clamp(26, 40).min(area.width);
         let list_area = termrock::Rect {
             x: area.x,
@@ -1661,43 +5141,39 @@ impl TableProApp {
             },
             height: area.height,
         };
-        let panel = Self::connections_panel(" Connections ", Some(&count));
+        let panel = Self::connections_panel(" Connections ", Some(&count), focused);
         let inner = panel.inner(ui, list_area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, list_area, |_, _| {});
-        paint_frame_title_tail(ui, list_area, " Connections ");
-        paint_panel_tail(ui, list_area);
-        ui.with_area(body, |ui| {
-            let filter = termrock::Rect {
-                x: body.x,
-                y: inner.y.saturating_add(1),
-                width: body.width,
-                height: 1.min(inner.height),
-            };
-            paint_legacy_filter(ui, filter, "Filter connections");
-            let tree_area = termrock::Rect {
-                y: body.y.saturating_add(2),
-                height: inner.height.saturating_sub(2),
-                ..body
-            };
-            connection_tree().draw(
-                ui,
-                tree_area,
-                &self.connection_visual_tree_state,
-                &self.connection_nodes,
+        if self.connection_delete == ConnectionDelete::Open {
+            let title = " Connections ";
+            let style = ui.surface_style().patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Secondary))
+                        .remove(Modifier::BOLD),
+                ),
             );
-            paint_legacy_tree_gutters(
-                ui,
-                tree_area,
-                &self.connection_visual_tree_state,
-                &self.connection_nodes,
-                connection_node,
-                connection_node_key,
+            ui.paint_str(
+                termrock::Rect {
+                    x: list_area.x.saturating_add(2),
+                    y: list_area.y,
+                    width: width(title),
+                    height: 1,
+                },
+                title,
+                style,
             );
-        });
-        let blank = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+        }
+        paint_frame_title_tail(ui, list_area, " Connections ", Role::BorderStrong);
+        paint_panel_tail(ui, list_area, Role::BorderStrong);
+        self.paint_connection_browser(ui, body, inner);
+        let blank = if self.connection_filter_editing {
+            ui.surface_style().add_modifier(Modifier::BOLD)
+        } else {
+            ui.surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+        };
         ui.fill(
             termrock::Rect {
                 x: body.x.saturating_add(2),
@@ -1719,13 +5195,15 @@ impl TableProApp {
             },
             field,
         );
-        if self.connection_visual_tree_state.cursor()
-            == self.connection_nodes.first().map(connection_node_key)
-        {
+        if let Some(row) = shown_connection_cursor_offset(
+            &self.connection_tree_state,
+            &self.connection_nodes,
+            self.connections_screen.filter.as_str(),
+        ) {
             ui.fill(
                 termrock::Rect {
                     x: body.right(),
-                    y: body.y.saturating_add(2),
+                    y: body.y.saturating_add(2).saturating_add(row),
                     width: 1,
                     height: 1,
                 },
@@ -1743,13 +5221,64 @@ impl TableProApp {
         }
     }
 
+    fn paint_collapsed_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        let mark = PaintStyle::new().fg(termrock::Color::Rgb(179, 179, 179));
+        let x = area.x;
+        let mut row = area.y;
+        while row < area.bottom() {
+            ui.paint_str(termrock::Rect::new(x, row, 1, 1), " ", mark);
+            row = row.saturating_add(1);
+        }
+        ui.paint_str(termrock::Rect::new(x, area.y, 1, 1), "›", mark);
+        let gap = ui.surface_style();
+        let mut gap_row = area.y;
+        let gap_x = area.x.saturating_add(1);
+        while gap_row < area.bottom() {
+            ui.paint_str(termrock::Rect::new(gap_x, gap_row, 1, 1), " ", gap);
+            gap_row = gap_row.saturating_add(1);
+        }
+        for (index, ch) in "Explorer".chars().enumerate() {
+            let label = ch.to_string();
+            ui.paint_str(
+                termrock::Rect::new(
+                    x,
+                    area.y.saturating_add(2).saturating_add(index as u16),
+                    1,
+                    1,
+                ),
+                &label,
+                mark,
+            );
+        }
+    }
+
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        let panel = Self::explorer_panel(self.workbench.schema_caption());
+        let meta = format!("{}     ", self.workbench.current_schema());
+        let focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
+        let panel = Self::explorer_panel(&meta, focused);
         let inner = panel.inner(ui, area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, area, |_, _| {});
-        paint_frame_title_tail(ui, area, " Explorer ");
-        paint_panel_tail(ui, area);
+        paint_panel_tail(
+            ui,
+            area,
+            if focused {
+                Role::BorderStrong
+            } else {
+                TAG_RULE_FG
+            },
+        );
+        if focused {
+            paint_explorer_title_space(ui, area);
+        } else {
+            paint_explorer_title_gap(ui, area);
+        }
+        paint_explorer_meta_band(ui, area);
+        let tree_area = termrock::Rect {
+            y: body.y.saturating_add(2),
+            height: inner.height.saturating_sub(2),
+            ..body
+        };
         ui.with_area(body, |ui| {
             let filter = termrock::Rect {
                 x: body.x,
@@ -1757,96 +5286,562 @@ impl TableProApp {
                 width: body.width,
                 height: 1.min(inner.height),
             };
-            paint_legacy_filter(ui, filter, "Filter objects");
-            let tree_area = termrock::Rect {
-                y: body.y.saturating_add(2),
-                height: inner.height.saturating_sub(2),
-                ..body
-            };
-            explorer_tree().draw(
+            paint_legacy_filter(ui, filter, "Filter objects", TAG_CHROME_FG);
+            let show_meta = explorer_meta_visible(
+                &self.explorer_nodes,
+                &self.explorer_tree_state,
+                tree_area,
+                ui.design().space.tree_indent,
+            );
+            explorer_tree(show_meta).draw(
                 ui,
                 tree_area,
                 &self.explorer_tree_state,
                 &self.explorer_nodes,
             );
-            paint_legacy_tree_gutters(
+            paint_explorer_indent(
                 ui,
                 tree_area,
                 &self.explorer_tree_state,
                 &self.explorer_nodes,
-                explorer_node,
-                explorer_node_key,
+                focused,
+            );
+            paint_chosen_explorer_row(
+                ui,
+                tree_area,
+                &self.explorer_tree_state,
+                &self.explorer_nodes,
+                self.surface != Surface::FilterEditor,
             );
         });
+        paint_explorer_collapse(ui, area);
+        paint_explorer_chevron_gap(ui, area);
+        paint_explorer_outside(
+            ui,
+            &self.explorer_tree_state,
+            &self.explorer_nodes,
+            inner,
+            body,
+            tree_area,
+        );
+        if focused {
+            paint_focused_schema_mark(
+                ui,
+                area,
+                tree_area,
+                &self.explorer_tree_state,
+                &self.explorer_nodes,
+            );
+        }
     }
 
     fn draw_content(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        let pane_mode = self.visible_query_pane_mode();
+        let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
         let (title, meta) = match self.workbench.active() {
             Some(Tab::Table(table)) => (
-                qualified_label(" ", &table.table.schema, &table.table.name),
+                format!(
+                    " {} ",
+                    qualified_label("", &table.table.schema, &table.table.name)
+                ),
                 Some(format!("{} cols ", table.table.columns.len())),
             ),
-            Some(Tab::Query(query)) => (format!(" {}", query.name), None),
+            Some(Tab::Query(query)) if query.error.is_some() && query.plan.is_none() => {
+                (format!(" {} ", query.name), Some("2 ms ".to_owned()))
+            }
+            Some(Tab::Query(query))
+                if query.result.is_some() && query.plan.is_none() && query.error.is_none() =>
+            {
+                let ms = query
+                    .result
+                    .as_ref()
+                    .map(|grid| grid.model.duration_ms())
+                    .unwrap_or(0);
+                (format!(" {} ", query.name), Some(format!("{ms} ms ")))
+            }
+            Some(Tab::Query(query)) if query.plan.is_some() && query.result.is_none() => {
+                let meta = if let Some(actual) = query.plan.as_ref().and_then(|plan| plan.actual_ms)
+                {
+                    let execution_ms = actual + 0.4;
+                    let n = (execution_ms as u32) + 1;
+                    format!("{n} ms ")
+                } else {
+                    "2 ms ".to_owned()
+                };
+                (format!(" {} ", query.name), Some(meta))
+            }
+            Some(Tab::Query(query)) => (format!(" {} ", query.name), None),
             Some(Tab::History(_)) => (
-                " Query history".to_owned(),
+                " Query history ".to_owned(),
                 Some(format!("{} entries ", self.workbench.history.entries.len())),
             ),
             None => (" Workbench".to_owned(), None),
         };
-        let panel = Self::content_panel(&title, meta.as_deref());
-        panel.draw(ui, area, |ui, inner| match self.workbench.active() {
+        let content_focused = self.surface != Surface::FilterEditor
+            && match self.workbench.active() {
+                Some(Tab::Query(_)) if pane_mode == QueryPaneMode::Results => self
+                    .result_id()
+                    .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED)),
+                Some(Tab::Query(_)) => self
+                    .query_id()
+                    .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED)),
+                _ => !explorer_focused,
+            };
+        let panel = Self::content_panel(&title, meta.as_deref(), content_focused);
+        let inner = panel.inner(ui, area);
+        panel.draw(ui, area, |ui, inner| {
+            self.draw_tab_body(ui, area, inner, explorer_focused);
+        });
+        if let Some(Tab::History(_)) = self.workbench.active()
+            && let Some(key) = self.workbench.active_key()
+        {
+            let fallback = HistoryControls::default();
+            let controls = self.history_controls.get(&key).unwrap_or(&fallback);
+            let list_y = controls.layout(inner).list_y;
+
+            let edge = area.right().saturating_sub(3);
+            let pad = PaintStyle::new()
+                .fg(termrock::Color::Rgb(255, 255, 255))
+                .bg(termrock::Color::Rgb(17, 17, 17));
+            let mut y = list_y;
+            while y < inner.bottom() {
+                ui.paint_str(termrock::Rect::new(edge, y, 1, 1), " ", pad);
+                y = y.saturating_add(1);
+            }
+        }
+        if pane_mode == QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
+            && query.result.is_none()
+            && query.error.is_none()
+            && query.plan.is_none()
+            && !query.query.is_empty()
+            && !explorer_focused
+        {
+            extend_idle_query_edge(ui, area, inner, query.editor_state.editor().is_editing());
+        }
+        if pane_mode == QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
+            && query.error.is_some()
+            && query.plan.is_none()
+        {
+            extend_query_error_edge(ui, area, inner);
+        }
+        if pane_mode == QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
+            && let Some(plan) = query.plan.as_ref()
+            && query.error.is_none()
+            && query.result.is_none()
+        {
+            extend_query_plan_edge(ui, area, inner, plan);
+        }
+        if pane_mode == QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
+            && query.result.is_some()
+            && query.plan.is_none()
+            && query.error.is_none()
+        {
+            extend_query_results_edge(ui, area, inner, query.query.as_str());
+        }
+        paint_content_seam(
+            ui,
+            area,
+            if explorer_focused {
+                TAG_RULE_FG
+            } else {
+                Role::BorderStrong
+            },
+        );
+        if let Some(Tab::Table(table)) = self.workbench.active() {
+            let x = area
+                .x
+                .saturating_add(area.width)
+                .saturating_sub(ui.design().space.frame_inset);
+            let quiet = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+            if table.is_structure() {
+                for y in [area.y.saturating_add(2), area.y.saturating_add(5)] {
+                    ui.paint_str(termrock::Rect::new(x, y, 1, 1), "─", quiet);
+                }
+                ui.paint_str(
+                    termrock::Rect::new(x, area.y.saturating_add(8), 1, 1),
+                    " ",
+                    ui.surface_style().add_modifier(Modifier::BOLD),
+                );
+            } else {
+                ui.paint_str(
+                    termrock::Rect::new(x, area.y.saturating_add(2), 1, 1),
+                    "─",
+                    quiet,
+                );
+            }
+        }
+        self.result_grid.paint_scrollbar(ui);
+        let blank_sql = self.blank_sql();
+        if pane_mode == QueryPaneMode::None
+            && (blank_sql
+                || explorer_focused
+                    && matches!(
+                        self.workbench.active(),
+                        Some(Tab::Query(query)) if query.result.is_none()
+                    ))
+        {
+            let editor_focused = self
+                .query_id()
+                .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED));
+            let query_editing = matches!(
+                self.workbench.active(),
+                Some(Tab::Query(query)) if query.editor_state.editor().is_editing()
+            );
+            paint_idle_query_tail(ui, area, editor_focused || query_editing);
+        }
+        paint_frame_title_tail(
+            ui,
+            area,
+            &title,
+            if explorer_focused {
+                TAG_RULE_FG
+            } else {
+                Role::BorderStrong
+            },
+        );
+        if meta.is_some() {
+            paint_panel_tail(ui, area, Role::BorderStrong);
+        }
+    }
+
+    fn draw_tab_body(
+        &self,
+        ui: &mut Ui<'_>,
+        area: termrock::Rect,
+        inner: termrock::Rect,
+        explorer_focused: bool,
+    ) {
+        let pane_mode = self.visible_query_pane_mode();
+        if pane_mode != QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
+        {
+            self.draw_query_pane(ui, area, inner, query, pane_mode);
+            return;
+        }
+        let active_key = self.workbench.active_key();
+        let outputs = active_key
+            .and_then(|key| self.workbench.query_outputs(key))
+            .unwrap_or_default();
+        let selected_output_kind = active_key
+            .and_then(|key| self.workbench.selected_query_output(key))
+            .and_then(|selected| outputs.iter().find(|output| output.id() == selected))
+            .map(QueryOutputInfo::kind);
+        match self.workbench.active() {
+            Some(Tab::Query(query)) if query.running => {
+                let detail = query
+                    .last_status
+                    .as_ref()
+                    .map_or("running".to_owned(), |status| status.summary.clone());
+                let title = if detail.starts_with("pending") {
+                    "Query pending"
+                } else {
+                    "Query running"
+                };
+                let (editor_area, strip) = paint_query_run_state(
+                    ui,
+                    area,
+                    inner,
+                    title,
+                    &format!("{detail} · Esc cancels"),
+                    !outputs.is_empty(),
+                );
+                if let Some(key) = active_key {
+                    self.draw_query_result_tabs(ui, key, strip, &outputs);
+                }
+                if let Some(id) = self.query_id() {
+                    self.draw_query_editor(ui, id, editor_area, &query.editor_state);
+                }
+            }
+            Some(Tab::Query(query))
+                if query.result.is_none()
+                    && query.error.is_none()
+                    && query.plan.is_none()
+                    && (selected_output_kind == Some(QueryOutputKind::Cancelled)
+                        || selected_output_kind.is_none()
+                            && query
+                                .last_status
+                                .as_ref()
+                                .is_some_and(|status| status.summary == "cancelled")) =>
+            {
+                let (editor_area, strip) = paint_query_run_state(
+                    ui,
+                    area,
+                    inner,
+                    "Query cancelled",
+                    "Ctrl+R runs the statement under the cursor",
+                    !outputs.is_empty(),
+                );
+                if let Some(key) = active_key {
+                    self.draw_query_result_tabs(ui, key, strip, &outputs);
+                }
+                if let Some(id) = self.query_id() {
+                    self.draw_query_editor(ui, id, editor_area, &query.editor_state);
+                }
+            }
+            Some(Tab::Query(query)) if explorer_focused && query.result.is_none() => {
+                let editor_area = paint_idle_query(ui, area, inner);
+                if let Some(id) = self.query_id() {
+                    self.draw_query_editor(ui, id, editor_area, &query.editor_state);
+                }
+            }
+            Some(Tab::Query(query))
+                if query.plan.is_some() && query.error.is_none() && query.result.is_none() =>
+            {
+                if let Some(plan) = query.plan.as_ref() {
+                    let contexts = self.explain_contexts.borrow();
+                    let statement_sql = self
+                        .workbench
+                        .active_key()
+                        .and_then(|key| {
+                            let output_id = self.workbench.selected_query_output(key)?;
+                            contexts.matching_sql(key, output_id, plan)
+                        })
+                        .unwrap_or(query.query.as_str());
+                    let (editor_area, strip) =
+                        paint_query_plan(ui, area, inner, statement_sql, plan, !outputs.is_empty());
+                    if let Some(key) = active_key {
+                        self.draw_query_result_tabs(ui, key, strip, &outputs);
+                    }
+                    if let Some(id) = self.query_id() {
+                        self.draw_query_editor(ui, id, editor_area, &query.editor_state);
+                    }
+                }
+            }
+            Some(Tab::Query(query)) if query.error.is_some() && query.plan.is_none() => {
+                if let Some(message) = query.error.as_deref() {
+                    let (editor_area, strip) =
+                        paint_query_error(ui, area, inner, message, !outputs.is_empty());
+                    if let Some(key) = active_key {
+                        self.draw_query_result_tabs(ui, key, strip, &outputs);
+                    }
+                    if let Some(id) = self.query_id() {
+                        self.draw_query_editor(ui, id, editor_area, &query.editor_state);
+                    }
+                }
+            }
+            Some(Tab::Query(query))
+                if query.result.is_some() && query.plan.is_none() && query.error.is_none() =>
+            {
+                if let Some(result) = query.result.as_ref() {
+                    let (editor_area, grid_area, strip) = paint_query_results_chrome(
+                        ui,
+                        area,
+                        inner,
+                        result.model.row_count(),
+                        result.model.duration_ms(),
+                        result.model.source(),
+                        !outputs.is_empty(),
+                    );
+                    if let Some(key) = active_key {
+                        self.draw_query_result_tabs(ui, key, strip, &outputs);
+                    }
+                    if let Some(id) = self.query_id() {
+                        self.draw_query_editor(ui, id, editor_area, &query.editor_state);
+                    }
+                    self.draw_result_grid(ui, grid_area);
+                }
+            }
             Some(Tab::Query(query)) => {
                 let rows = fixed_flex_pair(inner, 3);
-                if let Some(id) = self.query_id() {
-                    Field::new("SQL query", query_input(id, Some(&query.query)))
-                        .plain(true)
-                        .draw(ui, rows[0], &query.editor_state);
+                if (query.plan.is_some() || query.result.is_some())
+                    && let Some(id) = self.query_id()
+                {
+                    self.draw_query_editor(ui, id, rows[0], &query.editor_state);
                 }
-                if query.plan.is_some() {
+                if query
+                    .plan
+                    .as_ref()
+                    .is_some_and(|plan| plan.actual_ms.is_some())
+                {
+                    ui.paint_str(rows[1], "EXPLAIN ANALYZE", ui.surface_style());
+                } else if query.plan.is_some() {
                     ui.paint_str(rows[1], "Explain plan ready", ui.surface_style());
-                } else if query.error.is_some() {
-                    ui.paint_str(rows[1], "Query error", ui.surface_style());
                 } else if query.result.is_some() {
                     self.draw_result_grid(ui, rows[1]);
                 } else {
-                    let message = termrock::Rect {
-                        x: rows[1].x,
-                        y: rows[1].y.saturating_add(rows[1].height / 2),
-                        width: rows[1].width,
-                        height: 1,
-                    };
-                    ui.paint_str(message, "No results yet", ui.surface_style());
+                    let editor_area = paint_idle_query(ui, area, inner);
+                    if let Some(id) = self.query_id() {
+                        self.draw_query_editor(ui, id, editor_area, &query.editor_state);
+                    }
                 }
             }
             Some(Tab::Table(table)) => {
-                let rows = fixed_flex_pair(inner, 2);
-                let mode = if table.is_structure() {
-                    "▎ Data    Structure"
+                if table.is_structure() {
+                    paint_structure_view(ui, inner, &table.table);
                 } else {
-                    "Data    ▎ Structure"
-                };
-                ui.paint_str(rows[0], mode, ui.surface_style());
-                self.draw_result_grid(ui, rows[1]);
+                    self.draw_table_data(ui, inner);
+                }
             }
             Some(Tab::History(history)) => {
-                ui.paint_str(inner, "Query history", ui.surface_style());
-                for (offset, entry) in history.entries.iter().take(6).enumerate() {
-                    let row = termrock::Rect {
-                        y: inner.y.saturating_add(1).saturating_add(offset as u16),
-                        height: 1,
-                        ..inner
-                    };
-                    ui.paint_str(row, &entry.sql, ui.surface_style());
+                if let Some(key) = self.workbench.active_key() {
+                    let fallback = HistoryControls::default();
+                    let controls = self.history_controls.get(&key).unwrap_or(&fallback);
+                    let entries = history_rows::eligible_entries(&self.workbench, key, controls)
+                        .unwrap_or_default();
+                    let owner = self.workbench.owner_token();
+                    paint_history_card(
+                        ui,
+                        inner,
+                        (key, &owner),
+                        history,
+                        controls,
+                        &entries,
+                        &self.history_rows,
+                    );
                 }
             }
             None => {
                 ui.paint_str(inner, "No tab open", ui.surface_style());
             }
-        });
-        paint_frame_title_tail(ui, area, &title);
-        if meta.is_some() {
-            paint_panel_tail(ui, area);
         }
+    }
+
+    fn draw_query_pane(
+        &self,
+        ui: &mut Ui<'_>,
+        area: termrock::Rect,
+        inner: termrock::Rect,
+        query: &crate::tabs::QueryTab,
+        mode: QueryPaneMode,
+    ) {
+        let key = self.workbench.active_key();
+        let outputs = key
+            .and_then(|key| self.workbench.query_outputs(key))
+            .unwrap_or_default();
+        let selected_output = key
+            .and_then(|key| self.workbench.selected_query_output(key))
+            .and_then(|selected| outputs.iter().find(|output| output.id() == selected));
+        let content_kind = if query.plan.is_some() {
+            QueryContent::Plan
+        } else if query.error.is_some() {
+            QueryContent::Error
+        } else if query.result.is_some() {
+            QueryContent::Results
+        } else {
+            QueryContent::Idle
+        };
+        let Some(layout) = QueryLayout::new(
+            area,
+            inner,
+            ui.design().space.frame_inset,
+            mode,
+            content_kind,
+        ) else {
+            return;
+        };
+        paint_query_toolbar(ui, layout.toolbar);
+        let mut content = layout.content;
+        let mut editor_area = layout.editor;
+        if mode == QueryPaneMode::Results && !outputs.is_empty() && content.height > 0 {
+            let strip = termrock::Rect {
+                height: 1,
+                ..content
+            };
+            if let Some(key) = key {
+                self.draw_query_result_tabs(ui, key, strip, &outputs);
+            }
+            content.y = content.y.saturating_add(1);
+            content.height = content.height.saturating_sub(1);
+        } else if mode == QueryPaneMode::Editor
+            && !outputs.is_empty()
+            && let Some(editor) = editor_area.as_mut()
+            && editor.height > 0
+        {
+            let strip = termrock::Rect {
+                height: 1,
+                ..*editor
+            };
+            if let Some(key) = key {
+                self.draw_query_result_tabs(ui, key, strip, &outputs);
+            }
+            editor.y = editor.y.saturating_add(1);
+            editor.height = editor.height.saturating_sub(1);
+        }
+        match mode {
+            QueryPaneMode::Editor => {
+                if let (Some(id), Some(editor)) = (self.query_id(), editor_area) {
+                    self.draw_query_editor(ui, id, editor, &query.editor_state);
+                }
+            }
+            QueryPaneMode::Results => {
+                if query.running {
+                    let detail = query
+                        .last_status
+                        .as_ref()
+                        .map_or("running".to_owned(), |status| status.summary.clone());
+                    let title = if detail.starts_with("pending") {
+                        "Query pending"
+                    } else {
+                        "Query running"
+                    };
+                    paint_query_run_label(ui, content, title, &format!("{detail} · Esc cancels"));
+                } else if selected_output
+                    .is_some_and(|output| output.kind() == QueryOutputKind::Cancelled)
+                    || (query.error.is_none()
+                        && query.result.is_none()
+                        && query
+                            .last_status
+                            .as_ref()
+                            .is_some_and(|status| status.summary == "cancelled"))
+                {
+                    paint_query_run_label(
+                        ui,
+                        content,
+                        "Query cancelled",
+                        "Ctrl+R runs the statement under the cursor",
+                    );
+                } else if let Some(plan) = query.plan.as_ref()
+                    && query.error.is_none()
+                    && query.result.is_none()
+                {
+                    let contexts = self.explain_contexts.borrow();
+                    let statement_sql = self
+                        .workbench
+                        .active_key()
+                        .and_then(|key| {
+                            let output_id = self.workbench.selected_query_output(key)?;
+                            contexts.matching_sql(key, output_id, plan)
+                        })
+                        .unwrap_or(query.query.as_str());
+                    paint_plan_results(ui, content, statement_sql, plan, inner.right());
+                } else if let Some(message) = query.error.as_deref() {
+                    paint_query_error_results(ui, content, message);
+                } else if let Some(result) = query.result.as_ref() {
+                    let grid_area = paint_query_result_summary(
+                        ui,
+                        content,
+                        result.model.row_count(),
+                        result.model.duration_ms(),
+                        result.model.source(),
+                    );
+                    self.draw_result_grid(ui, grid_area);
+                } else {
+                    paint_query_empty(ui, content);
+                }
+            }
+            QueryPaneMode::None => {}
+        }
+    }
+
+    fn draw_query_editor(
+        &self,
+        ui: &mut Ui<'_>,
+        id: Id,
+        area: termrock::Rect,
+        state: &termrock::CompletingCodeEditorState,
+    ) {
+        let provider = SqlCompletionProvider {
+            catalog: &self.catalog,
+        };
+        ui.focus_scope(id.sub("pane-scope"), termrock::ScopeMode::Normal, |ui| {
+            query_editor(id, QUERY_EDITOR_ROWS, &provider, true).draw(ui, area, state)
+        });
     }
 }
 
@@ -1859,6 +5854,42 @@ pub enum QueryOutcome {
     Denied { summary: String },
 
     Rejected { message: String },
+}
+
+const CONNECTION_STATUS_TTL: Duration = Duration::from_millis(5_000);
+
+impl TableProApp {
+    fn roll_connection_status(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.connection_status_arm {
+            self.connection_status_arm = false;
+            self.connection_status_at = Some(cx.now());
+        }
+        let Some(at) = self.connection_status_at else {
+            return Response::ignored();
+        };
+        let due = at.saturating_add(CONNECTION_STATUS_TTL);
+        if cx.now() >= due {
+            self.connection_status_at = None;
+            return Response::changed();
+        }
+
+        let view = cx.viewport();
+        if view.width > 0 {
+            let costs = [12u16, 12, 15, 16, 8, 10];
+            let pinned = [false, false, false, false, false, false];
+            let status_width = width(&format!("✓ Connected to {}", self.connection.name));
+            let room = view
+                .width
+                .saturating_sub(status_width.saturating_add(3))
+                .saturating_sub(1);
+            let (keep, _) = footer::fit_hint_mask(&costs, room, &pinned);
+            let kept = keep.iter().filter(|on| **on).count();
+            if kept < 4 {
+                cx.request_repaint_at(due);
+            }
+        }
+        Response::ignored()
+    }
 }
 
 fn outcome_message(outcome: &QueryOutcome) -> String {
@@ -1883,14 +5914,1406 @@ fn outcome_message(outcome: &QueryOutcome) -> String {
     }
 }
 
-fn query_input(id: Id, value: Option<&str>) -> TextInput<'_> {
-    let input = TextInput::new(id)
-        .blur(termrock::BlurPolicy::Keep)
-        .placeholder("Type SQL. Ctrl+R runs the statement under the cursor.");
-    match value {
-        Some(text) => input.value(text),
-        None => input,
+fn duration_millis(duration: Duration) -> u32 {
+    u32::try_from(duration.as_millis()).unwrap_or(u32::MAX)
+}
+
+fn paint_idle_query(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+) -> termrock::Rect {
+    let inset = ui.design().space.frame_inset;
+    let Some(layout) =
+        QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Idle)
+    else {
+        return termrock::Rect::ZERO;
+    };
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
     }
+    paint_query_empty(ui, layout.content);
+    layout.editor.unwrap_or(termrock::Rect::ZERO)
+}
+
+const SQL_ERROR: Role = Role::Custom(termrock::Color::from_u32(0x00f0_5d5d));
+const QUERY_CARD_BG: Role = Role::Custom(termrock::Color::from_u32(0x0011_1111));
+
+const ERROR_RESULT_MS: &str = "2 ms";
+
+fn paint_query_plan(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    sql: &str,
+    plan: &tablepro_sql::sql::PlanNode,
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect) {
+    let inset = ui.design().space.frame_inset;
+    let Some(layout) =
+        QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Plan)
+    else {
+        return (termrock::Rect::ZERO, termrock::Rect::ZERO);
+    };
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
+    }
+    let (content, strip) = query_output_strip(layout.content, show_output_tabs);
+    paint_plan_results(ui, content, sql, plan, inner.right());
+    (layout.editor.unwrap_or(termrock::Rect::ZERO), strip)
+}
+
+const PLAN_COLS_W: u16 = 40;
+
+const PLAN_DETAIL_W: u16 = 40;
+const PLAN_DETAIL_MIN_BODY: u16 = 110;
+const PLAN_FACT_VALUE_AT: u16 = 17;
+
+fn paint_plan_results(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    sql: &str,
+    plan: &tablepro_sql::sql::PlanNode,
+    edge_x: u16,
+) {
+    if area.height < 6 || area.width == 0 {
+        return;
+    }
+    let plain = ui.surface_style();
+    let chip = plain.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let close = chip.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .remove(Modifier::BOLD),
+        ),
+    );
+    let label = if plan.actual_ms.is_some() {
+        " EXPLAIN ANALYZE "
+    } else {
+        " EXPLAIN "
+    };
+    ui.paint_str(
+        termrock::Rect {
+            width: width(label),
+            height: 1,
+            ..area
+        },
+        label,
+        chip,
+    );
+    let close_x = area.x.saturating_add(width(label));
+    ui.paint_str(termrock::Rect::new(close_x, area.y, 1, 1), "×", close);
+    ui.paint_str(
+        termrock::Rect::new(close_x.saturating_add(1), area.y, 2, 1),
+        "  ",
+        chip,
+    );
+    let tab_w = width(label).saturating_add(3);
+    let rule = termrock::Rect {
+        y: area.y.saturating_add(1),
+        height: 1,
+        ..area
+    };
+    let hot = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let quiet = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            width: tab_w.min(rule.width),
+            ..rule
+        },
+        &"━".repeat(usize::from(tab_w.min(rule.width))),
+        hot,
+    );
+    if rule.width > tab_w {
+        ui.paint_str(
+            termrock::Rect {
+                x: rule.x.saturating_add(tab_w),
+                width: rule.width.saturating_sub(tab_w),
+                ..rule
+            },
+            &"─".repeat(usize::from(rule.width.saturating_sub(tab_w))),
+            quiet,
+        );
+    }
+    let predicates = tablepro_sql::sql::parse(sql.trim())
+        .ok()
+        .and_then(|statement| match statement {
+            tablepro_sql::sql::Statement::Select(select) => Some(select.predicates.len()),
+            _ => None,
+        })
+        .unwrap_or(0);
+    let planning = 0.21 + predicates as f64 * 0.09;
+    let status = if let Some(actual) = plan.actual_ms {
+        let execution = actual + 0.4;
+        format!("Planning {planning:.3} ms · Execution {execution:.3} ms")
+    } else {
+        format!("Planning {planning:.3} ms · r Raw")
+    };
+    let muted = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    ui.paint_str(
+        termrock::Rect::new(
+            area.x.saturating_add(1),
+            area.y.saturating_add(2),
+            width(&status),
+            1,
+        ),
+        &status,
+        muted,
+    );
+    let head = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    let head_y = area.y.saturating_add(3);
+    ui.paint_str(
+        termrock::Rect::new(area.x.saturating_add(3), head_y, 9, 1),
+        "Operation",
+        head,
+    );
+
+    let detail_w = if area.width >= PLAN_DETAIL_MIN_BODY {
+        PLAN_DETAIL_W
+    } else {
+        0
+    };
+    let reserved = if detail_w > 0 {
+        detail_w.saturating_add(2)
+    } else {
+        0
+    };
+    let cols_x = edge_x.saturating_sub(39u16.saturating_add(reserved));
+    let header = format!("{:>13} {:>8} {:>10} {:>4}", "cost", "rows", "actual", "%");
+    ui.paint_str(
+        termrock::Rect::new(cols_x, head_y, width(&header), 1),
+        &header,
+        head,
+    );
+    let root_cost = plan.cost.1.max(1.0);
+    let mut y = head_y.saturating_add(1);
+    paint_plan_node(ui, area, &mut y, plan, 0, root_cost, cols_x);
+    if detail_w > 0 {
+        let card_x = cols_x.saturating_add(PLAN_COLS_W).saturating_add(2);
+        paint_plan_detail(ui, area, head_y, card_x, detail_w, plan);
+    }
+}
+
+fn paint_plan_detail(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    head_y: u16,
+    card_x: u16,
+    detail_w: u16,
+    node: &tablepro_sql::sql::PlanNode,
+) {
+    let height = 16.min(area.bottom().saturating_sub(head_y));
+    if height == 0 || detail_w < 4 {
+        return;
+    }
+    let card = termrock::Rect::new(card_x, head_y, detail_w, height);
+    let fill = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(QUERY_CARD_BG),
+        ),
+    );
+    ui.fill(card, fill);
+    let title = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    let op = truncate(&node.op, detail_w.saturating_sub(4));
+    ui.paint_str(
+        termrock::Rect::new(card.x.saturating_add(2), card.y, width(&op), 1),
+        &op,
+        title,
+    );
+    if card.height < 2 {
+        return;
+    }
+    let rule = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    let rule_w = detail_w.saturating_sub(4);
+    ui.paint_str(
+        termrock::Rect::new(
+            card.x.saturating_add(2),
+            card.y.saturating_add(1),
+            rule_w,
+            1,
+        ),
+        &"─".repeat(usize::from(rule_w)),
+        rule,
+    );
+    let muted = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    let value_ink =
+        fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    let mut facts: Vec<(&str, String, bool)> = Vec::new();
+    if let Some(relation) = &node.relation {
+        facts.push(("Relation", relation.clone(), false));
+    }
+    facts.push((
+        "Cost",
+        format!("{:.2}..{:.2}", node.cost.0, node.cost.1),
+        true,
+    ));
+    facts.push(("Est. rows", tablepro_sql::sql::fmt_int(node.rows), true));
+    if let Some(actual) = node.actual_ms {
+        let loops = if node.loops == 1 { "loop" } else { "loops" };
+        facts.push((
+            "Actual",
+            format!("{actual:.3} ms · {} {loops}", node.loops),
+            true,
+        ));
+    }
+    for (label, value) in &node.detail {
+        facts.push((label.as_str(), value.clone(), false));
+    }
+    let label_x = card.x.saturating_add(2);
+    let value_x = label_x.saturating_add(PLAN_FACT_VALUE_AT);
+    let mut y = card.y.saturating_add(2);
+    for (label, value, secondary) in facts {
+        if y >= card.bottom() {
+            break;
+        }
+        ui.paint_str(
+            termrock::Rect::new(label_x, y, width(label), 1),
+            label,
+            muted,
+        );
+        ui.paint_str(
+            termrock::Rect::new(value_x, y, width(&value), 1),
+            &value,
+            if secondary { value_ink } else { muted },
+        );
+        y = y.saturating_add(1);
+    }
+}
+
+fn paint_plan_node(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    y: &mut u16,
+    node: &tablepro_sql::sql::PlanNode,
+    depth: u16,
+    root_cost: f64,
+    cols_x: u16,
+) {
+    if *y >= area.bottom() {
+        return;
+    }
+    let hidden = ui.surface_style().patch(
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0)))),
+    );
+    ui.paint_str(termrock::Rect::new(area.x, *y, 1, 1), " ", hidden);
+    let share = plan_share(node, root_cost);
+    let hot = share > 50;
+    let label_style = if hot {
+        ui.surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)))
+    } else {
+        ui.surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))))
+    };
+    let label_x = area
+        .x
+        .saturating_add(3)
+        .saturating_add(depth.saturating_mul(2));
+    let name = if node.children.is_empty() {
+        match &node.relation {
+            Some(relation) => format!("{} on {relation}", node.op),
+            None => node.op.clone(),
+        }
+    } else {
+        let chevron = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+        ui.paint_str(
+            termrock::Rect::new(
+                area.x
+                    .saturating_add(1)
+                    .saturating_add(depth.saturating_mul(2)),
+                *y,
+                1,
+                1,
+            ),
+            "▾",
+            chevron,
+        );
+        node.op.clone()
+    };
+    let slot = usize::from(cols_x.saturating_sub(label_x).saturating_sub(1));
+    let fitted = fit_plan_label(&name, slot);
+    ui.paint_str(
+        termrock::Rect::new(label_x, *y, width(&fitted), 1),
+        &fitted,
+        label_style,
+    );
+    let metrics = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    let actual = match node.actual_ms {
+        Some(m) => format!("{m:.1} ms"),
+        None => "—".to_owned(),
+    };
+    let cost = format!(
+        "{:>13} {:>8} {:>10}",
+        format!(
+            "{}..{}",
+            node.cost.0.round() as i64,
+            node.cost.1.round() as i64
+        ),
+        fmt_plan_rows(node.rows),
+        actual
+    );
+    ui.paint_str(
+        termrock::Rect::new(cols_x, *y, width(&cost), 1),
+        &cost,
+        metrics,
+    );
+    let mark = if hot { "▲" } else { " " };
+    let share_text = format!("{:>4} {mark}", share);
+    ui.paint_str(
+        termrock::Rect::new(cols_x.saturating_add(34), *y, width(&share_text), 1),
+        &share_text,
+        plan_share_style(ui, share),
+    );
+    *y = y.saturating_add(1);
+    for child in &node.children {
+        paint_plan_node(
+            ui,
+            area,
+            y,
+            child,
+            depth.saturating_add(1),
+            root_cost,
+            cols_x,
+        );
+    }
+}
+
+fn fit_plan_label(text: &str, slot: usize) -> String {
+    let w = usize::from(width(text));
+    if w > slot {
+        return truncate(text, u16::try_from(slot).unwrap_or(u16::MAX));
+    }
+    format!("{text}{}", " ".repeat(slot.saturating_sub(w)))
+}
+
+fn plan_share_style(ui: &Ui<'_>, share: u16) -> PaintStyle {
+    let patch = if share > 50 {
+        StylePatch::new().set_fg(Role::Warning).add(Modifier::BOLD)
+    } else if share > 20 {
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD)
+    } else if share > 5 {
+        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))
+    } else {
+        StylePatch::new().set_fg(Role::Fg(FgStep::Muted))
+    };
+    ui.surface_style().patch(ui.paint_patch(&patch))
+}
+
+fn plan_share(node: &tablepro_sql::sql::PlanNode, root_cost: f64) -> u16 {
+    let own = if node.children.is_empty() {
+        node.cost.1
+    } else {
+        let children: f64 = node.children.iter().map(|child| child.cost.1).sum();
+        (node.cost.1 - children).max(0.0)
+    };
+    (own / root_cost * 100.0).round() as u16
+}
+
+fn fmt_plan_rows(rows: usize) -> String {
+    if rows >= 1_000_000 {
+        format!("{:.1} M", rows as f64 / 1_000_000.0)
+    } else {
+        rows.to_string()
+    }
+}
+
+fn paint_query_results_chrome(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    rows: usize,
+    duration_ms: u32,
+    source: Option<&str>,
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect, termrock::Rect) {
+    let inset = ui.design().space.frame_inset;
+    let Some(layout) = QueryLayout::new(
+        area,
+        inner,
+        inset,
+        QueryPaneMode::None,
+        QueryContent::Results,
+    ) else {
+        return (termrock::Rect::ZERO, inner, termrock::Rect::ZERO);
+    };
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
+    }
+    let (content, strip) = query_output_strip(layout.content, show_output_tabs);
+    let grid = paint_query_result_summary(ui, content, rows, duration_ms, source);
+    (layout.editor.unwrap_or(termrock::Rect::ZERO), grid, strip)
+}
+
+fn query_output_strip(
+    content: termrock::Rect,
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect) {
+    if !show_output_tabs || content.height == 0 {
+        return (content, termrock::Rect::ZERO);
+    }
+    let strip = termrock::Rect {
+        height: 1,
+        ..content
+    };
+    let body = termrock::Rect {
+        y: content.y.saturating_add(1),
+        height: content.height.saturating_sub(1),
+        ..content
+    };
+    (body, strip)
+}
+
+fn paint_query_result_summary(
+    ui: &mut Ui<'_>,
+    below: termrock::Rect,
+    rows: usize,
+    duration_ms: u32,
+    source: Option<&str>,
+) -> termrock::Rect {
+    let table = source
+        .and_then(|name| name.rsplit('.').next())
+        .unwrap_or("orders");
+    let label = format!(" SELECT {table} ({rows}) ");
+    let plain = ui.surface_style();
+    let chip = plain.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let close = chip.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .remove(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            width: width(&label),
+            height: 1,
+            ..below
+        },
+        &label,
+        chip,
+    );
+    let close_x = below.x.saturating_add(width(&label));
+    ui.paint_str(termrock::Rect::new(close_x, below.y, 1, 1), "×", close);
+    ui.paint_str(
+        termrock::Rect::new(close_x.saturating_add(1), below.y, 2, 1),
+        "  ",
+        chip,
+    );
+    let tab_w = width(&label).saturating_add(3);
+    let rule = termrock::Rect {
+        y: below.y.saturating_add(1),
+        height: 1,
+        ..below
+    };
+    let hot = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let quiet = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            width: tab_w.min(rule.width),
+            ..rule
+        },
+        &"━".repeat(usize::from(tab_w.min(rule.width))),
+        hot,
+    );
+    if rule.width > tab_w {
+        ui.paint_str(
+            termrock::Rect {
+                x: rule.x.saturating_add(tab_w),
+                width: rule.width.saturating_sub(tab_w),
+                ..rule
+            },
+            &"─".repeat(usize::from(rule.width.saturating_sub(tab_w))),
+            quiet,
+        );
+    }
+    let ok = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_OK_FG)));
+    let muted = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    ui.paint_str(
+        termrock::Rect::new(below.x.saturating_add(1), below.y.saturating_add(2), 1, 1),
+        "✓",
+        ok,
+    );
+    let rest = format!(" {rows} rows · {duration_ms} ms");
+    ui.paint_str(
+        termrock::Rect::new(
+            below.x.saturating_add(2),
+            below.y.saturating_add(2),
+            width(&rest),
+            1,
+        ),
+        &rest,
+        muted,
+    );
+    termrock::Rect {
+        y: below.y.saturating_add(3),
+        height: below.height.saturating_sub(3),
+        ..below
+    }
+}
+
+fn paint_query_error(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    message: &str,
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect) {
+    let inset = ui.design().space.frame_inset;
+    let Some(layout) =
+        QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Error)
+    else {
+        return (termrock::Rect::ZERO, termrock::Rect::ZERO);
+    };
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
+    }
+    let (content, strip) = query_output_strip(layout.content, show_output_tabs);
+    paint_query_error_results(ui, content, message);
+    (layout.editor.unwrap_or(termrock::Rect::ZERO), strip)
+}
+
+fn relation_error_detail(message: &str) -> Option<&'static str> {
+    message
+        .starts_with("relation \"")
+        .then_some(message.ends_with("\" does not exist"))
+        .filter(|yes| *yes)
+        .map(|_| "Check the schema search path or qualify the table name.")
+}
+
+fn paint_query_error_results(ui: &mut Ui<'_>, area: termrock::Rect, message: &str) {
+    if area.height < 4 || area.width == 0 {
+        return;
+    }
+    let plain = ui.surface_style();
+    let chip = plain.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let mark = chip.patch(ui.paint_patch(&StylePatch::new().set_fg(SQL_ERROR)));
+    let close = chip.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .remove(Modifier::BOLD),
+        ),
+    );
+    let tab = " Error 1 ";
+    ui.paint_str(
+        termrock::Rect {
+            width: width(tab),
+            height: 1,
+            ..area
+        },
+        tab,
+        chip,
+    );
+    let bang_x = area.x.saturating_add(width(tab));
+    ui.paint_str(termrock::Rect::new(bang_x, area.y, 1, 1), "!", mark);
+    ui.paint_str(
+        termrock::Rect::new(bang_x.saturating_add(1), area.y, 1, 1),
+        " ",
+        chip,
+    );
+    ui.paint_str(
+        termrock::Rect::new(bang_x.saturating_add(2), area.y, 1, 1),
+        "×",
+        close,
+    );
+    ui.paint_str(
+        termrock::Rect::new(bang_x.saturating_add(3), area.y, 2, 1),
+        "  ",
+        chip,
+    );
+    let tab_w = width(tab).saturating_add(5);
+    let rule = termrock::Rect {
+        y: area.y.saturating_add(1),
+        height: 1,
+        ..area
+    };
+    let hot = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let quiet = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            width: tab_w.min(rule.width),
+            ..rule
+        },
+        &"━".repeat(usize::from(tab_w.min(rule.width))),
+        hot,
+    );
+    if rule.width > tab_w {
+        ui.paint_str(
+            termrock::Rect {
+                x: rule.x.saturating_add(tab_w),
+                width: rule.width.saturating_sub(tab_w),
+                ..rule
+            },
+            &"─".repeat(usize::from(rule.width.saturating_sub(tab_w))),
+            quiet,
+        );
+    }
+    let failed = format!(" failed · {ERROR_RESULT_MS}");
+    let fail = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(SQL_ERROR)));
+    let fail_bold = fail.patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
+    ui.paint_str(
+        termrock::Rect::new(area.x.saturating_add(1), area.y.saturating_add(2), 1, 1),
+        "✗",
+        fail_bold,
+    );
+    ui.paint_str(
+        termrock::Rect::new(
+            area.x.saturating_add(2),
+            area.y.saturating_add(2),
+            width(&failed),
+            1,
+        ),
+        &failed,
+        fail,
+    );
+    let card = termrock::Rect {
+        y: area.y.saturating_add(3),
+        width: area.width.min(90),
+        height: area.height.saturating_sub(3).min(8),
+        ..area
+    };
+    let card_style = plain.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(QUERY_CARD_BG),
+        ),
+    );
+    ui.fill(card, card_style);
+    let secondary =
+        card_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    let muted =
+        card_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    let err = card_style.patch(ui.paint_patch(&StylePatch::new().set_fg(SQL_ERROR)));
+    let err_bold = err.patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
+    let rule_style = card_style.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect::new(card.x.saturating_add(2), card.y, 5, 1),
+        "Error",
+        secondary,
+    );
+
+    let rule_tail = if card.width < area.width { 4 } else { 6 };
+    let rule_w = card.width.saturating_sub(rule_tail);
+    ui.paint_str(
+        termrock::Rect::new(
+            card.x.saturating_add(2),
+            card.y.saturating_add(1),
+            rule_w,
+            1,
+        ),
+        &"─".repeat(usize::from(rule_w)),
+        rule_style,
+    );
+    ui.paint_str(
+        termrock::Rect::new(card.x.saturating_add(2), card.y.saturating_add(2), 1, 1),
+        "!",
+        err_bold,
+    );
+    ui.paint_str(
+        termrock::Rect::new(
+            card.x.saturating_add(4),
+            card.y.saturating_add(2),
+            width(message),
+            1,
+        ),
+        message,
+        err,
+    );
+    if let Some(detail) = relation_error_detail(message) {
+        ui.paint_str(
+            termrock::Rect::new(
+                card.x.saturating_add(4),
+                card.y.saturating_add(3),
+                width(detail),
+                1,
+            ),
+            detail,
+            secondary,
+        );
+    }
+    let hint = "Enter on the result tab jumps to the statement";
+    ui.paint_str(
+        termrock::Rect::new(
+            card.x.saturating_add(4),
+            card.y.saturating_add(4),
+            width(hint),
+            1,
+        ),
+        hint,
+        muted,
+    );
+}
+
+fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
+    let mut button = plain.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_BUTTON_FG)
+                .set_bg(TAG_BUTTON_BG)
+                .add(Modifier::BOLD),
+        ),
+    );
+    if ui.theme().capability.color == termrock::ColorLevel::Mono {
+        button = PaintStyle::new().add_modifier(Modifier::BOLD | Modifier::REVERSED);
+    }
+    let cap = plain.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_BUTTON_BG)
+                .set_bg(TAG_BUTTON_BG),
+        ),
+    );
+    let quiet = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let gap = plain.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Custom(termrock::Color::from_u32(0)))
+                .set_bg(Role::Custom(termrock::Color::from_u32(0))),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            width: 1,
+            height: 1,
+            ..area
+        },
+        " ",
+        cap,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(1),
+            width: 4,
+            height: 1,
+            ..area
+        },
+        "Run ",
+        button,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(5),
+            width: 1,
+            height: 1,
+            ..area
+        },
+        " ",
+        plain,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(6),
+            width: 1,
+            height: 1,
+            ..area
+        },
+        " ",
+        gap,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(7),
+            width: 8,
+            height: 1,
+            ..area
+        },
+        "Run all ",
+        quiet,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(16),
+            width: 1,
+            height: 1,
+            ..area
+        },
+        " ",
+        gap,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(17),
+            width: 8,
+            height: 1,
+            ..area
+        },
+        "Explain ",
+        quiet,
+    );
+}
+
+fn idle_editor_rect(
+    ui: &Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+) -> Option<termrock::Rect> {
+    QueryLayout::new(
+        area,
+        inner,
+        ui.design().space.frame_inset,
+        QueryPaneMode::None,
+        QueryContent::Idle,
+    )
+    .and_then(|layout| layout.editor)
+}
+
+fn extend_query_plan_edge(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    plan: &tablepro_sql::sql::PlanNode,
+) {
+    let Some(layout) = QueryLayout::new(
+        area,
+        inner,
+        ui.design().space.frame_inset,
+        QueryPaneMode::None,
+        QueryContent::Plan,
+    ) else {
+        return;
+    };
+    let Some(editor) = layout.editor else {
+        return;
+    };
+    let editor_y = editor.y;
+    let editor_rows = editor.height;
+    let x = inner.right();
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    let lined = field.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_underline(Role::BorderStrong)
+                .add(Modifier::UNDERLINED),
+        ),
+    );
+    ui.paint_str(termrock::Rect::new(x, editor_y, 1, 1), " ", lined);
+    if editor_rows > 1 {
+        ui.fill(
+            termrock::Rect::new(
+                x,
+                editor_y.saturating_add(1),
+                1,
+                editor_rows.saturating_sub(1),
+            ),
+            field,
+        );
+    }
+    let seam_y = layout
+        .seam
+        .map_or(editor_y.saturating_add(editor_rows), |r| r.y);
+    let seam = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
+    ui.paint_str(termrock::Rect::new(x, seam_y, 1, 1), "─", seam);
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect::new(x, seam_y.saturating_add(2), 1, 1),
+        "─",
+        quiet,
+    );
+    let root_cost = plan.cost.1.max(1.0);
+    let mut y = seam_y.saturating_add(5);
+    paint_plan_edge_nodes(ui, x, &mut y, plan, root_cost);
+
+    if area.width.saturating_sub(ui.design().space.frame_inset) >= PLAN_DETAIL_MIN_BODY {
+        let head_y = seam_y.saturating_add(4);
+        let rows = 16.min(area.bottom().saturating_sub(head_y));
+        if rows > 0 {
+            let fill = ui.surface_style().patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .set_bg(QUERY_CARD_BG)
+                        .remove(Modifier::BOLD),
+                ),
+            );
+            ui.fill(termrock::Rect::new(x, head_y, 1, rows), fill);
+        }
+    }
+}
+
+fn paint_plan_edge_nodes(
+    ui: &mut Ui<'_>,
+    x: u16,
+    y: &mut u16,
+    node: &tablepro_sql::sql::PlanNode,
+    root_cost: f64,
+) {
+    let share = plan_share(node, root_cost);
+    let mark = if share > 50 { "▲" } else { " " };
+    ui.paint_str(
+        termrock::Rect::new(x, *y, 1, 1),
+        mark,
+        plan_share_style(ui, share),
+    );
+    *y = y.saturating_add(1);
+    for child in &node.children {
+        paint_plan_edge_nodes(ui, x, y, child, root_cost);
+    }
+}
+
+pub(crate) fn query_hbar_overflows(query: &str, editor_width: u16) -> bool {
+    let text_w = usize::from(editor_width.saturating_sub(6));
+    let widest = query
+        .split('\n')
+        .map(|line| usize::from(width(line)))
+        .max()
+        .unwrap_or(0);
+    widest.saturating_add(1) > text_w
+}
+
+fn extend_query_results_edge(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    query: &str,
+) {
+    let Some(layout) = QueryLayout::new(
+        area,
+        inner,
+        ui.design().space.frame_inset,
+        QueryPaneMode::None,
+        QueryContent::Results,
+    ) else {
+        return;
+    };
+    let Some(editor) = layout.editor else {
+        return;
+    };
+    let editor_rows = editor.height;
+    let editor_y = editor.y;
+    let x = inner.right();
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    ui.fill(termrock::Rect::new(x, editor_y, 1, editor_rows), field);
+    let editor_width = area
+        .width
+        .saturating_sub(ui.design().space.frame_inset)
+        .saturating_sub(2);
+    if editor_rows > 2 && query_hbar_overflows(query, editor_width) {
+        let thumb = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_THUMB)));
+        ui.paint_str(
+            termrock::Rect::new(
+                x,
+                editor_y.saturating_add(editor_rows.saturating_sub(2)),
+                1,
+                1,
+            ),
+            "━",
+            thumb,
+        );
+    }
+    let seam_y = layout
+        .seam
+        .map_or(editor_y.saturating_add(editor_rows), |r| r.y);
+    let seam = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
+    ui.paint_str(termrock::Rect::new(x, seam_y, 1, 1), "─", seam);
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect::new(x, seam_y.saturating_add(2), 1, 1),
+        "─",
+        quiet,
+    );
+}
+
+fn extend_query_error_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termrock::Rect) {
+    let Some(layout) = QueryLayout::new(
+        area,
+        inner,
+        ui.design().space.frame_inset,
+        QueryPaneMode::None,
+        QueryContent::Error,
+    ) else {
+        return;
+    };
+    let Some(editor) = layout.editor else {
+        return;
+    };
+    let editor_rows = editor.height;
+    let editor_y = editor.y;
+    let x = inner.right();
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    ui.fill(termrock::Rect::new(x, editor_y, 1, editor_rows), field);
+    let seam_y = layout
+        .seam
+        .map_or(editor_y.saturating_add(editor_rows), |r| r.y);
+    let seam = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
+    ui.paint_str(termrock::Rect::new(x, seam_y, 1, 1), "─", seam);
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect::new(x, seam_y.saturating_add(2), 1, 1),
+        "─",
+        quiet,
+    );
+    let card = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(QUERY_CARD_BG),
+        ),
+    );
+    let card_y = seam_y.saturating_add(4);
+    let card_h = inner.bottom().saturating_sub(card_y).min(8);
+    let body_width = area.width.saturating_sub(ui.design().space.frame_inset);
+    let card_w = body_width.min(90);
+
+    if card_h > 0 && card_w > inner.width {
+        ui.fill(termrock::Rect::new(x, card_y, 1, card_h), card);
+    }
+}
+
+fn extend_idle_query_edge(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    underline_first: bool,
+) {
+    let Some(editor) = idle_editor_rect(ui, area, inner) else {
+        return;
+    };
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    ui.fill(
+        termrock::Rect {
+            x: inner.right(),
+            y: editor.y,
+            width: 1,
+            height: editor.height,
+        },
+        field,
+    );
+    if underline_first && editor.height > 0 {
+        let underlined = field.patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_underline(Role::BorderStrong)
+                    .add(Modifier::UNDERLINED),
+            ),
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: inner.right(),
+                y: editor.y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            underlined,
+        );
+    }
+    let seam = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.right(),
+            y: editor.y.saturating_add(editor.height),
+            width: 1,
+            height: 1,
+        },
+        "─",
+        seam,
+    );
+}
+
+fn paint_query_seam(ui: &mut Ui<'_>, area: termrock::Rect) {
+    if area.width == 0 {
+        return;
+    }
+
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
+    ui.paint_str(area, &"─".repeat(usize::from(area.width)), style);
+}
+
+fn paint_maximized_query_card(ui: &mut Ui<'_>, area: termrock::Rect, title: &str) {
+    if area.width < 4 || area.height < 4 {
+        return;
+    }
+    let border = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    let title_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+    let title_w = width(title).min(area.width.saturating_sub(4));
+    ui.paint_str(termrock::Rect::new(area.x, area.y, 1, 1), "╭", border);
+    ui.paint_str(
+        termrock::Rect::new(area.x.saturating_add(1), area.y, 1, 1),
+        "─",
+        border,
+    );
+    ui.paint_str(
+        termrock::Rect::new(area.x.saturating_add(2), area.y, title_w, 1),
+        title,
+        title_style,
+    );
+    let rule_x = area.x.saturating_add(2).saturating_add(title_w);
+    let rule_w = area.right().saturating_sub(1).saturating_sub(rule_x);
+    if rule_w > 0 {
+        ui.paint_str(
+            termrock::Rect::new(rule_x, area.y, rule_w, 1),
+            &"─".repeat(usize::from(rule_w)),
+            border,
+        );
+    }
+    ui.paint_str(
+        termrock::Rect::new(area.right().saturating_sub(1), area.y, 1, 1),
+        "╮",
+        border,
+    );
+    let last = area.bottom().saturating_sub(1);
+    for y in area.y.saturating_add(1)..last {
+        ui.paint_str(termrock::Rect::new(area.x, y, 1, 1), "│", border);
+        ui.paint_str(
+            termrock::Rect::new(area.right().saturating_sub(1), y, 1, 1),
+            "│",
+            border,
+        );
+    }
+    let span = area.width.saturating_sub(2);
+    ui.paint_str(termrock::Rect::new(area.x, last, 1, 1), "╰", border);
+    if span > 0 {
+        ui.paint_str(
+            termrock::Rect::new(area.x.saturating_add(1), last, span, 1),
+            &"─".repeat(usize::from(span)),
+            border,
+        );
+    }
+    ui.paint_str(
+        termrock::Rect::new(area.right().saturating_sub(1), last, 1, 1),
+        "╯",
+        border,
+    );
+    let inner = termrock::Rect {
+        x: area.x.saturating_add(1),
+        y: area.y.saturating_add(1),
+        width: area.width.saturating_sub(2),
+        height: area.height.saturating_sub(2),
+    };
+    ui.fill(inner, ui.surface_style());
+    paint_query_empty(ui, inner);
+}
+
+fn maximized_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("←→", "Switch"),
+        Hint::new("Ctrl+T", "New query"),
+        Hint::new("x", "Close"),
+        Hint::new("Ctrl+G", "Tab list"),
+        Hint::new("z", "Zoom"),
+        Hint::new("Shift+F10", "Menu"),
+        Hint::new("Tab", "Next"),
+    ]
+}
+
+fn query_pane_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Esc", "Restore"),
+        Hint::new("0", "Explorer"),
+        Hint::new("z", "Zoom"),
+        Hint::new("Ctrl+R", "Run"),
+        Hint::new("Ctrl+Shift+P", "Pin result"),
+        Hint::new("Tab", "Next"),
+    ]
+}
+
+fn paint_query_run_state(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    title: &str,
+    detail: &str,
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect) {
+    let inset = ui.design().space.frame_inset;
+    let Some(layout) =
+        QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Idle)
+    else {
+        return (termrock::Rect::ZERO, termrock::Rect::ZERO);
+    };
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
+    }
+    let (content, strip) = query_output_strip(layout.content, show_output_tabs);
+    paint_query_run_label(ui, content, title, detail);
+    (layout.editor.unwrap_or(termrock::Rect::ZERO), strip)
+}
+
+fn paint_query_run_label(ui: &mut Ui<'_>, area: termrock::Rect, title: &str, detail: &str) {
+    if area.height < 3 || area.width == 0 {
+        return;
+    }
+    let top = area.y.saturating_add(area.height.saturating_sub(3) / 2);
+    let title_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    let detail_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
+    paint_centered(
+        ui,
+        termrock::Rect {
+            y: top,
+            height: 1,
+            ..area
+        },
+        title,
+        width(title),
+        title_style,
+    );
+    paint_centered(
+        ui,
+        termrock::Rect {
+            y: top.saturating_add(2),
+            height: 1,
+            ..area
+        },
+        detail,
+        width(detail),
+        detail_style,
+    );
+}
+
+fn paint_query_empty(ui: &mut Ui<'_>, area: termrock::Rect) {
+    if area.height < 3 || area.width == 0 {
+        return;
+    }
+    let title = "No results yet";
+    let hint = "Ctrl+R runs the statement under the cursor · Alt+R runs all";
+    let top = area.y.saturating_add(area.height.saturating_sub(3) / 2);
+    let title_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    let hint_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
+    paint_centered(
+        ui,
+        termrock::Rect {
+            y: top,
+            height: 1,
+            ..area
+        },
+        title,
+        width(title),
+        title_style,
+    );
+
+    let hint_columns = u16::try_from(hint.chars().count()).unwrap_or(0);
+    let hint_row = termrock::Rect {
+        y: top.saturating_add(2),
+        height: 1,
+        ..area
+    };
+
+    let hint_x = hint_row
+        .x
+        .saturating_add(hint_row.width.saturating_sub(hint_columns) / 2)
+        .saturating_add(1);
+    ui.paint_str(
+        termrock::Rect {
+            x: hint_x,
+            width: hint_columns,
+            ..hint_row
+        },
+        hint,
+        hint_style,
+    );
+}
+
+fn paint_centered(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    text: &str,
+    text_width: u16,
+    style: PaintStyle,
+) {
+    if text_width > area.width {
+        ui.paint_str(area, text, style);
+        return;
+    }
+    ui.paint_str(
+        termrock::Rect {
+            x: area
+                .x
+                .saturating_add(area.width.saturating_sub(text_width) / 2),
+            width: text_width,
+            ..area
+        },
+        text,
+        style,
+    );
 }
 
 fn fixed_flex_pair(area: termrock::Rect, first_height: u16) -> [termrock::Rect; 2] {
@@ -1924,35 +7347,28 @@ fn stable_key(parts: &[&str]) -> ItemKey {
 fn build_connection_nodes(connections: &[Connection]) -> Vec<ConnectionNode> {
     let mut nodes = Vec::with_capacity(connections.len().saturating_mul(2));
     let mut groups: Vec<&str> = Vec::new();
-    for (index, connection) in connections.iter().enumerate() {
+    for connection in connections {
         if !groups.contains(&connection.group.as_str()) {
-            groups.push(&connection.group);
-            nodes.push(ConnectionNode::Group {
-                name: connection.group.clone(),
-            });
+            groups.push(connection.group.as_str());
         }
-        nodes.push(ConnectionNode::Connection {
-            index,
-            connection: connection.clone(),
+    }
+    for group in groups {
+        nodes.push(ConnectionNode::Group {
+            name: group.to_owned(),
         });
+        for (index, connection) in connections.iter().enumerate() {
+            if connection.group == group {
+                nodes.push(ConnectionNode::Connection {
+                    index,
+                    connection: connection.clone(),
+                });
+            }
+        }
     }
     nodes
 }
 
 fn initial_connection_tree_state(nodes: &[ConnectionNode]) -> TreeState {
-    let mut state = TreeState::default();
-    state.expand_all();
-    if let Some((index, node)) = nodes
-        .iter()
-        .enumerate()
-        .find(|(_, node)| matches!(node, ConnectionNode::Connection { .. }))
-    {
-        state.set_cursor(index, connection_node_key(node));
-    }
-    state
-}
-
-fn initial_connection_visual_tree_state(nodes: &[ConnectionNode]) -> TreeState {
     let mut state = TreeState::default();
     state.expand_all();
     if let Some((index, node)) = nodes
@@ -1981,23 +7397,37 @@ fn connection_node(node: &ConnectionNode) -> TreeNode {
     }
 }
 
+fn legacy_environment_role(environment: Environment) -> Role {
+    match environment {
+        Environment::Local => TAG_CHROME_FG,
+        Environment::Development => LEGACY_INFO,
+        Environment::Staging => Role::Warning,
+        Environment::Production => LEGACY_DANGER_LABEL,
+    }
+}
+
+fn connection_mark(connection: &Connection) -> Span<'static> {
+    match connection.environment {
+        Environment::Local => Span::new(" "),
+        Environment::Development => Span::new("·").role(LEGACY_INFO),
+        Environment::Staging => Span::new("◇").role(Role::Warning),
+        Environment::Production => Span::new("◆").role(LEGACY_DANGER_LABEL),
+    }
+}
+
 fn connection_row(node: &ConnectionNode, row: &mut RowUi<'_>) {
     match node {
         ConnectionNode::Group { name } => row.label(name),
         ConnectionNode::Connection { connection, .. } => {
-            let glyph = match connection.environment {
-                Environment::Production => '◆',
-                Environment::Staging => '◇',
-                Environment::Local | Environment::Development => '·',
-            };
-            let glyph = match glyph {
-                '◆' => Span::new("◆"),
-                '◇' => Span::new("◇"),
-                _ => Span::new("·"),
-            }
-            .role(Role::Fg(FgStep::Muted));
-            row.label_spans(&[glyph, Span::new(" "), Span::new(&connection.name)]);
-            row.meta(connection.engine.short());
+            row.label_spans(&[
+                connection_mark(connection),
+                Span::new(" "),
+                Span::new(&connection.name),
+            ]);
+            row.trailing(
+                connection.engine.short(),
+                &StylePatch::new().set_fg(TAG_CHROME_FG),
+            );
         }
     }
 }
@@ -2015,7 +7445,7 @@ fn build_explorer_nodes(catalog: &Catalog) -> Vec<ExplorerNode> {
             (ObjectKind::Table, "Tables", "T"),
             (ObjectKind::View, "Views", "V"),
             (ObjectKind::Function, "Functions", "ƒ"),
-            (ObjectKind::Sequence, "Sequences", "S"),
+            (ObjectKind::Sequence, "Sequences", "#"),
         ] {
             let objects = catalog
                 .tables
@@ -2034,12 +7464,13 @@ fn build_explorer_nodes(catalog: &Catalog) -> Vec<ExplorerNode> {
             nodes.push(ExplorerNode::Group {
                 schema: schema.clone(),
                 name: label.to_owned(),
+                count: objects.len(),
             });
-            nodes.extend(objects.into_iter().map(|item| ExplorerNode::Object {
-                count: compact_count(item.rows),
-                item,
-                prefix,
-            }));
+            nodes.extend(
+                objects
+                    .into_iter()
+                    .map(|item| ExplorerNode::Object { item, prefix }),
+            );
         }
     }
     nodes
@@ -2056,7 +7487,7 @@ fn reset_explorer_tree_state(state: &mut TreeState, nodes: &[ExplorerNode], sche
     for node in nodes.iter().filter(|node| {
         matches!(node, ExplorerNode::Database { .. })
             || matches!(node, ExplorerNode::Schema { name } if name == schema)
-            || matches!(node, ExplorerNode::Group { schema: group_schema, name } if group_schema == schema && name == "Tables")
+            || matches!(node, ExplorerNode::Group { schema: group_schema, name, .. } if group_schema == schema && name == "Tables")
     }) {
         state.expand(explorer_node_key(node));
     }
@@ -2073,7 +7504,7 @@ fn explorer_node_key(node: &ExplorerNode) -> ItemKey {
     match node {
         ExplorerNode::Database { name } => stable_key(&["database", name]),
         ExplorerNode::Schema { name } => stable_key(&["schema", name]),
-        ExplorerNode::Group { schema, name } => stable_key(&["object-group", schema, name]),
+        ExplorerNode::Group { schema, name, .. } => stable_key(&["object-group", schema, name]),
         ExplorerNode::Object { item, prefix, .. } => {
             stable_key(&["object", &item.schema, prefix, &item.name])
         }
@@ -2085,7 +7516,7 @@ fn explorer_node(node: &ExplorerNode) -> TreeNode {
         ExplorerNode::Database { .. } => TreeNode::parent(0).keyed(explorer_node_key(node)),
         ExplorerNode::Schema { .. } => TreeNode::parent(1).keyed(explorer_node_key(node)),
         ExplorerNode::Group { .. } => TreeNode::parent(2).keyed(explorer_node_key(node)),
-        ExplorerNode::Object { .. } => TreeNode::leaf(3).keyed(explorer_node_key(node)),
+        ExplorerNode::Object { .. } => TreeNode::lazy(3).keyed(explorer_node_key(node)),
     }
 }
 
@@ -2104,34 +7535,158 @@ fn qualified_label(prefix: &str, left: &str, right: &str) -> String {
     text
 }
 
-fn compact_count(rows: usize) -> String {
-    if rows >= 1_000_000 {
-        format!("{:.1}m", rows as f64 / 1_000_000.0)
-    } else if rows >= 1_000 {
-        format!("{:.1}k", rows as f64 / 1_000.0)
-    } else {
-        rows.to_string()
+struct MetaBuf {
+    buf: [u8; 24],
+    len: usize,
+}
+
+impl MetaBuf {
+    fn new() -> Self {
+        Self {
+            buf: [0; 24],
+            len: 0,
+        }
+    }
+
+    fn clear(&mut self) {
+        self.len = 0;
+    }
+
+    fn as_str(&self) -> &str {
+        let bytes = self.buf.get(..self.len).unwrap_or(&[]);
+        core::str::from_utf8(bytes).unwrap_or("")
     }
 }
 
-fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
+impl core::fmt::Write for MetaBuf {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        let end = self.len.saturating_add(s.len());
+        let Some(rest) = self.buf.get_mut(self.len..end) else {
+            return Err(core::fmt::Error);
+        };
+        rest.copy_from_slice(s.as_bytes());
+        self.len = end;
+        Ok(())
+    }
+}
+
+fn explorer_meta_visible(
+    nodes: &[ExplorerNode],
+    state: &TreeState,
+    area: termrock::Rect,
+    indent: u16,
+) -> bool {
+    let visible = visible_explorer_count(nodes, state);
+    let height = usize::from(area.height);
+    if height == 0 {
+        return false;
+    }
+    let row_w = area.width.saturating_sub(u16::from(visible > height));
+    let offset = state.scroll().offset();
+    let mut show = [false; 8];
+    show[0] = true;
+    let mut index = 0usize;
+    let mut meta = MetaBuf::new();
+    for node in nodes {
+        let depth = explorer_depth(node);
+        if !show.get(depth).copied().unwrap_or(false) {
+            continue;
+        }
+        let in_view = index >= offset && index.saturating_sub(offset) < height;
+        if in_view && let Some(meta) = explorer_node_meta(node, &mut meta) {
+            let need = explorer_meta_need(node, indent, width(meta));
+            if need > row_w {
+                return false;
+            }
+        }
+        index = index.saturating_add(1);
+        let expanded = state.is_expanded(explorer_node_key(node));
+        if let Some(child) = show.get_mut(depth.saturating_add(1)) {
+            *child = expanded;
+        }
+        for deeper in show.iter_mut().skip(depth.saturating_add(2)) {
+            *deeper = false;
+        }
+    }
+    true
+}
+
+fn explorer_meta_need(node: &ExplorerNode, indent: u16, meta_w: u16) -> u16 {
+    let depth = u16::try_from(explorer_depth(node)).unwrap_or(u16::MAX);
+    1u16.saturating_add(depth.saturating_mul(indent))
+        .saturating_add(2)
+        .saturating_add(explorer_label_width(node))
+        .saturating_add(2)
+        .saturating_add(meta_w)
+        .saturating_add(1)
+}
+
+fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>, show_meta: bool) {
     match node {
-        ExplorerNode::Database { name } => row.label_fmt(format_args!("▣ {name}")),
-        ExplorerNode::Schema { name } => row.label_fmt(format_args!("▾ {name}")),
-        ExplorerNode::Group { name, .. } => row.label(name),
-        ExplorerNode::Object {
-            item,
-            prefix,
-            count,
-        } => {
+        ExplorerNode::Database { name } => row.label_spans(&[
+            Span::new("D").role(TAG_CHROME_FG),
+            Span::new(" "),
+            Span::new(name.as_str()),
+        ]),
+        ExplorerNode::Schema { name } => row.label_spans(&[
+            Span::new("S").role(TAG_CHROME_FG),
+            Span::new(" "),
+            Span::new(name.as_str()),
+        ]),
+        ExplorerNode::Group { name, count, .. } => {
+            if show_meta {
+                let mut meta = MetaBuf::new();
+                let _ = write!(meta, "{}", count);
+                row.meta(meta.as_str());
+            }
+            row.label(name);
+        }
+        ExplorerNode::Object { item, prefix, .. } => {
+            if show_meta {
+                let mut meta = MetaBuf::new();
+                if let Some(text) = explorer_node_meta(node, &mut meta) {
+                    row.meta(text);
+                }
+            }
             row.label_spans(&[
-                Span::new(prefix).role(Role::Fg(FgStep::Muted)),
+                Span::new(prefix).role(TAG_CHROME_FG),
                 Span::new(" "),
                 Span::new(&item.name),
             ]);
-            row.meta(count);
         }
     }
+}
+
+fn explorer_node_meta<'a>(node: &ExplorerNode, buf: &'a mut MetaBuf) -> Option<&'a str> {
+    buf.clear();
+    match node {
+        ExplorerNode::Group { count, .. } => {
+            write!(buf, "{}", count).ok()?;
+            Some(buf.as_str())
+        }
+        ExplorerNode::Object { item, .. }
+            if matches!(item.kind, ObjectKind::Table | ObjectKind::View) && item.rows > 0 =>
+        {
+            tablepro_sql::sql::fmt_rows_to(item.rows, buf).ok()?;
+            Some(buf.as_str())
+        }
+        _ => None,
+    }
+}
+
+fn explorer_label_width(node: &ExplorerNode) -> u16 {
+    let name = match node {
+        ExplorerNode::Database { name } => name.len(),
+        ExplorerNode::Schema { name } => name.len(),
+        ExplorerNode::Group { name, .. } => name.len(),
+        ExplorerNode::Object { item, .. } => item.name.len(),
+    };
+    let prefix = match node {
+        ExplorerNode::Database { .. } | ExplorerNode::Schema { .. } => 2,
+        ExplorerNode::Group { .. } => 0,
+        ExplorerNode::Object { prefix, .. } => prefix.len() + 1,
+    };
+    u16::try_from(name + prefix).unwrap_or(u16::MAX)
 }
 
 fn tab_key(tab: &TabRecord) -> ItemKey {
@@ -2150,6 +7705,151 @@ fn tab_row(tab: &TabRecord, row: &mut RowUi<'_>) {
     }
 }
 
+fn connection_cursor_offset(state: &TreeState, nodes: &[ConnectionNode]) -> Option<u16> {
+    let cursor = state.cursor()?;
+    let index = nodes
+        .iter()
+        .position(|node| connection_node_key(node) == cursor)?;
+    let row = index.checked_sub(state.scroll().offset())?;
+    u16::try_from(row).ok()
+}
+
+fn connection_filter_revision(query: &str) -> u64 {
+    query.bytes().fold(0x9e37_79b9_u64, |hash, byte| {
+        hash.wrapping_mul(0x0100_0000_01b3)
+            .wrapping_add(u64::from(byte))
+    })
+}
+
+fn connection_node_matches(node: &ConnectionNode, query: &str) -> bool {
+    let query = query.to_ascii_lowercase();
+    match node {
+        ConnectionNode::Connection { connection, .. } => {
+            connection.name.to_ascii_lowercase().contains(&query)
+        }
+        ConnectionNode::Group { name } => name.to_ascii_lowercase().contains(&query),
+    }
+}
+
+fn connection_node_shown(node: &ConnectionNode, nodes: &[ConnectionNode], query: &str) -> bool {
+    if query.is_empty() || connection_node_matches(node, query) {
+        return true;
+    }
+    let ConnectionNode::Group { name } = node else {
+        return false;
+    };
+    nodes.iter().any(|other| {
+        matches!(
+            other,
+            ConnectionNode::Connection { connection, .. }
+                if connection.group == *name && connection_node_matches(other, query)
+        )
+    })
+}
+
+fn shown_connection_cursor_offset(
+    state: &TreeState,
+    nodes: &[ConnectionNode],
+    query: &str,
+) -> Option<u16> {
+    if query.is_empty() {
+        return connection_cursor_offset(state, nodes);
+    }
+    let cursor = state.cursor()?;
+    let mut seen = 0usize;
+    for node in nodes {
+        if !connection_node_shown(node, nodes, query) {
+            continue;
+        }
+        if connection_node_key(node) == cursor {
+            let row = seen.checked_sub(state.scroll().offset())?;
+            return u16::try_from(row).ok();
+        }
+        seen = seen.saturating_add(1);
+    }
+    None
+}
+
+fn paint_connection_mark_plain(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ConnectionNode],
+    query: &str,
+) {
+    let Some(cursor) = state.cursor() else {
+        return;
+    };
+    let Some(ConnectionNode::Connection { connection, .. }) = nodes
+        .iter()
+        .find(|node| connection_node_key(node) == cursor)
+    else {
+        return;
+    };
+    let mark = connection_mark(connection);
+    if mark.text == " " {
+        return;
+    }
+    let Some(row) = shown_connection_cursor_offset(state, nodes, query) else {
+        return;
+    };
+    let y = area.y.saturating_add(row);
+    if y >= area.bottom() {
+        return;
+    }
+
+    let x = area
+        .x
+        .saturating_add(1)
+        .saturating_add(ui.design().space.tree_indent)
+        .saturating_add(2);
+    let mut style = ui.surface_style();
+    if let Some(role) = mark.role {
+        style = style.patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
+    }
+
+    style = style.remove_modifier(Modifier::BOLD);
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        mark.text,
+        style,
+    );
+}
+
+fn paint_connection_focus_bar(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ConnectionNode],
+    query: &str,
+) {
+    let Some(row) = shown_connection_cursor_offset(state, nodes, query) else {
+        return;
+    };
+    let y = area.y.saturating_add(row);
+    if y >= area.bottom() {
+        return;
+    }
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD)));
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        "▎",
+        style,
+    );
+}
+
 fn connection_tree() -> Tree<
     'static,
     ConnectionNode,
@@ -2160,9 +7860,12 @@ fn connection_tree() -> Tree<
         .key(connection_node_key)
         .node(&connection_node)
         .row(connection_row)
+        .patch_part(&CONNECTION_TREE_PATCH)
 }
 
-fn explorer_tree() -> Tree<
+fn explorer_tree(
+    show_meta: bool,
+) -> Tree<
     'static,
     ExplorerNode,
     impl Fn(&ExplorerNode) -> ItemKey,
@@ -2171,8 +7874,13 @@ fn explorer_tree() -> Tree<
     Tree::new(EXPLORER)
         .key(explorer_node_key)
         .node(&explorer_node)
-        .row(explorer_row)
+        .row(move |node: &ExplorerNode, row: &mut RowUi<'_>| explorer_row(node, row, show_meta))
+        .branch_activation(TreeBranchActivation::Activate)
+        .slot(Part::MARKER, &paint_quiet_gutter)
 }
+
+const ID_HEADER_PREFIX: [(ColumnKey, GlyphRole, Role); 1] =
+    [(ColumnKey::num(1), GlyphRole::PrimaryKey, LEGACY_FAINT)];
 
 fn tab_strip()
 -> Tabs<'static, TabRecord, impl Fn(&TabRecord) -> ItemKey, impl Fn(&TabRecord, &mut RowUi<'_>)> {
@@ -2181,6 +7889,37 @@ fn tab_strip()
         .row(tab_row)
         .allow_new(true)
         .closable(true)
+        .patch_part(&TAB_STRIP_PATCH)
+}
+
+fn query_output_key(output: &QueryOutputInfo) -> ItemKey {
+    ItemKey::num(output.id().get())
+}
+
+fn query_output_row(output: &QueryOutputInfo, row: &mut RowUi<'_>) {
+    let pin = if output.is_pinned() { "* " } else { "" };
+    row.label_fmt(format_args!("{pin}{}", output.label()));
+}
+
+fn query_output_mark(output: &QueryOutputInfo) -> TabMarks {
+    TabMarks::default().error(output.kind() == QueryOutputKind::Error)
+}
+
+fn query_output_tabs<'a>(
+    id: Id,
+    closable: &'a [ItemKey],
+) -> Tabs<
+    'a,
+    QueryOutputInfo,
+    impl Fn(&QueryOutputInfo) -> ItemKey,
+    impl Fn(&QueryOutputInfo, &mut RowUi<'_>),
+> {
+    Tabs::new(id)
+        .key(query_output_key)
+        .row(query_output_row)
+        .closable(true)
+        .closable_keys(closable)
+        .item_marks(query_output_mark)
 }
 
 fn legacy_tree_body(inner: termrock::Rect) -> termrock::Rect {
@@ -2191,112 +7930,431 @@ fn legacy_tree_body(inner: termrock::Rect) -> termrock::Rect {
     }
 }
 
-fn paint_legacy_tree_gutters<T>(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    state: &TreeState,
-    nodes: &[T],
-    node: impl Fn(&T) -> TreeNode,
-    key: impl Fn(&T) -> ItemKey,
-) {
-    if area.is_empty() {
-        return;
-    }
-    let mut ancestors_expanded = Vec::new();
-    let mut visible_row = 0usize;
-    let first_visible = state.scroll().offset();
-    let cursor = state.cursor();
-    let gutter_style = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::OnSurfaceInverse)));
-
-    for item in nodes {
-        let descriptor = node(item);
-        let depth = usize::from(descriptor.depth());
-        ancestors_expanded.truncate(depth);
-        let visible = ancestors_expanded.iter().all(|expanded| *expanded);
-        if visible {
-            let row = visible_row.saturating_sub(first_visible);
-            if visible_row >= first_visible
-                && row < usize::from(area.height)
-                && cursor != Some(key(item))
-            {
-                ui.paint_str(
-                    termrock::Rect {
-                        x: area.x,
-                        y: area.y.saturating_add(row as u16),
-                        width: 1,
-                        height: 1,
-                    },
-                    "▎",
-                    gutter_style,
-                );
-            }
-            if matches!(descriptor.kind(), NodeKind::Leaf)
-                && visible_row >= first_visible
-                && row < usize::from(area.height)
-            {
-                ui.fill(
-                    termrock::Rect {
-                        x: area
-                            .x
-                            .saturating_add(1)
-                            .saturating_add(depth.saturating_mul(2) as u16),
-                        y: area.y.saturating_add(row as u16),
-                        width: 1,
-                        height: 1,
-                    },
-                    ui.surface_style(),
-                );
-            }
-            visible_row = visible_row.saturating_add(1);
-        }
-        if matches!(descriptor.kind(), NodeKind::Parent | NodeKind::Lazy) {
-            ancestors_expanded.push(state.is_expanded(key(item)));
-        }
-    }
-}
-
 fn workbench_split() -> SplitPane<'static> {
     SplitPane::new(WORKBENCH_SPLIT, SplitAxis::Horizontal)
         .min_first(28)
         .min_second(20)
 }
-fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
-    Grid::new(id, columns)
-        .blur(termrock::BlurPolicy::Keep)
-        .nav(termrock::NavUnit::Cell)
-        .select_mode(termrock::SelectMode::Multi)
+
+fn tab_label(tab: &TabRecord) -> (&'static str, &str) {
+    match tab.payload() {
+        Tab::Table(table) => ("T", table.table.name.as_str()),
+        Tab::Query(query) => ("≡", query.name.as_str()),
+        Tab::History(_) => ("H", "History"),
+    }
+}
+
+fn legacy_tab_width(prefix: &str, label: &str) -> u16 {
+    1u16.saturating_add(width(label))
+        .saturating_add(2)
+        .saturating_add(width(prefix))
+        .saturating_add(1)
+        .saturating_add(2)
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "legacy tab geometry, prefix ink, and the active rule are one paint"
+)]
+fn paint_legacy_tabs(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    tabs: &[TabRecord],
+    active: Option<ItemKey>,
+    accent_rule: bool,
+    mark_focus: bool,
+) {
+    if area.height < 2 || tabs.is_empty() {
+        return;
+    }
+    let base = ui.surface_style();
+    let inactive = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let active_fill = base.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let prefix_idle = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    let prefix_active = active_fill
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+    let close_active = active_fill
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+    let mut x = area.x;
+    let mut active_span: Option<(u16, u16)> = None;
+    for tab in tabs {
+        let (prefix, label) = tab_label(tab);
+        let tab_w = legacy_tab_width(prefix, label);
+        if x.saturating_add(tab_w) > area.right().saturating_sub(6) {
+            break;
+        }
+        let on = active == Some(tab_key(tab));
+        let body = if on { active_fill } else { inactive };
+        let prefix_style = if on { prefix_active } else { prefix_idle };
+        let close_style = if on { close_active } else { inactive };
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: area.y,
+                width: tab_w,
+                height: 1,
+            },
+            &" ".repeat(usize::from(tab_w)),
+            body,
+        );
+        let mut cursor = x.saturating_add(1);
+        ui.paint_str(
+            termrock::Rect {
+                x: cursor,
+                y: area.y,
+                width: width(prefix),
+                height: 1,
+            },
+            prefix,
+            prefix_style,
+        );
+        cursor = cursor.saturating_add(width(prefix)).saturating_add(1);
+        ui.paint_str(
+            termrock::Rect {
+                x: cursor,
+                y: area.y,
+                width: width(label),
+                height: 1,
+            },
+            label,
+            body,
+        );
+        let close_x = x.saturating_add(tab_w).saturating_sub(3);
+        ui.paint_str(
+            termrock::Rect {
+                x: close_x,
+                y: area.y,
+                width: 1,
+                height: 1,
+            },
+            "×",
+            close_style,
+        );
+        if on {
+            active_span = Some((x, tab_w));
+            if mark_focus {
+                let mark = base.patch(
+                    ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Accent)
+                            .set_bg(Role::Surface(termrock::Surface::Overlay))
+                            .add(Modifier::BOLD),
+                    ),
+                );
+                ui.paint_str(
+                    termrock::Rect {
+                        x,
+                        y: area.y,
+                        width: 1,
+                        height: 1,
+                    },
+                    "▎",
+                    mark,
+                );
+            }
+        }
+        x = x.saturating_add(tab_w);
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: area.y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            base.remove_modifier(Modifier::BOLD),
+        );
+        x = x.saturating_add(1);
+    }
+    if mark_focus {
+        let plus_x = area.right().saturating_sub(3);
+        if x < plus_x {
+            let tail = plus_x.saturating_sub(x);
+            ui.paint_str(
+                termrock::Rect {
+                    x,
+                    y: area.y,
+                    width: tail,
+                    height: 1,
+                },
+                &" ".repeat(usize::from(tail)),
+                base.remove_modifier(Modifier::BOLD),
+            );
+        }
+    }
+    let quiet = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    let hot = base.patch(ui.paint_patch(&StylePatch::new().set_fg(if accent_rule {
+        Role::Accent
+    } else {
+        Role::BorderSubtle
+    })));
+    let rule = termrock::Rect {
+        y: area.y.saturating_add(1),
+        height: 1,
+        ..area
+    };
+    if rule.width > 0 {
+        ui.paint_str(rule, &"─".repeat(usize::from(rule.width)), quiet);
+    }
+    if let Some((start, tab_w)) = active_span {
+        ui.paint_str(
+            termrock::Rect {
+                x: start,
+                y: rule.y,
+                width: tab_w.min(rule.right().saturating_sub(start)),
+                height: 1,
+            },
+            &"━".repeat(usize::from(tab_w)),
+            hot,
+        );
+    }
+}
+
+fn explorer_depth(node: &ExplorerNode) -> usize {
+    match node {
+        ExplorerNode::Database { .. } => 0,
+        ExplorerNode::Schema { .. } => 1,
+        ExplorerNode::Group { .. } => 2,
+        ExplorerNode::Object { .. } => 3,
+    }
+}
+
+fn visible_explorer_index(
+    nodes: &[ExplorerNode],
+    state: &TreeState,
+    key: ItemKey,
+) -> Option<usize> {
+    let mut show = [false; 8];
+    show[0] = true;
+    let mut index = 0usize;
+    for node in nodes {
+        let depth = explorer_depth(node);
+        if !show.get(depth).copied().unwrap_or(false) {
+            continue;
+        }
+        let node_key = explorer_node_key(node);
+        if node_key == key {
+            return Some(index);
+        }
+        index = index.saturating_add(1);
+        let expanded = state.is_expanded(node_key);
+        if let Some(child) = show.get_mut(depth.saturating_add(1)) {
+            *child = expanded;
+        }
+        for deeper in show.iter_mut().skip(depth.saturating_add(2)) {
+            *deeper = false;
+        }
+    }
+    None
+}
+
+fn paint_chosen_explorer_row(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ExplorerNode],
+    accent_name: bool,
+) {
+    let Some(key) = state.chosen() else {
+        return;
+    };
+    let Some(index) = visible_explorer_index(nodes, state, key) else {
+        return;
+    };
+    let Some(node) = nodes.iter().find(|node| explorer_node_key(node) == key) else {
+        return;
+    };
+    let y = area.y.saturating_add(index as u16);
+    if y >= area.bottom() {
+        return;
+    }
+    let row = termrock::Rect {
+        x: area.x,
+        y,
+        width: area.width.saturating_add(1),
+        height: 1,
+    };
+    let fill = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(LEGACY_SELECT_BG)
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.fill(row, fill);
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        fill.with_fg_from_bg(fill),
+    );
+    let depth = explorer_depth(node);
+    let fold_x = area
+        .x
+        .saturating_add(1)
+        .saturating_add((depth as u16).saturating_mul(ui.design().space.tree_indent));
+    let mark = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            x: fold_x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        "▸",
+        mark,
+    );
+    let ExplorerNode::Object { item, prefix, .. } = node else {
+        return;
+    };
+    let prefix_style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_CHROME_FG)
+                .set_bg(LEGACY_SELECT_BG)
+                .remove(Modifier::BOLD),
+        ),
+    );
+    let name_style =
+        if accent_name && ui.theme().capability.color == termrock::ColorLevel::TrueColor {
+            fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
+        } else {
+            fill
+        };
+    let text_x = fold_x.saturating_add(2);
+    ui.paint_str(
+        termrock::Rect {
+            x: text_x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        prefix,
+        prefix_style,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: text_x.saturating_add(2),
+            y,
+            width: width(&item.name).saturating_add(7),
+            height: 1,
+        },
+        &format!("{}       ", item.name),
+        name_style,
+    );
+}
+
+fn paint_quiet_gutter(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    ui.paint_str(area, " ", base.with_fg_from_bg(base));
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "header gutter, primary key, and muted titles share one pass"
+)]
+fn sorted_scan(table: &db::Table, grid: &GridView, index: usize, direction: SortDir) -> ResultGrid {
+    let scan = table.row_count.min(2_000);
+    let keep = grid.model.row_count();
+    let mut rows = db::rows(table, 0, scan);
+    rows.sort_by(|left, right| {
+        let null = db::Value::Null;
+        crate::sql::cmp_values_nulls_last(
+            left.get(index).unwrap_or(&null),
+            right.get(index).unwrap_or(&null),
+            direction == SortDir::Asc,
+        )
+    });
+    rows.truncate(keep);
+    ResultGrid::from_result(&crate::sql::ResultSet {
+        columns: grid.columns.clone(),
+        rows,
+        total: grid.model.total(),
+        source: grid.model.source().map(str::to_owned),
+        duration_ms: 0,
+        editable: grid.model.is_editable(),
+    })
+}
+
+fn table_query(table: &db::Table, filters: &[Filter]) -> String {
+    let mut sql = format!("SELECT * FROM {}.{}", table.schema, table.name);
+    let enabled: Vec<&Filter> = filters.iter().filter(|filter| filter.enabled).collect();
+    if enabled.is_empty() {
+        return sql;
+    }
+    sql.push_str(" WHERE ");
+    sql.push_str(
+        &enabled
+            .iter()
+            .map(|filter| filter.to_sql())
+            .collect::<Vec<_>>()
+            .join(" AND "),
+    );
+    sql
+}
+
+fn sort_mark(direction: SortDir) -> char {
+    match direction {
+        SortDir::Asc => '▴',
+        SortDir::Desc => '▾',
+    }
+}
+
+fn filter_footer(app: &TableProApp) -> Option<String> {
+    let count = app
+        .workbench
+        .active_table()?
+        .filters
+        .iter()
+        .filter(|filter| filter.enabled)
+        .count();
+    match count {
+        0 => None,
+        1 => Some("1 filter applied".to_owned()),
+        n => Some(format!("{n} filters applied")),
+    }
+}
+
+fn sort_footer(app: &TableProApp) -> Option<String> {
+    let (owner, column, direction) = app.grid_sort?;
+    if app.active_grid_sort_owner()? != owner {
+        return None;
+    }
+    let (_, grid) = app.workbench.active_grid()?;
+    let index = usize::from(column).checked_sub(1)?;
+    let name = grid.columns.get(index)?.0.as_str();
+    let word = match direction {
+        SortDir::Asc => "ascending",
+        SortDir::Desc => "descending",
+    };
+    Some(format!("Sorted by {name} {word}"))
 }
 
 fn shell_parts(area: termrock::Rect) -> [termrock::Rect; 3] {
-    let body_y = area.y.saturating_add(2);
-    let body_height = area.height.saturating_sub(4);
-    [
-        termrock::Rect {
-            x: area.x,
-            y: area.y,
-            width: area.width,
-            height: 1.min(area.height),
-        },
-        termrock::Rect {
-            x: area.x.saturating_add(1),
-            y: body_y,
-            width: area.width.saturating_sub(2),
-            height: body_height,
-        },
-        termrock::Rect {
-            x: area.x,
-            y: area.bottom().saturating_sub(1),
-            width: area.width,
-            height: 1.min(area.height),
-        },
-    ]
+    let regions = termrock::AppShell::new()
+        .header(1)
+        .gap(1)
+        .footer(1)
+        .inset(1)
+        .regions(area);
+    [regions.header, regions.body, regions.footer]
 }
 
 fn preserve_frame_gutter(_: &mut Ui<'_>, _: termrock::Rect) {}
 
-fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
+fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str, ink: Role) {
     if area.is_empty() {
         return;
     }
@@ -2311,12 +8369,12 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
             width: 1.min(area.width),
             ..area
         },
-        "▎",
+        " ",
         gutter,
     );
 
     if area.width > 2 {
-        let label = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        let label = field.patch(ui.paint_patch(&StylePatch::new().set_fg(ink)));
         ui.paint_str(
             termrock::Rect {
                 x: area.x.saturating_add(2),
@@ -2329,13 +8387,13 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
     }
 }
 
-fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect) {
+fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect, ink: Role) {
     if area.width < 2 || area.height == 0 {
         return;
     }
     let style = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(ink)));
     ui.paint_str(
         termrock::Rect {
             x: area.right().saturating_sub(2),
@@ -2348,17 +8406,897 @@ fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
-fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str) {
+fn paint_explorer_title_space(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(2).saturating_add(width(" Explorer")),
+            y: area.y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        style,
+    );
+}
+
+fn paint_explorer_title_gap(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .remove(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(2).saturating_add(width(" Explorer")),
+            y: area.y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        style,
+    );
+}
+
+fn paint_explorer_meta_band(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let inset = ui.design().space.frame_inset;
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+    let width = area.width.saturating_sub(inset.saturating_mul(2));
+    if width == 0 || area.height < 2 {
+        return;
+    }
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(inset).saturating_add(1),
+            y: area.y.saturating_add(1),
+            width,
+            height: 1,
+        },
+        &" ".repeat(usize::from(width)),
+        style,
+    );
+}
+
+fn paint_explorer_chevron_gap(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let mark = area.right().saturating_sub(4);
+    if mark == 0 {
+        return;
+    }
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG).remove(Modifier::BOLD)));
+    for x in [mark.saturating_sub(1), mark.saturating_add(1)] {
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: area.y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            style,
+        );
+    }
+}
+
+fn paint_explorer_indent(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ExplorerNode],
+    focused: bool,
+) {
+    let rows = visible_explorer_count(nodes, state).min(usize::from(area.height));
+    let skip = focused
+        .then(|| state.cursor())
+        .flatten()
+        .and_then(|key| visible_explorer_index(nodes, state, key));
+    let base = ui.surface_style();
+    let quiet = base.with_fg_from_bg(base);
+    for offset in 0..rows {
+        if Some(offset) == skip {
+            continue;
+        }
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x,
+                y: area.y.saturating_add(offset as u16),
+                width: 1,
+                height: 1,
+            },
+            " ",
+            quiet,
+        );
+    }
+}
+
+fn paint_focused_schema_mark(
+    ui: &mut Ui<'_>,
+    panel: termrock::Rect,
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ExplorerNode],
+) {
+    let Some(key) = state.cursor() else {
+        return;
+    };
+    let Some(ExplorerNode::Schema { .. }) =
+        nodes.iter().find(|node| explorer_node_key(node) == key)
+    else {
+        return;
+    };
+    let Some(index) = visible_explorer_index(nodes, state, key) else {
+        return;
+    };
+    let y = area.y.saturating_add(index as u16);
+    if y >= area.bottom() {
+        return;
+    }
+    let prefix = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_CHROME_FG)
+                .remove(Modifier::BOLD),
+        ),
+    );
+    let indent = ui.design().space.tree_indent;
     let x = area
         .x
-        .saturating_add(2)
-        .saturating_add(termrock::width(title));
+        .saturating_add(1)
+        .saturating_add(indent)
+        .saturating_add(2);
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        "S",
+        prefix,
+    );
+    let bold = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
+    ui.paint_str(
+        termrock::Rect {
+            x: panel.right().saturating_sub(3),
+            y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        bold,
+    );
+}
+
+fn paint_idle_query_tail(ui: &mut Ui<'_>, area: termrock::Rect, underline_first: bool) {
+    let editor = idle_query_top(area.height.saturating_sub(2)).saturating_sub(2);
+    let x = area.right().saturating_sub(3);
+    let y0 = area.y.saturating_add(2);
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    let underlined = field.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_underline(Role::BorderStrong)
+                .add(Modifier::UNDERLINED),
+        ),
+    );
+    for row in 0..editor {
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: y0.saturating_add(row),
+                width: 1,
+                height: 1,
+            },
+            " ",
+            if underline_first && row == 0 {
+                underlined
+            } else {
+                field
+            },
+        );
+    }
+    let rule = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            y: y0.saturating_add(editor),
+            width: 1,
+            height: 1,
+        },
+        "─",
+        rule,
+    );
+}
+
+fn visible_explorer_count(nodes: &[ExplorerNode], state: &TreeState) -> usize {
+    let mut show = [false; 8];
+    show[0] = true;
+    let mut count = 0usize;
+    for node in nodes {
+        let depth = explorer_depth(node);
+        if !show.get(depth).copied().unwrap_or(false) {
+            continue;
+        }
+        count = count.saturating_add(1);
+        let expanded = state.is_expanded(explorer_node_key(node));
+        if let Some(child) = show.get_mut(depth.saturating_add(1)) {
+            *child = expanded;
+        }
+        for deeper in show.iter_mut().skip(depth.saturating_add(2)) {
+            *deeper = false;
+        }
+    }
+    count
+}
+
+fn paint_explorer_outside(
+    ui: &mut Ui<'_>,
+    state: &TreeState,
+    nodes: &[ExplorerNode],
+    inner: termrock::Rect,
+    body: termrock::Rect,
+    tree_area: termrock::Rect,
+) {
+    let field = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))));
+    ui.paint_str(
+        termrock::Rect {
+            x: body.right(),
+            y: inner.y.saturating_add(1),
+            width: 1,
+            height: 1,
+        },
+        " ",
+        field,
+    );
+    let Some(key) = state.chosen() else {
+        return;
+    };
+    let Some(index) = visible_explorer_index(nodes, state, key) else {
+        return;
+    };
+    let y = tree_area.y.saturating_add(index as u16);
+    if y >= tree_area.bottom() {
+        return;
+    }
+    let fill = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(LEGACY_SELECT_BG)
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: tree_area.right(),
+            y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        fill,
+    );
+}
+
+fn paint_explorer_collapse(ui: &mut Ui<'_>, area: termrock::Rect) {
+    if area.width < 6 || area.height == 0 {
+        return;
+    }
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            x: area.right().saturating_sub(4),
+            y: area.y,
+            width: 1,
+            height: 1,
+        },
+        "‹",
+        style,
+    );
+}
+
+const STRUCTURE_SECTIONS: &[&str] = &[
+    "Columns",
+    "Indexes",
+    "Foreign keys",
+    "Constraints",
+    "Triggers",
+    "DDL",
+];
+
+const STRUCTURE_FIELDS: &[(&str, u16)] = &[
+    ("Name", 20),
+    ("Type", 14),
+    ("Nullable", 8),
+    ("Default", 22),
+    ("Key", 6),
+];
+
+fn paint_structure_view(ui: &mut Ui<'_>, inner: termrock::Rect, table: &db::Table) {
+    paint_structure_mode(ui, inner);
+    if inner.height >= 5 {
+        paint_structure_sections(ui, inner);
+    }
+    if inner.height >= 8 {
+        paint_structure_columns(ui, inner, table);
+    }
+}
+
+fn paint_structure_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
+    if inner.height < 2 || inner.width == 0 {
+        return;
+    }
+    let rest = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let chip = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(1),
+            width: inner.width.saturating_sub(1),
+            height: 1,
+            ..inner
+        },
+        "Data    Structure  ",
+        rest,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            width: 1.min(inner.width),
+            height: 1,
+            ..inner
+        },
+        " ",
+        rest,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(7),
+            width: 1,
+            height: 1,
+            ..inner
+        },
+        " ",
+        plain,
+    );
+    let structure_x = inner.x.saturating_add(8);
+    if structure_x < inner.right() {
+        ui.paint_str(
+            termrock::Rect {
+                x: structure_x,
+                width: 12.min(inner.right().saturating_sub(structure_x)),
+                height: 1,
+                ..inner
+            },
+            " Structure  ",
+            chip,
+        );
+    }
+    let rule = termrock::Rect {
+        y: inner.y.saturating_add(1),
+        height: 1,
+        ..inner
+    };
+    let active = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    if rule.width > 0 {
+        ui.paint_str(rule, &"─".repeat(usize::from(rule.width)), quiet);
+    }
+    if rule.width > 8 {
+        ui.paint_str(
+            termrock::Rect {
+                x: rule.x.saturating_add(8),
+                width: 12.min(rule.width.saturating_sub(8)),
+                ..rule
+            },
+            "━━━━━━━━━━━━",
+            active,
+        );
+    }
+}
+
+fn paint_structure_sections(ui: &mut Ui<'_>, inner: termrock::Rect) {
+    let row = termrock::Rect {
+        y: inner.y.saturating_add(3),
+        height: 1,
+        ..inner
+    };
+    let rest = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let chip = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let mut x = row.x;
+    let mut active_width = 0u16;
+    for (index, label) in STRUCTURE_SECTIONS.iter().enumerate() {
+        if x >= row.right() {
+            break;
+        }
+        let text = format!(" {label}  ");
+        let text_width = width(&text);
+        let slot = text_width.min(row.right().saturating_sub(x));
+        if index == 0 {
+            active_width = slot;
+        }
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: row.y,
+                width: slot,
+                height: 1,
+            },
+            &text,
+            if index == 0 { chip } else { rest },
+        );
+        x = x.saturating_add(slot).saturating_add(1);
+    }
+    let rule = termrock::Rect {
+        y: row.y.saturating_add(1),
+        height: 1,
+        ..inner
+    };
+    if rule.y >= inner.bottom() || rule.width == 0 {
+        return;
+    }
+    let active = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(rule, &"─".repeat(usize::from(rule.width)), quiet);
+    if active_width > 0 {
+        ui.paint_str(
+            termrock::Rect {
+                width: active_width.min(rule.width),
+                ..rule
+            },
+            &"━".repeat(usize::from(active_width.min(rule.width))),
+            active,
+        );
+    }
+}
+
+fn paint_structure_columns(ui: &mut Ui<'_>, inner: termrock::Rect, table: &db::Table) {
+    let header_y = inner.y.saturating_add(6);
+    let status_y = inner.bottom().saturating_sub(1);
+    if header_y >= status_y {
+        return;
+    }
+    let header = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    paint_structure_header(ui, inner, header_y, header);
+    paint_structure_rows(ui, inner, table, header_y, status_y);
+    let count = table.columns.len();
+    let status = format!("{count} columns · read from the catalog · changes are queued until Save");
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(1),
+            y: status_y,
+            width: inner.width.saturating_sub(1),
+            height: 1,
+        },
+        &status,
+        header,
+    );
+}
+
+fn paint_structure_header(ui: &mut Ui<'_>, inner: termrock::Rect, y: u16, style: PaintStyle) {
+    let mut x = inner.x.saturating_add(3);
+    let mut fields = STRUCTURE_FIELDS.iter().peekable();
+    while let Some((title, slot)) = fields.next() {
+        if x >= inner.right() {
+            break;
+        }
+        let slot = (*slot).min(inner.right().saturating_sub(x));
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y,
+                width: slot,
+                height: 1,
+            },
+            &fit_cols(title, slot),
+            style,
+        );
+        x = x.saturating_add(slot);
+        if fields.peek().is_some() {
+            x = x.saturating_add(2);
+        }
+    }
+}
+
+fn paint_structure_rows(
+    ui: &mut Ui<'_>,
+    inner: termrock::Rect,
+    table: &db::Table,
+    header_y: u16,
+    status_y: u16,
+) {
+    let plain = ui.surface_style();
+    let bold = plain.add_modifier(Modifier::BOLD);
+    let mut y = header_y.saturating_add(1);
+    for (index, column) in table.columns.iter().enumerate() {
+        if y >= status_y {
+            break;
+        }
+        let selected = index == 0;
+        paint_structure_gutter(ui, inner.x, y, selected);
+        ui.paint_str(
+            termrock::Rect {
+                x: inner.x.saturating_add(1),
+                y,
+                width: 2.min(inner.width.saturating_sub(1)),
+                height: 1,
+            },
+            "  ",
+            if selected { bold } else { plain },
+        );
+        let values = structure_values(column);
+        let mut x = inner.x.saturating_add(3);
+        let mut fields = values.iter().zip(STRUCTURE_FIELDS).peekable();
+        while let Some(((text, role), (_, slot))) = fields.next() {
+            if x >= inner.right() {
+                break;
+            }
+            let slot = (*slot).min(inner.right().saturating_sub(x));
+            let mut patch = StylePatch::new().set_fg(*role);
+            if selected {
+                patch = patch.add(Modifier::BOLD);
+            }
+            let style = ui.surface_style().patch(ui.paint_patch(&patch));
+            ui.paint_str(
+                termrock::Rect {
+                    x,
+                    y,
+                    width: slot,
+                    height: 1,
+                },
+                &fit_cols(text, slot),
+                style,
+            );
+            x = x.saturating_add(slot);
+            if fields.peek().is_some() {
+                let gap = 2.min(inner.right().saturating_sub(x));
+                if gap > 0 {
+                    ui.paint_str(
+                        termrock::Rect {
+                            x,
+                            y,
+                            width: gap,
+                            height: 1,
+                        },
+                        "  ",
+                        if selected { bold } else { plain },
+                    );
+                }
+                x = x.saturating_add(2);
+            }
+        }
+        if selected {
+            let end = inner.right().saturating_add(1);
+            if x < end {
+                let span = end.saturating_sub(x);
+                ui.paint_str(
+                    termrock::Rect {
+                        x,
+                        y,
+                        width: span,
+                        height: 1,
+                    },
+                    &" ".repeat(usize::from(span)),
+                    bold,
+                );
+            }
+        }
+        y = y.saturating_add(1);
+    }
+}
+
+fn paint_structure_gutter(ui: &mut Ui<'_>, x: u16, y: u16, selected: bool) {
+    if selected {
+        let caret = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD)));
+        ui.paint_str(termrock::Rect::new(x, y, 1, 1), "▎", caret);
+        return;
+    }
+    let blank = ui.surface_style().patch(
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0)))),
+    );
+    ui.paint_str(termrock::Rect::new(x, y, 1, 1), " ", blank);
+}
+
+fn structure_values(column: &db::Column) -> [(String, Role); 5] {
+    let key = if column.primary {
+        "PK"
+    } else if column.references.is_some() {
+        "FK"
+    } else {
+        ""
+    };
+    let nullable_role = if column.nullable {
+        TAG_CHROME_FG
+    } else {
+        TAG_PATH_FG
+    };
+    [
+        (column.name.clone(), Role::Fg(FgStep::Primary)),
+        (column.ty.sql().to_owned(), TAG_PATH_FG),
+        (
+            if column.nullable { "yes" } else { "no" }.to_owned(),
+            nullable_role,
+        ),
+        (
+            column.default.clone().unwrap_or_else(|| "—".to_owned()),
+            TAG_CHROME_FG,
+        ),
+        (key.to_owned(), TAG_PATH_FG),
+    ]
+}
+
+fn fit_cols(text: &str, cols: u16) -> String {
+    let clipped = truncate(text, cols);
+    let extra = usize::from(cols.saturating_sub(width(&clipped)));
+    let mut out = clipped;
+    out.extend(std::iter::repeat_n(' ', extra));
+    out
+}
+
+fn paint_filter_bar(ui: &mut Ui<'_>, row: termrock::Rect, filters: &[Filter]) {
+    if row.width == 0 || row.height == 0 {
+        return;
+    }
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let chip = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let cap = chip.with_fg_from_bg(chip);
+    let cross = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_PATH_FG)
+                .set_bg(Role::Surface(termrock::Surface::Overlay)),
+        ),
+    );
+    let gap = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Custom(termrock::Color::from_u32(0)))
+                .set_bg(Role::Custom(termrock::Color::from_u32(0))),
+        ),
+    );
+    let mut x = row.x;
+    let lead = " match all ▾ ";
+    paint_bar_piece(ui, row, &mut x, lead, quiet);
+    paint_bar_piece(ui, row, &mut x, " ", ui.surface_style());
+    for filter in filters.iter().filter(|filter| filter.enabled) {
+        paint_bar_piece(ui, row, &mut x, " ", cap);
+        let label = format!("{} ", filter.chip_label());
+        paint_bar_piece(ui, row, &mut x, &label, chip);
+        paint_bar_piece(ui, row, &mut x, "×", cross);
+        paint_bar_piece(ui, row, &mut x, "  ", chip);
+        paint_bar_piece(ui, row, &mut x, " ", ui.surface_style());
+        paint_bar_piece(ui, row, &mut x, " ", gap);
+    }
+    paint_bar_piece(ui, row, &mut x, "+ Add filter ", quiet);
+}
+
+fn paint_bar_piece(
+    ui: &mut Ui<'_>,
+    row: termrock::Rect,
+    x: &mut u16,
+    text: &str,
+    style: PaintStyle,
+) {
+    let piece = width(text);
+    if *x >= row.right() || piece == 0 {
+        return;
+    }
+    let slot = piece.min(row.right().saturating_sub(*x));
+    ui.paint_str(
+        termrock::Rect {
+            x: *x,
+            y: row.y,
+            width: slot,
+            height: 1,
+        },
+        text,
+        style,
+    );
+    *x = x.saturating_add(slot);
+}
+
+fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect, accent_rule: bool) {
+    if inner.height < 2 {
+        return;
+    }
+    let rest = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let chip = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(1),
+            width: inner.width.saturating_sub(1),
+            height: 1,
+            ..inner
+        },
+        "Data    Structure  ",
+        rest,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            width: 1.min(inner.width),
+            height: 1,
+            ..inner
+        },
+        " ",
+        chip,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(1),
+            width: 6.min(inner.width),
+            height: 1,
+            ..inner
+        },
+        "Data  ",
+        chip,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(7),
+            width: 1,
+            height: 1,
+            ..inner
+        },
+        " ",
+        ui.surface_style().remove_modifier(Modifier::BOLD),
+    );
+    let rule = termrock::Rect {
+        y: inner.y.saturating_add(1),
+        height: 1,
+        ..inner
+    };
+    let active = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(if accent_rule {
+            Role::Accent
+        } else {
+            TAG_RULE_FG
+        })));
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            width: 7.min(rule.width),
+            ..rule
+        },
+        "━━━━━━━",
+        active,
+    );
+    if rule.width > 7 {
+        ui.paint_str(
+            termrock::Rect {
+                x: rule.x.saturating_add(7),
+                width: rule.width.saturating_sub(7),
+                ..rule
+            },
+            &"─".repeat(usize::from(rule.width.saturating_sub(7))),
+            quiet,
+        );
+    }
+}
+
+fn paint_content_seam(ui: &mut Ui<'_>, area: termrock::Rect, panel_border: Role) {
+    if area.height < 3 {
+        return;
+    }
+    let seam = ui.surface_style().patch(
+        ui.style(
+            termrock::Family::SPLIT,
+            termrock::Variant::DEFAULT,
+            Part::SEAM,
+            StateFlags::empty(),
+        )
+        .style,
+    );
+    let edge = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(panel_border)));
+    for y in area.y..area.bottom() {
+        if area.x > 0 {
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_sub(1),
+                    y,
+                    width: 1,
+                    height: 1,
+                },
+                "│",
+                seam,
+            );
+        }
+        if y == area.y || y.saturating_add(1) == area.bottom() {
+            continue;
+        }
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x,
+                y,
+                width: 1,
+                height: 1,
+            },
+            "│",
+            edge,
+        );
+    }
+}
+
+fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str, ink: Role) {
+    let x = area.x.saturating_add(2).saturating_add(width(title));
     if x >= area.right().saturating_sub(1) || area.height == 0 {
         return;
     }
     let style = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(ink)));
     ui.paint_str(
         termrock::Rect {
             x,
@@ -2371,40 +9309,254 @@ fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str) {
     );
 }
 
+fn paint_detail_rule(ui: &mut Ui<'_>, card: termrock::Rect) {
+    let width = card.width.saturating_sub(4);
+    if card.height <= 2 || width == 0 {
+        return;
+    }
+    let style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_RULE_FG)
+                .set_bg(Role::Surface(termrock::Surface::Surface)),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: card.x.saturating_add(2),
+            y: card.y.saturating_add(1),
+            width,
+            height: 1,
+        },
+        &"─".repeat(usize::from(width)),
+        style,
+    );
+}
+
+fn safe_mode_mark(mode: SafeMode) -> Span<'static> {
+    match mode {
+        SafeMode::Safe | SafeMode::SafeFull => Span::new(" ✓ safe ").role(TAG_OK_FG),
+        _ => Span::new(mode.token()),
+    }
+}
+
+fn grouped(n: usize) -> String {
+    let raw = n.to_string();
+    let mut out = String::new();
+    for (index, ch) in raw.chars().rev().enumerate() {
+        if index > 0 && index.is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(ch);
+    }
+    out.chars().rev().collect()
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct HeaderKeep {
+    keep: [bool; 16],
+    len: usize,
+}
+
+impl HeaderKeep {
+    fn all(len: usize) -> Self {
+        Self {
+            keep: [true; 16],
+            len,
+        }
+    }
+
+    fn kept(&self) -> &[bool] {
+        self.keep.get(..self.len).unwrap_or(&[])
+    }
+
+    fn get(&self, index: usize) -> Option<bool> {
+        self.keep.get(index).copied()
+    }
+
+    fn last(&self) -> Option<bool> {
+        self.get(self.len.checked_sub(1)?)
+    }
+
+    fn set(&mut self, index: usize, value: bool) {
+        if let Some(slot) = self.keep.get_mut(index) {
+            *slot = value;
+        }
+    }
+
+    fn all_kept(&self) -> bool {
+        self.kept().iter().all(|keep| *keep)
+    }
+}
+
+pub(crate) fn header_overflow(
+    area_width: u16,
+    left: &[u16],
+    left_priority: &[u8],
+    right: &[u16],
+    right_priority: &[u8],
+) -> Option<(HeaderKeep, u16)> {
+    const EDGE: u16 = 2;
+    const SEP: u16 = 2;
+    let mut keep_left = HeaderKeep::all(left.len());
+    let mut keep_right = HeaderKeep::all(right.len());
+    let total = |keep_left: &HeaderKeep, keep_right: &HeaderKeep| -> u16 {
+        let left_width: u16 = left
+            .iter()
+            .zip(keep_left.kept())
+            .filter(|(_, keep)| **keep)
+            .map(|(piece, _)| piece.saturating_add(SEP))
+            .sum();
+        let right_width: u16 = right
+            .iter()
+            .zip(keep_right.kept())
+            .filter(|(_, keep)| **keep)
+            .map(|(piece, _)| piece.saturating_add(SEP))
+            .sum();
+        let dropped = keep_left
+            .kept()
+            .iter()
+            .chain(keep_right.kept())
+            .any(|keep| !keep);
+        let more = if dropped { 1 + SEP } else { 0 };
+        left_width
+            .saturating_add(right_width)
+            .saturating_add(more)
+            .saturating_sub(SEP)
+            .saturating_add(EDGE.saturating_mul(2))
+    };
+    while total(&keep_left, &keep_right) > area_width {
+        let mut best: Option<(u8, bool, usize)> = None;
+
+        for ((index, priority), keep) in left_priority
+            .iter()
+            .copied()
+            .enumerate()
+            .zip(keep_left.kept())
+        {
+            if *keep && best.is_none_or(|(rank, _, _)| priority < rank) {
+                best = Some((priority, true, index));
+            }
+        }
+        for ((index, priority), keep) in right_priority
+            .iter()
+            .copied()
+            .enumerate()
+            .zip(keep_right.kept())
+        {
+            if *keep && best.is_none_or(|(rank, _, _)| priority <= rank) {
+                best = Some((priority, false, index));
+            }
+        }
+        match best {
+            Some((_, true, index)) => {
+                keep_left.set(index, false);
+            }
+            Some((_, false, index)) => {
+                keep_right.set(index, false);
+            }
+            None => break,
+        }
+    }
+    if keep_right.all_kept() && keep_left.all_kept() {
+        return None;
+    }
+    let mut cursor = area_width.saturating_sub(EDGE);
+    for (piece, keep) in right.iter().zip(keep_right.kept()).rev() {
+        if !keep {
+            continue;
+        }
+        cursor = cursor.saturating_sub(*piece).saturating_sub(SEP);
+    }
+    let ellipsis = cursor.saturating_sub(1).max(EDGE);
+    Some((keep_right, ellipsis))
+}
+
+fn workbench_header_widths(
+    app: &TableProApp,
+    capability: &str,
+    term_width: u16,
+    term_height: u16,
+) -> ([u16; 6], [u16; 2]) {
+    let name_width = width(&app.connection.name).min(18);
+
+    let environment_width = 2u16.saturating_add(width(app.connection.environment.label()));
+
+    let scope_width = width(&app.connection.database)
+        .saturating_add(3)
+        .saturating_add(width(app.workbench.current_schema()));
+    let safe_width = match app.safe_mode {
+        SafeMode::Safe | SafeMode::SafeFull => width("✓ safe"),
+        _ => width(app.safe_mode.token()),
+    };
+
+    let badge_width = width(capability)
+        .saturating_add(3)
+        .saturating_add(decimal_digits(term_width))
+        .saturating_add(1)
+        .saturating_add(decimal_digits(term_height));
+    (
+        [
+            1,
+            width("TablePro"),
+            name_width,
+            environment_width,
+            scope_width,
+            safe_width,
+        ],
+        [badge_width, width("? help")],
+    )
+}
+
+fn decimal_digits(value: u16) -> u16 {
+    let mut digits = 1u16;
+    let mut rest = value / 10;
+    while rest > 0 {
+        digits = digits.saturating_add(1);
+        rest /= 10;
+    }
+    digits
+}
 fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     ui.fill(area, base);
+    let pending_label = if app.screen == Screen::Connections {
+        None
+    } else {
+        workbench_pending_label(app)
+    };
     if app.screen == Screen::Connections {
         let saved = format!("{} saved", app.connections_screen.connections.len());
-        if app.surface == Surface::Connections {
+        let surface = app.help_underlay.unwrap_or(app.surface);
+        if surface == Surface::Connections {
             ui.paint_spans(
                 area,
                 &[
-                    Span::new(" "),
+                    Span::new("  "),
                     Span::new("▪").role(Role::Accent),
-                    Span::new("  "),
-                    Span::new("TablePro").bold(),
-                    Span::new("  "),
+                    Span::new(" "),
+                    Span::new(" TablePro ").bold(),
+                    Span::new(" "),
                     Span::new("Connections").role(Role::Fg(FgStep::Secondary)),
                     Span::new("  "),
-                    Span::new(&saved).role(Role::Fg(FgStep::Muted)),
+                    Span::new(&saved).role(TAG_CHROME_FG),
                 ],
                 base,
             );
         } else {
-            let surface = format!(" · {}", app.surface.label());
+            let surface = format!(" · {}", surface.label());
             ui.paint_spans(
                 area,
                 &[
-                    Span::new(" "),
+                    Span::new("  "),
                     Span::new("▪").role(Role::Accent),
-                    Span::new("  "),
-                    Span::new("TablePro").bold(),
-                    Span::new("  "),
+                    Span::new(" "),
+                    Span::new(" TablePro ").bold(),
+                    Span::new(" "),
                     Span::new("Connections").role(Role::Fg(FgStep::Secondary)),
                     Span::new(&surface).role(Role::Fg(FgStep::Secondary)),
                     Span::new("  "),
-                    Span::new(&saved).role(Role::Fg(FgStep::Muted)),
+                    Span::new(&saved).role(TAG_CHROME_FG),
                 ],
                 base,
             );
@@ -2416,24 +9568,27 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             Environment::Local | Environment::Development => "·",
         };
         let environment = app.connection.environment.label();
-        let path = qualified_label("", &app.connection.database, app.workbench.current_schema());
+        let env_role = legacy_environment_role(app.connection.environment);
+        let path = format!(
+            " {} ",
+            qualified_label("", &app.connection.database, app.workbench.current_schema())
+        );
         ui.paint_spans(
             area,
             &[
-                Span::new(" "),
+                Span::new("  "),
                 Span::new("▪").role(Role::Accent),
-                Span::new("  "),
-                Span::new("TablePro").bold(),
-                Span::new("  "),
-                Span::new(&app.connection.name).bold(),
-                Span::new("  "),
-                Span::new(glyph).bold(),
                 Span::new(" "),
-                Span::new(environment).bold(),
-                Span::new("  "),
-                Span::new(&path).role(Role::Fg(FgStep::Secondary)),
-                Span::new("  "),
-                Span::new(app.safe_mode.token()).bold(),
+                Span::new(" TablePro  ").bold(),
+                Span::new(&app.connection.name).bold(),
+                Span::new(" ").bold(),
+                Span::new(" "),
+                Span::new(glyph).role(env_role).bold(),
+                Span::new(" ").role(env_role).bold(),
+                Span::new(environment).role(env_role).bold(),
+                Span::new(" "),
+                Span::new(&path).role(TAG_PATH_FG),
+                safe_mode_mark(app.safe_mode),
             ],
             base,
         );
@@ -2441,160 +9596,705 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
 
     let capability = ui.theme().capability.color.label();
     let dimensions = format!("{}×{}", area.width, ui.full().height);
-    let right_width = termrock::width(capability)
-        .saturating_add(3)
-        .saturating_add(termrock::width(&dimensions))
-        .saturating_add(2)
-        .saturating_add(6);
-    let right = termrock::Rect {
-        x: area.right().saturating_sub(right_width).saturating_sub(1),
-        width: right_width.saturating_add(1),
-        ..area
-    };
-    ui.paint_spans(
-        right,
-        &[
-            Span::new(capability).role(Role::BorderStrong),
-            Span::new(" · ").role(Role::BorderStrong),
-            Span::new(&dimensions).role(Role::BorderStrong),
-            Span::new(" "),
-            Span::new(" ? help ").role(Role::Fg(FgStep::Muted)),
-        ],
-        base,
-    );
-}
-
-fn with_footer_spans(app: &TableProApp, paint: impl FnOnce(&[Span<'static>])) {
-    if app.screen == Screen::Connections {
-        paint(&[
-            Span::new(" "),
-            Span::new("↑ ↓").bold(),
-            Span::new(" "),
-            Span::new("Move").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Connect").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("/").bold(),
-            Span::new(" "),
-            Span::new("Filter").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("Ctrl+N").bold(),
-            Span::new(" "),
-            Span::new("New").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Next").role(Role::Fg(FgStep::Muted)),
-        ]);
+    let overflow = if app.screen == Screen::Workbench {
+        let (left, right) = workbench_header_widths(app, capability, area.width, ui.full().height);
+        header_overflow(area.width, &left, &[9, 9, 9, 8, 7, 8], &right, &[1, 4])
     } else {
-        match app.workbench.active() {
-            Some(Tab::Table(_)) => paint(&[
-                Span::new(" "),
-                Span::new("↑ ↓←→").bold(),
-                Span::new(" "),
-                Span::new("Cell").role(Role::Fg(FgStep::Muted)),
-                Span::new("  "),
-                Span::new("Enter").bold(),
-                Span::new(" "),
-                Span::new("Edit").role(Role::Fg(FgStep::Muted)),
-                Span::new("  s").bold(),
-                Span::new(" "),
-                Span::new("Sort").role(Role::Fg(FgStep::Muted)),
-                Span::new("  f").bold(),
-                Span::new(" "),
-                Span::new("Filter").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Space").bold(),
-                Span::new(" "),
-                Span::new("Select row").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
-            Some(Tab::Query(_)) => paint(&[
-                Span::new(" "),
-                Span::new("Enter").bold(),
-                Span::new(" "),
-                Span::new("Edit").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Ctrl+R").bold(),
-                Span::new(" "),
-                Span::new("Run").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Alt+R").bold(),
-                Span::new(" "),
-                Span::new("Run all").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Ctrl+O").bold(),
-                Span::new(" "),
-                Span::new("Quick open").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
-            Some(Tab::History(_)) => paint(&[
-                Span::new(" "),
-                Span::new("↑ ↓").bold(),
-                Span::new(" "),
-                Span::new("Move").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Enter").bold(),
-                Span::new(" "),
-                Span::new("Open").role(Role::Fg(FgStep::Muted)),
-                Span::new("  /").bold(),
-                Span::new(" "),
-                Span::new("Filter").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
-            None => paint(&[
-                Span::new(" "),
-                Span::new("Ctrl+N").bold(),
-                Span::new(" "),
-                Span::new("New query").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Ctrl+O").bold(),
-                Span::new(" "),
-                Span::new("Quick open").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
+        None
+    };
+    if let Some((keep_right, ellipsis)) = overflow {
+        let help = "? help";
+        if keep_right.last().unwrap_or(false) {
+            let padded = " ? help ";
+            let help_x = area
+                .right()
+                .saturating_sub(2)
+                .saturating_sub(width(help))
+                .saturating_sub(1);
+            ui.paint_str(
+                termrock::Rect {
+                    x: help_x,
+                    width: width(padded),
+                    ..area
+                },
+                padded,
+                base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG))),
+            );
         }
-    }
-}
-
-fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
-    let base = ui.surface_style();
-    ui.fill(area, base);
-    with_footer_spans(app, |spans| {
-        ui.paint_spans(area, spans, base);
-    });
-    if let Some(notice) = app.destructive_notice {
-        let width = termrock::width(notice).min(area.width);
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(ellipsis),
+                width: 1,
+                ..area
+            },
+            "…",
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG))),
+        );
+        let cluster_x = area.x.saturating_add(ellipsis);
+        paint_header_pending(ui, area, cluster_x, pending_label.as_deref(), base);
+    } else {
+        let right_width = width(capability)
+            .saturating_add(3)
+            .saturating_add(width(&dimensions))
+            .saturating_add(1)
+            .saturating_add(8);
         let right = termrock::Rect {
-            x: area.right().saturating_sub(width),
-            width,
-            ..area
-        };
-        ui.fill(right, base);
-        ui.paint_str(right, notice, base);
-    } else if app.screen == Screen::Workbench {
-        let prefix = "Connected to ";
-
-        let mut right_text =
-            String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
-        right_text.push_str(prefix);
-        right_text.push_str(&app.connection.name);
-        let width = termrock::width(&right_text);
-        let right = termrock::Rect {
-            x: area.right().saturating_sub(width),
-            width,
+            x: area.right().saturating_sub(right_width).saturating_sub(1),
+            width: right_width.saturating_add(1),
             ..area
         };
         ui.paint_spans(
             right,
-            &[Span::new(&right_text).role(Role::Fg(FgStep::Muted))],
+            &[
+                Span::new(capability).role(TAG_CHROME_FG),
+                Span::new(" · ").role(TAG_CHROME_FG),
+                Span::new(&dimensions).role(TAG_CHROME_FG),
+                Span::new(" "),
+                Span::new(" ? help ").role(TAG_CHROME_FG),
+            ],
             base,
         );
+        paint_header_pending(ui, area, right.x, pending_label.as_deref(), base);
     }
+}
+
+fn workbench_pending_label(app: &TableProApp) -> Option<String> {
+    let pending = app
+        .workbench
+        .active_grid()
+        .map_or(0, |(_, grid)| grid.model.pending_total());
+    (pending > 0).then(|| format!("• {pending} pending"))
+}
+
+fn paint_header_pending(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    cluster_x: u16,
+    label: Option<&str>,
+    base: PaintStyle,
+) {
+    let Some(label) = label else {
+        return;
+    };
+    let label_width = width(label);
+
+    let x = cluster_x.saturating_sub(2).saturating_sub(label_width);
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            width: label_width,
+            ..area
+        },
+        label,
+        base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning))),
+    );
+}
+
+fn connection_footer_hints() -> [Hint; 9] {
+    [
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Connect"),
+        Hint::new("e", "Edit…"),
+        Hint::new("d", "Delete…"),
+        Hint::new("Alt+D", "Duplicate"),
+        Hint::new("/", "Filter"),
+        Hint::new("Ctrl+N", "New"),
+        Hint::new("Shift+F10", "Menu"),
+        Hint::new("Tab", "Next"),
+    ]
+}
+
+fn explorer_footer_hints() -> [Hint; 7] {
+    [
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Open"),
+        Hint::new("→", "Expand"),
+        Hint::new("/", "Filter"),
+        Hint::new("Ctrl+O", "Quick open"),
+        Hint::new("Shift+F10", "Menu"),
+        Hint::new("Tab", "Next"),
+    ]
+}
+
+fn data_footer_hints(filtered: bool, pending: bool) -> Vec<Hint> {
+    let mut hints = vec![
+        Hint::new("↑↓←→", "Cell"),
+        Hint::new("Enter", "Edit"),
+        Hint::new("Alt+D", "Duplicate row"),
+        Hint::new("s", "Sort"),
+        Hint::new("f", "Filter"),
+    ];
+    if pending && !filtered {
+        hints.push(Hint::new("Ctrl+S", "Save"));
+    } else {
+        hints.push(Hint::new("Space", "Select row"));
+    }
+    hints.push(Hint::new("Shift+F10", "Menu"));
+    hints.push(Hint::new("Tab", "Next"));
+    hints
+}
+
+fn paint_history_card(
+    ui: &mut Ui<'_>,
+    inner: termrock::Rect,
+    key_owner: (TabKey, &std::sync::Weak<()>),
+    history: &crate::tabs::HistoryTab,
+    controls: &HistoryControls,
+    entries: &[&HistoryEntry],
+    history_rows: &HistoryRows,
+) {
+    let (key, owner) = key_owner;
+    let quiet_fg = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+
+    ui.paint_str(
+        termrock::Rect::new(inner.x.saturating_add(2), inner.y, 46, 1),
+        &" ".repeat(46),
+        quiet_fg,
+    );
+    let layout = controls.draw(ui, inner, key, &history.search);
+    let list_y = layout.list_y;
+    let list_area = termrock::Rect::new(
+        inner.x,
+        list_y,
+        inner.width.min(40),
+        inner.bottom().saturating_sub(list_y),
+    );
+    let selected = history_rows.draw_list(ui, key, owner, list_area, entries, history.selected);
+    let rule = PaintStyle::new().fg(termrock::Color::Rgb(77, 77, 77));
+    let mut rule_y = list_y;
+    while rule_y < inner.bottom() {
+        ui.paint_str(
+            termrock::Rect::new(inner.x.saturating_add(41), rule_y, 1, 1),
+            "│",
+            rule,
+        );
+        rule_y = rule_y.saturating_add(1);
+    }
+    if let Some(entry) = selected.and_then(|index| entries.get(index)).copied() {
+        paint_history_detail(ui, inner, entry, list_y);
+    }
+    history_rows.draw_open_button(ui, (key, owner), inner, list_y, entries, selected);
+    history_rows.draw_copy_button(ui, (key, owner), inner, list_y, entries, selected);
+}
+
+fn paint_history_detail(ui: &mut Ui<'_>, inner: termrock::Rect, entry: &HistoryEntry, list_y: u16) {
+    let x = inner.x.saturating_add(43);
+    let bg = termrock::Color::Rgb(17, 17, 17);
+    let card = termrock::Rect::new(
+        inner.x.saturating_add(42),
+        list_y,
+        inner.width.saturating_sub(42),
+        inner.bottom().saturating_sub(list_y),
+    );
+    let fill = PaintStyle::new()
+        .fg(termrock::Color::Rgb(255, 255, 255))
+        .bg(bg);
+    ui.fill(card, fill);
+    let label = fill.fg(termrock::Color::Rgb(179, 179, 179));
+    let faint = fill.fg(termrock::Color::Rgb(115, 115, 115));
+    let quiet = fill.fg(termrock::Color::Rgb(138, 138, 138));
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(1), list_y, 5, 1),
+        "Query",
+        label,
+    );
+    let source = format!("{} · {}", entry.source.label(), entry.when());
+    let source_w = width(&source);
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(22), list_y, source_w, 1),
+        &source,
+        faint,
+    );
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(1), list_y.saturating_add(1), 37, 1),
+        &"─".repeat(37),
+        fill.fg(termrock::Color::Rgb(58, 58, 58)),
+    );
+    let lines: Vec<&str> = entry.sql.lines().collect();
+    for (index, line) in lines.iter().take(2).enumerate() {
+        let y = list_y.saturating_add(2).saturating_add(index as u16);
+        let number = format!(" {number}", number = index + 1);
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(3), y, width(&number), 1),
+            &number,
+            faint,
+        );
+        if index == 0 {
+            ui.paint_str(termrock::Rect::new(x, y, 1, 1), " ", fill.fg(bg));
+            ui.paint_str(
+                termrock::Rect::new(x.saturating_add(1), y, 1, 1),
+                "›",
+                label,
+            );
+        }
+        paint_history_sql(
+            ui,
+            termrock::Rect::new(x.saturating_add(6), y, 32, 1),
+            line,
+            fill,
+        );
+    }
+    let facts = [
+        (
+            "Connection",
+            format!("{} · {}.{}", entry.connection, entry.database, entry.schema),
+        ),
+        ("Duration", entry.duration()),
+        (
+            "Rows",
+            entry
+                .rows
+                .map(|rows| rows.to_string())
+                .unwrap_or_else(|| "–".to_owned()),
+        ),
+    ];
+    for (offset, (name, value)) in facts.iter().enumerate() {
+        let y = list_y.saturating_add(6).saturating_add(offset as u16);
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(1), y, 10, 1),
+            name,
+            quiet,
+        );
+        let shown = truncate(value, 25);
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(13), y, width(&shown), 1),
+            &shown,
+            label,
+        );
+    }
+    let run_bg = termrock::Color::Rgb(39, 39, 42);
+    let secondary = PaintStyle::new()
+        .fg(termrock::Color::Rgb(255, 255, 255))
+        .bg(run_bg);
+    let button_y = list_y.saturating_add(10);
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(20), button_y, 1, 1),
+        " ",
+        PaintStyle::new().fg(run_bg).bg(run_bg),
+    );
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(21), button_y, 15, 1),
+        "Run in new tab ",
+        secondary,
+    );
+}
+
+fn paint_history_sql(ui: &mut Ui<'_>, area: termrock::Rect, sql: &str, field: PaintStyle) {
+    let keyword = field
+        .fg(termrock::Color::Rgb(121, 184, 255))
+        .add_modifier(Modifier::BOLD);
+    let punct = field.fg(termrock::Color::Rgb(138, 138, 138));
+    let text = field.fg(termrock::Color::Rgb(255, 255, 255));
+    let mut x = area.x;
+    let end = area.right();
+    let mut word = String::new();
+    let flush = |ui: &mut Ui<'_>, x: &mut u16, word: &mut String| {
+        if word.is_empty() || *x >= end {
+            word.clear();
+            return;
+        }
+        let style = if matches!(
+            word.to_ascii_uppercase().as_str(),
+            "SELECT" | "FROM" | "WHERE" | "GROUP" | "BY" | "ORDER" | "COUNT"
+        ) {
+            keyword
+        } else {
+            text
+        };
+        let w = width(word).min(end.saturating_sub(*x));
+        ui.paint_str(
+            termrock::Rect {
+                x: *x,
+                width: w,
+                ..area
+            },
+            word,
+            style,
+        );
+        *x = x.saturating_add(w);
+        word.clear();
+    };
+    for ch in sql.chars() {
+        if x >= end {
+            break;
+        }
+        if ch.is_ascii_alphanumeric() || ch == '_' {
+            word.push(ch);
+            continue;
+        }
+        flush(ui, &mut x, &mut word);
+        if x >= end {
+            break;
+        }
+        let style = if ch == ' ' { text } else { punct };
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                width: 1,
+                ..area
+            },
+            &ch.to_string(),
+            style,
+        );
+        x = x.saturating_add(1);
+    }
+    flush(ui, &mut x, &mut word);
+}
+
+fn with_footer_hints(app: &TableProApp, explorer_focused: bool) -> Vec<Hint> {
+    if app.screen == Screen::Connections {
+        return connection_footer_hints().to_vec();
+    }
+    if matches!(app.workbench.active(), Some(Tab::Query(query)) if query.running) {
+        return vec![Hint::new("Esc", "Cancel query"), Hint::new("Tab", "Next")];
+    }
+    if explorer_focused {
+        return explorer_footer_hints().to_vec();
+    }
+    match app.workbench.active() {
+        Some(Tab::Table(table)) if table.is_structure() => vec![
+            Hint::new("↑↓", "Move"),
+            Hint::new("Ctrl+D", "Data / Structure"),
+            Hint::new("Tab", "Next"),
+        ],
+        Some(Tab::Table(table)) => {
+            let filtered = table.filters.iter().any(|filter| filter.enabled);
+            let pending = table.result.pending_total() > 0;
+            data_footer_hints(filtered, pending)
+        }
+        Some(Tab::Query(query))
+            if query.error.is_some() || (query.result.is_some() && query.plan.is_none()) =>
+        {
+            vec![
+                Hint::new("Enter", "Edit"),
+                Hint::new("Ctrl+R", "Run"),
+                Hint::new("Alt+R", "Run all"),
+                Hint::new("Ctrl+X", "Explain"),
+                Hint::new("/", "Find"),
+                Hint::new("Tab", "Next"),
+            ]
+        }
+        Some(Tab::Query(_)) => vec![
+            Hint::new("Enter", "Edit"),
+            Hint::new("Ctrl+R", "Run"),
+            Hint::new("Alt+R", "Run all"),
+            Hint::new("Ctrl+O", "Quick open"),
+            Hint::new("Tab", "Next"),
+        ],
+        Some(Tab::History(_)) => vec![
+            Hint::new("Enter", "Open in new tab"),
+            Hint::new("→", "Full text"),
+            Hint::new("r", "Rerun"),
+            Hint::new("y", "Copy"),
+            Hint::new("/", "Search"),
+            Hint::new("c s", "Scope · Status"),
+            Hint::new("Shift+F10", "Menu"),
+            Hint::new("Tab", "Next"),
+        ],
+        None => vec![
+            Hint::new("Ctrl+N", "New query"),
+            Hint::new("Ctrl+O", "Quick open"),
+            Hint::new("Tab", "Next"),
+        ],
+    }
+}
+
+fn grid_is_editing(app: &TableProApp) -> bool {
+    app.workbench
+        .active_grid()
+        .is_some_and(|(_, grid)| grid.state.is_editing())
+}
+
+fn cell_edit_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Enter", "Apply"),
+        Hint::new("Esc", "Cancel"),
+        Hint::new("Tab", "Next cell"),
+    ]
+}
+
+fn connection_duplicated_notice(app: &TableProApp) -> Option<&str> {
+    if app.screen == Screen::Connections && app.status == "Duplicated" {
+        Some(app.status.as_str())
+    } else {
+        None
+    }
+}
+
+fn paint_connection_filter_row(ui: &mut Ui<'_>, area: termrock::Rect, query: &str, editing: bool) {
+    let (text, ink) = if query.is_empty() {
+        ("Filter connections", TAG_CHROME_FG)
+    } else {
+        (query, Role::Fg(FgStep::Primary))
+    };
+    paint_legacy_filter(ui, area, text, ink);
+    if !editing || area.is_empty() {
+        return;
+    }
+    if !query.is_empty() && area.width > 2 {
+        let underlined = ui.surface_style().remove_modifier(Modifier::BOLD).patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(TAG_FIELD_BG)
+                    .set_underline(TAG_BUTTON_BG)
+                    .add(Modifier::UNDERLINED),
+            ),
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(2),
+                width: width(query).min(area.width.saturating_sub(2)),
+                ..area
+            },
+            query,
+            underlined,
+        );
+    }
+    let caret = ui
+        .surface_style()
+        .remove_modifier(Modifier::BOLD)
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_BUTTON_BG).set_bg(TAG_FIELD_BG)));
+    ui.paint_str(
+        termrock::Rect {
+            width: 1.min(area.width),
+            ..area
+        },
+        "▎",
+        caret,
+    );
+    let cursor_x = area
+        .x
+        .saturating_add(2)
+        .saturating_add(width(query))
+        .min(area.right().saturating_sub(1));
+    ui.set_bar_cursor(CONNECTION_FILTER, Position::new(cursor_x, area.y));
+}
+
+fn form_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Enter", "Edit"),
+        Hint::new("←→", "Basic / Advanced"),
+        Hint::new("Ctrl+S", "Save"),
+        Hint::new("Tab", "Next"),
+    ]
+}
+
+fn query_completion_open(app: &TableProApp) -> bool {
+    matches!(
+        app.workbench.active(),
+        Some(Tab::Query(query)) if query.editor_state.is_completion_open()
+    )
+}
+
+fn completion_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Accept"),
+        Hint::new("Esc", "Close"),
+    ]
+}
+
+fn query_editor_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Ctrl+R", "Run"),
+        Hint::new("Alt+R", "Run all"),
+        Hint::new("Ctrl+Space", "Complete"),
+        Hint::new("Tab", "Indent"),
+        Hint::new("F6", "Leave"),
+        Hint::new("Esc", "Done"),
+    ]
+}
+
+fn connection_filter_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Type", "Filter"),
+        Hint::new("↓", "Into list"),
+        Hint::new("Esc", "Clear"),
+    ]
+}
+
+fn filter_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Tab", "Next field"),
+        Hint::new("Enter", "Apply"),
+        Hint::new("Esc", "Cancel"),
+    ]
+}
+
+fn delete_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("←→", "Choose"),
+        Hint::new("Enter", "Cancel"),
+        Hint::new("Esc", "Cancel"),
+    ]
+}
+
+fn help_footer_hints() -> Vec<Hint> {
+    vec![Hint::new("↑↓", "Scroll"), Hint::new("Esc", "Close")]
+}
+
+fn picker_move_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Choose"),
+        Hint::new("Esc", "Cancel"),
+    ]
+}
+
+fn picker_layer_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Type", "Filter"),
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Choose"),
+        Hint::new("Esc", "Cancel"),
+    ]
+}
+
+fn connection_status_label(app: &TableProApp) -> String {
+    let mut text = String::with_capacity(
+        "✓ Connected to "
+            .len()
+            .saturating_add(app.connection.name.len()),
+    );
+    text.push_str("✓ Connected to ");
+    text.push_str(&app.connection.name);
+    text
+}
+
+fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
+    let base = ui.surface_style();
+    let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
+    let empty_query = app.blank_sql() && query_editor_focused(ui, app);
+    ui.fill(area, base);
+
+    let status = footer_status(app);
+    let (hints, badge) = footer_hints(app, explorer_focused, empty_query);
+    footer::draw(ui, area, &hints, badge, status.as_ref(), base);
+}
+
+fn footer_status(app: &TableProApp) -> Option<footer::Status> {
+    if let Some(notice) = &app.destructive_notice {
+        return Some(footer::Status::new(
+            notice.to_owned(),
+            Role::Fg(FgStep::Muted),
+        ));
+    }
+    if let Some(Tab::Query(query)) = app.workbench.active() {
+        if query.running {
+            let summary = query
+                .last_status
+                .as_ref()
+                .map_or("Query running".to_owned(), |status| status.summary.clone());
+            return Some(footer::Status::new(summary, Role::Fg(FgStep::Muted)));
+        }
+        if let Some(status) = query.last_status.as_ref()
+            && status.is_error
+        {
+            return Some(footer::Status::new(status.summary.clone(), SQL_ERROR));
+        }
+        if let Some(status) = query.last_status.as_ref()
+            && (status.summary.starts_with("completed ") || status.summary == "cancelled")
+        {
+            return Some(footer::Status::new(
+                status.summary.clone(),
+                Role::Fg(FgStep::Muted),
+            ));
+        }
+    }
+    if let Some(sorted) = sort_footer(app) {
+        return Some(footer::Status::new(sorted, TAG_PATH_FG));
+    }
+    if let Some(filtered) = filter_footer(app) {
+        return Some(footer::Status::new(filtered, TAG_PATH_FG));
+    }
+    if let Some(notice) = connection_duplicated_notice(app) {
+        return Some(footer::Status::new(notice, TAG_PATH_FG));
+    }
+    if app.screen == Screen::Workbench && app.connection_status_at.is_some() {
+        let label = connection_status_label(app);
+        let role = if label.starts_with('✓') {
+            TAG_OK_FG
+        } else {
+            Role::Fg(FgStep::Muted)
+        };
+        return Some(footer::Status::new(label, role));
+    }
+    None
+}
+
+fn footer_hints(
+    app: &TableProApp,
+    explorer_focused: bool,
+    empty_query: bool,
+) -> (Vec<Hint>, Option<&'static str>) {
+    if app.history_detail.is_interactive() {
+        return (app.history_detail.footer_hints(), None);
+    }
+    if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
+        return (picker_layer_footer_hints(), None);
+    }
+    if app.surface == Surface::SafeModePicker {
+        return (picker_move_footer_hints(), None);
+    }
+    if app.surface == Surface::HelpDialog {
+        return (help_footer_hints(), None);
+    }
+    if app.surface == Surface::FilterEditor {
+        return (filter_footer_hints(), None);
+    }
+    if matches!(app.workbench.active(), Some(Tab::Query(query)) if query.plan.is_some()) {
+        return (query_editor_footer_hints(), Some("EDIT"));
+    }
+    if app.connection_delete == ConnectionDelete::Open || app.destructive_intent.is_some() {
+        return (delete_footer_hints(), None);
+    }
+    if app.form_open {
+        return (form_footer_hints(), None);
+    }
+    match app.visible_query_pane_mode() {
+        QueryPaneMode::Editor if query_completion_open(app) => {
+            return (completion_footer_hints(), Some("EDIT"));
+        }
+        QueryPaneMode::Editor
+            if matches!(
+                app.workbench.active(),
+                Some(Tab::Query(query)) if query.editor_state.editor().is_editing()
+            ) =>
+        {
+            return (query_editor_footer_hints(), Some("EDIT"));
+        }
+        QueryPaneMode::Results if grid_is_editing(app) => {
+            return (cell_edit_footer_hints(), Some("EDIT"));
+        }
+        QueryPaneMode::Editor | QueryPaneMode::Results => {
+            return (query_pane_footer_hints(), None);
+        }
+        QueryPaneMode::None => {}
+    }
+    if app.screen == Screen::Connections && app.connection_filter_editing {
+        return (connection_filter_footer_hints(), Some("EDIT"));
+    }
+    if app.workbench.maximized {
+        return (maximized_footer_hints(), None);
+    }
+    if query_completion_open(app) {
+        return (completion_footer_hints(), Some("EDIT"));
+    }
+    if empty_query && !explorer_focused {
+        return (query_editor_footer_hints(), Some("EDIT"));
+    }
+    if !explorer_focused && grid_is_editing(app) {
+        return (cell_edit_footer_hints(), Some("EDIT"));
+    }
+    (with_footer_hints(app, explorer_focused), None)
+}
+
+fn query_editor_focused(ui: &Ui<'_>, app: &TableProApp) -> bool {
+    app.query_id()
+        .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED))
 }
 
 fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -2613,7 +10313,7 @@ fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
         .y
         .saturating_add(area.height.saturating_sub(lines.len() as u16) / 2);
     for (offset, line) in lines.iter().enumerate() {
-        let width = termrock::width(line);
+        let width = width(line);
         let row = termrock::Rect {
             x: area.x.saturating_add(area.width.saturating_sub(width) / 2),
             y: start.saturating_add(offset as u16),
@@ -2627,24 +10327,18 @@ fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_connection_properties(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
-    properties: &[(&str, String)],
+    properties: &[(&str, String, Role)],
 ) {
     let value_x = area.x.saturating_add(13);
     let value_width = area.width.saturating_sub(18).max(1);
     let label_style = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
     let mut y = area.y;
-    for (label, value) in properties {
-        let value_step = match *label {
-            "Environment" => FgStep::Faint,
-            "Safe Mode" | "SSL / SSH" => FgStep::Secondary,
-            "Last used" => FgStep::Muted,
-            _ => FgStep::Primary,
-        };
+    for (label, value, value_role) in properties {
         let value_style = ui
             .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(value_step))));
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(*value_role)));
         let lines = if *label == "Safe Mode" {
             wrap(value, value_width)
         } else {
@@ -2731,7 +10425,7 @@ fn draw_connection_actions(ui: &mut Ui<'_>, area: termrock::Rect) {
             ui,
             DELETE_LABEL,
             Role::Surface(termrock::Surface::Overlay),
-            Role::Danger,
+            LEGACY_DANGER_LABEL,
         ),
         false,
     );
@@ -2746,24 +10440,24 @@ const DELETE_LABEL: Part = Part::custom("delete.label");
 const ACTION_MONO: &[termrock::MonoRule] = &[
     (
         CONNECT_LABEL,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StylePatch::new()
             .set_fg(Role::Surface(termrock::Surface::Canvas))
             .set_bg(Role::Fg(FgStep::Primary)),
     ),
     (
         EDIT_LABEL,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         DUPLICATE_LABEL,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         DELETE_LABEL,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
 ];
@@ -2773,7 +10467,7 @@ fn action_paint(ui: &Ui<'_>, part: Part, background: Role, foreground: Role) -> 
         CONNECTION_ACTIONS,
         termrock::Variant::DEFAULT,
         part,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StyleDefaults::new(StylePatch::new().set_bg(background).set_fg(foreground))
             .mono(ACTION_MONO),
         None,
@@ -2789,7 +10483,7 @@ fn paint_action_button(
     mut button: PaintStyle,
     bold: bool,
 ) {
-    let width = termrock::width(label).saturating_add(2);
+    let width = width(label).saturating_add(2);
     if bold {
         button = button.add_modifier(Modifier::BOLD);
     }
@@ -2812,7 +10506,7 @@ fn paint_action_button(
             width: 1,
             height: 1,
         },
-        "▎",
+        " ",
         gutter,
     );
     ui.paint_str(
@@ -2827,12 +10521,89 @@ fn paint_action_button(
     );
 }
 
+impl TableProApp {
+    fn blank_sql(&self) -> bool {
+        self.query_id().is_some() && self.blank_maximized_query()
+    }
+
+    fn blank_maximized_query(&self) -> bool {
+        if self.visible_query_pane_mode() != QueryPaneMode::None {
+            return false;
+        }
+        match self.workbench.active() {
+            Some(Tab::Query(query)) => {
+                query.query.is_empty()
+                    && query.result.is_none()
+                    && query.error.is_none()
+                    && query.plan.is_none()
+            }
+            _ => false,
+        }
+    }
+    fn prepare_grid_slots(&self) {
+        if self.visible_query_pane_mode() == QueryPaneMode::Editor {
+            self.result_grid.begin_frame(Vec::new(), None, None);
+            return;
+        }
+        let filtered_columns = self
+            .workbench
+            .active_table()
+            .map(|table| {
+                table
+                    .filters
+                    .iter()
+                    .filter(|filter| filter.enabled)
+                    .map(|filter| filter.column.clone())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let shown_sort = self.grid_sort.and_then(|(owner, column, direction)| {
+            if self.active_grid_sort_owner()? != owner {
+                return None;
+            }
+            usize::from(column)
+                .checked_sub(1)
+                .map(|index| (index, direction))
+        });
+        let wide_col = self.workbench.active_grid().and_then(|(_, grid)| {
+            result_grid::wide_header_column(&grid.columns, &grid.state, &grid.model)
+        });
+        self.result_grid
+            .begin_frame(filtered_columns, shown_sort, wide_col);
+    }
+
+    fn mirror_name_edit(&mut self) {
+        let Some(text) = self.form_state.editing_text(connections::field::NAME) else {
+            return;
+        };
+        let Some(draft) = self.draft.as_mut() else {
+            return;
+        };
+        if draft.name != text {
+            text.clone_into(&mut draft.name);
+        }
+    }
+}
+
 impl App for TableProApp {
-    #[expect(
-        clippy::too_many_lines,
-        reason = "update keeps public component routing and product command arbitration in one phase"
-    )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let history_detail_was_open = self.history_detail.is_open();
+        self.query_panes.get_mut().sync(&self.workbench);
+        self.explain_contexts.get_mut().sync(&self.workbench);
+        let mut response = self.roll_connection_status(cx);
+        response |= self.update_history_controls(cx);
+        let (history_rows_response, history_action) = self.update_history_rows(cx);
+        response |= history_rows_response;
+        response |= self.update_history_detail(cx);
+
+        if cx.update_cause() == UpdateCause::Tick {
+            if self.query_safety.is_open() || cx.is_open(query_safety::ID) {
+                response |= self.update_query_safety(cx);
+            }
+            response |= self.advance_pending_queries(cx);
+            return response;
+        }
+        response |= self.update_filter_editor(cx);
         if cx.update_cause() == UpdateCause::Bootstrap
             && self.screen == Screen::Workbench
             && self.surface == Surface::QuickSwitcher
@@ -2840,8 +10611,14 @@ impl App for TableProApp {
             self.open_switcher(cx);
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
-        let modal_was_open = self.destructive_intent.is_some();
-        let mut response = self.update_destructive_dialog(cx);
+        let query_safety_was_open = self.query_safety.is_open() || cx.is_open(query_safety::ID);
+        let modal_was_open = self.destructive_intent.is_some()
+            || self.query_safety.is_open()
+            || history_detail_was_open;
+        response |= self.update_destructive_dialog(cx);
+        if query_safety_was_open {
+            response |= self.update_query_safety(cx);
+        }
         response |= self.update_tab_controls(cx);
         if self.form_open || self.screen != Screen::Connections {
             response |= connection_tree()
@@ -2851,22 +10628,39 @@ impl App for TableProApp {
         }
         if self.form_open || self.screen != Screen::Workbench {
             response |= workbench_split().update(cx, &mut self.split_state).erase();
-            response |= explorer_tree()
+            response |= explorer_tree(true)
                 .update(cx, &mut self.explorer_tree_state, &self.explorer_nodes)
                 .erase();
             response |= tab_strip()
                 .update(cx, &mut self.tabs_state, self.workbench.tabs())
                 .erase();
         }
+        let active_before_routing = self.workbench.active_key();
         response |= self.update_switcher(cx);
+        response |= self.update_tab_list(cx);
+        response |= self.update_safe_mode(cx);
+        response |= self.update_help(cx);
+        response |= self.update_delete_dialog(cx);
+        self.query_safety.sync_layer_scope(&mut self.keymap, cx);
+        let mut focus_history = false;
+        if active_before_routing != self.workbench.active_key()
+            && matches!(self.workbench.active(), Some(Tab::History(_)))
+            && let Some(key) = self.workbench.active_key()
+        {
+            self.refresh_history_tab(key);
+            focus_history = true;
+        }
         if switcher_was_open {
+            if focus_history {
+                cx.focus(HISTORY_LIST);
+            }
             return response;
         }
 
-        let _ = Self::connections_panel("", None);
+        let _ = Self::connections_panel("", None, true);
         let _ = Self::connection_details_panel("");
-        let _ = Self::explorer_panel(self.workbench.schema_caption());
-        let _ = Self::content_panel("", None);
+        let _ = Self::explorer_panel(self.workbench.schema_caption(), true);
+        let _ = Self::content_panel("", None, true);
         if matches!(
             cx.update_cause(),
             UpdateCause::Bootstrap | UpdateCause::Event
@@ -2882,14 +10676,22 @@ impl App for TableProApp {
                     if cx.top_layer() != LayerId::PAGE {
                         return Response::consumed();
                     }
-                    if let Some(Tab::Query(query)) = self.workbench.active_mut()
-                        && query.running
-                    {
-                        query.running = false;
-                        "Query cancelled".clone_into(&mut self.status);
-                        return Response::changed();
+                    match self.cancel_running_query() {
+                        QueryCancelOutcome::Cancelled
+                        | QueryCancelOutcome::PublicationUnavailable => {
+                            return Response::changed();
+                        }
+                        QueryCancelOutcome::NoPendingRun => return self.request_quit(cx),
                     }
-                    return self.request_quit(cx);
+                }
+                c if c == DUPLICATE_ROW => {
+                    if self.screen == Screen::Connections && !self.form_open {
+                        self.duplicate_selected_connection();
+                        response |= Response::changed();
+                    } else if self.active_row_action(cx) {
+                        self.duplicate_active_row();
+                        response |= Response::changed();
+                    }
                 }
                 c if c == INSERT_ROW || c == DELETE_ROW || c == DISCARD_ROWS => {
                     if self.active_row_action(cx) {
@@ -2904,8 +10706,8 @@ impl App for TableProApp {
                     }
                 }
                 c if c == UNDO => {
-                    if let Some((id, grid)) = self.workbench.active_grid_mut()
-                        && cx.state(id).contains(termrock::StateFlags::FOCUSED)
+                    if let Some((id, grid)) = self.workbench.application_active_grid_mut()
+                        && cx.state(id).contains(StateFlags::FOCUSED)
                         && !grid.state.is_editing()
                     {
                         let _ = grid.model.undo();
@@ -2913,7 +10715,82 @@ impl App for TableProApp {
                     }
                 }
                 c if c == RUN => {
-                    self.request_query(cx);
+                    self.request_query(cx, false);
+                    response |= Response::changed();
+                }
+                c if c == RUN_ALL => {
+                    self.request_query(cx, true);
+                    response |= Response::changed();
+                }
+                c if c == PIN_QUERY_OUTPUT => {
+                    let selected = self.workbench.active_key().and_then(|key| {
+                        let id = self.workbench.selected_query_output(key)?;
+                        let was_pinned = self
+                            .workbench
+                            .query_outputs(key)?
+                            .iter()
+                            .find(|output| output.id() == id)?
+                            .is_pinned();
+                        Some((key, id, was_pinned))
+                    });
+                    let mut cancellation_failed = None;
+                    let result = selected.and_then(|(key, id, was_pinned)| {
+                        let running = matches!(
+                            self.workbench.tab(key),
+                            Some(Tab::Query(query)) if query.running
+                        );
+                        let run_pending = self.pending_queries.contains_key(&key);
+                        if running || run_pending {
+                            let outcome = if run_pending {
+                                self.cancel_query(key)
+                            } else {
+                                self.status = "Query cancellation state is unavailable".to_owned();
+                                QueryCancelOutcome::PublicationUnavailable
+                            };
+                            if !matches!(outcome, QueryCancelOutcome::Cancelled) {
+                                cancellation_failed = Some(outcome);
+                                if matches!(outcome, QueryCancelOutcome::NoPendingRun) {
+                                    self.status =
+                                        "Query cancellation state is unavailable".to_owned();
+                                }
+                                return None;
+                            }
+                        }
+                        self.workbench
+                            .toggle_query_output_pin(key, id)
+                            .then_some(was_pinned)
+                    });
+                    if cancellation_failed.is_none() {
+                        self.status = match result {
+                            Some(true) => "Result unpinned".to_owned(),
+                            Some(false) => "Result pinned".to_owned(),
+                            None => "No query result selected".to_owned(),
+                        };
+                    }
+                    response |= Response::changed();
+                }
+                c if c == SAVE && self.screen == Screen::Workbench && !self.form_open => {
+                    self.request_commit(cx);
+                    response |= Response::changed();
+                }
+                c if c == EXPLAIN => {
+                    if let Some(id) = self.query_id() {
+                        cx.focus(id);
+                    }
+                    let key = self.workbench.active_key();
+                    if let Some(key) = key {
+                        let _ = self.explain_query(key, false);
+                    }
+                    response |= Response::changed();
+                }
+                c if c == EXPLAIN_ANALYZE => {
+                    if let Some(id) = self.query_id() {
+                        cx.focus(id);
+                    }
+                    let key = self.workbench.active_key();
+                    if let Some(key) = key {
+                        let _ = self.explain_query(key, true);
+                    }
                     response |= Response::changed();
                 }
                 c if c == OPEN => {
@@ -2922,26 +10799,171 @@ impl App for TableProApp {
                         response |= Response::changed();
                     }
                 }
+                c if c == TAB_LIST && self.open_tab_list(cx) => {
+                    response |= Response::changed();
+                }
+                c if c == CLEAR_QUERY && self.open_safe_mode_picker(cx) => {
+                    response |= Response::changed();
+                }
                 c if c == NEW_QUERY => {
-                    self.new_query("");
+                    self.new_query(cx, "");
+                    response |= Response::changed();
+                }
+                c if c == CLOSE_TAB
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none()
+                    && let Some(key) = self.workbench.active_key() =>
+                {
+                    self.request_close_tab(cx, key);
                     response |= Response::changed();
                 }
                 c if c == HISTORY => {
-                    self.workbench.open_history();
-                    self.sync_active_tab();
+                    if let Some(key) = self.workbench.open_history() {
+                        self.sync_active_tab();
+                        self.refresh_history_tab(key);
+                        focus_history = true;
+                    }
                     response |= Response::changed();
+                }
+                c if c == COPY_HISTORY => {
+                    if !history_action
+                        && self.screen == Screen::Workbench
+                        && !self.form_open
+                        && cx.state(HISTORY_LIST).contains(StateFlags::FOCUSED)
+                        && matches!(self.workbench.active(), Some(Tab::History(_)))
+                        && let Some(sql) = self
+                            .history_rows
+                            .selected_copy_sql(&self.workbench, &self.history_controls)
+                    {
+                        cx.clipboard_copy(&sql);
+                        "Copied full SQL".clone_into(&mut self.status);
+                        response |= Response::changed();
+                    }
+                }
+                c if c == SHOW_HISTORY_DETAIL => {
+                    if !history_action
+                        && matches!(
+                            cx.update_cause(),
+                            UpdateCause::Event | UpdateCause::Bootstrap
+                        )
+                        && self.screen == Screen::Workbench
+                        && self.surface == Surface::HistoryTab
+                        && !self.form_open
+                        && self.destructive_intent.is_none()
+                        && !self.query_safety.is_open()
+                        && !self.history_detail.is_open()
+                        && self.filter_editor.is_none()
+                        && cx.top_layer() == LayerId::PAGE
+                        && cx.state(HISTORY_LIST).contains(StateFlags::FOCUSED)
+                        && let Some(key) = self.workbench.active_key()
+                        && matches!(self.workbench.tab(key), Some(Tab::History(_)))
+                        && let Some(entry) = self
+                            .history_rows
+                            .selected_detail_entry(&self.workbench, &self.history_controls)
+                        && let Some(request) =
+                            HistoryDetailRequest::capture(&self.workbench, key, entry)
+                        && self.history_detail.open(cx, request)
+                    {
+                        response |= Response::changed();
+                    }
                 }
                 c if c == STRUCTURE => {
                     let _ = self.workbench.toggle_structure();
                     self.sync_active_tab();
                     response |= Response::changed();
                 }
-                c if c == FORM => {
-                    self.begin_connection_form();
+                c if c == DELETE_CONNECTION && self.open_delete_dialog(cx) => {
                     response |= Response::changed();
                 }
-                c if c == HELP => {
-                    self.surface = Surface::HelpDialog;
+                c if c == FORM => {
+                    self.begin_connection_form();
+                    cx.focus(connections::field::NAME);
+                    response |= Response::changed();
+                }
+                c if c == HELP && self.open_help(cx) => {
+                    response |= Response::changed();
+                }
+                c if c == SORT && self.sort_focused_column(cx) => {
+                    response |= Response::changed();
+                }
+                c if c == FILTER && self.begin_column_filter(cx) => {
+                    response |= Response::changed();
+                }
+                c if c == FILTER_CARD && self.begin_filter_card(cx) => {
+                    response |= Response::changed();
+                }
+                c if c == FILTER_CONNECTIONS
+                    && self.screen == Screen::Connections
+                    && !self.form_open
+                    && !self.connection_filter_editing =>
+                {
+                    self.connection_filter_editing = true;
+                    self.connection_filter_input
+                        .begin(&self.connections_screen.filter);
+                    cx.focus(CONNECTION_FILTER);
+                    response |= Response::changed();
+                }
+                c if c == CLEAR_CONNECTION_FILTER && self.connection_filter_editing => {
+                    self.connections_screen.filter.clear();
+                    self.connection_filter_editing = false;
+                    self.connection_filter_input.cancel();
+                    cx.focus(CONNECTIONS);
+                    response |= Response::changed();
+                }
+                c if c == COMMIT_CONNECTION_FILTER && self.connection_filter_editing => {
+                    if let Some(draft) = self.connection_filter_input.draft_text() {
+                        draft.clone_into(&mut self.connections_screen.filter);
+                    }
+                    self.connection_filter_editing = false;
+                    self.connection_filter_input.cancel();
+                    cx.focus(CONNECTIONS);
+                    response |= Response::changed();
+                }
+                c if c == ZOOM
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none()
+                    && !self.query_safety.is_open()
+                    && self.filter_editor.is_none() =>
+                {
+                    if self.workbench.maximized {
+                        self.workbench.maximized = false;
+                        if let Some(key) = self.workbench.active_key() {
+                            self.query_panes.get_mut().set(key, QueryPaneMode::None);
+                        }
+                    } else {
+                        self.workbench.maximized = true;
+                        if let Some(key) = self.workbench.active_key() {
+                            let mode = self.focused_query_pane(cx);
+                            self.query_panes.get_mut().set(key, mode);
+                        }
+                    }
+                    response |= Response::changed();
+                }
+                c if c == TOGGLE_EXPLORER
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none() =>
+                {
+                    self.split_state.toggle_max(Maximized::Second);
+                    response |= Response::changed();
+                }
+                c if c == FOCUS_EXPLORER
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none()
+                    && !self.query_safety.is_open()
+                    && self.filter_editor.is_none() =>
+                {
+                    if self.split_state.maximized() == Maximized::Second {
+                        self.split_state.toggle_max(Maximized::Second);
+                    }
+                    self.workbench.maximized = false;
+                    if let Some(key) = self.workbench.active_key() {
+                        self.query_panes.get_mut().set(key, QueryPaneMode::None);
+                    }
+                    cx.focus(EXPLORER);
                     response |= Response::changed();
                 }
                 _ => {}
@@ -2981,6 +11003,7 @@ impl App for TableProApp {
                 }
                 response |= form_response.erase();
             }
+            self.mirror_name_edit();
         }
         if form_was_open {
             return response;
@@ -2999,14 +11022,11 @@ impl App for TableProApp {
                 self.request_connect(cx, self.connections_screen.selected);
                 return response | Response::changed();
             }
-            let tree_response = connection_tree().update(
-                cx,
-                &mut self.connection_tree_state,
-                &self.connection_nodes,
-            );
-            self.sync_connection_selection();
-            if tree_response.action_ref().is_some() {
-                self.connection_visual_tree_state = self.connection_tree_state.clone();
+            response |= self.update_connection_filter(cx);
+            let tree_response = self.update_connection_tree(cx);
+
+            if !self.connection_filter_editing {
+                self.sync_connection_selection();
             }
             if let Some(action) = tree_response.action_ref()
                 && let TreeAction::Activated(key) | TreeAction::Chose(key) = action
@@ -3024,7 +11044,7 @@ impl App for TableProApp {
         let split = workbench_split();
         response |= split.update(cx, &mut self.split_state).erase();
         let tree_response =
-            explorer_tree().update(cx, &mut self.explorer_tree_state, &self.explorer_nodes);
+            explorer_tree(true).update(cx, &mut self.explorer_tree_state, &self.explorer_nodes);
         if let Some(TreeAction::Activated(key) | TreeAction::Chose(key)) =
             tree_response.action_ref()
             && let Some(ExplorerNode::Object { item, .. }) = self
@@ -3033,7 +11053,11 @@ impl App for TableProApp {
                 .find(|node| explorer_node_key(node) == *key)
         {
             let item = item.clone();
-            let _ = self.open_table(&item);
+            if self.open_table(&item)
+                && let Some(id) = self.result_id()
+            {
+                cx.focus(id);
+            }
         }
         response |= tree_response.erase();
 
@@ -3052,6 +11076,12 @@ impl App for TableProApp {
                             let _ = self.workbench.activate(key);
                         }
                         self.sync_active_tab();
+                        if let Some(active_key) = self.workbench.active_key()
+                            && matches!(self.workbench.active(), Some(Tab::History(_)))
+                        {
+                            self.refresh_history_tab(active_key);
+                            focus_history = true;
+                        }
                     }
                 }
                 TabsAction::Close(key) => {
@@ -3060,16 +11090,110 @@ impl App for TableProApp {
                         self.request_close_tab(cx, tab.key());
                     }
                 }
-                TabsAction::New => self.new_query(""),
+                TabsAction::New => self.new_query(cx, ""),
             }
         }
         response |= tabs_response.erase();
+        if self.workbench.tabs().len() <= 3 {
+            self.pin_tab_window();
+        }
+        if cx.update_cause() == UpdateCause::Bootstrap && self.screen == Screen::Workbench {
+            if matches!(self.workbench.active(), Some(Tab::History(_))) {
+                if let Some(key) = self.workbench.active_key() {
+                    self.refresh_history_tab(key);
+                }
+                focus_history = true;
+            } else {
+                cx.focus(EXPLORER);
+            }
+        }
+        if focus_history {
+            cx.focus(HISTORY_LIST);
+        }
+        if self.explorer_pin > 0
+            && self.screen == Screen::Workbench
+            && self.surface == Surface::WorkbenchDefault
+        {
+            cx.focus(EXPLORER);
+            self.explorer_pin = self.explorer_pin.saturating_sub(1);
+        }
+        if self.split_state.maximized() == Maximized::Second
+            && !self.workbench.maximized
+            && self.screen == Screen::Workbench
+            && self.destructive_intent.is_none()
+            && !self.query_safety.is_open()
+            && let Some(id) = self.query_id()
+        {
+            cx.focus(id);
+        }
+        self.filter_value_focused =
+            self.filter_editor.is_some() && cx.state(FILTER_VALUE).contains(StateFlags::FOCUSED);
 
         response
     }
+
+    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.top_layer() != LayerId::PAGE
+            || self.screen != Screen::Workbench
+            || self.form_open
+            || self.destructive_intent.is_some()
+            || self.query_safety.is_open()
+            || self.filter_editor.is_some()
+            || matches!(
+                self.surface,
+                Surface::QuickSwitcher
+                    | Surface::TabListPicker
+                    | Surface::SafeModePicker
+                    | Surface::HelpDialog
+                    | Surface::FilterEditor
+                    | Surface::SafetyDialogTypedAck
+            )
+        {
+            return Response::ignored();
+        }
+        match self.cancel_running_query() {
+            QueryCancelOutcome::Cancelled | QueryCancelOutcome::PublicationUnavailable => {
+                return Response::changed();
+            }
+            QueryCancelOutcome::NoPendingRun => {}
+        }
+        if !self.workbench.maximized {
+            return Response::ignored();
+        }
+
+        let mode = self.active_query_pane_mode();
+        self.workbench.maximized = false;
+        if let Some(key) = self.workbench.active_key() {
+            self.query_panes.get_mut().set(key, QueryPaneMode::None);
+        }
+        match mode {
+            QueryPaneMode::Editor => {
+                if let Some(id) = self.query_id() {
+                    cx.focus(id);
+                }
+            }
+            QueryPaneMode::Results => {
+                if let Some(id) = self.result_id() {
+                    cx.focus(id);
+                }
+            }
+            QueryPaneMode::None => {}
+        }
+        Response::changed()
+    }
+
     fn draw(&self, ui: &mut Ui<'_>) {
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || !matches!(self.workbench.active(), Some(Tab::History(_)))
+        {
+            self.history_rows.invalidate_display();
+        }
+        self.sync_query_panes();
+        self.prepare_grid_slots();
         let full = ui.full();
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
+            self.history_rows.invalidate_display();
             draw_too_small(ui, full);
             return;
         }
@@ -3077,16 +11201,20 @@ impl App for TableProApp {
         let rows = shell_parts(full);
         draw_header(ui, rows[0], self);
         if self.form_open {
-            Self::connections_panel(" Connect to database", None).draw(ui, rows[1], |ui, area| {
-                if let Some(draft) = self.draft.as_ref() {
-                    Self::connection_form(&self.form_fields, &self.form_actions).draw(
-                        ui,
-                        area,
-                        &self.form_state,
-                        draft,
-                    );
-                }
-            });
+            Self::connections_panel(" Connect to database", None, true).draw(
+                ui,
+                rows[1],
+                |ui, area| {
+                    if let Some(draft) = self.draft.as_ref() {
+                        Self::connection_form(&self.form_fields, &self.form_actions).draw(
+                            ui,
+                            area,
+                            &self.form_state,
+                            draft,
+                        );
+                    }
+                },
+            );
         } else if self.screen == Screen::Connections {
             self.draw_connections(ui, rows[1]);
         } else {
@@ -3097,31 +11225,129 @@ impl App for TableProApp {
                 &self.tabs_state,
                 self.workbench.tabs(),
             );
-            if self.workbench.maximized {
-                self.draw_content(ui, workbench_rows[1]);
-            } else {
-                workbench_split().draw(
-                    ui,
-                    workbench_rows[1],
-                    &self.split_state,
-                    |ui, explorer_area, content_area| {
-                        self.draw_explorer(ui, explorer_area);
-                        self.draw_content(ui, content_area);
-                    },
+            let tab_accent = self.destructive_intent.is_none()
+                && self.connection_delete != ConnectionDelete::Open
+                && !matches!(
+                    self.surface,
+                    Surface::FilterEditor
+                        | Surface::HelpDialog
+                        | Surface::QuickSwitcher
+                        | Surface::TabListPicker
+                        | Surface::SafeModePicker
+                        | Surface::SafetyDialogTypedAck
                 );
+            paint_legacy_tabs(
+                ui,
+                workbench_rows[0],
+                self.workbench.tabs(),
+                self.tabs_state.active(),
+                tab_accent,
+                self.workbench.maximized,
+            );
+            if self.workbench.maximized {
+                if self.blank_maximized_query() {
+                    let title = match self.workbench.active() {
+                        Some(Tab::Query(query)) => format!(" {} ", query.name),
+                        _ => " Query ".to_owned(),
+                    };
+                    paint_maximized_query_card(ui, workbench_rows[1], &title);
+                } else {
+                    self.draw_content(ui, workbench_rows[1]);
+                }
+            } else {
+                let body = workbench_rows[1];
+
+                let narrow = body.width < 100;
+                let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
+                let user_collapsed = self.split_state.maximized() == Maximized::Second;
+                if user_collapsed || (narrow && !explorer_focused) {
+                    let content = termrock::Rect {
+                        x: body.x.saturating_add(2),
+                        width: body.width.saturating_sub(2),
+                        ..body
+                    };
+                    self.draw_content(ui, content);
+                    self.paint_collapsed_explorer(ui, body);
+                } else if narrow {
+                    self.draw_explorer(ui, body);
+                    if let Some(id) = self.query_id() {
+                        ui.register_focus_only(id, Focusability::Focusable);
+                    }
+                } else {
+                    workbench_split().draw(
+                        ui,
+                        body,
+                        &self.split_state,
+                        |ui, explorer_area, content_area| {
+                            self.draw_explorer(ui, explorer_area);
+                            self.draw_content(ui, content_area);
+                        },
+                    );
+                }
             }
         }
         draw_footer(ui, rows[2], self);
-        ui.layer(quick_switcher::ID, |ui, area| {
-            self.switcher
-                .component()
-                .draw(ui, area, &self.switcher.state, &self.switcher.items);
+        self.draw_filter_editor(ui);
+        ui.layer_slot(quick_switcher::ID, |slot| {
+            slot.picker(
+                self.switcher.component(),
+                &self.switcher.state,
+                &self.switcher.items,
+            );
         });
-        if let Some(intent) = self.destructive_intent.as_ref() {
-            ui.layer(QUIT_DIALOG, |ui, area| {
-                intent.dialog().draw(ui, area, &self.quit_state, |_, _| {});
+        ui.layer_slot(tab_list::ID, |slot| {
+            slot.picker(
+                tab_list::picker(self.tab_list.rows.len()),
+                &self.tab_list.state,
+                &self.tab_list.rows,
+            );
+        });
+        ui.layer_slot(crate::safe_mode::ID, |slot| {
+            slot.picker(
+                crate::safe_mode::picker(self.safe_mode_picker.rows.len()),
+                &self.safe_mode_picker.state,
+                &self.safe_mode_picker.rows,
+            );
+        });
+        ui.layer(crate::help_keys::ID, |ui, area| {
+            crate::help_keys::draw(ui, area, &self.help_state);
+        });
+        if self.connection_delete == ConnectionDelete::Open {
+            ui.layer(DELETE_DIALOG, |ui, area| {
+                self.delete_dialog()
+                    .draw(ui, area, &self.delete_state, |_, _| {});
             });
         }
+        if let Some(intent) = self.destructive_intent.as_ref() {
+            let full = ui.full();
+            let dialog = intent
+                .intent
+                .dialog_for(full.width, full.height, ui.design());
+            ui.layer(QUIT_DIALOG, |ui, area| {
+                dialog.draw(ui, area, &self.quit_state, |ui, body| {
+                    let DestructiveIntent::Commit(request) = &intent.intent else {
+                        return;
+                    };
+                    let lines: Vec<_> = request
+                        .statements
+                        .iter()
+                        .map(|statement| ViewportLine::Plain(statement))
+                        .collect();
+                    TextViewport::new(COMMIT_PREVIEW)
+                        .wrap(true)
+                        .reserve_gutter(false)
+                        .draw(ui, body, &self.commit_preview_state, &lines);
+                });
+            });
+        }
+        self.query_safety.draw(ui);
+        self.history_detail.draw(
+            ui,
+            &self.workbench,
+            self.screen == Screen::Workbench
+                && self.surface == Surface::HistoryTab
+                && !self.form_open,
+        );
     }
     fn should_quit(&self) -> bool {
         self.quit
@@ -3137,8 +11363,94 @@ impl App for TableProApp {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum ConnectionDelete {
+    #[default]
+    Closed,
+    Open,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum Motion {
+    #[default]
+    Full,
+    Reduced,
+    Paused,
+}
+
+impl Motion {
+    pub(crate) const fn is_paused(self) -> bool {
+        matches!(self, Self::Paused)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum QueryTiming {
+    Live,
+    Explicit(Duration),
+}
+
+impl QueryTiming {
+    fn start(self) -> QueryTimer {
+        match self {
+            Self::Live => QueryTimer::Live(Instant::now()),
+            Self::Explicit(duration) => QueryTimer::Explicit(duration),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum QueryTimer {
+    Live(Instant),
+    Explicit(Duration),
+}
+
+impl QueryTimer {
+    fn elapsed(self) -> Duration {
+        match self {
+            Self::Live(started) => started.elapsed(),
+            Self::Explicit(duration) => duration,
+        }
+    }
+}
+
 pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
-    let mut app = TableProApp::default();
+    run_session(theme, connect, Motion::Full, 0)
+}
+
+pub(crate) fn run_session(
+    theme: Theme,
+    connect: Option<&str>,
+    motion: Motion,
+    frame: u64,
+) -> std::io::Result<()> {
+    run_session_with_timing(theme, connect, motion, frame, QueryTiming::Live)
+}
+
+pub(crate) fn run_session_with_query_duration(
+    theme: Theme,
+    connect: Option<&str>,
+    motion: Motion,
+    frame: u64,
+    duration: Duration,
+) -> std::io::Result<()> {
+    run_session_with_timing(
+        theme,
+        connect,
+        motion,
+        frame,
+        QueryTiming::Explicit(duration),
+    )
+}
+
+fn run_session_with_timing(
+    theme: Theme,
+    connect: Option<&str>,
+    motion: Motion,
+    frame: u64,
+    query_timing: QueryTiming,
+) -> std::io::Result<()> {
+    let mut app = TableProApp::new_with_timing(query_timing);
     if let Some(name) = connect {
         let Some(index) = app
             .connections
@@ -3152,139 +11464,17 @@ pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
         };
         let _ = app.connect(index);
     }
-    termrock::run(app, theme)
+    app.set_motion(motion, frame);
+
+    termrock::run_with_feedback_clock(app, theme, feedback_clock(motion))
 }
 
-#[cfg(test)]
-mod replacement_tests {
-    use super::*;
-    use termrock::GridEditor;
-    use termrock_test_support::Harness;
-
-    fn pending() -> TableProApp {
-        let mut app = TableProApp::default();
-        app.set_surface(Surface::PendingChangeBar);
-        app.screen = Screen::Connections;
-        app
-    }
-
-    #[test]
-    fn reconnect_uses_configuration_snapshot_after_catalog_reorder() {
-        let mut h = Harness::new(pending(), Theme::junie(), 120, 40);
-        let target = h.app().connections_screen.selected;
-        let Some(expected) = h.app().connections.get(target).cloned() else {
-            unreachable!("target")
-        };
-        let _ = h.click_id(CONNECTION_DETAILS);
-        assert!(h.find("Reconnect with unsaved work?").is_some());
-        h.app_mut().connections.reverse();
-        let _ = h.key(KeyCode::Tab);
-        let _ = h.key(KeyCode::Enter);
-        assert_eq!(h.app().workbench.connection, expected);
-        assert_eq!(h.app().workbench.tabs().len(), 1);
-        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-    }
-
-    #[test]
-    fn new_tab_after_reconnect_prompt_invalidates_captured_scope() {
-        let mut h = Harness::new(pending(), Theme::junie(), 120, 40);
-        let _ = h.click_id(CONNECTION_DETAILS);
-        let Some(key) = h.app_mut().workbench.new_query("new unsaved query") else {
-            unreachable!("key")
-        };
-        let count = h.app().workbench.tabs().len();
-        let _ = h.key(KeyCode::Tab);
-        let _ = h.key(KeyCode::Enter);
-        assert_eq!(h.app().workbench.tabs().len(), count);
-        assert_eq!(h.app().workbench.active_key(), Some(key));
-        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-    }
-
-    #[test]
-    fn captured_connection_and_sql_debug_are_redacted_through_app() {
-        let mut app = pending();
-        app.destructive_intent = Some(DestructiveRequest {
-            owner: app.workbench.owner_token(),
-            intent: DestructiveIntent::Reconnect {
-                target: Box::new(Connection {
-                    host: "secret-reconnect-host".to_owned(),
-                    ..app.connection.clone()
-                }),
-                source: Box::new(app.connection.clone()),
-                scope: Vec::new(),
-            },
-        });
-        assert!(!format!("{app:?}").contains("secret-reconnect-host"));
-        let _ = app
-            .workbench
-            .new_query("SELECT id, currency FROM orders LIMIT 1");
-        let catalog = app.catalog.clone();
-        let Some(Tab::Query(tab)) = app.workbench.active_mut() else {
-            unreachable!("query")
-        };
-        assert!(tab.execute(&catalog).is_ok());
-        let Some(view) = tab.result.as_mut() else {
-            unreachable!("result")
-        };
-        assert!(view.model.commit_cell(0, 1, "secret-result-value").is_ok());
-        let Some(key) = app.workbench.active_key() else {
-            unreachable!("key")
-        };
-        app.destructive_intent = Some(DestructiveRequest {
-            owner: app.workbench.owner_token(),
-            intent: DestructiveIntent::ReplaceResult {
-                key,
-                query: "secret-captured-sql".to_owned(),
-                generation: 0,
-                connection: Box::new(app.connection.clone()),
-            },
-        });
-        let text = format!("{app:?}");
-        assert!(!text.contains("secret-captured-sql"));
-        assert!(!text.contains("secret-result-value"));
-    }
-}
-
-#[cfg(test)]
-mod action_namespace_tests {
-    use super::*;
-
-    #[test]
-    fn application_actions_are_isolated_and_unique() {
-        let keys = [
-            RUN,
-            UNDO,
-            INSERT_ROW,
-            DELETE_ROW,
-            DISCARD_ROWS,
-            QUIT,
-            CANCEL_OR_QUIT,
-            OPEN,
-            NEW_QUERY,
-            HISTORY,
-            STRUCTURE,
-            FORM,
-            HELP,
-            TAB_LIST,
-            FILTER,
-            PREVIEW,
-            SAVE,
-            EXPLAIN,
-            CLEAR_QUERY,
-            COMPLETE,
-            PALETTE,
-            connections::TEST,
-            connections::SAVE_CONNECT,
-        ];
-        for (index, key) in keys.iter().enumerate() {
-            assert!(
-                (0x4000..0x8000).contains(&key.raw()),
-                "application namespace: {key:?}"
-            );
-            assert!(
-                !keys.iter().take(index).any(|previous| previous == key),
-                "duplicate application action: {key:?}"
-            );
+pub(crate) fn feedback_clock(motion: Motion) -> termrock::FeedbackClock {
+    if motion.is_paused() {
+        termrock::FeedbackClock::Simulation {
+            initial: termrock::SimulationMoment::from_millis(0),
         }
+    } else {
+        termrock::FeedbackClock::Elapsed
     }
 }

@@ -6,9 +6,9 @@ use ratatui_core::layout::Rect;
 use super::{Acc, PartStyle};
 use crate::action::{Action, ActionKey};
 use crate::event::{Chord, KeyCode};
-use crate::focus::Focusability;
+use crate::form_layout::{FormLayout, FormLayoutError, FormRow};
 use crate::id::{Id, Part, PartRef, fnv1a};
-use crate::intent::Intent;
+use crate::intent::{Intent, Phase};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
@@ -25,6 +25,8 @@ use termrock_fields::input::{ErrorState, TextAction, TextInput, TextInputState, 
 use termrock_fields::textarea::{TextArea, TextAreaState};
 use termrock_navigation::chip::{ChipBarState, LabelChips};
 use termrock_overlays::select::{LabelSelect, SelectAction, SelectState};
+use termrock_runtime::author::VerticalWindow;
+use termrock_runtime::diagnostics::Diagnostic;
 use termrock_runtime::scroll_region::ScrollRegion;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -233,6 +235,13 @@ pub enum EnterPolicy {
     Never,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum FieldSizingPolicy {
+    #[default]
+    Fixed,
+    Intrinsic,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FormAction {
     Changed(Id),
@@ -394,6 +403,8 @@ pub struct FormState {
     errors: Vec<(Id, ErrorState)>,
     dirty: bool,
     reveal: Option<Id>,
+    lane_scrolls: Vec<(Id, ScrollState)>,
+    pointer_hold: Option<Id>,
 }
 
 impl Clone for FormState {
@@ -414,6 +425,8 @@ impl Clone for FormState {
                 .collect(),
             dirty: self.dirty,
             reveal: self.reveal,
+            lane_scrolls: self.lane_scrolls.clone(),
+            pointer_hold: self.pointer_hold,
         }
     }
 }
@@ -431,6 +444,8 @@ impl PartialEq for FormState {
             )
             && self.dirty == other.dirty
             && self.reveal == other.reveal
+            && self.lane_scrolls == other.lane_scrolls
+            && self.pointer_hold == other.pointer_hold
     }
 }
 
@@ -444,13 +459,50 @@ impl fmt::Debug for FormState {
             .field("errors", &(!self.errors.is_empty()).then_some("[redacted]"))
             .field("dirty", &self.dirty)
             .field("reveal", &self.reveal)
+            .field("pointer_hold", &self.pointer_hold)
             .finish()
     }
 }
 
 impl FormState {
+    fn lane_scroll(&self, lane: Id) -> ScrollState {
+        self.lane_scrolls
+            .iter()
+            .find(|(key, _)| *key == lane)
+            .map_or(ScrollState::default(), |(_, state)| *state)
+    }
+
+    fn lane_scroll_mut(&mut self, lane: Id) -> &mut ScrollState {
+        let existing = self.lane_scrolls.iter().position(|(key, _)| *key == lane);
+        if let Some(index) = existing {
+            if let Some((_, state)) = self.lane_scrolls.get_mut(index) {
+                return state;
+            }
+            return &mut self.scroll;
+        }
+        self.lane_scrolls.push((lane, ScrollState::default()));
+        match self.lane_scrolls.last_mut() {
+            Some((_, state)) => state,
+            None => &mut self.scroll,
+        }
+    }
+
     pub const fn is_dirty(&self) -> bool {
         self.dirty
+    }
+
+    pub fn editing_text(&self, id: Id) -> Option<&str> {
+        self.slots
+            .iter()
+            .find(|slot| slot.id == id)?
+            .input
+            .draft_text()
+    }
+
+    pub fn select_editing_text(&mut self, id: Id) {
+        if let Some(slot) = self.slots.iter_mut().find(|slot| slot.id == id) {
+            slot.input.select_all();
+        }
     }
 
     pub fn mark_clean(&mut self) {
@@ -580,11 +632,6 @@ impl FormState {
         self.reveal = None;
     }
 
-    #[cfg(test)]
-    fn reconcile_fields(&mut self, fields: &[FieldSpec<'_>]) {
-        self.reconcile_fields_with_sensitivity(fields, field_is_secret);
-    }
-
     fn reconcile_fields_with_data<D: FormData + ?Sized>(
         &mut self,
         fields: &[FieldSpec<'_>],
@@ -662,10 +709,12 @@ pub struct Form<'a> {
     actions: &'a [Action<'a>],
     submit: ActionKey,
     enter: EnterPolicy,
+    sizing: FieldSizingPolicy,
     columns: u8,
     group: GroupKey,
     ov: PartStyle<'a>,
     parts: &'a [(Part, StylePatch)],
+    layout: Option<&'a FormLayout<'a>>,
 }
 
 impl fmt::Debug for Form<'_> {
@@ -676,8 +725,10 @@ impl fmt::Debug for Form<'_> {
             .field("actions", &self.actions.len())
             .field("submit", &self.submit)
             .field("enter", &self.enter)
+            .field("sizing", &self.sizing)
             .field("columns", &self.columns)
             .field("group", &self.group)
+            .field("layout", &self.layout.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -691,6 +742,117 @@ struct Placement {
     height: u16,
 }
 
+#[derive(Clone, Copy)]
+struct FieldWindow {
+    area: Rect,
+    source_first_row: usize,
+    logical_height: u16,
+}
+
+fn resolve_field_window(content: Rect, placement: Placement, offset: usize) -> Option<FieldWindow> {
+    let visible_start = placement.top.max(offset);
+    let visible_end = placement
+        .top
+        .saturating_add(usize::from(placement.height))
+        .min(offset.saturating_add(usize::from(content.height)));
+    if visible_start >= visible_end {
+        return None;
+    }
+    let row_offset = visible_start.saturating_sub(offset);
+    Some(FieldWindow {
+        area: Rect {
+            x: content.x.saturating_add(placement.left),
+            y: content
+                .y
+                .saturating_add(row_offset.min(usize::from(u16::MAX)) as u16),
+            width: placement
+                .width
+                .min(content.width.saturating_sub(placement.left)),
+            height: visible_end
+                .saturating_sub(visible_start)
+                .min(usize::from(u16::MAX)) as u16,
+        },
+        source_first_row: visible_start.saturating_sub(placement.top),
+        logical_height: placement.height,
+    })
+}
+
+fn native_body_visible(ui: &Ui<'_>, body: Rect) -> bool {
+    !body.is_empty() && !body.intersection(ui.full()).is_empty()
+}
+
+fn native_first_row_visible(ui: &Ui<'_>, body: Rect) -> bool {
+    native_body_visible(
+        ui,
+        Rect {
+            height: body.height.min(1),
+            ..body
+        },
+    )
+}
+
+fn native_radio_area(body: Rect, first_option: usize, option_count: usize) -> Rect {
+    let remaining = option_count.saturating_sub(first_option);
+    Rect {
+        height: body
+            .height
+            .min(u16::try_from(remaining).unwrap_or(u16::MAX)),
+        ..body
+    }
+}
+
+fn native_button_area(ui: &Ui<'_>, button: &Button<'_>, body: Rect) -> Rect {
+    let width = button
+        .measure(ui, Constraints::loose(body.width, 1))
+        .preferred
+        .0
+        .min(body.width);
+    Rect {
+        width,
+        height: body.height.min(1),
+        ..body
+    }
+}
+
+fn textarea_window(
+    body: Rect,
+    first_source_row: usize,
+    logical_field_height: u16,
+    requested_rows: u16,
+) -> Option<VerticalWindow> {
+    let logical_rows = usize::from(requested_rows.min(logical_field_height.saturating_sub(2)));
+    let visible_start = first_source_row.min(logical_rows);
+    let visible_end = first_source_row
+        .saturating_add(usize::from(body.height))
+        .min(logical_rows);
+    if body.width == 0 || visible_start >= visible_end {
+        return None;
+    }
+    let row_offset = visible_start.saturating_sub(first_source_row);
+    let visible_body = Rect {
+        y: body
+            .y
+            .saturating_add(row_offset.min(usize::from(u16::MAX)) as u16),
+        height: visible_end
+            .saturating_sub(visible_start)
+            .min(usize::from(u16::MAX)) as u16,
+        ..body
+    };
+    VerticalWindow::new(visible_body, logical_rows, visible_start).ok()
+}
+
+struct LanePlan {
+    id: Id,
+    area: Rect,
+    content_rows: usize,
+    placements: Vec<Placement>,
+}
+
+fn lane_scroll_id(form: Id, lane: Id) -> Id {
+    form.part(Part::BODY)
+        .item(crate::id::ItemKey::Num(lane.hash()))
+}
+
 struct Placements<'fields, 'a> {
     fields: &'fields [FieldSpec<'a>],
     group: GroupKey,
@@ -698,6 +860,7 @@ struct Placements<'fields, 'a> {
     width: u16,
     gap: u16,
     field_height: u16,
+    sizing: FieldSizingPolicy,
     index: usize,
     top: usize,
     half_height: Option<u16>,
@@ -714,16 +877,7 @@ impl Placements<'_, '_> {
             {
                 continue;
             }
-            let height = match &field.kind {
-                FieldKind::Area(area) => {
-                    self.field_height.max(area.rows_in_form().saturating_add(2))
-                }
-                FieldKind::Radio(_) => {
-                    let rows = u16::try_from(data.options(field.id).len()).unwrap_or(u16::MAX);
-                    self.field_height.max(rows.saturating_add(2))
-                }
-                _ => self.field_height,
-            };
+            let height = placement_height(field, self.field_height, self.sizing, data);
             let is_half = self.columns == 2 && field.span == FieldSpan::Half;
             let half_width = self.width.saturating_sub(self.gap) / 2;
             if is_half && let Some(left_height) = self.half_height.take() {
@@ -763,6 +917,39 @@ impl Placements<'_, '_> {
     }
 }
 
+fn placement_height<D: FormData + ?Sized>(
+    field: &FieldSpec<'_>,
+    base: u16,
+    sizing: FieldSizingPolicy,
+    data: &D,
+) -> u16 {
+    match &field.kind {
+        FieldKind::Area(area) => base.max(area.rows_in_form().saturating_add(2)),
+        FieldKind::Radio(_) => {
+            let rows = u16::try_from(data.options(field.id).len()).unwrap_or(u16::MAX);
+            base.max(rows.saturating_add(2))
+        }
+        FieldKind::Note if sizing == FieldSizingPolicy::Intrinsic => {
+            let rows = match data.value(field.id) {
+                FieldRef::Note(rows) => rows.len(),
+                _ => 0,
+            };
+            u16::try_from(rows).unwrap_or(u16::MAX)
+        }
+        FieldKind::Chooser(_) if sizing == FieldSizingPolicy::Intrinsic => {
+            let detail = matches!(
+                data.value(field.id),
+                FieldRef::Display {
+                    detail: Some(_),
+                    ..
+                }
+            );
+            2 + u16::from(detail)
+        }
+        _ => base,
+    }
+}
+
 impl<'a> Form<'a> {
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -781,10 +968,12 @@ impl<'a> Form<'a> {
             actions: &[],
             submit: ActionKey::SAVE,
             enter: EnterPolicy::SubmitsWhenIdle,
+            sizing: FieldSizingPolicy::Fixed,
             columns: 1,
             group: GroupKey::ALL,
             ov: PartStyle::new(),
             parts: &[],
+            layout: None,
         }
     }
 
@@ -807,6 +996,12 @@ impl<'a> Form<'a> {
     }
 
     #[must_use]
+    pub const fn field_sizing(mut self, policy: FieldSizingPolicy) -> Self {
+        self.sizing = policy;
+        self
+    }
+
+    #[must_use]
     pub const fn columns(mut self, columns: u8) -> Self {
         self.columns = if columns > 1 { 2 } else { 1 };
         self
@@ -816,6 +1011,37 @@ impl<'a> Form<'a> {
     pub const fn group(mut self, group: GroupKey) -> Self {
         self.group = group;
         self
+    }
+
+    pub fn try_layout(mut self, layout: &'a FormLayout<'a>) -> Result<Self, FormLayoutError> {
+        layout.validate(self.fields.iter().map(|field| field.id))?;
+        self.layout = Some(layout);
+        Ok(self)
+    }
+
+    pub fn validate_layout<D: FormData + ?Sized>(&self, data: &D) -> Result<(), FormLayoutError> {
+        let Some(layout) = self.layout else {
+            return Ok(());
+        };
+        layout.validate(self.fields.iter().map(|field| field.id))?;
+        for field in self.fields {
+            if self.shown(data, field)
+                && !layout
+                    .lanes()
+                    .iter()
+                    .flat_map(|lane| lane.rows())
+                    .any(|row| match row {
+                        FormRow::Field(id) | FormRow::Fill(id) => *id == field.id,
+                        FormRow::Pair { first, second, .. } => {
+                            *first == field.id || *second == field.id
+                        }
+                        FormRow::Spacer(_) => false,
+                    })
+            {
+                return Err(FormLayoutError::MissingVisibleField(field.id));
+            }
+        }
+        Ok(())
     }
 
     #[must_use]
@@ -829,31 +1055,159 @@ impl<'a> Form<'a> {
         (field.group == GroupKey::ALL || field.group == self.group) && data.visible(field.id)
     }
 
-    fn reveal_index(placement: Placement, viewport: usize) -> usize {
-        let bottom = placement
-            .top
-            .saturating_add(usize::from(placement.height).saturating_sub(1));
-        if viewport > 0 && usize::from(placement.height) <= viewport {
+    fn native_source_row<D: FormData + ?Sized>(
+        &self,
+        field: &FieldSpec<'_>,
+        data: &D,
+        logical_height: u16,
+    ) -> Option<usize> {
+        if !self.shown(data, field) {
+            return None;
+        }
+        match (&field.kind, data.value(field.id)) {
+            (FieldKind::Text(_), FieldRef::Text(_) | FieldRef::Secret(_))
+                if logical_height >= 3 =>
+            {
+                Some(1)
+            }
+            (FieldKind::Area(control), FieldRef::Text(_) | FieldRef::Secret(_))
+                if control.rows_in_form().min(logical_height.saturating_sub(2)) > 0 =>
+            {
+                Some(1)
+            }
+            (FieldKind::Select(_), FieldRef::Choice(_)) if logical_height >= 3 => Some(1),
+            (FieldKind::Radio(_), FieldRef::Choice(_)) if !data.options(field.id).is_empty() => {
+                Some(1)
+            }
+            (FieldKind::Chips(_), FieldRef::Chips(_)) if logical_height >= 3 => Some(1),
+            (FieldKind::Check(_), FieldRef::Flag(_)) if logical_height >= 3 => Some(1),
+            (FieldKind::Toggle(_), FieldRef::Flag(_)) if logical_height >= 3 => Some(1),
+            (FieldKind::Chooser(_), FieldRef::Display { .. })
+                if (self.sizing == FieldSizingPolicy::Intrinsic && logical_height > 1)
+                    || (self.sizing != FieldSizingPolicy::Intrinsic && logical_height >= 3) =>
+            {
+                Some(1)
+            }
+            _ => None,
+        }
+    }
+
+    fn reveal_index<D: FormData + ?Sized>(
+        &self,
+        placement: Placement,
+        viewport: usize,
+        offset: usize,
+        data: &D,
+    ) -> usize {
+        if viewport == 0 {
+            return placement.top;
+        }
+        let height = usize::from(placement.height);
+        let native_row = self
+            .fields
+            .get(placement.index)
+            .and_then(|field| self.native_source_row(field, data, placement.height))
+            .map_or(0, |row| row.min(height.saturating_sub(1)));
+        if placement.top < offset {
+            return if viewport == 1 {
+                placement.top.saturating_add(native_row)
+            } else {
+                placement.top
+            };
+        }
+        let bottom = placement.top.saturating_add(height.saturating_sub(1));
+        if height <= viewport {
             bottom
+        } else if native_row > 0 {
+            placement.top.saturating_add(native_row)
         } else {
             placement.top
         }
     }
 
     fn register_clipped_field<D: FormData + ?Sized>(
+        &self,
         ui: &mut Ui<'_>,
         field: &FieldSpec<'_>,
         data: &D,
+        logical_height: u16,
     ) {
-        if ui.is_inert() {
+        if ui.is_inert()
+            || self
+                .native_source_row(field, data, logical_height)
+                .is_none()
+        {
             return;
         }
-        let focus = if data.disabled(field.id) {
-            Focusability::Disabled
-        } else {
-            Focusability::Focusable
+        let inherited_disabled = data.disabled(field.id);
+        match (&field.kind, data.value(field.id)) {
+            (FieldKind::Text(control), FieldRef::Text(_) | FieldRef::Secret(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Area(control), FieldRef::Text(_) | FieldRef::Secret(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Select(control), FieldRef::Choice(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Radio(control), FieldRef::Choice(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Chips(control), FieldRef::Chips(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Check(control), FieldRef::Flag(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Toggle(control), FieldRef::Flag(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Chooser(control), FieldRef::Display { .. }) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            _ => {}
+        }
+    }
+
+    fn sync_pointer_hold<D: FormData + ?Sized>(
+        &self,
+        cx: &Cx<'_>,
+        state: &mut FormState,
+        data: &D,
+    ) -> bool {
+        let mut started = false;
+        for field in self.fields {
+            for intent in cx.intents(field.id) {
+                match intent {
+                    Intent::Pointer {
+                        phase: Phase::Press,
+                        ..
+                    } => {
+                        state.pointer_hold = Some(field.id);
+                        started = true;
+                    }
+                    Intent::Pointer {
+                        phase: Phase::Release | Phase::DragEnd,
+                        ..
+                    }
+                    | Intent::Cancel => state.pointer_hold = None,
+                    _ => {}
+                }
+            }
+        }
+
+        let Some(held) = state.pointer_hold else {
+            return false;
         };
-        ui.register_focus_only(field.id, focus);
+        let live = self
+            .fields
+            .iter()
+            .find(|field| field.id == held)
+            .is_some_and(|field| self.shown(data, field) && !data.disabled(held));
+        if !live || (!started && !cx.state(held).contains(StateFlags::PRESSED)) {
+            state.pointer_hold = None;
+        }
+        state.pointer_hold.is_some()
     }
 
     fn field_height(field: &FieldSpec<'_>, design: &DesignTokens) -> u16 {
@@ -874,6 +1228,7 @@ impl<'a> Form<'a> {
             width,
             gap: design.space.column_gap.min(width),
             field_height: design.size.field_height,
+            sizing: self.sizing,
             index: 0,
             top: 0,
             half_height: None,
@@ -886,6 +1241,158 @@ impl<'a> Form<'a> {
             rows = rows.max(placement.top.saturating_add(usize::from(placement.height)));
         }
         rows
+    }
+
+    fn lane_plans<D: FormData + ?Sized>(
+        &self,
+        design: &DesignTokens,
+        area: Rect,
+        data: &D,
+    ) -> Vec<LanePlan> {
+        let Some(layout) = self.layout else {
+            return Vec::new();
+        };
+        let lane_areas: Vec<Rect> = match (layout.lanes().len(), layout.split_policy()) {
+            (1, _) => vec![area],
+            (2, Some((split, gap))) => {
+                let (first, second) = split.layout(area, gap);
+                vec![first, second]
+            }
+            _ => Vec::new(),
+        };
+        layout
+            .lanes()
+            .iter()
+            .zip(lane_areas)
+            .map(|(lane, lane_area)| {
+                let mut y = 0_usize;
+                let mut placements = Vec::new();
+                for (row_index, row) in lane.rows().iter().enumerate() {
+                    match *row {
+                        FormRow::Spacer(rows) => y = y.saturating_add(usize::from(rows)),
+                        FormRow::Field(id) | FormRow::Fill(id) => {
+                            let Some((index, field)) = self
+                                .fields
+                                .iter()
+                                .enumerate()
+                                .find(|(_, field)| field.id == id && self.shown(data, field))
+                            else {
+                                continue;
+                            };
+                            let min_height = placement_height(
+                                field,
+                                design.size.field_height,
+                                self.sizing,
+                                data,
+                            );
+                            let height = if matches!(row, FormRow::Fill(_)) {
+                                let trailing_spacers = lane
+                                    .rows()
+                                    .iter()
+                                    .skip(row_index.saturating_add(1))
+                                    .map(|row| match row {
+                                        FormRow::Spacer(rows) => usize::from(*rows),
+                                        _ => 0,
+                                    })
+                                    .fold(0_usize, usize::saturating_add);
+                                min_height.max(
+                                    usize::from(lane_area.height)
+                                        .saturating_sub(y)
+                                        .saturating_sub(trailing_spacers)
+                                        .min(usize::from(u16::MAX))
+                                        as u16,
+                                )
+                            } else {
+                                min_height
+                            };
+                            placements.push(Placement {
+                                index,
+                                top: y,
+                                left: 0,
+                                width: lane_area.width,
+                                height,
+                            });
+                            y = y.saturating_add(usize::from(height));
+                        }
+                        FormRow::Pair {
+                            first,
+                            second,
+                            split,
+                            gap,
+                        } => {
+                            let first_field =
+                                self.fields.iter().enumerate().find(|(_, field)| {
+                                    field.id == first && self.shown(data, field)
+                                });
+                            let second_field =
+                                self.fields.iter().enumerate().find(|(_, field)| {
+                                    field.id == second && self.shown(data, field)
+                                });
+                            match (first_field, second_field) {
+                                (
+                                    Some((first_index, first_field)),
+                                    Some((second_index, second_field)),
+                                ) => {
+                                    let (first_area, second_area) =
+                                        split.layout(Rect::new(0, 0, lane_area.width, 1), gap);
+                                    let first_height = placement_height(
+                                        first_field,
+                                        design.size.field_height,
+                                        self.sizing,
+                                        data,
+                                    );
+                                    let second_height = placement_height(
+                                        second_field,
+                                        design.size.field_height,
+                                        self.sizing,
+                                        data,
+                                    );
+                                    let height = first_height.max(second_height);
+                                    placements.push(Placement {
+                                        index: first_index,
+                                        top: y,
+                                        left: first_area.x,
+                                        width: first_area.width,
+                                        height: first_height,
+                                    });
+                                    placements.push(Placement {
+                                        index: second_index,
+                                        top: y,
+                                        left: second_area.x,
+                                        width: second_area.width,
+                                        height: second_height,
+                                    });
+                                    y = y.saturating_add(usize::from(height));
+                                }
+                                (Some((index, field)), None) | (None, Some((index, field))) => {
+                                    let height = placement_height(
+                                        field,
+                                        design.size.field_height,
+                                        self.sizing,
+                                        data,
+                                    );
+                                    placements.push(Placement {
+                                        index,
+                                        top: y,
+                                        left: 0,
+                                        width: lane_area.width,
+                                        height,
+                                    });
+                                    y = y.saturating_add(usize::from(height));
+                                }
+                                (None, None) => {}
+                            }
+                        }
+                    }
+                }
+                LanePlan {
+                    id: lane.id,
+                    area: lane_area,
+                    content_rows: y,
+                    placements,
+                }
+            })
+            .collect()
     }
 
     fn set_slot_value(slot: &mut FieldSlot, value: &FieldMut<'_>) {
@@ -1077,18 +1584,47 @@ impl<'a> Form<'a> {
         FormAction::Action(self.submit)
     }
 
+    pub(crate) fn submit_current<D: FormData + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut FormState,
+        data: &mut D,
+    ) -> Response<FormAction> {
+        if let Err(error) = self.validate_layout(data) {
+            cx.diagnostic(Diagnostic::InvalidComponentLayout {
+                owner: self.id,
+                field: error.field_id(),
+            });
+            return Response::ignored().for_id(self.id);
+        }
+        st.reconcile_fields_with_data(self.fields, data);
+        Response::action(self.submit_form(cx, st, data)).for_id(self.id)
+    }
+
     pub fn update<D: FormData + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
         st: &mut FormState,
         data: &mut D,
     ) -> Response<FormAction> {
+        if let Err(error) = self.validate_layout(data) {
+            cx.diagnostic(Diagnostic::InvalidComponentLayout {
+                owner: self.id,
+                field: error.field_id(),
+            });
+            return Response::ignored().for_id(self.id);
+        }
+        if self.layout.is_some() {
+            return self.update_lanes(cx, st, data);
+        }
         st.reconcile_fields_with_data(self.fields, data);
+        let pointer_held = self.sync_pointer_hold(cx, st, data);
         let width = cx.area(self.id).map_or(0, |area| area.width);
         let content_rows = Self::content_rows(self.placements(cx.design(), width), data);
         let scroll = ScrollRegion::new(self.id).patch_part(self.parts);
         let scroll_response = scroll.update(cx, &mut st.scroll, content_rows);
-        if let Some(id) = st.reveal.take()
+        if !pointer_held
+            && let Some(id) = st.reveal.take()
             && let Some(placement) = {
                 let mut placements = self.placements(cx.design(), width);
                 let mut found = None;
@@ -1106,13 +1642,16 @@ impl<'a> Form<'a> {
             }
         {
             let viewport = st.scroll.viewport_len();
-            st.scroll
-                .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport));
+            let offset = st.scroll.offset();
+            st.scroll.ensure_visible_on_next_layout(
+                self.reveal_index(placement, viewport, offset, data),
+            );
         }
 
         let enter_requested = self.enter == EnterPolicy::SubmitsWhenIdle
             && self.fields.iter().any(|field| {
                 self.shown(data, field)
+                    && !matches!(field.kind, FieldKind::Chooser(_))
                     && cx.state(field.id).contains(StateFlags::FOCUSED)
                     && !cx.state(field.id).contains(StateFlags::EDITING)
                     && !cx.swallows_typing(field.id)
@@ -1129,10 +1668,12 @@ impl<'a> Form<'a> {
             let Some(field) = self.fields.get(placement.index) else {
                 continue;
             };
-            if cx.state(field.id).contains(StateFlags::FOCUSED) {
+            if !pointer_held && cx.state(field.id).contains(StateFlags::FOCUSED) {
                 let viewport = st.scroll.viewport_len();
-                st.scroll
-                    .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport));
+                let offset = st.scroll.offset();
+                st.scroll.ensure_visible_on_next_layout(
+                    self.reveal_index(placement, viewport, offset, data),
+                );
             }
             let disabled = data.disabled(field.id);
             let (value, options) = data.value_and_options(field.id);
@@ -1140,6 +1681,16 @@ impl<'a> Form<'a> {
                 continue;
             };
             let response = Self::update_field(field, cx, slot, value, options, disabled);
+            if !pointer_held
+                && cx.state(field.id).contains(StateFlags::FOCUSED)
+                && matches!(field.kind, FieldKind::Radio(_))
+            {
+                let cursor_row = placement
+                    .top
+                    .saturating_add(1)
+                    .saturating_add(slot.radio.cursor_index());
+                st.scroll.ensure_visible_on_next_layout(cursor_row);
+            }
             if let Some(action) = response.action_ref().copied() {
                 if matches!(action, FormAction::Committed(_)) {
                     st.dirty = true;
@@ -1184,6 +1735,141 @@ impl<'a> Form<'a> {
         }
     }
 
+    fn update_lanes<D: FormData + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut FormState,
+        data: &mut D,
+    ) -> Response<FormAction> {
+        st.reconcile_fields_with_data(self.fields, data);
+        let pointer_held = self.sync_pointer_hold(cx, st, data);
+
+        let area = cx
+            .layout(self.id)
+            .and_then(|facts| facts.logical_area)
+            .or_else(|| cx.area(self.id))
+            .unwrap_or_default();
+        let body = Rect {
+            height: area
+                .height
+                .saturating_sub(u16::from(!self.actions.is_empty())),
+            ..area
+        };
+        let plans = self.lane_plans(cx.design(), body, data);
+        let mut acc = Acc::<FormAction>::new();
+        let mut first = None;
+        for plan in &plans {
+            let response = ScrollRegion::new(lane_scroll_id(self.id, plan.id))
+                .patch_part(self.parts)
+                .update(cx, st.lane_scroll_mut(plan.id), plan.content_rows);
+            acc.fold(&response.erase());
+        }
+        if !pointer_held
+            && let Some(id) = st.reveal.take()
+            && let Some((plan, placement)) = plans.iter().find_map(|plan| {
+                plan.placements
+                    .iter()
+                    .find(|placement| self.fields.get(placement.index).is_some_and(|f| f.id == id))
+                    .map(|placement| (plan, placement))
+            })
+        {
+            let viewport = st.lane_scroll(plan.id).viewport_len();
+            let offset = st.lane_scroll(plan.id).offset();
+            st.lane_scroll_mut(plan.id).ensure_visible_on_next_layout(
+                self.reveal_index(*placement, viewport, offset, data),
+            );
+        }
+
+        let placed: Vec<usize> = plans
+            .iter()
+            .flat_map(|plan| plan.placements.iter().map(|placement| placement.index))
+            .collect();
+        let enter_requested = self.enter == EnterPolicy::SubmitsWhenIdle
+            && placed.iter().any(|index| {
+                self.fields.get(*index).is_some_and(|field| {
+                    !matches!(field.kind, FieldKind::Chooser(_))
+                        && cx.state(field.id).contains(StateFlags::FOCUSED)
+                        && !cx.state(field.id).contains(StateFlags::EDITING)
+                        && !cx.swallows_typing(field.id)
+                        && cx
+                            .claim_binding_chord(field.id, Chord::key(KeyCode::Enter))
+                            .is_some()
+                })
+            });
+
+        for plan in &plans {
+            for placement in &plan.placements {
+                let Some(field) = self.fields.get(placement.index) else {
+                    continue;
+                };
+                if !pointer_held && cx.state(field.id).contains(StateFlags::FOCUSED) {
+                    let viewport = st.lane_scroll(plan.id).viewport_len();
+                    let offset = st.lane_scroll(plan.id).offset();
+                    st.lane_scroll_mut(plan.id).ensure_visible_on_next_layout(
+                        self.reveal_index(*placement, viewport, offset, data),
+                    );
+                }
+                let disabled = data.disabled(field.id);
+                let (value, options) = data.value_and_options(field.id);
+                let Some(slot) = Self::prepare_slot(st, placement.index, field, &value) else {
+                    continue;
+                };
+                let response = Self::update_field(field, cx, slot, value, options, disabled);
+                if !pointer_held
+                    && cx.state(field.id).contains(StateFlags::FOCUSED)
+                    && matches!(field.kind, FieldKind::Radio(_))
+                {
+                    let cursor_row = placement
+                        .top
+                        .saturating_add(1)
+                        .saturating_add(slot.radio.cursor_index());
+                    st.lane_scroll_mut(plan.id)
+                        .ensure_visible_on_next_layout(cursor_row);
+                }
+                if let Some(action) = response.action_ref().copied() {
+                    if matches!(action, FormAction::Committed(_)) {
+                        st.dirty = true;
+                    }
+                    Self::remember_action(&mut first, action);
+                }
+                acc.fold(&response.erase());
+            }
+        }
+
+        let mut requested = enter_requested.then_some(self.submit);
+        for (index, action) in self.actions.iter().enumerate() {
+            let action_id = self.id.part(Part::ACTIONS).index(index);
+            let response = Button::new(action_id, action.label())
+                .variant(action.variant())
+                .disabled(!action.is_enabled())
+                .update(cx);
+            let domain_action = action.is_enabled()
+                && cx
+                    .intents(action_id)
+                    .any(|intent| matches!(intent, Intent::Binding(key) if key == action.key()));
+            if (response.activated() || domain_action) && requested.is_none() {
+                requested = Some(action.key());
+            }
+            acc.fold(&response.erase());
+        }
+        if let Some(key) = requested {
+            let action = if key == self.submit {
+                self.submit_form(cx, st, data)
+            } else {
+                FormAction::Action(key)
+            };
+            if key == self.submit {
+                first = Some(action);
+            } else {
+                Self::remember_action(&mut first, action);
+            }
+        }
+        match first {
+            Some(action) => Response::action(action).for_id(self.id),
+            None => acc.finish(self.id),
+        }
+    }
+
     fn field_error<'d, D: FormData + ?Sized>(
         st: &'d FormState,
         data: &'d D,
@@ -1219,8 +1905,18 @@ impl<'a> Form<'a> {
         st: &FormState,
         data: &D,
     ) -> Rect {
+        if let Err(error) = self.validate_layout(data) {
+            ui.diagnostic(Diagnostic::InvalidComponentLayout {
+                owner: self.id,
+                field: error.field_id(),
+            });
+            return area;
+        }
         if area.is_empty() {
             return area;
+        }
+        if self.layout.is_some() {
+            return self.draw_lanes(ui, area, st, data);
         }
         let content_rows = Self::content_rows(self.placements(ui.design(), area.width), data);
         let actions_height = u16::from(!self.actions.is_empty());
@@ -1254,27 +1950,20 @@ impl<'a> Form<'a> {
                 fallback = FieldSlot::new(field.id);
                 &fallback
             };
-            let bottom = placement.top.saturating_add(usize::from(placement.height));
-            if bottom <= base || placement.top >= base.saturating_add(usize::from(content.height)) {
-                Self::register_clipped_field(ui, field, data);
+            let Some(window) = resolve_field_window(content, placement, base) else {
+                self.register_clipped_field(ui, field, data, placement.height);
                 continue;
-            }
-            let y_offset = placement.top.saturating_sub(base);
-            let field_area = Rect {
-                x: content.x.saturating_add(placement.left),
-                y: content
-                    .y
-                    .saturating_add(y_offset.min(usize::from(u16::MAX)) as u16),
-                width: placement
-                    .width
-                    .min(content.width.saturating_sub(placement.left)),
-                height: placement.height.min(
-                    content
-                        .height
-                        .saturating_sub(y_offset.min(usize::from(u16::MAX)) as u16),
-                ),
             };
-            self.draw_control(ui, field_area, field, slot, st, data);
+            self.draw_control(
+                ui,
+                window.area,
+                window.source_first_row,
+                window.logical_height,
+                field,
+                slot,
+                st,
+                data,
+            );
         }
         self.draw_actions(ui, area);
         ui.report_layout(
@@ -1285,6 +1974,76 @@ impl<'a> Form<'a> {
                 area.height,
                 area.width,
             ),
+        );
+        area
+    }
+
+    fn draw_lanes<D: FormData + ?Sized>(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &FormState,
+        data: &D,
+    ) -> Rect {
+        let body = Rect {
+            height: area
+                .height
+                .saturating_sub(u16::from(!self.actions.is_empty())),
+            ..area
+        };
+        let plans = self.lane_plans(ui.design(), body, data);
+        let form_style = self.ov.style(
+            ui,
+            self.id,
+            Family::FORM,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        );
+        let mut max_rows = 0;
+        for plan in &plans {
+            max_rows = max_rows.max(plan.content_rows);
+            let scroll_id = lane_scroll_id(self.id, plan.id);
+            let scroll_state = st.lane_scroll(plan.id);
+            let scroll = ScrollRegion::new(scroll_id).patch_part(self.parts);
+            let content = scroll.draw(ui, plan.area, &scroll_state, plan.content_rows);
+            ui.fill(content, form_style.style);
+            ui.register_decor(scroll_id, PartRef::of(Part::BODY), content);
+            let view = ScrollRegion::view(&scroll_state, plan.area, plan.content_rows);
+            let base = view.offset();
+            for placement in &plan.placements {
+                let Some(field) = self.fields.get(placement.index) else {
+                    continue;
+                };
+                let Some(window) = resolve_field_window(content, *placement, base) else {
+                    self.register_clipped_field(ui, field, data, placement.height);
+                    continue;
+                };
+                let fallback;
+                let slot = if let Some(slot) = st.slots.get(placement.index) {
+                    slot
+                } else {
+                    fallback = FieldSlot::new(field.id);
+                    &fallback
+                };
+                self.draw_control(
+                    ui,
+                    window.area,
+                    window.source_first_row,
+                    window.logical_height,
+                    field,
+                    slot,
+                    st,
+                    data,
+                );
+            }
+        }
+        self.draw_actions(ui, area);
+
+        ui.report_layout(
+            self.id,
+            LayoutFacts::new(usize::from(body.height), max_rows, area.height, area.width)
+                .with_logical_area(area),
         );
         area
     }
@@ -1350,10 +2109,13 @@ impl<'a> Form<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_control<D: FormData + ?Sized>(
         &self,
         ui: &mut Ui<'_>,
         area: Rect,
+        source_first_row: usize,
+        logical_height: u16,
         field: &FieldSpec<'a>,
         slot: &FieldSlot,
         st: &FormState,
@@ -1362,51 +2124,156 @@ impl<'a> Form<'a> {
         let disabled = data.disabled(field.id);
         let error = Self::field_error(st, data, field);
         let options = data.options(field.id);
-        let control_area = self.draw_chrome(ui, area, field, error);
-        match (&field.kind, data.value(field.id)) {
-            (FieldKind::Text(control), FieldRef::Text(value)) => {
-                control.draw_in_form(ui, control_area, &slot.input, value, disabled);
+        if self.sizing == FieldSizingPolicy::Intrinsic
+            && let (FieldKind::Note, FieldRef::Note(rows)) = (&field.kind, data.value(field.id))
+        {
+            for (row, (text, role)) in area.rows().zip(rows.iter().skip(source_first_row)) {
+                ui.paint_str(row, text, ui.paint_patch(&StylePatch::new().set_fg(*role)));
+                ui.register_decor(field.id, PartRef::of(Part::HELP), row);
             }
-            (FieldKind::Text(control), FieldRef::Secret(value)) => {
-                control.draw_secret_in_form(ui, control_area, &slot.input, value, disabled);
+            return;
+        }
+        if self.sizing == FieldSizingPolicy::Intrinsic
+            && let (FieldKind::Chooser(control), FieldRef::Display { value, detail }) =
+                (&field.kind, data.value(field.id))
+        {
+            let native_button_visible = self.draw_intrinsic_chooser(
+                ui,
+                area,
+                source_first_row,
+                logical_height,
+                field,
+                control,
+                value,
+                detail,
+                disabled,
+            );
+            if logical_height > 1 && !native_button_visible {
+                control.register_focus_only_in_form(ui, disabled);
+            }
+            return;
+        }
+        if let (FieldKind::Radio(control), FieldRef::Choice(value)) =
+            (&field.kind, data.value(field.id))
+        {
+            let (body, first_body_row) =
+                self.draw_chrome_window(ui, area, field, error, source_first_row, logical_height);
+            if !options.is_empty() {
+                if native_body_visible(ui, native_radio_area(body, first_body_row, options.len())) {
+                    control.draw_in_form_window(
+                        ui,
+                        body,
+                        &slot.radio,
+                        value,
+                        options,
+                        InheritedFormState { disabled },
+                        first_body_row,
+                    );
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
+            }
+            return;
+        }
+        let (control_area, body_first_row) =
+            self.draw_chrome_window(ui, area, field, error, source_first_row, logical_height);
+        match (&field.kind, data.value(field.id)) {
+            (FieldKind::Text(control), FieldRef::Text(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(ui, control_area, &slot.input, value, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
+            }
+            (FieldKind::Text(control), FieldRef::Secret(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_secret_in_form(ui, control_area, &slot.input, value, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
             (FieldKind::Area(control), FieldRef::Text(value)) => {
-                control.draw_in_form(ui, control_area, &slot.area, value, disabled);
+                let logical_rows = control.rows_in_form().min(logical_height.saturating_sub(2));
+                let window = textarea_window(
+                    control_area,
+                    body_first_row,
+                    logical_height,
+                    control.rows_in_form(),
+                );
+                if let Some(window) =
+                    window.filter(|window| native_body_visible(ui, window.visible_body()))
+                {
+                    control.draw_in_form_window(ui, window, &slot.area, value, disabled);
+                } else if logical_rows > 0 {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
             (FieldKind::Area(control), FieldRef::Secret(value)) => {
-                control.draw_secret_in_form(ui, control_area, &slot.area, value, disabled);
-            }
-            (FieldKind::Select(control), FieldRef::Choice(value)) => {
-                control.draw_in_form(
-                    ui,
+                let logical_rows = control.rows_in_form().min(logical_height.saturating_sub(2));
+                let window = textarea_window(
                     control_area,
-                    &slot.select,
-                    value,
-                    options,
-                    InheritedFormState { disabled },
+                    body_first_row,
+                    logical_height,
+                    control.rows_in_form(),
                 );
+                if let Some(window) =
+                    window.filter(|window| native_body_visible(ui, window.visible_body()))
+                {
+                    control.draw_secret_in_form_window(ui, window, &slot.area, value, disabled);
+                } else if logical_rows > 0 {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
-            (FieldKind::Radio(control), FieldRef::Choice(value)) => {
-                control.draw_in_form(
-                    ui,
-                    control_area,
-                    &slot.radio,
-                    value,
-                    options,
-                    InheritedFormState { disabled },
-                );
+            (FieldKind::Select(control), FieldRef::Choice(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(
+                        ui,
+                        control_area,
+                        &slot.select,
+                        value,
+                        options,
+                        InheritedFormState { disabled },
+                    );
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
-            (FieldKind::Chips(control), FieldRef::Chips(_)) => {
-                control.draw_in_form(ui, control_area, &slot.chips, options, disabled);
+            (FieldKind::Radio(_), FieldRef::Choice(_)) => unreachable!("radio handled above"),
+            (FieldKind::Chips(control), FieldRef::Chips(_)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(ui, control_area, &slot.chips, options, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
-            (FieldKind::Check(control), FieldRef::Flag(value)) => {
-                control.draw_in_form(ui, control_area, value, disabled);
+            (FieldKind::Check(control), FieldRef::Flag(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(ui, control_area, value, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
-            (FieldKind::Toggle(control), FieldRef::Flag(value)) => {
-                control.draw_in_form(ui, control_area, value, disabled);
+            (FieldKind::Toggle(control), FieldRef::Flag(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(ui, control_area, value, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
-            (FieldKind::Chooser(control), FieldRef::Display { value, detail }) => {
-                let painted = control.draw_in_form(ui, control_area, disabled);
+            (FieldKind::Chooser(control), FieldRef::Display { value, detail })
+                if logical_height >= 3 =>
+            {
+                let painted =
+                    if native_body_visible(ui, native_button_area(ui, control, control_area)) {
+                        control.draw_in_form(ui, control_area, disabled)
+                    } else {
+                        control.register_focus_only_in_form(ui, disabled);
+                        Rect {
+                            width: 0,
+                            height: 0,
+                            ..control_area
+                        }
+                    };
                 let value_area = Rect {
                     x: painted.right().saturating_add(1),
                     width: control_area
@@ -1434,7 +2301,7 @@ impl<'a> Form<'a> {
                     Part::HELP,
                     StateFlags::empty(),
                 );
-                for (row, (text, _role)) in area.rows().zip(rows.iter()) {
+                for (row, (text, _role)) in area.rows().zip(rows.iter().skip(source_first_row)) {
                     ui.paint_str(row, text, style.style);
                     ui.register_decor(field.id, PartRef::of(Part::HELP), row);
                 }
@@ -1443,52 +2310,163 @@ impl<'a> Form<'a> {
         }
     }
 
-    fn draw_chrome(
+    #[allow(clippy::too_many_arguments)]
+    fn draw_intrinsic_chooser(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        source_first_row: usize,
+        logical_height: u16,
+        field: &FieldSpec<'_>,
+        control: &Button<'_>,
+        value: &str,
+        detail: Option<&str>,
+        disabled: bool,
+    ) -> bool {
+        let mut native_button_visible = false;
+        let source_end = source_first_row.saturating_add(usize::from(area.height));
+        for source_row in source_first_row..source_end.min(usize::from(logical_height)) {
+            let row = Rect {
+                y: area.y.saturating_add(
+                    source_row
+                        .saturating_sub(source_first_row)
+                        .min(usize::from(u16::MAX)) as u16,
+                ),
+                height: 1,
+                ..area
+            };
+            match source_row {
+                0 => {
+                    let label_style = self.ov.style(
+                        ui,
+                        self.id,
+                        Family::FIELD,
+                        Variant::DEFAULT,
+                        Part::LABEL,
+                        StateFlags::empty(),
+                    );
+                    let label = Rect {
+                        x: row.x.saturating_add(2),
+                        width: row.width.saturating_sub(2),
+                        ..row
+                    };
+                    let used = ui.paint_str(label, field.label, label_style.style);
+                    if field.required && !field.label.is_empty() {
+                        ui.paint_str(
+                            Rect {
+                                x: label.x.saturating_add(used).saturating_add(1),
+                                width: 1,
+                                ..label
+                            },
+                            "*",
+                            label_style.style,
+                        );
+                    }
+                    ui.register_decor(field.id, PartRef::of(Part::LABEL), row);
+                }
+                1 => {
+                    let value_x = row.x.saturating_add(2);
+                    let right = row.right().saturating_sub(1);
+                    let button_width = control
+                        .measure(ui, Constraints::loose(u16::MAX, 1))
+                        .preferred
+                        .0
+                        .min(right.saturating_sub(value_x));
+                    let button_area = Rect {
+                        x: right.saturating_sub(button_width),
+                        width: button_width,
+                        ..row
+                    };
+                    let value_area = Rect {
+                        x: value_x,
+                        width: button_area.x.saturating_sub(value_x).saturating_sub(1),
+                        ..row
+                    };
+                    ui.paint_str(value_area, value, ui.surface_style());
+                    let native_button = control.draw_in_form(ui, button_area, disabled);
+                    native_button_visible |= native_body_visible(ui, native_button);
+                }
+                2 => {
+                    if let Some(detail) = detail {
+                        ui.paint_str(
+                            Rect {
+                                x: row.x.saturating_add(2),
+                                width: row.width.saturating_sub(3),
+                                ..row
+                            },
+                            detail,
+                            ui.surface_style(),
+                        );
+                    }
+                }
+                _ => {}
+            }
+        }
+        native_button_visible
+    }
+
+    fn draw_chrome_window(
         &self,
         ui: &mut Ui<'_>,
         area: Rect,
         field: &FieldSpec<'_>,
         error: Option<&str>,
-    ) -> Rect {
+        source_first_row: usize,
+        logical_height: u16,
+    ) -> (Rect, usize) {
         if area.is_empty() {
-            return area;
+            return (area, 0);
         }
-        let label = Rect { height: 1, ..area };
-        let label_style = self.ov.style(
-            ui,
-            self.id,
-            Family::FIELD,
-            Variant::DEFAULT,
-            Part::LABEL,
-            StateFlags::empty(),
-        );
-        let text = Rect {
-            x: label.x.saturating_add(2),
-            width: label.width.saturating_sub(2),
-            ..label
-        };
-        let used = ui.paint_str(text, field.label, label_style.style);
-        if field.required && !field.label.is_empty() {
-            ui.paint_str(
-                Rect {
-                    x: text.x.saturating_add(used).saturating_add(1),
-                    width: 1,
-                    ..text
-                },
-                "*",
-                label_style.style,
+        let source_end = source_first_row.saturating_add(usize::from(area.height));
+        if source_first_row == 0 {
+            let label = Rect { height: 1, ..area };
+            let style = self.ov.style(
+                ui,
+                self.id,
+                Family::FIELD,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::empty(),
             );
+            let text = Rect {
+                x: label.x.saturating_add(2),
+                width: label.width.saturating_sub(2),
+                ..label
+            };
+            let used = ui.paint_str(text, field.label, style.style);
+            if field.required && !field.label.is_empty() {
+                ui.paint_str(
+                    Rect {
+                        x: text.x.saturating_add(used).saturating_add(1),
+                        width: 1,
+                        ..text
+                    },
+                    "*",
+                    style.style,
+                );
+            }
+            ui.register_decor(field.id, PartRef::of(Part::LABEL), label);
         }
-        ui.register_decor(field.id, PartRef::of(Part::LABEL), label);
-        let message = error.or(field.help);
-        if let Some(message) = message
-            && area.height >= 3
+
+        let has_help = logical_height >= 3;
+        let help_source_row = usize::from(logical_height.saturating_sub(1));
+        if has_help
+            && source_first_row <= help_source_row
+            && help_source_row < source_end
+            && let Some(message) = error.or(field.help)
         {
-            let help = Rect {
-                x: area.x.saturating_add(2),
-                y: area.bottom().saturating_sub(1),
-                width: area.width.saturating_sub(2),
+            let row = Rect {
+                x: area.x,
+                y: area
+                    .y
+                    .saturating_add((help_source_row - source_first_row) as u16),
+                width: area.width,
                 height: 1,
+            };
+            let help = Rect {
+                x: row.x.saturating_add(2),
+                width: row.width.saturating_sub(2),
+                ..row
             };
             let flags = if error.is_some() {
                 StateFlags::ERROR
@@ -1504,13 +2482,38 @@ impl<'a> Form<'a> {
                 flags,
             );
             ui.paint_str(help, message, style.style);
-            ui.register_decor(field.id, PartRef::of(Part::HELP), help);
+            ui.register_decor(field.id, PartRef::of(Part::HELP), row);
         }
-        Rect {
-            y: area.y.saturating_add(1),
-            height: area.height.saturating_sub(2),
+
+        let body_start = 1usize.max(source_first_row);
+        let source_body_end = if has_help {
+            usize::from(logical_height.saturating_sub(1))
+        } else {
+            1
+        };
+        let body_end = source_body_end.min(source_end);
+        if body_start >= body_end {
+            return (
+                Rect {
+                    y: area.y.saturating_add(
+                        body_start
+                            .saturating_sub(source_first_row)
+                            .min(usize::from(u16::MAX)) as u16,
+                    ),
+                    height: 0,
+                    ..area
+                },
+                body_start.saturating_sub(1),
+            );
+        }
+        let body = Rect {
+            y: area
+                .y
+                .saturating_add((body_start - source_first_row).min(usize::from(u16::MAX)) as u16),
+            height: (body_end - body_start).min(usize::from(u16::MAX)) as u16,
             ..area
-        }
+        };
+        (body, body_start.saturating_sub(1))
     }
 
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
@@ -1528,1659 +2531,57 @@ impl<'a> Form<'a> {
         }
         .fit(constraints)
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use core::cell::Cell;
-
-    use ratatui_core::buffer::Buffer;
-
-    use super::*;
-    use crate::event::{Input, Key, KeyModifiers};
-    use crate::keymap::KeyMap;
-    use crate::runtime::App;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::Stub;
-    use crate::secret::SecretPolicy;
-    use crate::theme::Theme;
-
-    const FORM: Id = Id::root("form.tests");
-    const SCREEN: Rect = Rect::new(0, 0, 60, 30);
-    const NAME: Id = Id::root("form.tests.name");
-    const HIDDEN: Id = Id::root("form.tests.hidden");
-    const FLAG: Id = Id::root("form.tests.flag");
-    const CHOICE: Id = Id::root("form.tests.choice");
-    const SECRET: Id = Id::root("form.tests.secret");
-    const NOTE: Id = Id::root("form.tests.note");
-    const CHOOSER: Id = Id::root("form.tests.chooser");
-    const MATRIX: Id = Id::root("form.tests.matrix");
-    const SAVE_CHORD: Chord = Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL);
-    const ACTIONS: &[Action<'static>] = &[Action::new(ActionKey::SAVE, "Save").chord(SAVE_CHORD)];
-    const OPTIONS: &[&str] = &["one", "two", "three"];
-    const OTHER_OPTIONS: &[&str] = &["alpha", "beta"];
-    const NOTES: &[(&str, Role)] = &[("Read this", Role::Info)];
-
-    #[derive(Default)]
-    struct TestFlags {
-        show_hidden: bool,
-        disabled: bool,
-        fail_name: bool,
+    pub fn measure_with_data<D: FormData + ?Sized>(
+        &self,
+        ui: &Ui<'_>,
+        constraints: Constraints,
+        data: &D,
+    ) -> Size {
+        self.measure_with_data_design(ui.design(), constraints, data)
     }
 
-    struct Data {
-        name: String,
-        hidden: String,
-        hidden_secret: Secret,
-        hidden_secret_mode: bool,
-        flag: bool,
-        choice: usize,
-        secret: Secret,
-        secret_text: String,
-        secret_mode: bool,
-        chips: KeySet,
-        flags: TestFlags,
-    }
-
-    impl Default for Data {
-        fn default() -> Self {
-            Data {
-                name: String::new(),
-                hidden: String::new(),
-                hidden_secret: Secret::default(),
-                hidden_secret_mode: false,
-                flag: false,
-                choice: 0,
-                secret: Secret::default(),
-                secret_text: String::new(),
-                secret_mode: true,
-                chips: KeySet::default(),
-                flags: TestFlags::default(),
+    pub(crate) fn measure_with_data_design<D: FormData + ?Sized>(
+        &self,
+        design: &DesignTokens,
+        constraints: Constraints,
+        data: &D,
+    ) -> Size {
+        if self.layout.is_some() {
+            if self.validate_layout(data).is_err() {
+                return Size::default().fit(constraints);
             }
-        }
-    }
-
-    impl FormData for Data {
-        fn value(&self, id: Id) -> FieldRef<'_> {
-            match id {
-                NAME => FieldRef::Text(&self.name),
-                HIDDEN if self.hidden_secret_mode => FieldRef::Secret(&self.hidden_secret),
-                HIDDEN => FieldRef::Text(&self.hidden),
-                FLAG => FieldRef::Flag(self.flag),
-                CHOICE => FieldRef::Choice(self.choice),
-                SECRET if self.secret_mode => FieldRef::Secret(&self.secret),
-                SECRET => FieldRef::Text(&self.secret_text),
-                NOTE => FieldRef::Note(NOTES),
-                CHOOSER => FieldRef::Display {
-                    value: "chosen",
-                    detail: Some("detail"),
-                },
-                _ => FieldRef::Chips(&self.chips),
-            }
-        }
-
-        fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
-            match id {
-                NAME => FieldMut::Text(&mut self.name),
-                HIDDEN if self.hidden_secret_mode => FieldMut::Secret(&mut self.hidden_secret),
-                HIDDEN => FieldMut::Text(&mut self.hidden),
-                FLAG => FieldMut::Flag(&mut self.flag),
-                CHOICE => FieldMut::Choice(&mut self.choice),
-                SECRET if self.secret_mode => FieldMut::Secret(&mut self.secret),
-                SECRET => FieldMut::Text(&mut self.secret_text),
-                NOTE | CHOOSER => FieldMut::ReadOnly,
-                _ => FieldMut::Chips(&mut self.chips),
-            }
-        }
-
-        fn options(&self, id: Id) -> &[&str] {
-            if id == CHOICE { OPTIONS } else { &[] }
-        }
-
-        fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
-            match id {
-                CHOICE => (FieldMut::Choice(&mut self.choice), OPTIONS),
-                _ => (self.value_mut(id), &[]),
-            }
-        }
-
-        fn visible(&self, id: Id) -> bool {
-            id != HIDDEN || self.flags.show_hidden
-        }
-
-        fn disabled(&self, id: Id) -> bool {
-            id == FLAG && self.flags.disabled
-        }
-
-        fn validate(&self, id: Id, _value: FieldRef<'_>) -> Result<(), FieldError> {
-            if id == NAME && self.flags.fail_name {
-                Err(FieldError::new("name required"))
-            } else {
-                Ok(())
-            }
-        }
-    }
-
-    fn fields() -> [FieldSpec<'static>; 7] {
-        fields_with_secret_policy(true)
-    }
-
-    fn fields_with_secret_policy(secret: bool) -> [FieldSpec<'static>; 7] {
-        let secret_control = if secret {
-            TextInput::new(SECRET).secret(SecretPolicy::default())
-        } else {
-            TextInput::new(SECRET)
-        };
-        [
-            FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))),
-            FieldSpec::new(HIDDEN, "Hidden", FieldKind::Text(TextInput::new(HIDDEN))),
-            FieldSpec::new(FLAG, "", FieldKind::Check(Checkbox::new(FLAG, "Flag"))),
-            FieldSpec::new(
-                CHOICE,
-                "Choice",
-                FieldKind::Select(LabelSelect::new(CHOICE)),
-            ),
-            FieldSpec::new(SECRET, "Secret", FieldKind::Text(secret_control)),
-            FieldSpec::new(NOTE, "", FieldKind::Note),
-            FieldSpec::new(
-                CHOOSER,
-                "Chooser",
-                FieldKind::Chooser(Button::new(CHOOSER, "Choose")),
-            ),
-        ]
-    }
-
-    fn fields_for_app(
-        plain_secret_control: bool,
-        inactive_secret: bool,
-    ) -> ([FieldSpec<'static>; 7], GroupKey) {
-        let mut fields = fields_with_secret_policy(!plain_secret_control);
-        if inactive_secret {
-            fields[1] = FieldSpec::new(HIDDEN, "Hidden", FieldKind::Text(TextInput::new(HIDDEN)))
-                .group(GroupKey::custom("inactive-dynamic-secret"));
-            (fields, GroupKey::custom("active-dynamic-secret"))
-        } else {
-            (fields, GroupKey::ALL)
-        }
-    }
-
-    fn draw(data: &Data, state: &mut FormState) -> (Runtime<Stub>, Buffer) {
-        let fields = fields();
-        state.reconcile_fields(&fields);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime
-            .draw_scene(SCREEN, &mut buffer, |ui, area| {
-                Form::new(FORM, &fields).draw(ui, area, state, data);
-            })
-            .commit_presented();
-        (runtime, buffer)
-    }
-
-    fn initialized_secret_state() -> FormState {
-        let mut app = FieldsApp::default();
-        app.data.secret.set("swordfish");
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        runtime.app().state.clone()
-    }
-
-    fn draw_secret_field(data: &Data, state: &mut FormState, kind: FieldKind<'static>) -> Buffer {
-        let fields = [FieldSpec::new(SECRET, "Secret", kind)];
-        state.reconcile_fields(&fields);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime
-            .draw_scene(SCREEN, &mut buffer, |ui, area| {
-                Form::new(FORM, &fields).draw(ui, area, state, data);
-            })
-            .commit_presented();
-        buffer
-    }
-
-    fn press(code: KeyCode) -> Input {
-        Input::Key(Key {
-            code,
-            mods: KeyModifiers::NONE,
-        })
-    }
-
-    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-    enum MatrixKind {
-        Text,
-        Area,
-        Select,
-        Radio,
-        Chips,
-        Check,
-        Toggle,
-        Chooser,
-    }
-
-    fn matrix_field(kind: MatrixKind) -> FieldSpec<'static> {
-        let field_kind = match kind {
-            MatrixKind::Text => FieldKind::Text(TextInput::new(MATRIX)),
-            MatrixKind::Area => FieldKind::Area(TextArea::new(MATRIX, 3)),
-            MatrixKind::Select => FieldKind::Select(LabelSelect::new(MATRIX)),
-            MatrixKind::Radio => FieldKind::Radio(LabelRadio::new(MATRIX)),
-            MatrixKind::Chips => FieldKind::Chips(LabelChips::new(MATRIX)),
-            MatrixKind::Check => FieldKind::Check(Checkbox::new(MATRIX, "Check")),
-            MatrixKind::Toggle => FieldKind::Toggle(Toggle::new(MATRIX, "Toggle")),
-            MatrixKind::Chooser => FieldKind::Chooser(Button::new(MATRIX, "Choose")),
-        };
-        FieldSpec::new(MATRIX, "Field", field_kind)
-    }
-
-    #[derive(Default)]
-    enum MatrixValidation {
-        #[default]
-        Accept,
-        Reject,
-    }
-
-    #[derive(Default)]
-    enum MatrixOptions {
-        #[default]
-        Primary,
-        Alternate,
-    }
-
-    struct MatrixConfig {
-        visible: bool,
-        validation: MatrixValidation,
-        options: MatrixOptions,
-    }
-
-    impl Default for MatrixConfig {
-        fn default() -> Self {
-            Self {
-                visible: true,
-                validation: MatrixValidation::Accept,
-                options: MatrixOptions::Primary,
-            }
-        }
-    }
-
-    struct MatrixData {
-        kind: MatrixKind,
-        text: String,
-        choice: usize,
-        chips: KeySet,
-        flag: bool,
-        validations: Cell<usize>,
-        config: MatrixConfig,
-    }
-
-    impl MatrixData {
-        fn new(kind: MatrixKind) -> Self {
-            Self {
-                kind,
-                text: String::new(),
-                choice: 0,
-                chips: KeySet::default(),
-                flag: false,
-                validations: Cell::new(0),
-                config: MatrixConfig::default(),
-            }
-        }
-    }
-
-    impl FormData for MatrixData {
-        fn value(&self, _id: Id) -> FieldRef<'_> {
-            match self.kind {
-                MatrixKind::Text | MatrixKind::Area => FieldRef::Text(&self.text),
-                MatrixKind::Select | MatrixKind::Radio => FieldRef::Choice(self.choice),
-                MatrixKind::Chips => FieldRef::Chips(&self.chips),
-                MatrixKind::Check | MatrixKind::Toggle => FieldRef::Flag(self.flag),
-                MatrixKind::Chooser => FieldRef::Display {
-                    value: "chosen",
-                    detail: None,
-                },
-            }
-        }
-
-        fn value_mut(&mut self, _id: Id) -> FieldMut<'_> {
-            match self.kind {
-                MatrixKind::Text | MatrixKind::Area => FieldMut::Text(&mut self.text),
-                MatrixKind::Select | MatrixKind::Radio => FieldMut::Choice(&mut self.choice),
-                MatrixKind::Chips => FieldMut::Chips(&mut self.chips),
-                MatrixKind::Check | MatrixKind::Toggle => FieldMut::Flag(&mut self.flag),
-                MatrixKind::Chooser => FieldMut::ReadOnly,
-            }
-        }
-
-        fn options(&self, _id: Id) -> &[&str] {
-            if matches!(self.config.options, MatrixOptions::Alternate) {
-                OTHER_OPTIONS
-            } else {
-                OPTIONS
-            }
-        }
-
-        fn value_and_options(&mut self, _id: Id) -> (FieldMut<'_>, &[&str]) {
-            match self.kind {
-                MatrixKind::Select | MatrixKind::Radio | MatrixKind::Chips => {
-                    let options = if matches!(self.config.options, MatrixOptions::Alternate) {
-                        OTHER_OPTIONS
-                    } else {
-                        OPTIONS
-                    };
-                    let kind = self.kind;
-                    let value = match kind {
-                        MatrixKind::Select | MatrixKind::Radio => {
-                            FieldMut::Choice(&mut self.choice)
-                        }
-                        MatrixKind::Chips => FieldMut::Chips(&mut self.chips),
-                        _ => FieldMut::ReadOnly,
-                    };
-                    (value, options)
-                }
-                _ => (self.value_mut(MATRIX), &[]),
-            }
-        }
-
-        fn visible(&self, _id: Id) -> bool {
-            self.config.visible
-        }
-
-        fn validate(&self, _id: Id, _value: FieldRef<'_>) -> Result<(), FieldError> {
-            self.validations
-                .set(self.validations.get().saturating_add(1));
-            if matches!(self.config.validation, MatrixValidation::Reject) {
-                Err(FieldError::new("invalid"))
-            } else {
-                Ok(())
-            }
-        }
-    }
-
-    struct MatrixApp {
-        state: FormState,
-        data: MatrixData,
-        last: Option<FormAction>,
-        keymap: KeyMap,
-        enter: EnterPolicy,
-        reference: bool,
-        target: Option<crate::ReferenceTarget>,
-    }
-
-    impl MatrixApp {
-        fn new(kind: MatrixKind) -> Self {
-            Self {
-                state: FormState::default(),
-                data: MatrixData::new(kind),
-                last: None,
-                keymap: KeyMap::new(),
-                enter: EnterPolicy::SubmitsWhenIdle,
-                reference: false,
-                target: None,
-            }
-        }
-    }
-
-    impl App for MatrixApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let fields = [matrix_field(self.data.kind)];
-            let response = Form::new(FORM, &fields)
-                .actions(ACTIONS)
-                .enter(self.enter)
-                .update(cx, &mut self.state, &mut self.data);
-            self.last = response.action_ref().copied();
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let fields = [matrix_field(self.data.kind)];
-            let form = Form::new(FORM, &fields).actions(ACTIONS).enter(self.enter);
-            if self.reference {
-                ui.reference(self.target, |ui| {
-                    form.draw(ui, SCREEN, &self.state, &self.data);
-                });
-            } else {
-                form.draw(ui, SCREEN, &self.state, &self.data);
-            }
-        }
-
-        fn keymap(&self) -> &KeyMap {
-            &self.keymap
-        }
-    }
-
-    fn matrix_runtime(kind: MatrixKind) -> (Runtime<MatrixApp>, Buffer) {
-        let mut runtime = Runtime::new(MatrixApp::new(kind), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.focus(), Some(MATRIX));
-        (runtime, buffer)
-    }
-
-    struct FieldsApp {
-        state: FormState,
-        data: Data,
-        last: Option<FormAction>,
-        area: Rect,
-        plain_secret_control: bool,
-        inactive_secret: bool,
-    }
-
-    impl Default for FieldsApp {
-        fn default() -> Self {
-            Self {
-                state: FormState::default(),
-                data: Data::default(),
-                last: None,
-                area: SCREEN,
-                plain_secret_control: false,
-                inactive_secret: false,
-            }
-        }
-    }
-
-    impl App for FieldsApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let (fields, group) = fields_for_app(self.plain_secret_control, self.inactive_secret);
-            let response =
-                Form::new(FORM, &fields)
-                    .group(group)
-                    .update(cx, &mut self.state, &mut self.data);
-            self.last = response.action_ref().copied();
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let (fields, group) = fields_for_app(self.plain_secret_control, self.inactive_secret);
-            Form::new(FORM, &fields)
-                .group(group)
-                .draw(ui, self.area, &self.state, &self.data);
-        }
-    }
-
-    #[test]
-    fn tab_order_follows_declaration_order_skipping_hidden() {
-        let mut state = FormState::default();
-        let (runtime, _) = draw(&Data::default(), &mut state);
-        let ids: Vec<Id> = runtime.ring().reachable().map(|entry| entry.id).collect();
-        assert_eq!(ids, [NAME, FLAG, CHOICE, SECRET, CHOOSER]);
-    }
-
-    #[test]
-    fn first_draw_registers_fields_before_update_reconciles_state() {
-        let state = FormState::default();
-        let data = Data::default();
-        let fields = fields();
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime
-            .draw_scene(SCREEN, &mut buffer, |ui, area| {
-                Form::new(FORM, &fields).draw(ui, area, &state, &data);
-            })
-            .commit_presented();
-        assert!(runtime.ring().is_registered(NAME));
-        assert!(runtime.ring().is_registered(FLAG));
-    }
-
-    #[test]
-    fn hidden_field_registers_no_ring_entry_and_keeps_its_draft() {
-        let mut state = FormState::default();
-        let data = Data::default();
-        state.reconcile_fields(&fields());
-        let hidden = state
-            .slots
-            .iter_mut()
-            .find(|slot| slot.id == HIDDEN)
-            .expect("hidden field has a stable state slot");
-        hidden.input.begin("unsaved draft");
-        let _ = draw(&data, &mut state);
-        assert_eq!(state.slots.len(), fields().len());
-        let (runtime, _) = draw(&data, &mut state);
-        assert!(!runtime.ring().is_registered(HIDDEN));
-        let hidden = state
-            .slots
-            .iter()
-            .find(|slot| slot.id == HIDDEN)
-            .expect("hidden field kept its stable state slot");
-        assert!(
-            hidden.input.is_editing(),
-            "hiding did not discard its draft"
-        );
-    }
-
-    #[test]
-    fn declaration_reorder_preserves_field_state_by_id() {
-        let original = [
-            FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))),
-            FieldSpec::new(HIDDEN, "Hidden", FieldKind::Text(TextInput::new(HIDDEN))),
-        ];
-        let reordered = [
-            FieldSpec::new(HIDDEN, "Hidden", FieldKind::Text(TextInput::new(HIDDEN))),
-            FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))),
-        ];
-        let mut state = FormState::default();
-        state.reconcile_fields(&original);
-        state.slots[0].input.begin("unsaved draft");
-
-        state.reconcile_fields(&reordered);
-
-        assert_eq!(
-            state.slots.iter().map(|slot| slot.id).collect::<Vec<_>>(),
-            [HIDDEN, NAME]
-        );
-        assert!(!state.slots[0].input.is_editing());
-        assert!(state.slots[1].input.is_editing());
-    }
-
-    #[test]
-    fn field_height_is_a_pure_function_of_spec_and_design_tokens() {
-        let field = FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME)));
-        let design = Theme::junie().design;
-        assert_eq!(
-            Form::field_height(&field, &design),
-            design.size.field_height
-        );
-    }
-
-    fn row_text(buffer: &Buffer, y: u16) -> String {
-        (0..buffer.area.width)
-            .map(|x| buffer.cell((x, y)).expect("row cell").symbol())
-            .collect()
-    }
-
-    #[test]
-    fn radio_field_paints_one_row_per_option() {
-        let (_runtime, buffer) = matrix_runtime(MatrixKind::Radio);
-        let rows: Vec<u16> = ["one", "two", "three"]
-            .into_iter()
-            .map(|label| {
-                (0..buffer.area.height)
-                    .find(|y| row_text(&buffer, *y).contains(label))
-                    .expect(label)
-            })
-            .collect();
-        assert!(rows[0] < rows[1] && rows[1] < rows[2]);
-        assert!(
-            row_text(&buffer, rows[0]).contains('●'),
-            "the value row wears the on glyph"
-        );
-        assert!(row_text(&buffer, rows[1]).contains('○'));
-        assert!(row_text(&buffer, rows[2]).contains('○'));
-    }
-
-    #[test]
-    fn scroll_reveals_the_focused_field_from_update_not_draw() {
-        let tiny = Rect::new(0, 0, SCREEN.width, 4);
-        let app = FieldsApp {
-            area: tiny,
-            ..FieldsApp::default()
-        };
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(tiny);
-        runtime.draw_buffer(tiny, &mut buffer).commit_presented();
-        runtime.set_focus(Some(CHOOSER));
-        assert_eq!(runtime.app().state.scroll.offset(), 0);
-        drop(runtime.draw_buffer(tiny, &mut buffer));
-        assert_eq!(
-            runtime.app().state.scroll.offset(),
-            0,
-            "paint cannot reveal focus"
-        );
-        let _ = runtime.settle();
-        let settled_offset = runtime.app().state.scroll.offset();
-        runtime.draw_buffer(tiny, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.scroll.offset(), settled_offset);
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(tiny, &mut buffer).commit_presented();
-        assert!(runtime.app().state.scroll.offset() > 0);
-    }
-
-    #[test]
-    fn submit_commits_the_in_flight_edit_before_validating() {
-        let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Text);
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char('x')));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().data.text, "", "keystroke remains a draft");
-        let action_id = FORM.part(Part::ACTIONS).index(0);
-        runtime.set_focus(Some(action_id));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            Input::Key(Key {
-                code: KeyCode::Char('s'),
-                mods: KeyModifiers::CONTROL,
-            }),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().data.validations.get(), 1);
-        assert_eq!(
-            runtime.app().last,
-            Some(FormAction::Action(ActionKey::SAVE))
-        );
-    }
-
-    #[test]
-    fn submit_validates_every_visible_field_then_focuses_the_first_error() {
-        let mut app = MatrixApp::new(MatrixKind::Check);
-        app.data.config.validation = MatrixValidation::Reject;
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().data.validations.get(), 1);
-        assert_eq!(runtime.app().last, Some(FormAction::Invalid(MATRIX)));
-        assert!(runtime.app().state.error(MATRIX).is_some());
-        assert_eq!(runtime.focus(), Some(MATRIX));
-    }
-
-    #[test]
-    fn submit_skips_hidden_fields_during_validation() {
-        let mut app = MatrixApp::new(MatrixKind::Check);
-        app.data.config.visible = false;
-        app.data.config.validation = MatrixValidation::Reject;
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let action_id = FORM.part(Part::ACTIONS).index(0);
-        assert_eq!(runtime.focus(), Some(action_id));
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            Input::Key(Key {
-                code: KeyCode::Char('s'),
-                mods: KeyModifiers::CONTROL,
-            }),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().data.validations.get(), 0);
-        assert_eq!(
-            runtime.app().last,
-            Some(FormAction::Action(ActionKey::SAVE))
-        );
-    }
-
-    #[test]
-    fn enter_submits_only_when_the_focused_control_is_not_editing() {
-        for kind in [
-            MatrixKind::Select,
-            MatrixKind::Radio,
-            MatrixKind::Chips,
-            MatrixKind::Check,
-            MatrixKind::Toggle,
-            MatrixKind::Chooser,
-        ] {
-            let (mut runtime, mut buffer) = matrix_runtime(kind);
-            let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-            assert_eq!(
-                runtime.app().last,
-                Some(FormAction::Action(ActionKey::SAVE)),
-                "{kind:?} did not yield Enter to Form"
+            let body_height = constraints
+                .max
+                .1
+                .saturating_sub(u16::from(!self.actions.is_empty()));
+            let plans = self.lane_plans(
+                design,
+                Rect::new(0, 0, constraints.max.0, body_height),
+                data,
             );
-            assert_eq!(runtime.app().data.choice, 0, "{kind:?} changed choice");
-            assert!(!runtime.app().data.flag, "{kind:?} changed flag");
-            assert!(
-                runtime.app().data.chips.is_empty(),
-                "{kind:?} changed chips"
-            );
-            assert!(
-                runtime
-                    .app()
-                    .state
-                    .slots
-                    .first()
-                    .is_some_and(|slot| !slot.select.is_open()),
-                "{kind:?} opened child popup"
-            );
-        }
-
-        for kind in [MatrixKind::Text, MatrixKind::Area] {
-            let (mut runtime, mut buffer) = matrix_runtime(kind);
-            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-            let editing = runtime
-                .app()
-                .state
-                .slots
-                .first()
-                .is_some_and(|slot| match kind {
-                    MatrixKind::Text => slot.input.is_editing(),
-                    MatrixKind::Area => slot.area.is_editing(),
-                    _ => false,
-                });
-            assert!(editing, "{kind:?} did not enter editing after focus");
-            let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-            let expected = match kind {
-                MatrixKind::Text => FormAction::Committed(MATRIX),
-                MatrixKind::Area => FormAction::Changed(MATRIX),
-                _ => unreachable!(),
-            };
-            assert_eq!(
-                runtime.app().last,
-                Some(expected),
-                "{kind:?} did not keep Enter in the editing child"
-            );
-        }
-    }
-
-    #[test]
-    fn submit_chord_is_declared_on_the_action_not_baked_in() {
-        let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Check);
-        let action_id = FORM.part(Part::ACTIONS).index(0);
-        runtime.set_focus(Some(action_id));
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            Input::Key(Key {
-                code: KeyCode::Char('s'),
-                mods: KeyModifiers::CONTROL,
-            }),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(
-            runtime.app().last,
-            Some(FormAction::Action(ActionKey::SAVE))
-        );
-    }
-
-    #[test]
-    fn dirty_is_set_by_a_commit_not_by_a_keystroke() {
-        let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Text);
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(!runtime.app().state.is_dirty());
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char('x')));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(
-            !runtime.app().state.is_dirty(),
-            "typing changed only the child draft"
-        );
-        runtime.set_focus(Some(FORM.part(Part::ACTIONS).index(0)));
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(
-            runtime.app().state.is_dirty(),
-            "focus-out commit marked the form dirty"
-        );
-    }
-
-    #[test]
-    fn chooser_activation_emits_chose_with_the_field_id() {
-        let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Chooser);
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char(' ')));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().last, Some(FormAction::Chose(MATRIX)));
-    }
-
-    #[test]
-    fn space_stays_child_owned_and_unrelated_intents_stay_ignored() {
-        let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Check);
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::F(12)));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().last, None);
-        assert!(!runtime.app().data.flag);
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char(' ')));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().last, Some(FormAction::Committed(MATRIX)));
-        assert!(runtime.app().data.flag);
-    }
-
-    #[test]
-    fn note_rows_register_only_decorative_regions() {
-        let mut state = FormState::default();
-        let (runtime, _) = draw(&Data::default(), &mut state);
-        assert!(!runtime.ring().is_registered(NOTE));
-    }
-
-    #[test]
-    fn at_most_one_action_per_frame_in_declaration_order() {
-        let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Text);
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char('x')));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let action_id = FORM.part(Part::ACTIONS).index(0);
-        runtime.set_focus(Some(action_id));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            Input::Key(Key {
-                code: KeyCode::Char('s'),
-                mods: KeyModifiers::CONTROL,
-            }),
-        );
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().data.text, "x", "child focus-out committed");
-        assert_eq!(
-            runtime.app().data.validations.get(),
-            1,
-            "submit ran exactly once"
-        );
-        assert_eq!(
-            runtime.app().last,
-            Some(FormAction::Action(ActionKey::SAVE)),
-            "the submit response wins the single output slot"
-        );
-    }
-
-    #[test]
-    fn open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover() {
-        let mut app = MatrixApp::new(MatrixKind::Select);
-        app.enter = EnterPolicy::Never;
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(runtime.app().state.slots[0].select.is_open());
-        let action_id = FORM.part(Part::ACTIONS).index(0);
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Tab));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.focus(), Some(action_id));
-        assert!(!runtime.app().state.slots[0].select.is_open());
-
-        runtime.set_focus(Some(MATRIX));
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(runtime.app().state.slots[0].select.is_open());
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Esc));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(!runtime.app().state.slots[0].select.is_open());
-        assert_eq!(runtime.focus(), Some(MATRIX));
-    }
-
-    #[test]
-    fn effective_enter_binding_can_be_removed_or_remapped() {
-        let mut removed = MatrixApp::new(MatrixKind::Check);
-        removed
-            .keymap
-            .remove_component(MATRIX, ActionKey::custom("Toggle (Enter)"));
-        let mut runtime = Runtime::new(removed, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().last, None);
-        assert!(!runtime.app().data.flag);
-
-        let mut remapped = MatrixApp::new(MatrixKind::Check);
-        remapped.keymap.remap_component(
-            MATRIX,
-            ActionKey::custom("Toggle (Enter)"),
-            Chord::key(KeyCode::F(2)),
-        );
-        let mut runtime = Runtime::new(remapped, Theme::junie());
-        let _ = runtime.initialize();
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().last, None, "removed Enter did not submit");
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::F(2)));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert!(runtime.app().data.flag, "remapped chord reached the child");
-    }
-
-    #[test]
-    fn form_action_variants_carry_no_value() {
-        fn identity(action: FormAction) -> Id {
-            match action {
-                FormAction::Changed(id)
-                | FormAction::Committed(id)
-                | FormAction::Chose(id)
-                | FormAction::Invalid(id) => id,
-                FormAction::Action(_) => FORM,
+            let rows = plans
+                .iter()
+                .map(|plan| plan.content_rows)
+                .max()
+                .unwrap_or(0)
+                .saturating_add(usize::from(!self.actions.is_empty()))
+                .try_into()
+                .unwrap_or(u16::MAX);
+            return Size {
+                min: (8, rows.min(1)),
+                preferred: (constraints.max.0, rows),
             }
+            .fit(constraints);
         }
-        assert_eq!(identity(FormAction::Action(ActionKey::SAVE)), FORM);
-    }
-
-    #[test]
-    fn zeroize_overwrites_every_secret_draft() {
-        let mut state = FormState::default();
-        state.reconcile_fields(&fields());
-        if let Some(slot) = state.slots.iter_mut().find(|slot| slot.id == SECRET) {
-            slot.input.begin("swordfish");
+        let rows = Self::content_rows(self.placements(design, constraints.max.0), data)
+            .saturating_add(usize::from(!self.actions.is_empty()))
+            .try_into()
+            .unwrap_or(u16::MAX);
+        Size {
+            min: (8, rows.min(1)),
+            preferred: (constraints.max.0, rows),
         }
-        state.zeroize();
-        assert!(!format!("{state:?}").contains("swordfish"));
-    }
-
-    #[test]
-    fn secret_field_frame_masks_even_without_control_policy() {
-        let mut data = Data::default();
-        data.secret.set("swordfish");
-        let mut state = FormState::default();
-        let buffer = draw_secret_field(&data, &mut state, FieldKind::Text(TextInput::new(SECRET)));
-        let frame: String = buffer
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect();
-        assert!(
-            !frame.contains("swordfish"),
-            "secret field reached the frame"
-        );
-        let mask = Theme::junie()
-            .design
-            .glyphs
-            .get(SecretPolicy::default().mask);
-        assert!(
-            frame.matches(mask).count()
-                >= "swordfish"
-                    .chars()
-                    .count()
-                    .saturating_sub(SecretPolicy::default().synthetic_tail),
-            "secret field did not paint its mask: {frame}"
-        );
-    }
-
-    #[test]
-    fn secret_area_frame_is_masked_instead_of_painting_plaintext() {
-        let mut data = Data::default();
-        data.secret.set("swordfish");
-        let mut state = FormState::default();
-        let buffer =
-            draw_secret_field(&data, &mut state, FieldKind::Area(TextArea::new(SECRET, 3)));
-        let frame: String = buffer
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect();
-        assert!(
-            !frame.contains("swordfish"),
-            "secret area reached the frame"
-        );
-        let mask = Theme::junie()
-            .design
-            .glyphs
-            .get(SecretPolicy::default().mask);
-        assert!(
-            frame.matches(mask).count() >= "swordfish".chars().count(),
-            "secret area did not paint its mask: {frame}"
-        );
-    }
-
-    #[test]
-    fn secret_field_errors_are_generic_in_the_frame_and_cleared_on_zeroize() {
-        let mut data = Data::default();
-        data.secret.set("swordfish");
-        let mut state = initialized_secret_state();
-        state.set_error(SECRET, Some(FieldError::new("swordfish")));
-        let (_, buffer) = draw(&data, &mut state);
-        let frame: String = buffer
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect();
-        assert!(
-            !frame.contains("swordfish"),
-            "secret error reached the frame"
-        );
-        assert_eq!(
-            state.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        state.zeroize();
-        assert!(state.error(SECRET).is_none());
-    }
-
-    #[test]
-    fn unreconciled_field_errors_stay_generic_until_sensitivity_is_known() {
-        const DETAIL: &str = "secret validation detail";
-
-        let mut plain = FormState::default();
-        plain.set_error(SECRET, Some(FieldError::new(DETAIL)));
-        assert_eq!(
-            plain.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{plain:?}").contains(DETAIL));
-        let plain_copy = plain.clone();
-        assert_eq!(
-            plain_copy.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-
-        plain.reconcile_fields(&fields_with_secret_policy(false));
-        assert_eq!(
-            plain.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        let plain_data = Data {
-            secret_mode: false,
-            ..Default::default()
-        };
-        let plain_fields = fields_with_secret_policy(false);
-        assert_eq!(
-            Form::field_error(&plain, &plain_data, &plain_fields[4]),
-            Some(DETAIL)
-        );
-
-        let mut secret = FormState::default();
-        secret.set_error(SECRET, Some(FieldError::new(DETAIL)));
-        secret.reconcile_fields(&fields());
-        assert_eq!(
-            secret.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{secret:?}").contains(DETAIL));
-    }
-
-    #[test]
-    fn dynamic_secret_transition_keeps_form_error_generic_until_update() {
-        const DETAIL: &str = "dynamic secret validation detail";
-
-        let mut app = FieldsApp {
-            plain_secret_control: true,
-            ..Default::default()
-        };
-        app.data.secret_mode = false;
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-
-        runtime
-            .app_mut()
-            .state
-            .reconcile_fields(&fields_with_secret_policy(false));
-        runtime
-            .app_mut()
-            .state
-            .set_error(SECRET, Some(FieldError::new(DETAIL)));
-        runtime.app_mut().data.secret_mode = true;
-
-        assert!(matches!(
-            runtime.app().data.value(SECRET),
-            FieldRef::Secret(_)
-        ));
-        {
-            let value = runtime.app_mut().data.value_mut(SECRET);
-            assert!(matches!(value, FieldMut::Secret(_)));
-        }
-
-        let state = &runtime.app().state;
-        assert_eq!(
-            state.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{state:?}").contains(DETAIL));
-
-        let copy = state.clone();
-        assert_eq!(
-            copy.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{copy:?}").contains(DETAIL));
-
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        assert_eq!(
-            runtime
-                .app()
-                .state
-                .error(SECRET)
-                .map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-    }
-
-    fn assert_public_error_is_redacted(state: &FormState, id: Id, detail: &str) {
-        assert_eq!(
-            state.error(id).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{state:?}").contains(detail));
-
-        let copy = state.clone();
-        assert_eq!(
-            copy.error(id).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{copy:?}").contains(detail));
-    }
-
-    #[test]
-    fn hidden_dynamic_secret_transition_redacts_error_and_draft() {
-        const DETAIL: &str = "hidden dynamic secret detail";
-
-        let mut app = FieldsApp::default();
-        app.data.flags.show_hidden = true;
-        app.data.hidden_secret_mode = false;
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-
-        let fields = fields_with_secret_policy(true);
-        let app = runtime.app_mut();
-        let data = &app.data;
-        app.state.reconcile_fields_with_data(&fields, data);
-        let slot = runtime
-            .app_mut()
-            .state
-            .slots
-            .iter_mut()
-            .find(|slot| slot.id == HIDDEN)
-            .expect("hidden slot");
-        slot.input.begin("plain draft");
-        runtime.app_mut().state.set_error_with_sensitivity(
-            HIDDEN,
-            Some(FieldError::new(DETAIL)),
-            Some(false),
-        );
-
-        runtime.app_mut().data.hidden_secret_mode = true;
-        runtime.app_mut().data.flags.show_hidden = false;
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-
-        assert_public_error_is_redacted(&runtime.app().state, HIDDEN, DETAIL);
-        let slot = runtime
-            .app()
-            .state
-            .slots
-            .iter()
-            .find(|slot| slot.id == HIDDEN)
-            .expect("hidden slot retained");
-        assert!(slot.input.is_sensitive());
-        assert!(!slot.input.is_editing());
-    }
-
-    #[test]
-    fn inactive_dynamic_secret_transition_redacts_error_and_draft() {
-        const DETAIL: &str = "inactive dynamic secret detail";
-
-        let mut app = FieldsApp {
-            inactive_secret: true,
-            ..Default::default()
-        };
-        app.data.flags.show_hidden = true;
-        app.data.hidden_secret_mode = false;
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-
-        let (fields, group) = fields_for_app(false, true);
-        let app = runtime.app_mut();
-        let data = &app.data;
-        app.state.reconcile_fields_with_data(&fields, data);
-        let slot = runtime
-            .app_mut()
-            .state
-            .slots
-            .iter_mut()
-            .find(|slot| slot.id == HIDDEN)
-            .expect("inactive slot");
-        slot.input.begin("inactive draft");
-        runtime.app_mut().state.set_error_with_sensitivity(
-            HIDDEN,
-            Some(FieldError::new(DETAIL)),
-            Some(false),
-        );
-
-        assert!(
-            !Form::new(FORM, &fields)
-                .group(group)
-                .shown(&runtime.app().data, &fields[1])
-        );
-        runtime.app_mut().data.hidden_secret_mode = true;
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-
-        assert_public_error_is_redacted(&runtime.app().state, HIDDEN, DETAIL);
-        let slot = runtime
-            .app()
-            .state
-            .slots
-            .iter()
-            .find(|slot| slot.id == HIDDEN)
-            .expect("inactive slot retained");
-        assert!(slot.input.is_sensitive());
-        assert!(!slot.input.is_editing());
-    }
-
-    #[test]
-    fn direct_owner_flip_redacts_rendered_text_before_update() {
-        const DETAIL: &str = "direct owner flip detail";
-
-        for area in [false, true] {
-            let kind = if area {
-                FieldKind::Area(TextArea::new(SECRET, 3))
-            } else {
-                FieldKind::Text(TextInput::new(SECRET))
-            };
-            let fields = [FieldSpec::new(SECRET, "Secret", kind)];
-            let mut data = Data {
-                secret_mode: false,
-                ..Default::default()
-            };
-            let mut state = FormState::default();
-            state.reconcile_fields_with_data(&fields, &data);
-            state.set_error_with_sensitivity(SECRET, Some(FieldError::new(DETAIL)), Some(false));
-            assert_eq!(Form::field_error(&state, &data, &fields[0]), Some(DETAIL));
-
-            data.secret_mode = true;
-            assert_eq!(
-                Form::field_error(&state, &data, &fields[0]),
-                Some("Invalid value")
-            );
-            assert_public_error_is_redacted(&state, SECRET, DETAIL);
-        }
-    }
-
-    #[test]
-    fn malformed_dynamic_secret_is_redacted_for_non_text_slots() {
-        const DETAIL: &str = "non-text dynamic secret detail";
-
-        let fields = [FieldSpec::new(
-            SECRET,
-            "Secret",
-            FieldKind::Check(Checkbox::new(SECRET, "Secret")),
-        )];
-        let mut data = Data {
-            secret_mode: false,
-            ..Default::default()
-        };
-        let mut state = FormState::default();
-        state.reconcile_fields_with_data(&fields, &data);
-        state.set_error_with_sensitivity(SECRET, Some(FieldError::new(DETAIL)), Some(false));
-        assert_eq!(Form::field_error(&state, &data, &fields[0]), Some(DETAIL));
-
-        data.secret_mode = true;
-        assert_public_error_is_redacted(&state, SECRET, DETAIL);
-    }
-
-    #[test]
-    fn malformed_dynamic_secret_error_does_not_reappear_after_downgrade() {
-        const DETAIL: &str = "non-text downgrade detail";
-
-        let fields = [FieldSpec::new(
-            SECRET,
-            "Secret",
-            FieldKind::Check(Checkbox::new(SECRET, "Secret")),
-        )];
-        let mut data = Data {
-            secret_mode: true,
-            ..Default::default()
-        };
-        let mut state = FormState::default();
-        state.reconcile_fields_with_data(&fields, &data);
-        state.set_error(SECRET, Some(FieldError::new(DETAIL)));
-        assert_public_error_is_redacted(&state, SECRET, DETAIL);
-
-        data.secret_mode = false;
-        state.reconcile_fields_with_data(&fields, &data);
-        assert!(state.error(SECRET).is_none());
-        assert!(Form::field_error(&state, &data, &fields[0]).is_none());
-    }
-
-    #[test]
-    fn resolved_plain_dynamic_text_and_area_errors_stay_generic_after_secret_transition() {
-        const DETAIL: &str = "resolved dynamic secret validation detail";
-
-        for area in [false, true] {
-            let kind = if area {
-                FieldKind::Area(TextArea::new(SECRET, 3))
-            } else {
-                FieldKind::Text(TextInput::new(SECRET))
-            };
-            let fields = [FieldSpec::new(SECRET, "Secret", kind)];
-            let mut data = Data {
-                secret_mode: false,
-                ..Default::default()
-            };
-            let mut state = FormState::default();
-            state.reconcile_fields(&fields);
-            state.set_error_with_sensitivity(SECRET, Some(FieldError::new(DETAIL)), Some(false));
-            assert_eq!(Form::field_error(&state, &data, &fields[0]), Some(DETAIL));
-
-            data.secret_mode = true;
-            assert!(matches!(data.value(SECRET), FieldRef::Secret(_)));
-            assert_eq!(
-                Form::field_error(&state, &data, &fields[0]),
-                Some("Invalid value")
-            );
-
-            assert_eq!(
-                state.error(SECRET).map(|error| error.message.as_ref()),
-                Some("Invalid value")
-            );
-            assert!(!format!("{state:?}").contains(DETAIL));
-            let copy = state.clone();
-            assert_eq!(
-                copy.error(SECRET).map(|error| error.message.as_ref()),
-                Some("Invalid value")
-            );
-            assert!(!format!("{copy:?}").contains(DETAIL));
-
-            {
-                let value = data.value_mut(SECRET);
-                assert!(matches!(&value, FieldMut::Secret(_)));
-                let _ = Form::prepare_slot(&mut state, 0, &fields[0], &value);
-            }
-            assert_eq!(
-                state.error(SECRET).map(|error| error.message.as_ref()),
-                Some("Invalid value")
-            );
-        }
-    }
-
-    #[test]
-    fn secret_validator_error_is_generic_before_form_state_retention() {
-        let mut data = Data::default();
-        data.secret.set("swordfish");
-        let mut state = FormState::default();
-        state.reconcile_fields(&fields());
-        let error = FieldError::new(format!("invalid {}", data.secret.expose()));
-        let safe = Form::safe_error(&data, true, SECRET, error);
-        state.set_error(SECRET, Some(safe));
-        assert_eq!(
-            state.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{state:?}").contains("swordfish"));
-    }
-
-    #[test]
-    fn reconciling_same_shape_secret_fields_redacts_existing_errors() {
-        let plain_fields = fields_with_secret_policy(false);
-        let secret_fields = fields_with_secret_policy(true);
-        let mut state = FormState::default();
-        state.reconcile_fields(&plain_fields);
-        state.set_error(SECRET, Some(FieldError::new("swordfish")));
-        assert_eq!(
-            state.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-
-        state.reconcile_fields(&plain_fields);
-        let data = Data {
-            secret_mode: false,
-            ..Default::default()
-        };
-        assert_eq!(
-            Form::field_error(&state, &data, &plain_fields[4]),
-            Some("swordfish")
-        );
-        state.reconcile_fields(&secret_fields);
-        assert_eq!(
-            state.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{state:?}").contains("swordfish"));
-
-        state.reconcile_fields(&plain_fields);
-        assert!(state.error(SECRET).is_none());
-    }
-
-    #[test]
-    fn sensitive_form_state_clone_and_equality_do_not_copy_draft() {
-        let mut left = initialized_secret_state();
-        let mut right = initialized_secret_state();
-        for (state, value) in [(&mut left, "swordfish"), (&mut right, "different")] {
-            let slot = state
-                .slots
-                .iter_mut()
-                .find(|slot| slot.id == SECRET)
-                .expect("secret slot");
-            slot.input.begin(value);
-        }
-        left.set_error(NAME, Some(FieldError::coded("name required", "required")));
-        right.set_error(NAME, Some(FieldError::coded("name required", "required")));
-        left.set_error(SECRET, Some(FieldError::new("swordfish")));
-        right.set_error(SECRET, Some(FieldError::new("different")));
-        left.reconcile_fields(&fields());
-        right.reconcile_fields(&fields());
-        assert_eq!(left, right);
-        let copy = left.clone();
-        let slot = copy
-            .slots
-            .iter()
-            .find(|slot| slot.id == SECRET)
-            .expect("cloned secret slot");
-        assert!(slot.input.is_sensitive());
-        assert_eq!(
-            copy.error(NAME).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert_eq!(copy.error(NAME).and_then(|error| error.code), None);
-        assert_eq!(
-            copy.error(SECRET).map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{copy:?}").contains("swordfish"));
-    }
-
-    #[test]
-    fn form_update_classifies_secret_before_retaining_local_error() {
-        let mut app = FieldsApp::default();
-        app.data.secret.set("swordfish");
-        app.state.reconcile_fields(&fields());
-        app.state.set_error(
-            SECRET,
-            Some(FieldError::new(format!(
-                "invalid {}",
-                app.data.secret.expose()
-            ))),
-        );
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        assert_eq!(
-            runtime
-                .app()
-                .state
-                .error(SECRET)
-                .map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-        assert!(!format!("{:?}", runtime.app().state).contains("swordfish"));
-    }
-
-    #[test]
-    fn form_reconciles_secret_and_text_values_in_both_directions() {
-        let mut app = FieldsApp::default();
-        app.data.secret.set("swordfish");
-        app.data.secret_text = "ordinary".to_owned();
-        app.plain_secret_control = true;
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        {
-            let state = &mut runtime.app_mut().state;
-            let slot = state
-                .slots
-                .iter_mut()
-                .find(|slot| slot.id == SECRET)
-                .expect("secret slot");
-            slot.input.begin("swordfish");
-            slot.input.set_error(Some(FieldError::new("secret detail")));
-            assert!(slot.input.is_sensitive());
-        }
-
-        runtime.app_mut().data.secret_mode = false;
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        let slot = runtime
-            .app()
-            .state
-            .slots
-            .iter()
-            .find(|slot| slot.id == SECRET)
-            .expect("text slot");
-        assert!(!slot.input.is_sensitive());
-        assert!(!slot.input.is_editing());
-        assert!(slot.input.error().is_none());
-
-        runtime.app_mut().data.secret_mode = true;
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        let slot = runtime
-            .app()
-            .state
-            .slots
-            .iter()
-            .find(|slot| slot.id == SECRET)
-            .expect("secret slot restored");
-        assert!(slot.input.is_sensitive());
-        assert!(!slot.input.is_editing());
-    }
-
-    #[test]
-    fn every_declared_field_resolves_a_value() {
-        let data = Data::default();
-        for field in fields() {
-            let _ = data.value(field.id);
-        }
-    }
-
-    #[test]
-    fn select_field_options_come_from_form_data() {
-        assert_eq!(Data::default().options(CHOICE), OPTIONS);
-    }
-
-    #[test]
-    fn changing_options_between_frames_does_not_rebuild_props() {
-        let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Select);
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let slot_count = runtime.app().state.slots.len();
-        runtime.app_mut().data.config.options = MatrixOptions::Alternate;
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.slots.len(), slot_count);
-        assert_eq!(runtime.app().data.options(MATRIX), OTHER_OPTIONS);
-        assert_eq!(runtime.focus(), Some(MATRIX));
-    }
-
-    #[test]
-    fn state_holds_no_props() {
-        fn assert_state<T: Clone + PartialEq + Default>() {}
-        fn assert_slot<T: Clone + PartialEq + Eq>() {}
-        assert_state::<FormState>();
-        assert_slot::<SlotValue>();
-    }
-
-    #[test]
-    fn value_and_options_is_a_single_borrow() {
-        let mut data = Data::default();
-        let (value, options) = data.value_and_options(CHOICE);
-        assert!(matches!(value, FieldMut::Choice(_)) && options == OPTIONS);
-    }
-
-    #[test]
-    fn dynamic_disabled_state_is_inherited_by_configured_control() {
-        let mut state = FormState::default();
-        let data = Data {
-            flags: TestFlags {
-                disabled: true,
-                ..TestFlags::default()
-            },
-            ..Data::default()
-        };
-        let (runtime, _) = draw(&data, &mut state);
-        assert!(
-            runtime
-                .ring()
-                .entry(FLAG)
-                .is_some_and(|entry| entry.disabled)
-        );
-    }
-
-    #[test]
-    fn reference_form_registers_no_controls_or_parts_for_any_field_kind() {
-        for kind in [
-            MatrixKind::Text,
-            MatrixKind::Area,
-            MatrixKind::Select,
-            MatrixKind::Radio,
-            MatrixKind::Chips,
-            MatrixKind::Check,
-            MatrixKind::Toggle,
-            MatrixKind::Chooser,
-        ] {
-            let mut app = MatrixApp::new(kind);
-            app.reference = true;
-            let mut runtime = Runtime::new(app, Theme::junie());
-            let mut buffer = Buffer::empty(SCREEN);
-            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-            let action_id = FORM.part(Part::ACTIONS).index(0);
-            assert!(!runtime.registry().has_owner(FORM), "{kind:?} form leaked");
-            assert!(
-                !runtime.registry().has_owner(MATRIX),
-                "{kind:?} child leaked"
-            );
-            assert!(
-                !runtime.registry().has_owner(action_id),
-                "{kind:?} action leaked"
-            );
-            assert!(!runtime.ring().is_registered(MATRIX));
-            assert!(!runtime.ring().is_registered(action_id));
-        }
-    }
-
-    #[test]
-    fn reference_form_targets_only_one_child() {
-        let render = |target| {
-            let mut app = MatrixApp::new(MatrixKind::Check);
-            app.reference = true;
-            app.target = target;
-            let mut runtime = Runtime::new(app, Theme::junie().downgrade(crate::ColorLevel::Mono));
-            let mut buffer = Buffer::empty(SCREEN);
-            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-            buffer
-        };
-        let suppressed = render(None);
-        let pressed = render(Some(crate::ReferenceTarget::new(
-            MATRIX,
-            crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-        )));
-        assert_ne!(pressed, suppressed);
-    }
-
-    #[test]
-    fn direct_secret_editing_uses_the_sealed_text_target() {
-        let mut app = FieldsApp::default();
-        app.data.secret = Secret::new("hunter2".to_owned());
-        let mut runtime = Runtime::new(app, Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        runtime.set_focus(Some(SECRET));
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char('!')));
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        runtime.set_focus(Some(CHOOSER));
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().data.secret.expose(), "hunter2!");
-    }
-
-    #[test]
-    fn nonclone_secret_path_masks_without_materialising_plaintext() {
-        let mut state = FormState::default();
-        let data = Data {
-            secret: Secret::new("unique-secret-value".to_owned()),
-            ..Data::default()
-        };
-        let (_, buffer) = draw(&data, &mut state);
-        let painted: String = buffer
-            .content
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect();
-        assert!(!painted.contains("unique-secret-value"));
+        .fit(constraints)
     }
 }

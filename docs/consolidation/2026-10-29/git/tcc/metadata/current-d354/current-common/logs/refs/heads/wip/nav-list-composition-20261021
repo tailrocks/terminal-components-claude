@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 012729d47912616613c7db184b234d32500f86ef Alexey Zhokhov <alexey@zhokhov.com> 1792534099 +0700	branch: Created from origin/parity/termrock-visual-baseline
+012729d47912616613c7db184b234d32500f86ef 637a7e9b0d5498b151392fce203adfc0356c00f6 Alexey Zhokhov <alexey@zhokhov.com> 1792534266 +0700	merge 04a37e1bb63583a34948620897655dd057d7dd86: Merge made by the 'ort' strategy.
+637a7e9b0d5498b151392fce203adfc0356c00f6 2e673e8074bd438f0ead670bac6ce4c85b7c1dbc Alexey Zhokhov <alexey@zhokhov.com> 1792534714 +0700	commit: feat(composition): adapt navigation lists
+2e673e8074bd438f0ead670bac6ce4c85b7c1dbc a9b6f39d692486adf42b534758754902e1997e89 Alexey Zhokhov <alexey@zhokhov.com> 1792534727 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+a9b6f39d692486adf42b534758754902e1997e89 1f4bb670a531ff042fcb69ef82f567786d9db8fb Alexey Zhokhov <alexey@zhokhov.com> 1792534765 +0700	commit: docs(audit): record navigation adapter evidence
+1f4bb670a531ff042fcb69ef82f567786d9db8fb c8c5eaea6fb844172cfb0a3a01298a5c434077c6 Alexey Zhokhov <alexey@zhokhov.com> 1792535332 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+c8c5eaea6fb844172cfb0a3a01298a5c434077c6 1e93e7ee75b024ca0cca8941a400dfa0f22762f3 Alexey Zhokhov <alexey@zhokhov.com> 1792535689 +0700	commit: feat(navigation): make nav row content gap explicit
+1e93e7ee75b024ca0cca8941a400dfa0f22762f3 fa5891532c8d32d182f83e299436d467bdc0df20 Alexey Zhokhov <alexey@zhokhov.com> 1792535698 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+fa5891532c8d32d182f83e299436d467bdc0df20 860bb353f244372d37258efba0ed55889bd34979 Alexey Zhokhov <alexey@zhokhov.com> 1792536890 +0700	commit: feat(navigation): add fill cursor style to nav list
+860bb353f244372d37258efba0ed55889bd34979 0333cde2c6176e2c9e4639ce7f222d70bb90bbcb Alexey Zhokhov <alexey@zhokhov.com> 1792537090 +0700	commit: fix(navigation): preserve nav list default row styling
+0333cde2c6176e2c9e4639ce7f222d70bb90bbcb 9a550edecc55ee99b170ff31ee51957895aeb1ee Alexey Zhokhov <alexey@zhokhov.com> 1792537914 +0700	commit: fix(runtime): preserve row fill gutter defaults

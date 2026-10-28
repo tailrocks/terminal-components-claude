@@ -1,0 +1,8 @@
+fix(nav_list): rows that fit pass the wheel on to the container
+
+A NavList took every vertical notch (Consumed when it could not move),
+so a sidebar laid out whole inside a scrolled page stopped the page's
+wheel over it. While its rows fit it now ignores the notch, as a
+ScrollPane does (scroll chaining). Regression test fails before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

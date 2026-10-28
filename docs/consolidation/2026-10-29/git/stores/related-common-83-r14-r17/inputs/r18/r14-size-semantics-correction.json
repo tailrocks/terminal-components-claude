@@ -1,0 +1,86 @@
+{
+  "aggregate_review": {
+    "all_9026_decoded_objects_verified": true,
+    "mismatch_occurrences": 15588,
+    "packs": 11,
+    "packs_with_mismatches": 9,
+    "r14_size_mismatch_unique_oids": 4510
+  },
+  "decoded_size_evidence": {
+    "complete_oid_type_decoded_size_inventory": {
+      "mode": "0o644",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/engine-git-custody-review-r14-r17-v2/decoded-object-inventory.json",
+      "rows": 9026,
+      "sha256": "461b628a0b02de12117d741188013e92029ca1cdf1835ed5f6c68548850e3b0f",
+      "size_bytes": 1334157
+    },
+    "correction_schema_fields": [
+      "full_oid",
+      "object_type",
+      "recorded_size_bytes",
+      "decoded_size_bytes",
+      "pack_manifest_path",
+      "pack_manifest_sha256",
+      "pack_manifest_row_number",
+      "pack_index_sha256"
+    ],
+    "inventory_schema_fields": [
+      "full_oid",
+      "object_type",
+      "decoded_size_bytes",
+      "screened_new_unique"
+    ],
+    "pack_level_mismatch_report": {
+      "mode": "0o644",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/engine-git-custody-review-r14-r17-v2/pack-inventory-size-review.json",
+      "rows": 11,
+      "sha256": "abb1692e52f9349f521f65cfe48978b28b5d21a9b2ffcedfb4a3edd08a15ddc8",
+      "size_bytes": 784221
+    },
+    "seal": {
+      "mode": "0o644",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/engine-git-custody-review-r14-r17-v2/DECODED-SIZE-SEAL.json",
+      "sha256": "26690eeb40fcf8f522c601eb795d375215e03a57d75bfcbbfb21d05eff65aaba",
+      "size_bytes": 1923
+    },
+    "size_correction_rows": {
+      "mode": "0o644",
+      "path": "/private/tmp/pr38-consolidation-inventory-20261029/engine-git-custody-review-r14-r17-v2/decoded-size-corrections-provenance.json",
+      "rows": 4510,
+      "sha256": "4fbcad89b9a1972ef15913cdcc623134495afb2e70b5dce1426c896a1935d6ff",
+      "size_bytes": 7107857
+    }
+  },
+  "downstream_disposition": {
+    "deletion_authority": "none; cleanup remains HOLD",
+    "normative_map": "Integration-owned candidate v3 must use the sealed decoded-size inventory/corrections, retain provenance fields, and correct any candidate checksums that included the misleading R14 field. This addendum does not edit R14 or integration output.",
+    "remote_publication": "not proven by this local correction record"
+  },
+  "original_r14": {
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-census-r14-20261029",
+    "sha256sums_file_sha256": "e3cc00f81b64d4ebf86a6b7798756d1f997879c6a18e1c1825c21131eaed0f02",
+    "size_field_limit": "For 4,510 R14 pack-OID rows, `size_bytes` was packed-delta representation size, not decoded logical Git object size. Do not use/sum those values as logical object payload bytes. Physical loose/pack file sizes remain their separate measured raw filesystem sizes."
+  },
+  "review_method": {
+    "isolated_odb": "/private/tmp/pr38-consolidation-inventory-20261029/engine-git-custody-review-r14-r17-v2/isolated-union.git",
+    "isolation": "no alternates, no promisor, no captured repository config",
+    "measurement": "git cat-file logical object sizes from isolated imported pack set; each decoded object Git SHA-1 verified",
+    "oid_type_union": {
+      "count": 9026,
+      "extra": 0,
+      "missing": 0
+    },
+    "pack_imports": {
+      "all_index_pack_exit_0": true,
+      "count": 11,
+      "fix_thin_used": false
+    },
+    "review_root": "/private/tmp/pr38-consolidation-inventory-20261029/engine-git-custody-review-r14-r17-v2",
+    "source_stability": {
+      "all_matching_original_hashes": true,
+      "physical_odb_files": 584
+    }
+  },
+  "schema": "pr38-r14-decoded-object-size-correction-v1",
+  "status": "immutable supplemental correction; original R14 preserved unchanged"
+}

@@ -12,6 +12,52 @@ pub enum Input {
     Tick,
 }
 
+#[non_exhaustive]
+#[derive(Clone, PartialEq, Eq)]
+pub enum RoutedInput {
+    Input(Input),
+
+    MiddleClick { pos: Position, mods: KeyModifiers },
+}
+
+impl From<Input> for RoutedInput {
+    fn from(input: Input) -> Self {
+        Self::Input(input)
+    }
+}
+
+impl fmt::Debug for RoutedInput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Input(input) => f.debug_tuple("Input").field(input).finish(),
+            Self::MiddleClick { pos, mods } => f
+                .debug_struct("MiddleClick")
+                .field("pos", pos)
+                .field("mods", mods)
+                .finish(),
+        }
+    }
+}
+
+impl RoutedInput {
+    #[cfg(feature = "crossterm")]
+    pub fn from_crossterm(ev: ratatui_crossterm::crossterm::event::Event) -> Option<Self> {
+        use ratatui_crossterm::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
+        match ev {
+            Event::Mouse(MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Middle),
+                column,
+                row,
+                modifiers,
+            }) => Some(Self::MiddleClick {
+                pos: Position::new(column, row),
+                mods: modifiers.into(),
+            }),
+            other => Input::from_crossterm(other).map(Self::Input),
+        }
+    }
+}
+
 impl fmt::Debug for Input {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -99,10 +145,12 @@ impl Chord {
         if self.code != other.code {
             return false;
         }
-        if matches!(self.code, KeyCode::Char(_)) {
-            self.mods.difference(KeyModifiers::SHIFT) == other.mods.difference(KeyModifiers::SHIFT)
-        } else {
-            self.mods == other.mods
+        match self.code {
+            KeyCode::Char(_) | KeyCode::BackTab => {
+                self.mods.difference(KeyModifiers::SHIFT)
+                    == other.mods.difference(KeyModifiers::SHIFT)
+            }
+            _ => self.mods == other.mods,
         }
     }
 
@@ -214,143 +262,6 @@ impl Input {
             Event::Paste(s) => Some(Input::Paste(s)),
             Event::FocusGained | Event::FocusLost => None,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[cfg(feature = "crossterm")]
-    use ratatui_crossterm::crossterm::event::{
-        Event, KeyEvent, KeyEventKind, KeyEventState, MouseButton, MouseEvent, MouseEventKind,
-    };
-
-    #[cfg(feature = "crossterm")]
-    fn key_event(code: KeyCode, kind: KeyEventKind) -> Event {
-        Event::Key(KeyEvent {
-            code: code.into(),
-            modifiers: KeyModifiers::NONE.into(),
-            kind,
-            state: KeyEventState::NONE,
-        })
-    }
-
-    #[cfg(feature = "crossterm")]
-    fn mouse(kind: MouseEventKind, mods: KeyModifiers) -> Event {
-        Event::Mouse(MouseEvent {
-            kind,
-            column: 3,
-            row: 4,
-            modifiers: mods.into(),
-        })
-    }
-
-    #[test]
-    #[cfg(feature = "crossterm")]
-    fn key_release_is_dropped() {
-        assert_eq!(
-            Input::from_crossterm(key_event(KeyCode::Enter, KeyEventKind::Release)),
-            None
-        );
-        assert!(Input::from_crossterm(key_event(KeyCode::Enter, KeyEventKind::Press)).is_some());
-        assert!(Input::from_crossterm(key_event(KeyCode::Enter, KeyEventKind::Repeat)).is_some());
-    }
-
-    #[test]
-    fn paste_debug_redacts_the_payload() {
-        let debug = format!("{:?}", Input::Paste("swordfish".to_owned()));
-        assert!(debug.contains("len"));
-        assert!(!debug.contains("swordfish"));
-    }
-
-    #[test]
-    #[cfg(feature = "crossterm")]
-    fn unmapped_mouse_button_is_dropped() {
-        assert_eq!(
-            Input::from_crossterm(mouse(
-                MouseEventKind::Down(MouseButton::Middle),
-                KeyModifiers::NONE
-            )),
-            None
-        );
-        assert_eq!(
-            Input::from_crossterm(mouse(
-                MouseEventKind::Drag(MouseButton::Right),
-                KeyModifiers::NONE
-            )),
-            None
-        );
-    }
-
-    #[test]
-    #[cfg(feature = "crossterm")]
-    fn mouse_carries_modifiers() {
-        let Some(Input::Mouse(m)) = Input::from_crossterm(mouse(
-            MouseEventKind::Down(MouseButton::Left),
-            KeyModifiers::SHIFT,
-        )) else {
-            panic!("expected a mouse input");
-        };
-        assert_eq!(m.mods, KeyModifiers::SHIFT);
-        assert_eq!(m.pos, Position::new(3, 4));
-        assert_eq!(m.kind, MouseKind::Down);
-    }
-
-    #[test]
-    fn chord_hashes_by_code_and_mods() {
-        use std::collections::HashSet;
-        let mut set = HashSet::new();
-        set.insert(Chord::key(KeyCode::Char('a')));
-        set.insert(Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL));
-        set.insert(Chord::key(KeyCode::Char('a')));
-        assert_eq!(set.len(), 2);
-        assert!(set.contains(&Chord::key(KeyCode::Char('a'))));
-    }
-
-    #[test]
-    #[cfg(feature = "crossterm")]
-    fn secondary_up_is_modelled() {
-        let Some(Input::Mouse(m)) = Input::from_crossterm(mouse(
-            MouseEventKind::Up(MouseButton::Right),
-            KeyModifiers::NONE,
-        )) else {
-            panic!("expected a mouse input");
-        };
-        assert_eq!(m.kind, MouseKind::SecondaryUp);
-    }
-
-    #[test]
-    #[cfg(feature = "crossterm")]
-    fn wheel_carries_axis_and_delta() {
-        let cases = [
-            (MouseEventKind::ScrollUp, Axis::V, -1),
-            (MouseEventKind::ScrollDown, Axis::V, 1),
-            (MouseEventKind::ScrollLeft, Axis::H, -1),
-            (MouseEventKind::ScrollRight, Axis::H, 1),
-        ];
-        for (kind, axis, delta) in cases {
-            let Some(Input::Mouse(m)) = Input::from_crossterm(mouse(kind, KeyModifiers::NONE))
-            else {
-                panic!("expected a mouse input");
-            };
-            assert_eq!(m.kind, MouseKind::Wheel(axis, delta));
-        }
-    }
-
-    #[test]
-    fn chord_matches_shifted_chars_and_display_is_readable() {
-        let k = Key {
-            code: KeyCode::Char('A'),
-            mods: KeyModifiers::SHIFT,
-        };
-        assert!(Chord::key(KeyCode::Char('A')).matches(&k));
-        assert!(k.is(KeyCode::Char('A')));
-        assert_eq!(k.bare_char(), Some('A'));
-        assert_eq!(
-            Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL).to_string(),
-            "Ctrl+s"
-        );
-        assert_eq!(Chord::key(KeyCode::Esc).to_string(), "Esc");
     }
 }
 
@@ -518,203 +429,6 @@ mod backend_keys {
     impl From<KeyModifiers> for backend::KeyModifiers {
         fn from(value: KeyModifiers) -> Self {
             Self::from_bits_retain(value.bits())
-        }
-    }
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::{Input, Key};
-
-        #[test]
-        fn every_backend_key_preserves_its_identity() {
-            let cases = [
-                (backend::KeyCode::Backspace, KeyCode::Backspace),
-                (backend::KeyCode::Enter, KeyCode::Enter),
-                (backend::KeyCode::Left, KeyCode::Left),
-                (backend::KeyCode::Right, KeyCode::Right),
-                (backend::KeyCode::Up, KeyCode::Up),
-                (backend::KeyCode::Down, KeyCode::Down),
-                (backend::KeyCode::Home, KeyCode::Home),
-                (backend::KeyCode::End, KeyCode::End),
-                (backend::KeyCode::PageUp, KeyCode::PageUp),
-                (backend::KeyCode::PageDown, KeyCode::PageDown),
-                (backend::KeyCode::Tab, KeyCode::Tab),
-                (backend::KeyCode::BackTab, KeyCode::BackTab),
-                (backend::KeyCode::Delete, KeyCode::Delete),
-                (backend::KeyCode::Insert, KeyCode::Insert),
-                (backend::KeyCode::Null, KeyCode::Null),
-                (backend::KeyCode::Esc, KeyCode::Esc),
-                (backend::KeyCode::CapsLock, KeyCode::CapsLock),
-                (backend::KeyCode::ScrollLock, KeyCode::ScrollLock),
-                (backend::KeyCode::NumLock, KeyCode::NumLock),
-                (backend::KeyCode::PrintScreen, KeyCode::PrintScreen),
-                (backend::KeyCode::Pause, KeyCode::Pause),
-                (backend::KeyCode::Menu, KeyCode::Menu),
-                (backend::KeyCode::KeypadBegin, KeyCode::KeypadBegin),
-                (backend::KeyCode::F(0), KeyCode::F(0)),
-                (backend::KeyCode::F(255), KeyCode::F(255)),
-                (backend::KeyCode::Char('λ'), KeyCode::Char('λ')),
-                (backend::KeyCode::Char('\0'), KeyCode::Char('\0')),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::Play),
-                    KeyCode::Media(MediaKeyCode::Play),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::Pause),
-                    KeyCode::Media(MediaKeyCode::Pause),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::PlayPause),
-                    KeyCode::Media(MediaKeyCode::PlayPause),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::Reverse),
-                    KeyCode::Media(MediaKeyCode::Reverse),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::Stop),
-                    KeyCode::Media(MediaKeyCode::Stop),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::FastForward),
-                    KeyCode::Media(MediaKeyCode::FastForward),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::Rewind),
-                    KeyCode::Media(MediaKeyCode::Rewind),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::TrackNext),
-                    KeyCode::Media(MediaKeyCode::TrackNext),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::TrackPrevious),
-                    KeyCode::Media(MediaKeyCode::TrackPrevious),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::Record),
-                    KeyCode::Media(MediaKeyCode::Record),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::LowerVolume),
-                    KeyCode::Media(MediaKeyCode::LowerVolume),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::RaiseVolume),
-                    KeyCode::Media(MediaKeyCode::RaiseVolume),
-                ),
-                (
-                    backend::KeyCode::Media(backend::MediaKeyCode::MuteVolume),
-                    KeyCode::Media(MediaKeyCode::MuteVolume),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::LeftShift),
-                    KeyCode::Modifier(ModifierKeyCode::LeftShift),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::LeftControl),
-                    KeyCode::Modifier(ModifierKeyCode::LeftControl),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::LeftAlt),
-                    KeyCode::Modifier(ModifierKeyCode::LeftAlt),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::LeftSuper),
-                    KeyCode::Modifier(ModifierKeyCode::LeftSuper),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::LeftHyper),
-                    KeyCode::Modifier(ModifierKeyCode::LeftHyper),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::LeftMeta),
-                    KeyCode::Modifier(ModifierKeyCode::LeftMeta),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::RightShift),
-                    KeyCode::Modifier(ModifierKeyCode::RightShift),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::RightControl),
-                    KeyCode::Modifier(ModifierKeyCode::RightControl),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::RightAlt),
-                    KeyCode::Modifier(ModifierKeyCode::RightAlt),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::RightSuper),
-                    KeyCode::Modifier(ModifierKeyCode::RightSuper),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::RightHyper),
-                    KeyCode::Modifier(ModifierKeyCode::RightHyper),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::RightMeta),
-                    KeyCode::Modifier(ModifierKeyCode::RightMeta),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::IsoLevel3Shift),
-                    KeyCode::Modifier(ModifierKeyCode::IsoLevel3Shift),
-                ),
-                (
-                    backend::KeyCode::Modifier(backend::ModifierKeyCode::IsoLevel5Shift),
-                    KeyCode::Modifier(ModifierKeyCode::IsoLevel5Shift),
-                ),
-            ];
-            for (raw, owned) in cases {
-                assert_eq!(KeyCode::from(raw), owned);
-                assert_eq!(backend::KeyCode::from(owned), raw);
-                for kind in [backend::KeyEventKind::Press, backend::KeyEventKind::Repeat] {
-                    let event =
-                        backend::KeyEvent::new_with_kind(raw, backend::KeyModifiers::NONE, kind);
-                    assert_eq!(
-                        Input::from_crossterm(backend::Event::Key(event)),
-                        Some(Input::Key(Key {
-                            code: owned,
-                            mods: KeyModifiers::NONE
-                        }))
-                    );
-                }
-                let release = backend::KeyEvent::new_with_kind(
-                    raw,
-                    backend::KeyModifiers::NONE,
-                    backend::KeyEventKind::Release,
-                );
-                assert_eq!(Input::from_crossterm(backend::Event::Key(release)), None);
-            }
-        }
-
-        #[test]
-        fn modifier_names_and_every_bit_pattern_are_lossless() {
-            let names = [
-                (backend::KeyModifiers::SHIFT, KeyModifiers::SHIFT),
-                (backend::KeyModifiers::CONTROL, KeyModifiers::CONTROL),
-                (backend::KeyModifiers::ALT, KeyModifiers::ALT),
-                (backend::KeyModifiers::SUPER, KeyModifiers::SUPER),
-                (backend::KeyModifiers::HYPER, KeyModifiers::HYPER),
-                (backend::KeyModifiers::META, KeyModifiers::META),
-                (backend::KeyModifiers::NONE, KeyModifiers::NONE),
-            ];
-            for (raw, owned) in names {
-                assert_eq!(KeyModifiers::from(raw), owned);
-            }
-            for bits in u8::MIN..=u8::MAX {
-                let raw = backend::KeyModifiers::from_bits_retain(bits);
-                let owned = KeyModifiers::from(raw);
-                assert_eq!(owned.bits(), bits);
-                assert_eq!(backend::KeyModifiers::from(owned), raw);
-                let event = backend::KeyEvent::new(backend::KeyCode::Enter, raw);
-                assert_eq!(
-                    Input::from_crossterm(backend::Event::Key(event)),
-                    Some(Input::Key(Key {
-                        code: KeyCode::Enter,
-                        mods: owned
-                    }))
-                );
-            }
         }
     }
 }

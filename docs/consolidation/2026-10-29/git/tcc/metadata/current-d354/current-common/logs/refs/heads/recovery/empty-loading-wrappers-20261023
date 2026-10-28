@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 078fd59c0cc5a7cce3504470731c9dd2360c161d Alexey Zhokhov <alexey@zhokhov.com> 1792725474 +0700	branch: Created from origin/parity/termrock-visual-baseline
+078fd59c0cc5a7cce3504470731c9dd2360c161d 83074f618366781c14c20d9d6a09e55554abce08 Alexey Zhokhov <alexey@zhokhov.com> 1792726036 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+83074f618366781c14c20d9d6a09e55554abce08 b890a0948cc807f0977e79e9aa860940ab189863 Alexey Zhokhov <alexey@zhokhov.com> 1792726247 +0700	commit: fix(controls): avoid empty spinner gap
+b890a0948cc807f0977e79e9aa860940ab189863 22a28aeba8aa8b646bd0101336a92e0a3e9e67cd Alexey Zhokhov <alexey@zhokhov.com> 1792727695 +0700	commit: test(feedback): verify TextSection measured cell mapping
+22a28aeba8aa8b646bd0101336a92e0a3e9e67cd 1345c04fe8b37e820f2ea799c250872ec021e764 Alexey Zhokhov <alexey@zhokhov.com> 1792728052 +0700	rebase (finish): refs/heads/recovery/empty-loading-wrappers-20261023 onto eb7942a6cec9f7a8df18e1b3fc4fa52860a454e5
+1345c04fe8b37e820f2ea799c250872ec021e764 dae7f40e69505c669ba79d5682be07f86429b04f Alexey Zhokhov <alexey@zhokhov.com> 1792729008 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+dae7f40e69505c669ba79d5682be07f86429b04f d0ee31f332c3abe4bf19528ff57b7936970f657f Alexey Zhokhov <alexey@zhokhov.com> 1792729379 +0700	commit: test(tablepro-ui): cover inline grid caret ownership
+d0ee31f332c3abe4bf19528ff57b7936970f657f ec2885f22adb2046671a7ce27afc20c4c39b9ec2 Alexey Zhokhov <alexey@zhokhov.com> 1792730710 +0700	rebase (finish): refs/heads/recovery/empty-loading-wrappers-20261023 onto ec2885f22adb2046671a7ce27afc20c4c39b9ec2
+ec2885f22adb2046671a7ce27afc20c4c39b9ec2 8b6ef301eb7edc760e6eeb967ade077bf8e3c99c Alexey Zhokhov <alexey@zhokhov.com> 1792731047 +0700	commit: test(navigation): recover multi list interaction coverage
+8b6ef301eb7edc760e6eeb967ade077bf8e3c99c 8363ebf4395d597ed01dc39b0d5e12ddafe0121d Alexey Zhokhov <alexey@zhokhov.com> 1792731448 +0700	rebase (finish): refs/heads/recovery/empty-loading-wrappers-20261023 onto 9eec48b778f11b89860e8025bb5f99308a4b4364

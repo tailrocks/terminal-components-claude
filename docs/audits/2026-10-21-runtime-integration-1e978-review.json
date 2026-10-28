@@ -1,0 +1,74 @@
+{
+  "reviewed_commit": "1e978a2d0faec34f7c84312ed8144cad47656225",
+  "decision": "Shared runtime/MasterDetail integration source is cleared in this bounded review. Approved-generator 0.1.29 output is fresh. Latest released generator 0.1.30 adoption has a separately observed configuration blocker; no overall CI or application acceptance.",
+  "source_review": [
+    "App::edit_entry defaults Immediate and is copied into Cx for ordinary update and on_esc paths. Cx retains the editor lifecycle and exact layer receipt acknowledgment methods alongside new diagnostics and focused_in_scope accessors.",
+    "Ui retains the frame-local actual cursor request marker: exact owner, parent layer, overlay layer and request index. The final resolver rechecks actual focus, current top nonmodal Popover, registry layer, retained request and visible position. MasterDetail changes do not add a second cursor or invisible owner registration.",
+    "Scoped bubble routing retains the initial event focus/top guard before any fallback and revalidates every scoped candidate. Bounded frame diagnostics and drop-count append remain intact.",
+    "MasterDetail measure delegates to shared composition and SplitPane measurement. Draw reports actual layout and renders real groups without running input handlers or domain effects. The public catalogue example uses data-owned documents and one shared block configuration."
+  ],
+  "verification": [
+    {
+      "command": "cargo nextest run --locked -p termrock --all-targets",
+      "result": "Six passed, zero skipped. The ordinary public cursor_position fix compiles under default features.",
+      "log": "/tmp/integration-1e978-facade-default.log"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock --all-targets --features testing",
+      "result": "20 passed, zero skipped, including all seven MasterDetail consumer cases.",
+      "log": "/tmp/integration-1e978-facade-testing.log"
+    },
+    {
+      "command": "Exact approved generated facade testing Cargo nextest argv from the preview manifest, --profile ci --offline --no-default-features --features default,testing",
+      "result": "20 passed, zero skipped. This independently proves the required feature job discovers the new MasterDetail target.",
+      "log": "/tmp/integration-1e978-generated-testing.log"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock-runtime -p termrock-editors -p termrock-overlays --all-targets --features termrock-runtime/testing",
+      "result": "509 passed, three skipped. Skipped fixtures are not counted as passing coverage.",
+      "log": "/tmp/integration-1e978-runtime-editor.log"
+    },
+    {
+      "command": "Unchanged independent public scoped/MasterDetail probe suite",
+      "result": "Ten passed, one preserved diagnosed obsolete summary assertion failed, zero skipped. Leaf/inner modal persistence, inner/outer/global order, nested bounds and resize-before-input pass.",
+      "log": "/tmp/integration-1e978-scoped-probes.log"
+    },
+    {
+      "command": "cargo clippy --locked -p termrock -p termrock-runtime --all-targets -- -D warnings",
+      "result": "Exit zero under default features.",
+      "log": "/tmp/integration-1e978-clippy-default.log"
+    },
+    {
+      "command": "cargo fmt --check -p termrock-runtime -p termrock",
+      "result": "Exit zero.",
+      "log": "/tmp/integration-1e978-fmt.log"
+    }
+  ],
+  "generator_review": {
+    "approved_pin": "0.1.29; explicit executable /Users/donbeave/.local/share/mise/installs/github-tailrocks-velnor-new/0.1.29/velnor-actions, SHA-256 7c4e0efeab89e05928bbd9a375d7b594fd9236caef2eac7b4ad241b3a92dd1d3. PATH resolves 0.1.12 and was not used.",
+    "preview": "generate --output-dir /private/tmp/termrock-1e978-velnor029-preview completed successfully. All 12 generated files/symlinks match the committed .github tree byte-for-byte; no task manifest changes. New Cargo/example metadata does not require a 0.1.29 generated diff.",
+    "preview_log": "/tmp/integration-1e978-velnor029.log",
+    "comparison": "/tmp/integration-1e978-velnor029-diff.json",
+    "required_coverage": "The unchanged generated testing task enables the facade testing feature and discovers all 20 current tests, including MasterDetail 7, Picker slots, SplitBlock, composition and example journeys. Clippy all-targets compiles the executable file_catalogue_master_detail example, whose render_once is exercised by the public consumer.",
+    "latest_release_observed": {
+      "tag": "v0.1.30",
+      "source": "a6b1d7873151dc62711844158490e8687d191943",
+      "published_at": "2026-10-20T19:25:36Z",
+      "release_url": "https://github.com/tailrocks/velnor-new/releases/tag/v0.1.30",
+      "binary": "/Users/donbeave/.local/share/mise/installs/github-tailrocks-velnor-new/0.1.30/velnor-actions",
+      "sha256": "7cb74f0a82edbc9545d5d2170387a21dab33c84e8674610fd1e46dad2ca2ad3c",
+      "authenticity": "Installed binary digest matches the official release aarch64 Apple checksum asset fetched independently."
+    },
+    "latest_preview_result": "Released 0.1.30 generate and config migrate --to 2 both fail before generation with .velnor/config.toml: bin: unknown_config_field. The offending existing key is stacks.rust.binary_release.bin at config line 53, even though binary release is disabled. No config or pin was changed to bypass this error.",
+    "latest_preview_log": "/tmp/integration-1e978-velnor030.log",
+    "next_stage": "Assign a separate CI/upstream owner to diagnose the 0.1.30 config compatibility change, migrate through a supported generator/config path, upgrade the tool pin/lock deliberately, regenerate and rerun CI validation. Do not hand-edit generated output or treat the older approved pin as the latest release.",
+    "documentation_gap": "docs/ci.md requested by repository instructions is absent from exact reviewed commit. Existing docs/audits/2026-10-21-velnor-testing-configuration.md was read instead; its historical latest 0.1.29 statement is superseded by the independently observed 0.1.30 release."
+  },
+  "limits": [
+    "Remote Plan checkout timeout/skipped Rust jobs remain unresolved; this review did not inspect a new remote Actions run or claim CI green.",
+    "Generated direct cargo test --doc tasks and nextest-only policy conflict remain separately recorded; those tasks were not executed.",
+    "No four-application frozen CLI parity or complete library acceptance is claimed.",
+    "The preserved old summary probe defect remains recorded with source-based body/footer proof, not counted as a pass.",
+    "No product source, config, pin or committed generated output was edited; generation wrote only external preview directories. No helpers were spawned."
+  ]
+}

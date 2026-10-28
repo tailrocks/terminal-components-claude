@@ -1,0 +1,10 @@
+{
+  "attempt": "preflight-03",
+  "corrected_contract": "verify-pack binds packed OID membership and object type; git cat-file --batch-check binds logical object type and size",
+  "final_archive_created": false,
+  "observed_object_count": 77,
+  "reason": "initial pack comparator incorrectly treated git verify-pack field 3 as logical object size; output reports packed/delta representation size for many blobs",
+  "result": "failed-before-output-creation",
+  "source_mutation": "none",
+  "typed_oid_membership_count": 77
+}

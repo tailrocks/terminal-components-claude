@@ -1,0 +1,113 @@
+{
+  "reviewer": "Independent Rust reviewer /root/button_theme_contract_review",
+  "reviewed_commit": "332f40d07e38512f91cfb038eb9174c413755686",
+  "comparison_commit": "25724c71d1c6062db09f9d44f6407c232b8a4e8e",
+  "status": "Bounded Fields vertical-capture fix cleared. No new findings in this follow-up. No Form or application acceptance.",
+  "publication": {
+    "state_at_assignment": "Local author commit; coordinator owns publication. Reviewer did not push.",
+    "direct_remote_observation": "332f40d07e38512f91cfb038eb9174c413755686\trefs/heads/wip/textarea-fields-stage3-20261021",
+    "exact_reviewed_tip_observed_remote": true
+  },
+  "findings": [],
+  "resolved_finding": {
+    "priority": "P2",
+    "path": "crates/termrock-fields/src/textarea.rs",
+    "line": 85,
+    "evidence": "The captured source-row projection no longer caps to logical_rows-1. Original document coordinates extrapolate below the physical viewport, then the existing document selection mechanism bounds the row and existing scroll reveal places the actual caret in visible TEXT. Strict initial press hit testing still uses document_point and is byte-unchanged.",
+    "red_before_green": "Same original two boundary probes:preincrement f2d2/2PASS;prior25724topPASS/bottomFAIL;reviewed332ftop+bottomPASS. Bottom case again commitsXj rather thanXe\\nf\\ng\\nh\\ni\\nj."
+  },
+  "unchanged_probe_sources": [
+    {
+      "path": "/private/tmp/termrock-textarea-61426-probes/tests/window.rs",
+      "sha256": "46d56417cc8a5a8e2dc789bddd2ddbe51079aaec646b1b01158e03a99ccd8546",
+      "unchanged_since_prior_review": true
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-probes/tests/zero.rs",
+      "sha256": "e96cfd993e19fe512968054d1e9f12901c82267e59cb7dfd6fa02604872b6e19",
+      "unchanged_since_prior_review": true
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-probes/tests/capture_bounds.rs",
+      "sha256": "22e5e7ae093e5203cc10d4d3dd382a374aa2208cafdff7ecf17bd0e62c031550",
+      "unchanged_since_prior_review": true
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-probes/tests/unicode_capture.rs",
+      "sha256": "f2aac8487724993f353e94b22eada135b94911e265b632ed20cc4661733a1f4c",
+      "unchanged_since_prior_review": true
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/termrock-textarea-61426-probes/Cargo.toml --no-fail-fast --status-level fail",
+      "stage": "Prior11 unchanged probes before adding capture_visibility target",
+      "exit": 0,
+      "run_id": "55bcb005-326a-4ffd-b63b-7ac13c9c7387",
+      "result": "11/11passed,0skipped. Original8 plus same top/bottom2 plus nonzero child/parent Unicode capture1."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/termrock-textarea-61426-probes/Cargo.toml --test capture_visibility --no-fail-fast --status-level fail",
+      "exit": 0,
+      "run_id": "eeeb5c83-726a-4993-80a0-026ccf44541c",
+      "result": "2/2passed,0skipped. Press in gutter does not arm a text selection drag; downward capture reveals actualdocumentrowj and cursor(4,6) inside visible5-row body, caret_source_row4."
+    },
+    {
+      "command": "cargo nextest run -p termrock-fields --all-targets --no-fail-fast --status-level fail",
+      "exit": 0,
+      "result": "78passed,0skipped."
+    },
+    {
+      "command": "cargo clippy -p termrock-fields --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt -p termrock-fields --check",
+      "exit": 0
+    }
+  ],
+  "scope": [
+    "Follow-up production diff removes only the viewport source-row cap and updates its explanatory comment. No whole-document replacement, app domain access or new input mechanism.",
+    "Previous horizontal-width and placeholder fixes remain covered by byte-identical original probes; no expected output weakened.",
+    "Top ordinary zero-offset boundary and captured original Unicode row5 with child3+parent2 offsets are independently exercised."
+  ],
+  "limits": [
+    "Resize-before-input, partial scrollbar-thumb dragging, clipped keyboard-menu anchoring and parent-clipped vertical top-boundary policy remain uncleared.",
+    "No full workspace or four-application paired acceptance claimed.",
+    "The candidate review worktree acquired1301 tracked deletions only under crates/termrock-conformance/target while tests ran. No non-target tracked path differs and nothing is staged. Reviewer issued no delete/restore/cleanup command. Cause unestablished; missing artifact paths preserved in external evidence index, not included in source approval."
+  ],
+  "artifacts": [
+    {
+      "path": "/private/tmp/termrock-textarea-332f-original-public.log",
+      "sha256": "0e5db18b5d7b7d9f2a341239a39ad553a3767531a69d135b09a1415aec01bf61"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-332f-hit-caret.log",
+      "sha256": "ce06fce2b2515ffb6d88604ba2dbaf1faea3b5431ff4bcc7ac2b5cd3dda73af6"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-332f-native.log",
+      "sha256": "df02af7f02c95ffb74da8cef2174199f6db026547ae02344b99463cd0368f27c"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-332f-clippy.log",
+      "sha256": "b12d17dad7bae8361f2d6dc9d284a27c36fd687a75ec02b2d68200eb7e17db78"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-332f-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-probes/tests/capture_visibility.rs",
+      "sha256": "f6e065717bc01df5bf1d004d1ccf0feeca35d6f60d8da905ced2a72e5cc1b56b"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/textarea-fields-review-332f/remote-head.txt",
+      "sha256": "1ac7cbdb11d25048a2176d20130a21adc233358db51a2cde25e113959e41dd77"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/textarea-fields-review-332f/tracked-target-artifact-differences.json",
+      "sha256": "603ad0ab5c95512d60d19a475602ddbe80414b3f41c54384da4aefcaf701f799"
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "contrast": {
+    "interpretation": "The runtime does not normalize the white custom background against component fallback or focused-fill foreground. The real widget decoded frames directly fail the documented 4.5:1 text contrast requirement in every tested profile (Fill is white-on-white in all four; Bar muted/gray also below 4.5 by decoded palette semantics). This confirms a concrete styling behavior defect for single-channel custom light backgrounds, rather than only missing test coverage.",
+    "truecolor_wcag_ratios_on_white": {
+      "Bar detail RGB(138,138,138)": "3.4522:1",
+      "Bar tag RGB(179,179,179)": "2.0967:1",
+      "Fill detail/tag white on white": "1:1"
+    }
+  },
+  "decoded_cells_with_authored_fg_black": {
+    "all_profiles_and_cursor_styles": "detail and tag cells remained fg=Black,bg=White (8 combinations)",
+    "result": "Explicit owner FG intent is preserved by current implementation."
+  },
+  "decoded_cells_without_authored_fg": {
+    "Ansi16": {
+      "Bar": {
+        "detail": [
+          "Gray",
+          "White"
+        ],
+        "tag": [
+          "Gray",
+          "White"
+        ]
+      },
+      "Fill": {
+        "detail": [
+          "White",
+          "White"
+        ],
+        "tag": [
+          "White",
+          "White"
+        ]
+      }
+    },
+    "Ansi256": {
+      "Bar": {
+        "detail": [
+          "Indexed(244)",
+          "White"
+        ],
+        "tag": [
+          "Indexed(249)",
+          "White"
+        ]
+      },
+      "Fill": {
+        "detail": [
+          "Indexed(231)",
+          "White"
+        ],
+        "tag": [
+          "Indexed(231)",
+          "White"
+        ]
+      }
+    },
+    "Mono": {
+      "Bar": {
+        "detail": [
+          "Gray",
+          "White"
+        ],
+        "tag": [
+          "Gray",
+          "White"
+        ]
+      },
+      "Fill": {
+        "detail": [
+          "White",
+          "White"
+        ],
+        "tag": [
+          "White",
+          "White"
+        ]
+      }
+    },
+    "TrueColor": {
+      "Bar": {
+        "detail": [
+          "Rgb(138, 138, 138)",
+          "White"
+        ],
+        "tag": [
+          "Rgb(179, 179, 179)",
+          "White"
+        ]
+      },
+      "Fill": {
+        "detail": [
+          "Rgb(255, 255, 255)",
+          "White"
+        ],
+        "tag": [
+          "Rgb(255, 255, 255)",
+          "White"
+        ]
+      }
+    }
+  },
+  "disposition": "HOLD; concrete contrast failure confirmed",
+  "layer_state": "No change to prior disposition: no authoritative expected appearance found for active-but-unfocused picker rows under a modal/background, so this remains a test/contract gap only, not a demonstrated bug.",
+  "prior_evidence": [
+    {
+      "path": "/private/tmp/picker-row-review-f46c-20261021.json",
+      "sha256": "76cefa76665f51cd6fdc87f4e86875fe6f1411bf54ffb41e3f724433f67172a3"
+    },
+    {
+      "path": "/private/tmp/picker-row-review-f46c-20261021-followup.json",
+      "sha256": "601139db431c0d10651b413ecf42a45cfb89477ca2015f708fdeb5c9252bb2ff"
+    }
+  ],
+  "probe": {
+    "command": "CARGO_TARGET_DIR=/private/tmp/picker-row-target-f46c-20261021 cargo nextest run -p termrock-navigation --test item_row_columns independent_probe_white_background_rendered_cells --no-capture -j 4",
+    "method": "Temporary test-only probe appended in isolated review worktree crates/termrock-navigation/tests/item_row_columns.rs, run against actual public FilterList/ItemRow and Harness decoded cells, then file restored byte-for-byte. No production source or expected artifact changed.",
+    "result": "1 passed, 15 skipped; test prints decoded cells. Probe pass means render completed; it had no contrast assertion.",
+    "scenario": "Different live Item data with detail/tag; Part::META authored BG=white, no FG; cursor set on row; tested Bar and Fill; Junie TrueColor, Ansi256, Ansi16, Mono. Repeated with authored META FG=black plus BG=white."
+  },
+  "review": "independent actual-widget decoded-cell contrast probe",
+  "scope_limits": [
+    "This tests Junie profiles only; does not assert all theme palettes/profiles or global visual parity.",
+    "No source edits remain; worktree is clean. No live operational plan/key or capture/replay."
+  ],
+  "source_commit": "f46caa2ce68966d319ffbb4cf03428e8234368f3",
+  "worktree_clean_after_probe": true
+}

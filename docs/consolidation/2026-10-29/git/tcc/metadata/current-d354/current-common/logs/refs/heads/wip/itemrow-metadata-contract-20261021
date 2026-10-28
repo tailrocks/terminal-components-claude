@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 97c9265c91e8e48e47da476215cb3fce520a6a32 Alexey Zhokhov <alexey@zhokhov.com> 1792577967 +0700	branch: Created from origin/parity/termrock-visual-baseline
+97c9265c91e8e48e47da476215cb3fce520a6a32 7789d10db849f0a2cf37e3e9579d4c8b5cee179e Alexey Zhokhov <alexey@zhokhov.com> 1792578141 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+7789d10db849f0a2cf37e3e9579d4c8b5cee179e d378405cf43936b8e057e524f4ed69a6e0c46858 Alexey Zhokhov <alexey@zhokhov.com> 1792578661 +0700	commit: feat(navigation): add shared semantic item rows
+d378405cf43936b8e057e524f4ed69a6e0c46858 a13dc166c0ad15d554dce8fc76c94eeeffd0ea0e Alexey Zhokhov <alexey@zhokhov.com> 1792578677 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+a13dc166c0ad15d554dce8fc76c94eeeffd0ea0e e8cc0197e54836bbadfb2df1e200bf79cd7912c4 Alexey Zhokhov <alexey@zhokhov.com> 1792579241 +0700	commit: fix(navigation): preserve tree row closure inference
+e8cc0197e54836bbadfb2df1e200bf79cd7912c4 7bb4b4fff9b1381ecabd16a7173716ad333a1a42 Alexey Zhokhov <alexey@zhokhov.com> 1792579718 +0700	merge 2ce39f5cc33a9af53d2794ee429279fc17e75d1e: Merge made by the 'ort' strategy.
+7bb4b4fff9b1381ecabd16a7173716ad333a1a42 32628b360f6015fe4ef49c805c0e45e8264a874d Alexey Zhokhov <alexey@zhokhov.com> 1792580158 +0700	commit: fix(runtime): reject overflowing row metadata gaps

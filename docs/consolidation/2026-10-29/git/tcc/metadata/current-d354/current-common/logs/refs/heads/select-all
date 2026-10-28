@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 7bace224b25d5d31a89488516fb3ddbdec7d2c2d Alexey Zhokhov <alexey@zhokhov.com> 1792149845 +0700	branch: Created from HEAD
+7bace224b25d5d31a89488516fb3ddbdec7d2c2d c2a09a6f3b7da9b3a92562fcd5af023c5e8a06c5 Alexey Zhokhov <alexey@zhokhov.com> 1792151113 +0700	commit: feat(core): enable the kitty keyboard protocol so Cmd reaches the app
+c2a09a6f3b7da9b3a92562fcd5af023c5e8a06c5 8a60e4b79e3c86bf290152c10c738faee9ae52b3 Alexey Zhokhov <alexey@zhokhov.com> 1792151122 +0700	commit: feat(edit): Select All everywhere desktop UIs offer it
+8a60e4b79e3c86bf290152c10c738faee9ae52b3 ea2cfe7c7b9890791b9c7387bca607320f0d6210 Alexey Zhokhov <alexey@zhokhov.com> 1792151171 +0700	commit: docs(audits): record the Select All standards decision and status
+ea2cfe7c7b9890791b9c7387bca607320f0d6210 d9382e986ec5101b49f902cabb6c53a9007a4a1d Alexey Zhokhov <alexey@zhokhov.com> 1792151198 +0700	rebase (finish): refs/heads/select-all onto a5794f06a5f36de0767ad866063ca4bf99e45b1b
+d9382e986ec5101b49f902cabb6c53a9007a4a1d 3d9b58dc077d791e81f17989364404a0c0611baf Alexey Zhokhov <alexey@zhokhov.com> 1792151207 +0700	commit (amend): docs(audits): record the Select All standards decision and status

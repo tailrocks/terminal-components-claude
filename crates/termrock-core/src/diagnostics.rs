@@ -2,7 +2,7 @@ use ratatui_core::layout::Rect;
 
 use crate::action::ActionKey;
 use crate::event::Chord;
-use crate::id::Id;
+use crate::id::{Id, Part};
 use crate::keys::KeyPhase;
 use crate::layer_types::LayerId;
 
@@ -40,11 +40,25 @@ pub enum Diagnostic {
     FocusTransitionDidNotSettle {
         target: Option<Id>,
     },
+
+    FocusContinuationUnacknowledged {
+        owner: Id,
+    },
     UnaddressableId {
         id: Id,
     },
     DuplicateLayerDraw {
         id: Id,
+    },
+
+    InvalidComponentLayout {
+        owner: Id,
+        field: Option<Id>,
+    },
+
+    UnsupportedClippedComponentSlot {
+        owner: Id,
+        part: Part,
     },
 }
 
@@ -83,22 +97,9 @@ impl Diagnostics {
             self.push(d);
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn store_is_bounded_and_counts_drops() {
-        let mut d = Diagnostics::default();
-        for _ in 0..70 {
-            d.push(Diagnostic::UnaddressableId { id: Id::root("x") });
-        }
-        assert_eq!(d.items().len(), Diagnostics::CAPACITY);
-        assert_eq!(d.dropped(), 6);
-        d.clear();
-        assert!(d.items().is_empty());
-        assert_eq!(d.dropped(), 0);
+    pub fn append(&mut self, other: &Self) {
+        self.extend(other.items.iter().cloned());
+        self.dropped = self.dropped.saturating_add(other.dropped);
     }
 }

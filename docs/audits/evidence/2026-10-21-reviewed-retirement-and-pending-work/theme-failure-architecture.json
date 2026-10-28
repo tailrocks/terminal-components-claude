@@ -1,0 +1,79 @@
+{
+  "schema": "termrock.row-theme-failure-architecture.v1",
+  "decision": "Source diagnosis and staged implementation contract only; neither failing requirement is cleared.",
+  "candidate": "98106b687fd521bcf5faf10e98116d164a5e8cf0",
+  "fixed_reference": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "source_manifest": {
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-navigation/tests/item_row_columns.rs": "d07d9510aba287b9c23b319b5c92799a5bab5ca363b752efa75e391fbdba195d",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-navigation/src/item.rs": "a276412195816becde005f579fa9106b3b27dd6fdc195cdb11d1e3b1dfbdf1b1",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-runtime/src/rowui.rs": "82123f7e3f9bece79fa2531ecd9921185e09f1a17ab11abc1158c5d382876e75",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/src/builtin/mod.rs": "a9d6fbe6662c99aa4b1584723e05a4ac90dc0ec3319d7ad93813748b9da6d2a6",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/src/lib.rs": "abcd6a7fff00260bee2d69bd6fde3ee5af1b7c32392702b043a6266149a56812",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/src/recipe.rs": "03f00cc2c30bd25456d976a75aaea8034b8673493c1e284aa7d43040042708fe",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/src/resolve.rs": "1ffebb215a87af1388058d7d8574073248333d46c8255ecbb85804450dcadc4c",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/src/palettes.rs": "6ded9f94f34d52caa4b71ce618b482cf8852b82f835f3ca6470d89168e133e9d",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/picker.rs": "1e77073b2a3e2273e01ab8140c7d083d521136d12dd958d3f67b67fea2f1f6e4",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/theme.rs": "9e72e36f973de33f40ff205aaf3a2cc790c880323c793225fd8a5a12561b4c86",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/ui/row.rs": "91de0630c389729574c4a6cd04186352d490d1871a318eaac2917d5f705614d3"
+  },
+  "evidence_log": "/private/tmp/pr38-semantic-row-final-227df1b7-aaa9-4194-b2bd-589965ee01de.log",
+  "actual_failures": {
+    "constructor": "TrueColor historical fingerprint expected5235702202963140133 actual11294538839117913365; failure occurs beforeANSI256 assertions.",
+    "owner": "Only theme tier ICON/META fail: foregroundRgb255,255,255 replaces customRgb17,83,149; custombackgroundRgb61,21,97 survives. Overlay tier and LABEL pass."
+  },
+  "causes": [
+    {
+      "cause": "4d6ad401249e05a4dcf9f856a82147e54008490d added focused primary foreground and BOLD removal to PICKER ICON/META.",
+      "paths": [
+        "crates/termrock-theme/src/builtin/mod.rs:679",
+        "crates/termrock-theme/src/builtin/mod.rs:688"
+      ],
+      "mechanism": "Theme::define_family merges author base into same recipe and retains inherited state rules. resolve::apply_recipe applies base then state. Focused builtin rule overwrites customforeground, not custombackground. This is not Columns repainting cells after owner resolution.",
+      "support": [
+        "crates/termrock-theme/src/lib.rs:363",
+        "crates/termrock-theme/src/recipe.rs:211",
+        "crates/termrock-theme/src/resolve.rs:795",
+        "crates/termrock-runtime/src/rowui.rs:129"
+      ]
+    },
+    {
+      "cause": "Historical default fingerprint predates a partially legitimate frozen correction; it cannot decide frozen product authority.",
+      "support": [
+        "crates/termrock-navigation/tests/item_row_columns.rs:317",
+        "416:src/widgets/picker.rs:825"
+      ],
+      "mechanism": "Frozen focused ICON explicitly uses text_primary. Reverting all focused rules to regain prepolicy fingerprint would knowingly restore wrong focused ICON. Frozen META details/group use row_ink(mut ed) and tag uses row_ink(secondary); row_ink returns primary only when on_fill. Current focused META rule incorrectly also whitens bar-cursor metadata."
+    },
+    {
+      "cause": "Separate ANSI256 expectation authority conflict remains behind earlier TrueColor failure.",
+      "support": [
+        "2ca2c7ad33e699cb5ce3edd78e2264ac42b67fb8:crates/termrock-navigation/tests/item_row_columns.rs",
+        "416:src/theme.rs:939",
+        "crates/termrock-theme/src/palettes.rs:69"
+      ],
+      "mechanism": "2ca removed original244\u2192245 normalization and now asserts unchanged244. Frozen authored muted245,faint242,disabled239. Currentglobalmuted244/faint238 remainunadmitted; do notblessfromcandidate."
+    }
+  ],
+  "stages": [
+    "First preserve exact two RED logs and historical fixture provenance. Document reference conflict explicitly: historical prepolicy stability is distinct from frozen publicPicker output. No reference SHA changes, expected digest replacement, skipping cases, or global palette change.",
+    "Obtain frozen publicPicker complete-cell/row/control output for existing Bar and Fill configurations under four profiles, using different-data public consumer and immutable416. Assert ICON focusedprimary, detail/group muted unlesson_fill, tagssecondary unlesson_fill, disabled/inactive rules and all modifiers. Include custom ownerfg/bg/modifier channels separately. Source expressions qualify expectations, not candidate output.",
+    "Repair shared PICKER row style defaults at canonical resolution. Focused ICON primary and fill metadata primary are fallback component policies, not late rules that overwrite authored owner base. Reuse canonical per-channel provenance/seed-eligibility machinery already used by capability profiles (resolve.rs part_channel_unchanged/profile_covers_active_states), so authored family/variant base or state, global override, overlay and local patch remain authoritative perchannel. Do not globally reverse PartRecipe base/state precedence, change define_family into override_family, infer author intent solely from Role::Custom/equalRGB, or repaint completedcells.",
+    "Keep Bar/Fill an explicit component context in the shared row contract; focused alone is insufficient. Distinguish tag-secondary versus detail/group-muted defaults through semantic content slots while retaining owner META fallback/override compatibility. Existing ItemColumns already owns column mechanics; applications must not implement these style cases.",
+    "After independent frozen comparison, retain historical hashes under explicit source-qualified legacy policy fixture, including original state recipes and historicalpalette, and keep default-vs-explicit-Bar/gap1 assertions unchanged. Add a separate frozenqualified currentdefault test. This is a documented reference-defect resolution requiring independent approval, not replacing oldhashes with candidatehashes. Do not claim either test fixed before that review.",
+    "Handle qualified44 Theme restoration as a separate serialized Theme increment under existing recorded plan. Restore mapped source roles only after reference decision; no changing token palette to repair owner precedence or to match this legacydigest. Repeat both focused regressions, external public consumer, strict scopedClippy/fmt, and fixedfrozen completecells; then independent exactcommit review. Fullappgate remains required."
+  ],
+  "validation_contract": {
+    "negative_controls": [
+      "Mutate focusedICON default to muted: frozenWidget comparison mustfail.",
+      "Mutate barMETA to primary: frozenWidget comparison mustfail while Fill remainsprimary.",
+      "Force post-owner foregroundprimary: unchangedownerparttestmustfail.",
+      "Mutate muted245to244: authoredrole regressionmustfail."
+    ],
+    "compatibility": [
+      "Default vs explicitCursorStyle::Bar/metadata_gap1 buffers,cursor,hitregions equal.",
+      "Custom owner foreground alone mustnot suppress independent defaultbackground; custombackground alone mustnot suppress independent foreground.",
+      "Semantic tokens, explicitclears, glyphs, modifiers, disabled/inactivelayers and capabilityprofiles retain channelprecedence."
+    ]
+  },
+  "limits": "No product edits, no tests run or claimed, no helpers, no commits/pushes. Immutable source-object copies created read-only outside repository. Diagnosis uses exact prior test receipts and fixed source; proposed API adapters are contract requirements, not compiled APIs."
+}

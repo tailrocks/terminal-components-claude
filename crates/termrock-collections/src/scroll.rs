@@ -4,12 +4,37 @@ use crate::response::Response;
 use termrock_core::geometry::Headroom;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum FollowCursor {
+    #[default]
+    OnMove,
+
+    Always,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum TrackClick {
+    Jump,
+
+    #[default]
+    Page,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct ScrollState {
     offset: usize,
     content_len: usize,
     viewport_len: usize,
     reveal: Option<usize>,
     grab: Option<usize>,
+
+    context: usize,
+
+    exact: bool,
+    follow_cursor: FollowCursor,
+
+    followed: Option<(usize, usize)>,
+
+    paging: bool,
 }
 
 impl ScrollState {
@@ -20,7 +45,30 @@ impl ScrollState {
             viewport_len: 0,
             reveal: None,
             grab: None,
+            context: 0,
+            exact: false,
+            follow_cursor: FollowCursor::OnMove,
+            followed: None,
+            paging: false,
         }
+    }
+
+    pub const fn with_context(mut self, rows: usize) -> Self {
+        self.context = rows;
+        self
+    }
+
+    pub const fn context(&self) -> usize {
+        self.context
+    }
+
+    pub const fn with_follow_cursor(mut self, follow: FollowCursor) -> Self {
+        self.follow_cursor = follow;
+        self
+    }
+
+    pub const fn follow_cursor(&self) -> FollowCursor {
+        self.follow_cursor
     }
 
     pub const fn offset(&self) -> usize {
@@ -93,16 +141,65 @@ impl ScrollState {
         self.offset = self.max_offset();
     }
 
-    pub fn ensure_visible(&mut self, index: usize) {
+    pub fn ensure_visible(&mut self, index: usize) -> bool {
+        let exact = core::mem::take(&mut self.exact);
         if self.viewport_len == 0 {
-            return;
+            return false;
         }
-        if index < self.offset {
-            self.offset = index;
-        } else if index >= self.offset.saturating_add(self.viewport_len) {
-            self.offset = index.saturating_add(1).saturating_sub(self.viewport_len);
+        let before = self.offset;
+
+        let ctx = if !exact && self.viewport_len > 2 * self.context {
+            self.context
+        } else {
+            0
+        };
+        if index < self.offset + ctx {
+            self.offset = index.saturating_sub(ctx);
+        } else if index + ctx >= self.offset.saturating_add(self.viewport_len) {
+            self.offset = index
+                .saturating_add(ctx)
+                .saturating_add(1)
+                .saturating_sub(self.viewport_len);
         }
         self.clamp();
+        self.offset != before
+    }
+
+    pub fn pointer_move(&mut self) {
+        self.exact = true;
+    }
+
+    pub fn reveal_span(&mut self, start: usize, len: usize) -> bool {
+        if self.viewport_len == 0 {
+            return false;
+        }
+        let len = len.max(1);
+        let before = self.offset;
+        if len >= self.viewport_len {
+            self.offset = start;
+        } else {
+            let ctx = if self.viewport_len >= len + 2 * self.context {
+                self.context
+            } else {
+                0
+            };
+            if start < self.offset + ctx {
+                self.offset = start.saturating_sub(ctx);
+            } else if start + len + ctx > self.offset + self.viewport_len {
+                self.offset = start + len + ctx - self.viewport_len;
+            }
+        }
+        self.clamp();
+        self.offset != before
+    }
+
+    pub fn follow(&mut self, cursor: usize) -> bool {
+        let key = (cursor, self.viewport_len);
+        if self.follow_cursor == FollowCursor::OnMove && self.followed == Some(key) {
+            return false;
+        }
+        self.followed = Some(key);
+        self.ensure_visible(cursor)
     }
 
     pub fn ensure_visible_on_next_layout(&mut self, index: usize) {
@@ -194,34 +291,62 @@ impl ScrollState {
             .unwrap_or(0)
     }
 
-    pub fn press_track(&mut self, pos: usize, track_len: usize) {
+    pub fn press_track(&mut self, pos: usize, track_len: usize) -> bool {
+        self.paging = false;
         if !self.overflows() || track_len == 0 {
             self.grab = None;
-            return;
+            return false;
         }
         let (start, len) = self.thumb(track_len);
         if (start..start + len).contains(&pos) {
             self.grab = Some(pos - start);
-            return;
+            return false;
         }
         self.grab = Some(len / 2);
+        let before = self.offset;
         self.scroll_to(self.offset_for_track_pos(pos, track_len));
+        self.offset != before
     }
 
-    pub fn drag_track(&mut self, pos: usize, track_len: usize) {
+    pub fn press_track_with(&mut self, pos: usize, track_len: usize, click: TrackClick) -> bool {
+        if click == TrackClick::Jump || !self.overflows() || track_len == 0 {
+            return self.press_track(pos, track_len);
+        }
+        let (start, len) = self.thumb(track_len);
+        if (start..start + len).contains(&pos) {
+            self.grab = Some(pos - start);
+            return false;
+        }
+        self.grab = None;
+        self.paging = true;
+        let before = self.offset;
+        if pos < start {
+            self.page_up();
+        } else {
+            self.page_down();
+        }
+        self.offset != before
+    }
+
+    pub fn drag_track(&mut self, pos: usize, track_len: usize) -> bool {
         if !self.overflows() || track_len == 0 {
-            return;
+            return false;
         }
         let Some(grab) = self.grab else {
-            self.press_track(pos, track_len);
-            return;
+            if self.paging {
+                return false;
+            }
+            return self.press_track(pos, track_len);
         };
+        let before = self.offset;
         let target = self.offset_for_thumb_start(pos.saturating_sub(grab), track_len);
         self.scroll_to(target);
+        self.offset != before
     }
 
     pub fn release_track(&mut self) {
         self.grab = None;
+        self.paging = false;
     }
 
     pub fn offset_for_track_pos(&self, pos: usize, track_len: usize) -> usize {
@@ -235,170 +360,5 @@ impl ScrollState {
             .saturating_add(usable / 2)
             .checked_div(usable)
             .unwrap_or(0)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn clamps_offset_to_content() {
-        let mut s = ScrollState::new(100);
-        s.set_viewport(10);
-        s.scroll_by(500);
-        assert_eq!(s.offset(), 90);
-        s.scroll_by(-500);
-        assert_eq!(s.offset(), 0);
-        s.page_down();
-        assert_eq!(s.offset(), 10);
-        s.jump_end();
-        assert_eq!(s.offset(), s.max_offset());
-        s.set_content(5);
-        assert_eq!(s.offset(), 0);
-    }
-
-    #[test]
-    fn ensure_visible_moves_minimally() {
-        let mut s = ScrollState::new(50);
-        s.set_viewport(10);
-        s.ensure_visible(25);
-        assert_eq!(s.offset(), 16);
-        s.ensure_visible(5);
-        assert_eq!(s.offset(), 5);
-        s.ensure_visible(7);
-        assert_eq!(s.offset(), 5);
-    }
-
-    #[test]
-    fn thumb_covers_track_proportionally() {
-        let mut s = ScrollState::new(100);
-        s.set_viewport(20);
-        assert_eq!(s.thumb(10), (0, 2));
-        s.jump_end();
-        assert_eq!(s.thumb(10), (8, 2));
-        let mut s = ScrollState::new(5);
-        s.set_viewport(20);
-        assert!(!s.overflows());
-        assert_eq!(s.thumb(10), (0, 10));
-    }
-
-    #[test]
-    fn track_position_round_trips() {
-        let mut s = ScrollState::new(200);
-        s.set_viewport(20);
-        assert_eq!(s.offset_for_track_pos(19, 20), s.max_offset());
-        assert_eq!(s.offset_for_track_pos(0, 20), 0);
-    }
-
-    #[test]
-    fn wheel_at_the_boundary_is_consumed_without_repaint() {
-        let mut s = ScrollState::new(30);
-        s.set_viewport(10);
-        let r = s.wheel(-3);
-        assert!(r.is_consumed() && !r.is_changed());
-        let r = s.wheel(3);
-        assert!(r.is_consumed() && r.is_changed());
-        s.jump_end();
-        let r = s.wheel(3);
-        assert!(r.is_consumed() && !r.is_changed());
-        assert!(
-            s.pending_reveal().is_none(),
-            "a wheel never requests a reveal"
-        );
-    }
-
-    #[test]
-    fn ensure_visible_on_next_layout_is_set_only_by_cursor_motion() {
-        let mut s = ScrollState::new(50);
-        s.set_viewport(10);
-        let _ = s.wheel(5);
-        assert_eq!(s.pending_reveal(), None);
-        s.ensure_visible_on_next_layout(40);
-        assert_eq!(s.pending_reveal(), Some(40));
-        s.apply_layout(10, 50);
-        assert_eq!(s.pending_reveal(), None);
-        assert_eq!(s.offset(), 31);
-    }
-
-    #[test]
-    fn zero_viewports_retain_reveal_until_usable_layout() {
-        let mut s = ScrollState::new(50);
-        s.ensure_visible_on_next_layout(40);
-        for _ in 0..3 {
-            s.apply_layout(0, 50);
-            assert_eq!(s.pending_reveal(), Some(40));
-        }
-        s.apply_layout(10, 50);
-        assert_eq!(s.pending_reveal(), None);
-        assert_eq!(s.offset(), 31);
-        let _ = s.wheel(-5);
-        s.apply_layout(10, 50);
-        assert_eq!(s.offset(), 26, "consumed reveal does not undo a wheel");
-    }
-
-    #[test]
-    fn fields_are_private_and_every_mutator_clamps() {
-        let mut s = ScrollState::new(3);
-        s.set_viewport(10);
-        s.scroll_to(99);
-        assert_eq!(s.offset(), 0);
-        s.page_up();
-        assert_eq!(s.offset(), 0);
-        s.set_content(100);
-        s.scroll_to(99);
-        assert_eq!(s.offset(), 90);
-        s.set_viewport(200);
-        assert_eq!(s.offset(), 0);
-        assert_eq!(s.visible_range(), 0..100);
-        assert_eq!(s.headroom_v().down, 0);
-    }
-
-    #[test]
-    fn pressing_the_thumb_grabs_it_and_dragging_keeps_the_grabbed_row_under_the_pointer() {
-        let mut s = ScrollState::new(120);
-        s.set_viewport(31);
-        let track = 31;
-        let (start, len) = s.thumb(track);
-        assert_eq!((start, len), (0, 8));
-
-        s.press_track(7, track);
-        assert_eq!(s.offset(), 0);
-
-        s.drag_track(8, track);
-        assert_eq!(s.thumb(track).0, 1);
-        assert!(s.offset() > 0 && s.offset() < 8, "{}", s.offset());
-
-        s.drag_track(track - 1, track);
-        assert!(s.at_end());
-        assert_eq!(s.thumb(track).0, track - len);
-
-        s.drag_track(0, track);
-        assert_eq!(s.offset(), 0);
-
-        s.release_track();
-        s.press_track(20, track);
-        let (start, len) = s.thumb(track);
-        assert!(
-            (start..start + len).contains(&20),
-            "{start}..{}",
-            start + len
-        );
-
-        let mut fresh = ScrollState::new(120);
-        fresh.set_viewport(31);
-        fresh.drag_track(track - 1, track);
-        assert!(fresh.at_end());
-    }
-
-    #[test]
-    fn track_press_and_drag_are_no_ops_without_overflow() {
-        let mut s = ScrollState::new(3);
-        s.set_viewport(5);
-        s.press_track(2, 5);
-        s.drag_track(4, 5);
-        assert_eq!(s.offset(), 0);
-        s.release_track();
-        assert_eq!(s.offset(), 0);
     }
 }

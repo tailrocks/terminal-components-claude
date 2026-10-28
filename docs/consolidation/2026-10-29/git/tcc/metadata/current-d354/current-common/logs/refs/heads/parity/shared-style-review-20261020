@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 708420d470cc333867efaf0738faf21a3cd15a79 Alexey Zhokhov <alexey@zhokhov.com> 1792502603 +0700	branch: Created from HEAD
+708420d470cc333867efaf0738faf21a3cd15a79 4a0ab4983b84b4909d0182a323eb6e1714651691 Alexey Zhokhov <alexey@zhokhov.com> 1792502615 +0700	commit: fix: remove redundant help overlay width casts

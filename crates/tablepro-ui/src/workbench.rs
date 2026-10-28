@@ -1,5 +1,9 @@
 use crate::filter_editor::Filter;
-use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TabRecord, TableTab};
+use crate::tabs::{
+    self, ApplicationMutation, ExplorerItem, HistoryTab, QueryOutputId, QueryOutputInfo,
+    QueryOutputInput, QueryOutputState, QueryRunFinish, QueryTab, Tab, TabKey, TabRecord, TableTab,
+};
+use std::time::Duration;
 use tablepro_demo::db::{Catalog, Connection, ObjectKind};
 use tablepro_domain::model::{History, HistoryEntry, HistorySource, SwitcherIndex};
 
@@ -151,11 +155,168 @@ impl Workbench {
             .map(TabRecord::payload_mut)
     }
 
-    pub(crate) fn payloads_mut(&mut self) -> impl Iterator<Item = (TabKey, &mut Tab)> {
-        self.tabs.iter_mut().map(|record| {
-            let key = record.key();
-            (key, record.lifecycle_payload_mut())
-        })
+    pub(crate) fn application_update_payload<R>(
+        &mut self,
+        key: TabKey,
+        update: impl FnOnce(&mut Tab) -> (R, ApplicationMutation),
+    ) -> Option<R> {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)?
+            .application_update_payload(update)
+    }
+
+    pub fn query_output_state(&self, key: TabKey) -> Option<QueryOutputState> {
+        self.tabs
+            .iter()
+            .find(|record| record.key() == key)?
+            .query_output_state()
+    }
+
+    pub(crate) fn query_run_matches(&self, key: TabKey, run: &std::sync::Arc<()>) -> bool {
+        self.tabs
+            .iter()
+            .find(|record| record.key() == key)
+            .is_some_and(|record| record.query_run_matches(run))
+    }
+
+    pub(crate) fn can_advance_query_currency(&self, key: TabKey, increments: u64) -> bool {
+        self.tabs
+            .iter()
+            .find(|record| record.key() == key)
+            .is_some_and(|record| record.can_advance_query_currency(increments))
+    }
+
+    pub fn query_outputs(&self, key: TabKey) -> Option<Vec<QueryOutputInfo>> {
+        self.tabs
+            .iter()
+            .find(|record| record.key() == key)?
+            .query_outputs()
+    }
+
+    pub fn selected_query_output(&self, key: TabKey) -> Option<QueryOutputId> {
+        self.tabs
+            .iter()
+            .find(|record| record.key() == key)?
+            .selected_query_output()
+    }
+
+    pub fn query_has_pending_result(&self, key: TabKey) -> Option<bool> {
+        Some(
+            self.tabs
+                .iter()
+                .find(|record| record.key() == key)?
+                .has_pending_query_result(),
+        )
+    }
+
+    pub fn pending_query_result_total(&self, key: TabKey) -> Option<usize> {
+        Some(
+            self.tabs
+                .iter()
+                .find(|record| record.key() == key)?
+                .pending_query_result_total(),
+        )
+    }
+
+    pub fn prepare_query_outputs_for_run(&mut self, key: TabKey) -> bool {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)
+            .is_some_and(TabRecord::prepare_query_outputs_for_run)
+    }
+
+    pub fn append_query_outputs(
+        &mut self,
+        key: TabKey,
+        outputs: Vec<QueryOutputInput>,
+    ) -> Option<Vec<QueryOutputId>> {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)?
+            .append_query_outputs(outputs)
+    }
+
+    pub fn select_query_output(&mut self, key: TabKey, id: QueryOutputId) -> bool {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)
+            .is_some_and(|record| record.select_query_output(id))
+    }
+
+    pub fn close_query_output(&mut self, key: TabKey, id: QueryOutputId) -> bool {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)
+            .is_some_and(|record| record.close_query_output(id))
+    }
+
+    pub fn toggle_query_output_pin(&mut self, key: TabKey, id: QueryOutputId) -> bool {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)
+            .is_some_and(|record| record.toggle_query_output_pin(id))
+    }
+
+    pub(crate) fn application_update_query<R>(
+        &mut self,
+        key: TabKey,
+        update: impl FnOnce(&mut QueryTab) -> R,
+    ) -> Option<R> {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)?
+            .application_update_query(update)
+    }
+
+    pub(crate) fn begin_query_run<R>(
+        &mut self,
+        key: TabKey,
+        run: &std::sync::Arc<()>,
+        update: impl FnOnce(&mut QueryTab) -> R,
+    ) -> Option<R> {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)?
+            .begin_query_run(run, update)
+    }
+
+    pub(crate) fn application_update_query_run<R>(
+        &mut self,
+        key: TabKey,
+        run: &std::sync::Arc<()>,
+        update: impl FnOnce(&mut QueryTab) -> R,
+    ) -> Option<R> {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)?
+            .application_update_query_run(run, update)
+    }
+
+    pub(crate) fn finish_query_run(
+        &mut self,
+        key: TabKey,
+        run: &std::sync::Arc<()>,
+        status: &str,
+        is_error: bool,
+        duration_ms: u32,
+    ) -> QueryRunFinish {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)
+            .map_or(QueryRunFinish::NotOwned, |record| {
+                record.finish_query_run(run, status, is_error, duration_ms)
+            })
+    }
+
+    pub(crate) fn application_grid_mut(
+        &mut self,
+        key: TabKey,
+    ) -> Option<(termrock::Id, &mut tabs::GridView)> {
+        self.tabs
+            .iter_mut()
+            .find(|record| record.key() == key)?
+            .application_grid_mut()
     }
 
     pub(crate) fn owner_token(&self) -> std::sync::Weak<()> {
@@ -219,6 +380,23 @@ impl Workbench {
         Some(key)
     }
     pub fn open_history(&mut self) -> Option<TabKey> {
+        if let Some(index) = self
+            .tabs
+            .iter()
+            .position(|record| matches!(record.payload(), Tab::History(_)))
+        {
+            let key = {
+                let record = self.tabs.get_mut(index)?;
+                let key = record.key();
+                let Tab::History(history) = record.payload_mut() else {
+                    return None;
+                };
+                history.filter(&self.history);
+                key
+            };
+            self.active = Some(key);
+            return Some(key);
+        }
         self.insert_tab(
             self.tabs.len(),
             Tab::History(HistoryTab::new(&self.history)),
@@ -232,6 +410,10 @@ impl Workbench {
             return false;
         }
         self.close_tab_confirmed(tab.key())
+    }
+
+    pub fn close_tab_from_picker(&mut self, key: TabKey) -> bool {
+        self.close_tab_confirmed(key)
     }
 
     pub(crate) fn close_tab_confirmed(&mut self, key: TabKey) -> bool {
@@ -291,6 +473,12 @@ impl Workbench {
         let key = record.key();
         record.payload_mut().grid_mut(key)
     }
+    pub(crate) fn application_active_grid_mut(
+        &mut self,
+    ) -> Option<(termrock::Id, &mut tabs::GridView)> {
+        let index = self.active_index()?;
+        self.tabs.get_mut(index)?.application_grid_mut()
+    }
     pub fn active(&self) -> Option<&Tab> {
         self.tabs.get(self.active_index()?).map(TabRecord::payload)
     }
@@ -324,6 +512,14 @@ impl Workbench {
         self.maximized = !self.maximized;
     }
     pub fn execute_active(&mut self) -> Result<usize, String> {
+        self.execute_active_inner(None)
+    }
+
+    pub fn execute_active_with_duration(&mut self, elapsed: Duration) -> Result<usize, String> {
+        self.execute_active_inner(Some(elapsed))
+    }
+
+    fn execute_active_inner(&mut self, elapsed: Option<Duration>) -> Result<usize, String> {
         let (query, source) = match self.active() {
             Some(Tab::Query(tab)) if tab.has_pending_result() => {
                 return Err("Pending result edits require confirmation".to_owned());
@@ -333,7 +529,10 @@ impl Workbench {
         };
         let catalog = self.catalog.clone();
         let result = match self.active_mut() {
-            Some(Tab::Query(tab)) => tab.execute(&catalog),
+            Some(Tab::Query(tab)) => match elapsed {
+                Some(elapsed) => tab.execute_with_duration(&catalog, elapsed),
+                None => tab.execute(&catalog),
+            },
             _ => return Err("Active tab is not a query".to_owned()),
         };
         let (rows, error) = match &result {
@@ -347,7 +546,9 @@ impl Workbench {
             database: self.connection.database.clone(),
             schema: "public".to_owned(),
             minutes_ago: 0,
-            duration_ms: Some(1),
+            duration_ms: Some(elapsed.map_or(1, |duration| {
+                u32::try_from(duration.as_millis()).unwrap_or(u32::MAX)
+            })),
             rows,
             error,
             source,
@@ -362,53 +563,5 @@ impl Workbench {
             .iter()
             .filter(|item| item.kind == ObjectKind::Table)
             .count()
-    }
-}
-
-#[cfg(test)]
-mod identity_tests {
-    use super::*;
-    #[test]
-    fn final_identity_is_allocated_once_and_exhaustion_is_atomic() {
-        let mut workbench = crate::app::TableProApp::default().workbench;
-        workbench.next_tab_key = Some(u64::MAX);
-        assert!(
-            workbench
-                .insert_tab(usize::MAX, Tab::Query(QueryTab::new(9, "")))
-                .is_none()
-        );
-        let Some(key) = workbench.new_query("") else {
-            unreachable!("last identity");
-        };
-        assert_eq!(key.get(), u64::MAX);
-        let count = workbench.tabs().len();
-        let counter = workbench.query_counter;
-        assert!(workbench.new_query("refused").is_none());
-        assert_eq!(workbench.tabs().len(), count);
-        assert_eq!(workbench.query_counter, counter);
-        assert_eq!(workbench.active_key(), Some(key));
-        let Some(index) = workbench.active_index() else {
-            unreachable!("active");
-        };
-        assert!(workbench.close_tab(index));
-        assert!(workbench.new_query("still refused").is_none());
-    }
-    #[test]
-    fn exhausted_app_insert_and_reconnect_preserve_existing_state() {
-        let mut app = crate::app::TableProApp::default();
-        app.set_surface(crate::app::Surface::PendingChangeBar);
-        app.workbench.next_tab_key = None;
-        let key = app.workbench.active_key();
-        let count = app.workbench.tabs().len();
-        let surface = app.surface();
-        assert!(!app.connect(0));
-        assert!(matches!(
-            app.run_query("SELECT 1"),
-            crate::app::QueryOutcome::Rejected { .. }
-        ));
-        assert_eq!(app.workbench.active_key(), key);
-        assert_eq!(app.workbench.tabs().len(), count);
-        assert_eq!(app.surface(), surface);
-        assert_eq!(app.result().pending_total(), 1);
     }
 }

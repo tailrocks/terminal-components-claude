@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 6825b07e86bab75872866c6ed49e6877084db9bb Alexey Zhokhov <alexey@zhokhov.com> 1792558628 +0700	branch: Created from 6825b07e86bab75872866c6ed49e6877084db9bb
+6825b07e86bab75872866c6ed49e6877084db9bb 6841e67ed4d240d9b39478b2e99f39ff48b8189b Alexey Zhokhov <alexey@zhokhov.com> 1792558907 +0700	merge 6841e67ed4d240d9b39478b2e99f39ff48b8189b: Fast-forward
+6841e67ed4d240d9b39478b2e99f39ff48b8189b 177a3d4415021724ac2624aede92a94aada139a8 Alexey Zhokhov <alexey@zhokhov.com> 1792559037 +0700	commit: fix(terminal): register live input owner
+177a3d4415021724ac2624aede92a94aada139a8 2f74af500e5ea906b024a1e01569d10022b64103 Alexey Zhokhov <alexey@zhokhov.com> 1792559276 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+2f74af500e5ea906b024a1e01569d10022b64103 33e4eb7565e980912522116471ca90f4db23e3e1 Alexey Zhokhov <alexey@zhokhov.com> 1792559987 +0700	commit: fix(terminal): preserve captured selection drag
+33e4eb7565e980912522116471ca90f4db23e3e1 cf9f5cac09d70a96221dc358f165450bd4d7d5fb Alexey Zhokhov <alexey@zhokhov.com> 1792559998 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+cf9f5cac09d70a96221dc358f165450bd4d7d5fb 4b47f57055df9a6ed818b791113f70ab3d29b9f6 Alexey Zhokhov <alexey@zhokhov.com> 1792560656 +0700	commit: fix(terminal): prevent drag selection from activating links
+4b47f57055df9a6ed818b791113f70ab3d29b9f6 fdab6ad7bfbc04cd67d01e1b9bdf710db2e28e7f Alexey Zhokhov <alexey@zhokhov.com> 1792560662 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+fdab6ad7bfbc04cd67d01e1b9bdf710db2e28e7f 693ff6e5995757ceddddca22c068f63c8081b533 Alexey Zhokhov <alexey@zhokhov.com> 1792560686 +0700	rebase (finish): refs/heads/wip/terminal-view-input-owner-20261021 onto cf9f5cac09d70a96221dc358f165450bd4d7d5fb
+693ff6e5995757ceddddca22c068f63c8081b533 bb50fff66bddb9eee66d927687c60978ab0c20a6 Alexey Zhokhov <alexey@zhokhov.com> 1792560689 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+bb50fff66bddb9eee66d927687c60978ab0c20a6 693ff6e5995757ceddddca22c068f63c8081b533 Alexey Zhokhov <alexey@zhokhov.com> 1792560935 +0700	rebase (finish): refs/heads/wip/terminal-view-input-owner-20261021 onto cf9f5cac09d70a96221dc358f165450bd4d7d5fb
+693ff6e5995757ceddddca22c068f63c8081b533 eb068f3a53b20ed12ab86d52aee73042948b940e Alexey Zhokhov <alexey@zhokhov.com> 1792560937 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 f9de4f443a32918fcead8c864d8470ae0d927613 Alexey Zhokhov <alexey@zhokhov.com> 1792598307 +0700	branch: Created from f9de4f443
+f9de4f443a32918fcead8c864d8470ae0d927613 0a410afd5cdbcb8cf035e0c781330a4d5e7f5c2f Alexey Zhokhov <alexey@zhokhov.com> 1792602673 +0700	commit: fix(theme): fingerprint equal themes equally
+0a410afd5cdbcb8cf035e0c781330a4d5e7f5c2f d202249bc9260ac43960f79e46811bd62d253b73 Alexey Zhokhov <alexey@zhokhov.com> 1792604694 +0700	commit: fix(overlays): register the help overlay before it can paint
+d202249bc9260ac43960f79e46811bd62d253b73 4e3a110225bbd01350293988b28b404121dc3295 Alexey Zhokhov <alexey@zhokhov.com> 1792607409 +0700	commit: fix(conformance): declare the parts and chords the composed components own
+4e3a110225bbd01350293988b28b404121dc3295 2d6133426bfb41a4e3187e6fffb613f780358af3 Alexey Zhokhov <alexey@zhokhov.com> 1792607504 +0700	commit: style(overlays): rustfmt the help overlay layout facts
+2d6133426bfb41a4e3187e6fffb613f780358af3 160b582355a060f859e9ce64f4f71b12a1e82f80 Alexey Zhokhov <alexey@zhokhov.com> 1792616322 +0700	commit: fix(theme): let the mono state rules carry the state they own

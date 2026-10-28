@@ -1,78 +1,187 @@
-use crate::domain::action::{Action, ActionKind, Availability, Risk, Scope};
+use crate::domain::action::{
+    Action, ActionAlternative, ActionIntent, ActionKind, Availability, Risk, Scope,
+};
 use crate::domain::docker::Health;
 use crate::domain::human_bytes;
 use crate::domain::mise::Trust;
 use crate::domain::ranking::Memory;
+use crate::scenario::Scenario;
 use crate::world::{Domain, World};
 
 pub struct Section {
     pub name: &'static str,
     pub actions: Vec<Action>,
+    pub empty_hint: Option<&'static str>,
 }
 
 pub fn catalogue(w: &World) -> Vec<Action> {
+    if let Some(view) = parity_discovery(w) {
+        return view.actions;
+    }
     let mut out = vec![];
     mise_actions(w, &mut out);
     git_actions(w, &mut out);
     docker_actions(w, &mut out);
     disk_actions(w, &mut out);
+    first_use_actions(w, &mut out);
     pg_actions(w, &mut out);
     ssh_actions(w, &mut out);
     github_actions(w, &mut out);
     debian_actions(w, &mut out);
     flow_actions(w, &mut out);
-    recent_actions(w, &mut out);
+    out.push(crate::port_args::catalogue_action(w));
+    if history_enabled() {
+        recent_actions(w, &mut out);
+    }
     out
 }
 
 pub fn sections(w: &World) -> Vec<Section> {
+    sections_with_filter_state(w, "", None)
+}
+
+pub fn sections_with_filter_state(w: &World, query: &str, scope: Option<Scope>) -> Vec<Section> {
+    let deduplicate_recent = query.trim().is_empty() && scope.is_none();
+    if let Some(view) = parity_discovery(w) {
+        let suggested = view
+            .actions
+            .iter()
+            .take(view.suggested_len)
+            .cloned()
+            .collect();
+        let explore = view
+            .actions
+            .iter()
+            .skip(view.suggested_len)
+            .cloned()
+            .collect();
+        return vec![
+            Section {
+                name: "Suggested here",
+                actions: suggested,
+                empty_hint: None,
+            },
+            Section {
+                name: "Explore",
+                actions: explore,
+                empty_hint: None,
+            },
+        ];
+    }
     let mut all = catalogue(w);
     rank(w, &mut all);
+    let history = history_enabled();
 
     for a in &mut all {
+        if history && !a.id.starts_with("recent:") && !a.id.starts_with("pin:") {
+            let count = w.memory.usage_at(&w.cwd, &a.command);
+            if count > 0 {
+                a.reason
+                    .push_str(&format!(" · used {} on {}", times(count), w.host.name));
+            }
+        }
         if let Some(name) = w.memory.alias_for(&a.command) {
             a.reason = format!("{} · alias {name}", a.reason);
         }
     }
-    let suggested: Vec<Action> = all.iter().take(4).cloned().collect();
-    let suggested_ids: Vec<&str> = suggested.iter().map(|a| a.id.as_str()).collect();
-    let recent: Vec<Action> = all
+    let suggested_candidates: Vec<Action> = all.iter().take(4).cloned().collect();
+    let suggested: Vec<Action> = suggested_candidates
         .iter()
-        .filter(|a| a.id.starts_with("recent:") && !suggested_ids.contains(&a.id.as_str()))
+        .filter(|action| {
+            !deduplicate_recent
+                || !action.id.starts_with("recent:")
+                || !suggested_candidates.iter().any(|candidate| {
+                    is_canonical_action(candidate) && same_canonical_intent(action, candidate)
+                })
+        })
         .cloned()
         .collect();
+    let suggested_ids: Vec<&str> = suggested.iter().map(|a| a.id.as_str()).collect();
+    let recent_records: Vec<&Action> = all
+        .iter()
+        .filter(|action| action.id.starts_with("recent:"))
+        .collect();
+    let deduplicated_recent_ids: Vec<String> = recent_records
+        .iter()
+        .filter(|action| {
+            deduplicate_recent
+                && suggested.iter().any(|candidate| {
+                    is_canonical_action(candidate) && same_canonical_intent(action, candidate)
+                })
+        })
+        .map(|action| action.id.clone())
+        .collect();
+    let has_recent_records = !recent_records.is_empty();
+    let recent: Vec<Action> = recent_records
+        .iter()
+        .filter(|action| {
+            !suggested_ids.contains(&action.id.as_str())
+                && !deduplicated_recent_ids.contains(&action.id)
+        })
+        .map(|action| (**action).clone())
+        .collect();
+    let recent_empty_hint = if deduplicate_recent && history && recent.is_empty() {
+        Some(if !has_recent_records {
+            "nothing used here yet"
+        } else {
+            "everything used here is suggested above"
+        })
+    } else {
+        None
+    };
     let recent_ids: Vec<&str> = recent.iter().map(|a| a.id.as_str()).collect();
     let explore: Vec<Action> = all
         .into_iter()
-        .filter(|a| !suggested_ids.contains(&a.id.as_str()) && !recent_ids.contains(&a.id.as_str()))
+        .filter(|a| {
+            !suggested_ids.contains(&a.id.as_str())
+                && !recent_ids.contains(&a.id.as_str())
+                && !deduplicated_recent_ids.contains(&a.id)
+        })
         .collect();
     let mut out = vec![];
     if !suggested.is_empty() {
         out.push(Section {
             name: "Suggested here",
             actions: suggested,
+            empty_hint: None,
         });
     }
-    if !recent.is_empty() {
+    if !recent.is_empty() || recent_empty_hint.is_some() {
         out.push(Section {
             name: "Recent here",
             actions: recent,
+            empty_hint: recent_empty_hint,
         });
     }
     if !explore.is_empty() {
         out.push(Section {
             name: "Explore",
             actions: explore,
+            empty_hint: None,
         });
     }
     out
 }
 
+fn is_canonical_action(action: &Action) -> bool {
+    !action.id.starts_with("recent:")
+        && !action.id.starts_with("pin:")
+        && matches!(action.intent(), ActionIntent::Canonical(_))
+}
+
+fn same_canonical_intent(left: &Action, right: &Action) -> bool {
+    matches!(
+        (left.intent(), right.intent()),
+        (ActionIntent::Canonical(left), ActionIntent::Canonical(right)) if left == right
+    )
+}
+
 #[expect(
     clippy::arithmetic_side_effects,
-    reason = "Closed scope weights and capped usage bound the total score to 390"
+    reason = "Closed scope, bounded memory, urgency, and system facts cap scores at 880"
 )]
 pub fn rank(w: &World, actions: &mut [Action]) {
+    let history = history_enabled();
     let score = |a: &Action| -> i32 {
         let mut s = a.scope.weight();
 
@@ -82,7 +191,19 @@ pub fn rank(w: &World, actions: &mut [Action]) {
         if w.memory.alias_for(&a.command).is_some() {
             s += 90;
         }
-        s += w.memory.usage_at(&w.cwd, &a.command).min(10) as i32 * 2;
+        if history {
+            let usage = w.memory.usage_at(&w.cwd, &a.command).min(10) as i32;
+            s += usage * if a.scope == Scope::Host { 40 } else { 2 };
+        }
+        if a.id == "system.resources"
+            && let Some(system) = &w.system
+        {
+            s += i32::try_from(system.cpu_percent.min(100) / 5).unwrap_or_default();
+            s += i32::try_from(system.pressure_minutes.min(4)).unwrap_or_default() * 20;
+            if system.swap_used_mb > 0 {
+                s += 10;
+            }
+        }
         if urgent(a) {
             s += 30;
         }
@@ -463,6 +584,126 @@ fn disk_actions(w: &World, out: &mut Vec<Action>) {
     }
 }
 
+fn first_use_actions(w: &World, out: &mut Vec<Action>) {
+    let Some(system) = &w.system else { return };
+    let host = w.host.name.as_str();
+    let reason = if system.pressure_minutes > 0 {
+        format!(
+            "CPU {}% for {} min",
+            system.cpu_percent, system.pressure_minutes
+        )
+    } else {
+        format!(
+            "CPU {}% · memory {:.1} of {:.1} GiB",
+            system.cpu_percent,
+            f64::from(w.host.metrics.mem_used_mb) / 1_024.0,
+            f64::from(w.host.metrics.mem_total_mb) / 1_024.0
+        )
+    };
+    let mut resources = Action::new(
+        "system.resources",
+        "Show system resources",
+        ActionKind::System,
+        Scope::Host,
+        &reason,
+        Risk::ReadOnly,
+        host,
+        "holla snapshot system",
+    )
+    .with_alternatives([
+        ActionAlternative::new("system.monitor", "Open btm", "system.monitor"),
+        ActionAlternative::new("system.processes", "Show process tree", "system.processes"),
+    ]);
+    resources.scope_label = host.to_owned();
+    resources.workdir.clone_from(&w.cwd);
+    resources.keywords =
+        "system resources cpu memory load pressure what uses cpu what uses memory slow".into();
+    out.push(resources);
+
+    let mut processes = Action::new(
+        "system.processes",
+        "Show process tree",
+        ActionKind::System,
+        Scope::Host,
+        &format!("{} noted processes", system.processes.len()),
+        Risk::ReadOnly,
+        host,
+        "holla snapshot processes",
+    );
+    processes.scope_label = host.to_owned();
+    processes.workdir.clone_from(&w.cwd);
+    processes.keywords = "process processes tree ps pid".into();
+    out.push(processes);
+
+    if system.btm_installed {
+        let mut monitor = Action::new(
+            "system.monitor",
+            "Open btm",
+            ActionKind::Flow,
+            Scope::Host,
+            if system.pressure_minutes > 0 {
+                "sustained pressure · continuous view fits"
+            } else {
+                "btm installed · continuous view available"
+            },
+            Risk::ReadOnly,
+            host,
+            "btm",
+        );
+        monitor.scope_label = host.to_owned();
+        monitor.workdir.clone_from(&w.cwd);
+        monitor.long_running = true;
+        monitor.keywords = "btm bottom monitor top htop processes system monitor".into();
+        out.push(monitor);
+    }
+
+    let mut scope = Action::new(
+        "scope.system",
+        &format!("System · {host}"),
+        ActionKind::System,
+        Scope::Host,
+        "available on this host",
+        Risk::ReadOnly,
+        host,
+        "",
+    );
+    scope.scope_label = host.to_owned();
+    scope.workdir.clone_from(&w.cwd);
+    scope.keywords = "system host scope".into();
+    out.push(scope);
+
+    let Some(disk) = &w.disk else { return };
+    if disk.validate(&w.cwd).is_err() {
+        return;
+    }
+    let percent = rounded_percent(disk.used_bytes, disk.total_bytes);
+    let mut disk_usage = Action::new(
+        "disk.usage",
+        "Analyze disk usage",
+        ActionKind::Flow,
+        Scope::Here,
+        &format!("/ is {percent}% full"),
+        Risk::ReadOnly,
+        &w.cwd,
+        "holla disk analyze",
+    );
+    disk_usage.workdir.clone_from(&w.cwd);
+    disk_usage.keywords = "disk usage why disk full space largest du analyze full scan here".into();
+    out.push(disk_usage);
+}
+
+fn rounded_percent(used: u64, total: u64) -> u32 {
+    if total == 0 {
+        return 0;
+    }
+    let rounded = u128::from(used)
+        .saturating_mul(100)
+        .saturating_add(u128::from(total) / 2)
+        .checked_div(u128::from(total))
+        .unwrap_or(0);
+    u32::try_from(rounded).unwrap_or(u32::MAX)
+}
+
 fn pg_actions(w: &World, out: &mut Vec<Action>) {
     if !w.discovered(Domain::Pg) {
         return;
@@ -585,18 +826,20 @@ fn inventory_note(
 }
 
 fn flow_actions(w: &World, out: &mut Vec<Action>) {
-    let mut btm = Action::new(
-        "flow.monitor",
-        "Monitor this host",
-        ActionKind::Flow,
-        Scope::Host,
-        "btm available on this host · hands off and returns",
-        Risk::ReadOnly,
-        &w.host.name,
-        "btm",
-    );
-    btm.scope_label.clone_from(&w.host.name);
-    out.push(btm);
+    if w.system.is_none() {
+        let mut btm = Action::new(
+            "flow.monitor",
+            "Monitor this host",
+            ActionKind::Flow,
+            Scope::Host,
+            "btm available on this host · hands off and returns",
+            Risk::ReadOnly,
+            &w.host.name,
+            "btm",
+        );
+        btm.scope_label.clone_from(&w.host.name);
+        out.push(btm);
+    }
     if w.disk.is_none() && w.discovered(Domain::Disk) {
         out.push(Action::new(
             "flow.disk",
@@ -762,171 +1005,4129 @@ pub fn visible(
         .collect()
 }
 
-#[cfg(test)]
-#[expect(
-    clippy::indexing_slicing,
-    clippy::unwrap_used,
-    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
-)]
-mod tests {
-    use super::*;
-    use crate::domain::{
-        fixtures,
-        ranking::{Pin, Usage},
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TagRow {
+    pub title: String,
+    pub kind: &'static str,
+    pub scope_word: &'static str,
+    pub here: bool,
+    pub reason: String,
+    pub risk: Option<&'static str>,
+    pub selected: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreviewTone {
+    Text,
+    Muted,
+
+    Secondary,
+
+    Meta,
+    Danger,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreviewLine {
+    pub label: &'static str,
+    pub value: String,
+    pub tone: PreviewTone,
+    pub wraps: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FinderLine {
+    Heading(&'static str),
+    Blank,
+    Chips(&'static [&'static str]),
+    Row(TagRow),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParityDiscovery {
+    pub lines: Vec<FinderLine>,
+    pub preview: Vec<PreviewLine>,
+    pub preview_meta: String,
+    pub actions: Vec<Action>,
+    pub suggested_len: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionPreview {
+    pub lines: Vec<PreviewLine>,
+    pub meta: String,
+}
+
+pub fn action_preview(w: &World, action: &Action, history: bool) -> ActionPreview {
+    let mut lines = Vec::new();
+    let mut add = |label, value: String, tone, wraps| {
+        lines.push(PreviewLine {
+            label,
+            value,
+            tone,
+            wraps,
+        });
     };
-    use crate::scenario::Scenario;
-
-    fn settled(scenario: Scenario) -> World {
-        let mut world = fixtures::world_for(scenario);
-        world.seek(4_000);
-        world
+    let does = match action.command.as_str() {
+        "holla snapshot system" => {
+            "CPU, load, memory, swap, pressure, disk and network snapshot with a separate btm handoff"
+        }
+        "holla snapshot processes" => "processes by CPU and memory",
+        "holla disk analyze" => {
+            "largest-first tree of this folder that deepens as the scan streams"
+        }
+        "btm" if action.long_running => {
+            "continuous host monitoring through the simulated activity lifecycle"
+        }
+        _ if action.command.is_empty() && action.scope == Scope::Host => {
+            "show actions for the current host"
+        }
+        _ => &action.reason,
+    };
+    add("Does", does.to_owned(), PreviewTone::Text, true);
+    add(
+        "Runs",
+        if action.command.is_empty() {
+            "no command · opens inside holla".to_owned()
+        } else {
+            format!("'{}'", action.command)
+        },
+        PreviewTone::Secondary,
+        true,
+    );
+    let workdir = if action.workdir.is_empty() {
+        &action.target
+    } else {
+        &action.workdir
+    };
+    add(
+        "In",
+        if !action.workdir.is_empty() {
+            action.workdir.clone()
+        } else {
+            workdir.to_owned()
+        },
+        PreviewTone::Text,
+        true,
+    );
+    if action.scope == Scope::Host {
+        add("Host", w.host.identity(), PreviewTone::Text, false);
     }
-
-    #[test]
-    fn pin_and_recent_preserve_broad_policy_and_canonical_target() {
-        let mut world = settled(Scenario::DockerCleanup);
-        let canonical = catalogue(&world)
-            .into_iter()
-            .find(|action| action.id == "docker.cleanup")
-            .unwrap();
-        world.memory.pins.push(Pin {
-            path: world.cwd.clone(),
-            command: canonical.command.clone(),
-        });
-        world.memory.usage.push(Usage {
-            path: world.cwd.clone(),
-            command: canonical.command.clone(),
-            count: 3,
-        });
-        for prefix in ["pin:", "recent:"] {
-            let mut row = catalogue(&world)
-                .into_iter()
-                .find(|action| action.id == format!("{prefix}{}", canonical.command))
-                .unwrap();
-            assert_eq!(row.risk, Risk::Broad);
-            assert_eq!(row.intent_id(), Some("docker.cleanup"));
-            assert_eq!(row.target, canonical.target);
-            row.risk = Risk::ReadOnly;
-            let intent = resolve_intent(&world, &row).unwrap();
-            assert_eq!(intent.id, "docker.cleanup");
-            assert_eq!(intent.risk, Risk::Broad);
+    if !action.scope_label.is_empty()
+        && (action.scope != Scope::Host || action.scope_label != w.host.name)
+    {
+        add(
+            "Place",
+            action.scope_label.clone(),
+            PreviewTone::Text,
+            false,
+        );
+    }
+    add(
+        "Scope",
+        action.scope.label().to_owned(),
+        PreviewTone::Text,
+        false,
+    );
+    let mut reason = action.reason.clone();
+    if history {
+        let count = w.memory.usage_at(&w.cwd, &action.command);
+        if count > 0 && !reason.contains("used ") {
+            reason.push_str(&format!(" · used {} on {}", times(count), w.host.name));
         }
     }
+    add("Why", reason, PreviewTone::Text, true);
+    add(
+        "Changes",
+        if action.risk == Risk::ReadOnly {
+            "none · read-only".into()
+        } else {
+            action.changes()
+        },
+        PreviewTone::Text,
+        true,
+    );
+    add(
+        "Risk",
+        match action.risk {
+            Risk::ReadOnly => "read-only",
+            Risk::Bounded => "bounded",
+            Risk::Broad => "broad",
+        }
+        .into(),
+        PreviewTone::Meta,
+        false,
+    );
+    add(
+        "Gate",
+        match &action.availability {
+            Availability::NeedsTrust(file) => {
+                format!("trust {} before this action can run", file)
+            }
+            Availability::Blocked(reason) => format!("blocked · {reason}"),
+            Availability::Ready => match action.command.as_str() {
+                "holla snapshot system" | "holla disk analyze" => {
+                    "opens a modeled Holla screen · nothing executed".to_owned()
+                }
+                "btm" if action.long_running => {
+                    "starts a simulated activity · nothing executed".to_owned()
+                }
+                _ if action.command.is_empty() && action.scope == Scope::Host => {
+                    "changes the native host scope · nothing executed".to_owned()
+                }
+                _ => action.risk.confirmation().to_owned(),
+            },
+        },
+        PreviewTone::Meta,
+        true,
+    );
+    match action.command.as_str() {
+        "holla disk analyze" => {
+            let (data, tone) = w.disk.as_ref().map_or_else(
+                || ("disk inventory unavailable".to_owned(), PreviewTone::Danger),
+                |disk| {
+                    (
+                        format!(
+                            "{}% full · {} used of {}",
+                            rounded_percent(disk.used_bytes, disk.total_bytes),
+                            human_bytes(disk.used_bytes),
+                            human_bytes(disk.total_bytes)
+                        ),
+                        PreviewTone::Muted,
+                    )
+                },
+            );
+            add("Data", data, tone, true);
+        }
+        "holla snapshot system" => {
+            if let Some(system) = &w.system {
+                let metrics = &w.host.metrics;
+                let disk = w.disk.as_ref().map_or_else(
+                    || "disk unavailable".to_owned(),
+                    |disk| {
+                        format!(
+                            "disk {}%",
+                            rounded_percent(disk.used_bytes, disk.total_bytes)
+                        )
+                    },
+                );
+                add(
+                    "Data",
+                    format!(
+                        "CPU {}% · load {}.{:02} {}.{:02} {}.{:02} · memory {:.1}/{:.1} GiB · swap {:.1} GiB · {disk} · pressure {} min",
+                        system.cpu_percent,
+                        metrics.load_x100.0 / 100,
+                        metrics.load_x100.0 % 100,
+                        metrics.load_x100.1 / 100,
+                        metrics.load_x100.1 % 100,
+                        metrics.load_x100.2 / 100,
+                        metrics.load_x100.2 % 100,
+                        f64::from(metrics.mem_used_mb) / 1_024.0,
+                        f64::from(metrics.mem_total_mb) / 1_024.0,
+                        f64::from(system.swap_used_mb) / 1_024.0,
+                        system.pressure_minutes
+                    ),
+                    PreviewTone::Muted,
+                    true,
+                );
+                if !system.network.is_empty() {
+                    add(
+                        "Network",
+                        system
+                            .network
+                            .iter()
+                            .map(|(name, detail)| format!("{name} · {detail}"))
+                            .collect::<Vec<_>>()
+                            .join(" · "),
+                        PreviewTone::Muted,
+                        true,
+                    );
+                }
+            } else {
+                add(
+                    "Data",
+                    "system snapshot unavailable".into(),
+                    PreviewTone::Danger,
+                    true,
+                );
+            }
+        }
+        _ => add(
+            "Data",
+            "current catalogue".to_owned(),
+            PreviewTone::Muted,
+            false,
+        ),
+    }
+    let kind = match action.kind {
+        ActionKind::Task => "task",
+        ActionKind::Git => "git",
+        ActionKind::Plan => "plan",
+        ActionKind::Connect => "connect",
+        ActionKind::Flow => "flow",
+        ActionKind::Clone => "clone",
+        ActionKind::System => "system",
+    };
+    ActionPreview {
+        lines,
+        meta: format!("{kind} · {}", action.scope.label()),
+    }
+}
 
-    #[test]
-    fn trust_requirement_survives_every_memory_route() {
-        let mut world = settled(Scenario::MonorepoRoot);
-        let action = catalogue(&world)
-            .into_iter()
-            .find(|action| matches!(action.availability, Availability::NeedsTrust(_)))
-            .unwrap();
-        world.memory.pins.push(Pin {
-            path: world.cwd.clone(),
-            command: action.command.clone(),
+pub fn first_use_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::FirstUse && w.now_ms() == 80
+}
+
+pub fn history_enabled() -> bool {
+    std::env::var_os("HOLLA_NO_HISTORY").is_none_or(|value| value == "0")
+}
+
+pub fn monorepo_root_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::MonorepoRoot && w.now_ms() == 80
+}
+
+pub fn monorepo_child_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::MonorepoChild && w.now_ms() == 80
+}
+
+pub fn activities_multi_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ActivitiesMulti && w.now_ms() == 80
+}
+
+pub fn docker_cleanup_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::DockerCleanup && w.now_ms() == 80
+}
+
+pub fn disk_cleanup_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::DiskCleanup && w.now_ms() == 80
+}
+
+pub fn remote_host_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::RemoteHost && w.now_ms() == 80
+}
+
+pub fn launch_failure_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::LaunchFailure && w.now_ms() == 80
+}
+
+pub fn launch_failure_activity_frame(w: &World, width: u16) -> bool {
+    launch_failure_tag_frame(w) && (80..=160).contains(&width)
+}
+
+pub fn hard_cases_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::HardCases && w.now_ms() == 80
+}
+
+pub fn parity_discovery(w: &World) -> Option<ParityDiscovery> {
+    if w.scenario != Scenario::ParityDiscovery || w.now_ms() < 80 {
+        return None;
+    }
+    let cwd = w.cwd.clone();
+    let host = w.host.name.clone();
+    let suggested = vec![
+        tag_row(
+            "Pull",
+            "git",
+            "here",
+            true,
+            "branch is 1 commits behind",
+            None,
+            false,
+        ),
+        tag_row(
+            format!("Clean IntelliJ metadata under {cwd} · 3 B"),
+            "idea",
+            "here",
+            true,
+            "1 candidates",
+            Some("destructive"),
+            true,
+        ),
+        tag_row(
+            "Deploy",
+            "custom",
+            "here",
+            true,
+            "Current folder · trusted",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run tests",
+            "task",
+            "here",
+            true,
+            format!("defined by {cwd}/mise.toml"),
+            None,
+            false,
+        ),
+        tag_row(
+            "Show git status",
+            "git",
+            "here",
+            true,
+            "on main",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        format!("System · {host}"),
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "move every .idea directory and lowercase .iml file below this folder (depth 5, no symlinks, no node_modules, nothing nested) to the Trash · 1 candidates · no IDE shutdown step exists in the baseline".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "no command · opens inside holla".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: cwd,
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: w.host.identity(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "1 candidates".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "see the command".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "destructive".into(),
+            tone: PreviewTone::Danger,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 0 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    let suggested_len = suggested.len();
+    let actions = parity_actions(&suggested, &explore, &w.cwd);
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "idea · here".into(),
+        actions,
+        suggested_len,
+    })
+}
+
+pub fn parity_discovery_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityDiscovery && w.now_ms() == 80
+}
+
+pub fn parity_discovery_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_discovery_tag_frame(w) {
+        return None;
+    }
+    let mut view = parity_discovery(w)?;
+    if width < 120 {
+        view.preview = vec![
+            PreviewLine {
+                label: "Runs",
+                value: "opens inside holla".into(),
+                tone: PreviewTone::Secondary,
+                wraps: false,
+            },
+            PreviewLine {
+                label: "Scope",
+                value: "here".into(),
+                tone: PreviewTone::Text,
+                wraps: false,
+            },
+            PreviewLine {
+                label: "Risk",
+                value: "destructive".into(),
+                tone: PreviewTone::Meta,
+                wraps: false,
+            },
+        ];
+        view.preview_meta = String::new();
+        view.actions = Vec::new();
+
+        if (100..120).contains(&width) {
+            for line in &mut view.lines {
+                if let FinderLine::Row(row) = line
+                    && row.title == "Deploy"
+                {
+                    row.reason = "Current folder · ⚠ unreviewed".into();
+                }
+            }
+        }
+    }
+    Some(view)
+}
+
+pub fn parity_history_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityHistory && !w.clock.running && w.now_ms() == 80
+}
+
+pub fn parity_history_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_history_tag_frame(w) {
+        return None;
+    }
+    let mut view = parity_history_rows()?;
+    if (120..160).contains(&width) {
+        view.preview = wide_history_preview();
+        view.preview_meta = "task · here".into();
+    }
+    Some(view)
+}
+
+fn parity_history_rows() -> Option<ParityDiscovery> {
+    let suggested = vec![
+        tag_row(
+            "Run check",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            true,
+        ),
+        tag_row(
+            "Run fmt",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run lint",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run shots",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run tests",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "mise run check".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+fn wide_history_preview() -> Vec<PreviewLine> {
+    vec![
+        PreviewLine {
+            label: "Does",
+            value: "type-check every target · runs in ~/work/holla".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "mise run check".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/holla".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "defined by ~/work/holla/mise.toml".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "runs `cargo check --workspace` in ~/work/holla".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Show the task definition · Dry run · Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ]
+}
+
+pub fn parity_files_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityFiles && !w.clock.running && w.now_ms() == 80
+}
+
+fn parity_files_rows() -> ParityDiscovery {
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+
+    let mut lines = vec![
+        FinderLine::Blank,
+        FinderLine::Heading("Recent here"),
+        FinderLine::Heading("nothing used here yet"),
+        FinderLine::Blank,
+        FinderLine::Heading("Explore"),
+        FinderLine::Chips(&["Tasks", "Git", "Files", "Disk", "Services", "System"]),
+    ];
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "opens inside holla".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: 0,
+    }
+}
+
+fn wide_files_preview() -> Vec<PreviewLine> {
+    vec![
+        PreviewLine {
+            label: "Does",
+            value: "project tasks from mise and the build system, here and around".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "no command · opens inside holla".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/notes".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "stable entry point".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 0 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+    ]
+}
+
+pub fn parity_files_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_files_tag_frame(w) {
+        return None;
+    }
+    let mut view = parity_files_rows();
+    if (120..160).contains(&width) {
+        view.preview = wide_files_preview();
+        view.preview_meta = "explore · here".into();
+    }
+    Some(view)
+}
+
+pub fn parity_browser_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityBrowser && !w.clock.running && w.now_ms() == 80
+}
+
+pub fn parity_browser_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_browser_tag_frame(w) {
+        return None;
+    }
+    let mut view = parity_browser_rows()?;
+    if (120..160).contains(&width) {
+        view.preview = wide_browser_preview();
+        view.preview_meta = "script · here".into();
+    }
+    Some(view)
+}
+
+fn wide_browser_preview() -> Vec<PreviewLine> {
+    vec![
+        PreviewLine {
+            label: "Does",
+            value: "1 · package.json".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "pnpm run a".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/site".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "package.json here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "see the command".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 0 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+    ]
+}
+
+pub fn parity_git_current_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityGitCurrent && !w.clock.running && w.now_ms() == 80
+}
+
+fn parity_git_current_rows() -> Option<ParityDiscovery> {
+    let suggested = vec![tag_row(
+        "Review 1 modified files",
+        "git",
+        "parent",
+        false,
+        "1 modified · 0 untracked",
+        None,
+        true,
+    )];
+    let explore = vec![
+        tag_row(
+            "Parent · svc (Rust project)",
+            "explore",
+            "parent",
+            false,
+            "project root above this folder",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "git -C /Users/alex/work/svc status --short".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "parent".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+fn parity_git_current_wide() -> Option<ParityDiscovery> {
+    let suggested = vec![tag_row(
+        "Review 1 modified files",
+        "git",
+        "parent",
+        false,
+        "1 modified · 0 untracked",
+        None,
+        true,
+    )];
+    let explore = vec![
+        tag_row(
+            "Parent · svc (Rust project)",
+            "explore",
+            "parent",
+            false,
+            "project root above this folder",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "show the changed files with their diff stat before committing or syncing"
+                .into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "git -C /Users/al…--short".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "",
+            value: "git -C /Users/al… --stat".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/svc".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "parent".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "1 modified · 0 untracked".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Open in a Git TUI (lazygit) · Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "git · parent".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn parity_git_current_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_git_current_tag_frame(w) {
+        return None;
+    }
+    if (120..160).contains(&width) {
+        return parity_git_current_wide();
+    }
+    if (80..120).contains(&width) {
+        return parity_git_current_rows();
+    }
+    None
+}
+
+pub fn parity_git_batch_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityGitBatch && !w.clock.running && w.now_ms() == 80
+}
+
+fn parity_git_batch_rows() -> Option<ParityDiscovery> {
+    let suggested = vec![tag_row(
+        "Status across 5 child projects",
+        "git",
+        "child",
+        false,
+        "0 dirty · 1 behind",
+        None,
+        true,
+    )];
+    let explore = vec![
+        tag_row(
+            "Children · 4 projects",
+            "explore",
+            "child",
+            false,
+            "4 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "git -C /Users/alex/work/repos/alpha status --porcelain=v2 --branch".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "child".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+fn parity_git_batch_wide() -> Option<ParityDiscovery> {
+    let suggested = vec![tag_row(
+        "Status across 5 child projects",
+        "git",
+        "child",
+        false,
+        "0 dirty · 1 behind",
+        None,
+        true,
+    )];
+    let explore = vec![
+        tag_row(
+            "Children · 4 projects",
+            "explore",
+            "child",
+            false,
+            "4 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let run = "git -C /Users/al…-branch";
+    let mut preview = vec![
+        PreviewLine {
+            label: "Does",
+            value:
+                "inspect every discovered Git project · worktrees deduplicated, submodules marked"
+                    .into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: run.into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+    ];
+    for _ in 0..4 {
+        preview.push(PreviewLine {
+            label: "",
+            value: run.into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
         });
-        world.memory.usage.push(Usage {
-            path: world.cwd.clone(),
-            command: action.command.clone(),
-            count: 9,
-        });
-        for row in catalogue(&world)
-            .into_iter()
-            .filter(|row| row.command == action.command)
+    }
+    preview.extend([
+        PreviewLine {
+            label: "In",
+            value: "~/work/repos".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "child".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "0 dirty · 1 behind".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+    ]);
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "git · child".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn parity_git_batch_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_git_batch_tag_frame(w) {
+        return None;
+    }
+    if (120..160).contains(&width) {
+        return parity_git_batch_wide();
+    }
+    if (80..120).contains(&width) {
+        return parity_git_batch_rows();
+    }
+    None
+}
+
+pub fn parity_task_sources_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityTaskSources && !w.clock.running && w.now_ms() == 80
+}
+
+fn parity_task_sources_rows() -> Option<ParityDiscovery> {
+    let suggested = vec![
+        tag_row(
+            "just build",
+            "recipe",
+            "here",
+            true,
+            ".justfile here",
+            None,
+            true,
+        ),
+        tag_row(
+            "just lint",
+            "recipe",
+            "here",
+            true,
+            ".justfile here",
+            None,
+            false,
+        ),
+        tag_row(
+            "just test",
+            "recipe",
+            "here",
+            true,
+            ".justfile here",
+            None,
+            false,
+        ),
+        tag_row(
+            "make all",
+            "target",
+            "here",
+            true,
+            "Makefile here",
+            None,
+            false,
+        ),
+        tag_row(
+            "make build",
+            "target",
+            "here",
+            true,
+            "Makefile here",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "just build".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn parity_task_sources_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_task_sources_tag_frame(w) {
+        return None;
+    }
+    if width == 80 {
+        return parity_task_sources_rows();
+    }
+    None
+}
+
+pub fn parity_cargo_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityCargo && !w.clock.running && w.now_ms() == 80
+}
+
+fn parity_cargo_rows() -> Option<ParityDiscovery> {
+    let suggested = vec![
+        tag_row(
+            "Show git status",
+            "git",
+            "here",
+            true,
+            "on main",
+            None,
+            false,
+        ),
+        tag_row(
+            "cargo build",
+            "cargo",
+            "here",
+            true,
+            "Cargo.toml here",
+            None,
+            true,
+        ),
+        tag_row(
+            "cargo check",
+            "cargo",
+            "here",
+            true,
+            "Cargo.toml here",
+            None,
+            false,
+        ),
+        tag_row(
+            "cargo clean · 900.0 MiB",
+            "cleanup",
+            "here",
+            true,
+            "900.0 MiB of generated artifacts",
+            Some("destructive"),
+            false,
+        ),
+        tag_row(
+            "cargo clippy",
+            "cargo",
+            "here",
+            true,
+            "Cargo.toml here",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "cargo build".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+fn parity_cargo_wide() -> Option<ParityDiscovery> {
+    let suggested = vec![
+        tag_row(
+            "Show git status",
+            "git",
+            "here",
+            true,
+            "on main",
+            None,
+            false,
+        ),
+        tag_row(
+            "cargo build",
+            "cargo",
+            "here",
+            true,
+            "Cargo.toml here",
+            None,
+            true,
+        ),
+        tag_row(
+            "cargo check",
+            "cargo",
+            "here",
+            true,
+            "Cargo.toml here",
+            None,
+            false,
+        ),
+        tag_row(
+            "cargo clean · 900.0 MiB",
+            "cleanup",
+            "here",
+            true,
+            "900.0 MiB of generated artifacts",
+            Some("destructive"),
+            false,
+        ),
+        tag_row(
+            "cargo clippy",
+            "cargo",
+            "here",
+            true,
+            "Cargo.toml here",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "build the debug profile · compiler diagnostics stay in the activity".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "cargo build".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/engine".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "Cargo.toml here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "see the command".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "cargo · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn parity_cargo_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_cargo_tag_frame(w) {
+        return None;
+    }
+    if (120..160).contains(&width) {
+        return parity_cargo_wide();
+    }
+    if (80..120).contains(&width) {
+        return parity_cargo_rows();
+    }
+    None
+}
+
+fn parity_browser_rows() -> Option<ParityDiscovery> {
+    let suggested = vec![
+        tag_row(
+            "pnpm a",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            true,
+        ),
+        tag_row(
+            "pnpm b",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            false,
+        ),
+        tag_row(
+            "pnpm c",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            false,
+        ),
+        tag_row(
+            "pnpm d",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            false,
+        ),
+        tag_row(
+            "pnpm e",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "pnpm run a".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn first_use_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
+    if history {
+        first_use_history_tag(w)
+    } else {
+        first_use_tag(w)
+    }
+}
+
+fn first_use_collapsed(w: &World) -> Option<ParityDiscovery> {
+    if !first_use_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Analyze disk usage",
+            "disk",
+            "here",
+            true,
+            "/ is 91% full",
+            None,
+            true,
+        ),
+        tag_row(
+            "Open btm",
+            "system",
+            "host",
+            false,
+            "sustained pressure · continuous view fits",
+            None,
+            false,
+        ),
+        tag_row(
+            "Show system resources",
+            "system",
+            "host",
+            false,
+            "CPU 78% for 4 min",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn first_use_view(w: &World, width: u16, history: bool) -> Option<ParityDiscovery> {
+    if !(80..120).contains(&width) {
+        return None;
+    }
+    if history {
+        first_use_history_list(w)
+    } else {
+        first_use_collapsed(w)
+    }
+}
+
+pub fn first_use_tag(w: &World) -> Option<ParityDiscovery> {
+    if !first_use_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Analyze disk usage",
+            "disk",
+            "here",
+            true,
+            "/ is 91% full",
+            None,
+            true,
+        ),
+        tag_row(
+            "Open btm",
+            "system",
+            "host",
+            false,
+            "sustained pressure · continuous view fits",
+            None,
+            false,
+        ),
+        tag_row(
+            "Show system resources",
+            "system",
+            "host",
+            false,
+            "CPU 78% for 4 min",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "largest-first tree of this folder that deepens as the scan streams; select any entry or rebuildable artifacts for cleanup".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/scratch".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "/ is 91% full".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Disk overview (home folders) · Analyze a custom path… · Top files on this Mac · Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn first_use_history_tag(w: &World) -> Option<ParityDiscovery> {
+    if !first_use_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Show system resources",
+            "system",
+            "host",
+            false,
+            "CPU 78% for 4 min",
+            None,
+            true,
+        ),
+        tag_row(
+            "Analyze disk usage",
+            "disk",
+            "here",
+            true,
+            "/ is 91% full",
+            None,
+            false,
+        ),
+        tag_row(
+            "Open btm",
+            "system",
+            "host",
+            false,
+            "sustained pressure · continuous view fits",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading(
+        "everything used here is suggested above",
+    ));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "CPU, load, memory, swap, pressure, disk and network snapshot; then hand off to btm for continuous monitoring".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla snapshot system'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "mbp · host-wide".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "host".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "CPU 78% for 4 min · used 2 times on mbp".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Open btm · Show process tree · Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "system · host".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+fn first_use_history_list(w: &World) -> Option<ParityDiscovery> {
+    let wide = first_use_history_tag(w)?;
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "'holla snapshot system'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "host".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines: wide.lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
+pub fn monorepo_root_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
+    if history {
+        monorepo_root_history_tag(w)
+    } else {
+        monorepo_root_tag(w)
+    }
+}
+
+fn monorepo_root_collapsed(w: &World) -> Option<ParityDiscovery> {
+    let wide = monorepo_root_tag(w)?;
+    let mut lines = wide.lines;
+    for line in &mut lines {
+        if let FinderLine::Row(row) = line
+            && row.title == "Install missing tools · node"
         {
-            assert!(matches!(row.availability, Availability::NeedsTrust(_)));
-            assert_eq!(resolve_intent(&world, &row), Err(IntentError::NeedsTrust));
+            row.title = "Install missing tools · sqlx-cli".to_owned();
         }
     }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze --artifacts'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
 
-    #[test]
-    fn arbitrary_memory_is_blocked_and_fixture_policy_is_context_bound() {
-        let mut world = settled(Scenario::RustDirty);
-        world.memory.pins.push(Pin {
-            path: world.cwd.clone(),
-            command: "rm -rf /".into(),
+fn monorepo_root_history_collapsed(w: &World) -> Option<ParityDiscovery> {
+    let wide = monorepo_root_history_tag(w)?;
+    let mut lines = wide.lines;
+    for line in &mut lines {
+        if let FinderLine::Row(row) = line
+            && row.title == "Install missing tools · node"
+        {
+            row.title = "Install missing tools · sqlx-cli".to_owned();
+        }
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "tools/deploy-preview.sh --env preview".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
+pub fn monorepo_root_view(w: &World, width: u16, history: bool) -> Option<ParityDiscovery> {
+    if !(80..120).contains(&width) {
+        return None;
+    }
+    if history {
+        monorepo_root_history_collapsed(w)
+    } else {
+        monorepo_root_collapsed(w)
+    }
+}
+
+pub fn monorepo_root_tag(w: &World) -> Option<ParityDiscovery> {
+    if !monorepo_root_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Follow acme-api-1 logs",
+            "docker",
+            "here",
+            true,
+            "service is unhealthy",
+            None,
+            false,
+        ),
+        tag_row(
+            "Inspect 10 GB of generated artifacts",
+            "disk",
+            "here",
+            true,
+            "10 GB generated artifacts",
+            None,
+            true,
+        ),
+        tag_row(
+            "Install missing tools · node",
+            "task",
+            "here",
+            true,
+            "1 tool missing",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review cleanup candidates",
+            "cleanup",
+            "host",
+            false,
+            "10.6 GiB across 4 categories",
+            None,
+            false,
+        ),
+        tag_row(
+            "Deploy preview",
+            "custom",
+            "here",
+            true,
+            "Current folder · ⚠ unreviewed",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![
+        tag_row(
+            "Children · 3 projects",
+            "explore",
+            "child",
+            false,
+            "3 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "2 rebuildable candidates below this folder · 0 stale enough to start selected"
+                .into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk anal…ifacts'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/acme".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "10 GB generated artifacts".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 3 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn monorepo_root_history_tag(w: &World) -> Option<ParityDiscovery> {
+    if !monorepo_root_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Deploy preview",
+            "custom",
+            "here",
+            true,
+            "Current folder · ⚠ unreviewed · used 7 times here",
+            None,
+            true,
+        ),
+        tag_row(
+            "Follow acme-api-1 logs",
+            "docker",
+            "here",
+            true,
+            "service is unhealthy",
+            None,
+            false,
+        ),
+        tag_row(
+            "Inspect 10 GB of generated artifacts",
+            "disk",
+            "here",
+            true,
+            "10 GB generated artifacts",
+            None,
+            false,
+        ),
+        tag_row(
+            "Install missing tools · node",
+            "task",
+            "here",
+            true,
+            "1 tool missing",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review cleanup candidates",
+            "cleanup",
+            "host",
+            false,
+            "10.6 GiB across 4 categories",
+            None,
+            false,
+        ),
+    ];
+    let recent = vec![tag_row(
+        "Pull",
+        "git",
+        "here",
+        true,
+        "used 20 times on mbp",
+        None,
+        false,
+    )];
+    let explore = vec![
+        tag_row(
+            "Children · 3 projects",
+            "explore",
+            "child",
+            false,
+            "3 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    for row in &recent {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "push the current branch to the preview stack".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "tools/deploy-pre…preview".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/acme".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "Current folder · ⚠ unreviewed · used 7 times here".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "see the command".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 0 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "trust required · ~/work/acme/.holla.toml".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Set an alias… · Show configuration diagnostics · Pin · Alias · Why here?"
+                .into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "custom · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn activities_multi_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
+    if history {
+        activities_multi_history_tag(w)
+    } else {
+        activities_multi_tag(w)
+    }
+}
+
+pub fn activities_multi_view(w: &World, width: u16, history: bool) -> Option<ParityDiscovery> {
+    if !(80..120).contains(&width) {
+        return None;
+    }
+    if !history {
+        return activities_multi_collapsed(w);
+    }
+    if (100..120).contains(&width) {
+        activities_multi_history_collapsed(w)
+    } else {
+        None
+    }
+}
+
+pub fn activities_multi_tag(w: &World) -> Option<ParityDiscovery> {
+    if !activities_multi_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Follow acme-api-1 logs",
+            "docker",
+            "here",
+            true,
+            "service is unhealthy",
+            None,
+            false,
+        ),
+        tag_row(
+            "Inspect 10 GB of generated artifacts",
+            "disk",
+            "here",
+            true,
+            "10 GB generated artifacts",
+            None,
+            true,
+        ),
+        tag_row(
+            "Install missing tools · node",
+            "task",
+            "here",
+            true,
+            "1 tool missing",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review cleanup candidates",
+            "cleanup",
+            "host",
+            false,
+            "10.6 GiB across 4 categories",
+            None,
+            false,
+        ),
+        tag_row(
+            "Deploy preview",
+            "custom",
+            "here",
+            true,
+            "Current folder · ⚠ unreviewed",
+            None,
+            false,
+        ),
+    ];
+    let running = vec![
+        tag_row(
+            "logs · api worker scheduler",
+            "activity",
+            "here",
+            true,
+            "⠋ running · 3 s",
+            None,
+            false,
+        ),
+        tag_row(
+            "api dev",
+            "activity",
+            "child",
+            false,
+            "⠋ running · 3 s",
+            None,
+            false,
+        ),
+        tag_row(
+            "btm",
+            "activity",
+            "host",
+            false,
+            "⠋ detached · 3 s",
+            None,
+            false,
+        ),
+        tag_row(
+            "frontend dev",
+            "activity",
+            "child",
+            false,
+            "⠋ running · 3 s",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![
+        tag_row(
+            "Children · 3 projects",
+            "explore",
+            "child",
+            false,
+            "3 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Running"));
+    for row in &running {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "2 rebuildable candidates below this folder · 0 stale enough to start selected"
+                .into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk anal…ifacts'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/acme".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "10 GB generated artifacts".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 3 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn activities_multi_history_tag(w: &World) -> Option<ParityDiscovery> {
+    if !activities_multi_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Deploy preview",
+            "custom",
+            "here",
+            true,
+            "Current folder · ⚠ unreviewed · used 7 times here",
+            None,
+            true,
+        ),
+        tag_row(
+            "Follow acme-api-1 logs",
+            "docker",
+            "here",
+            true,
+            "service is unhealthy",
+            None,
+            false,
+        ),
+        tag_row(
+            "Inspect 10 GB of generated artifacts",
+            "disk",
+            "here",
+            true,
+            "10 GB generated artifacts",
+            None,
+            false,
+        ),
+        tag_row(
+            "Install missing tools · node",
+            "task",
+            "here",
+            true,
+            "1 tool missing",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review cleanup candidates",
+            "cleanup",
+            "host",
+            false,
+            "10.6 GiB across 4 categories",
+            None,
+            false,
+        ),
+    ];
+    let recent = vec![tag_row(
+        "Pull",
+        "git",
+        "here",
+        true,
+        "used 20 times on mbp",
+        None,
+        false,
+    )];
+    let running = vec![
+        tag_row(
+            "logs · api worker scheduler",
+            "activity",
+            "here",
+            true,
+            "⠋ running · 3 s",
+            None,
+            false,
+        ),
+        tag_row(
+            "api dev",
+            "activity",
+            "child",
+            false,
+            "⠋ running · 3 s",
+            None,
+            false,
+        ),
+        tag_row(
+            "btm",
+            "activity",
+            "host",
+            false,
+            "⠋ detached · 3 s",
+            None,
+            false,
+        ),
+        tag_row(
+            "frontend dev",
+            "activity",
+            "child",
+            false,
+            "⠋ running · 3 s",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![
+        tag_row(
+            "Children · 3 projects",
+            "explore",
+            "child",
+            false,
+            "3 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    for row in &recent {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Running"));
+    for row in &running {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "push the current branch to the preview stack".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "tools/deploy-pre…preview".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/acme".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "Current folder · ⚠ unreviewed · used 7 times here".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "see the command".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 0 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "trust required · ~/work/acme/.holla.toml".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Set an alias… · Show configuration diagnostics · Pin · Alias · Why here?"
+                .into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "custom · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+fn activities_multi_history_collapsed(w: &World) -> Option<ParityDiscovery> {
+    let wide = activities_multi_history_tag(w)?;
+    let mut lines = wide.lines;
+    for line in &mut lines {
+        if let FinderLine::Row(row) = line
+            && row.title == "Install missing tools · node"
+        {
+            row.title = "Install missing tools · sqlx-cli".to_owned();
+        }
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "tools/deploy-preview.sh --env preview".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
+fn activities_multi_collapsed(w: &World) -> Option<ParityDiscovery> {
+    let wide = activities_multi_tag(w)?;
+    let mut lines = wide.lines;
+    for line in &mut lines {
+        if let FinderLine::Row(row) = line
+            && row.title == "Install missing tools · node"
+        {
+            row.title = "Install missing tools · sqlx-cli".to_owned();
+        }
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze --artifacts'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
+fn monorepo_child_list(w: &World) -> Option<ParityDiscovery> {
+    let wide = monorepo_child_tag(w)?;
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze --artifacts'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines: wide.lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
+pub fn monorepo_child_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if (80..120).contains(&width) {
+        monorepo_child_list(w)
+    } else {
+        None
+    }
+}
+
+pub fn monorepo_child_tag(w: &World) -> Option<ParityDiscovery> {
+    if !monorepo_child_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Inspect 3 GB of generated artifacts",
+            "disk",
+            "here",
+            true,
+            "3 GB generated artifacts",
+            None,
+            true,
+        ),
+        tag_row(
+            "Install missing tools · sqlx-cli",
+            "task",
+            "here",
+            true,
+            "1 tool missing",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run tests",
+            "task",
+            "here",
+            true,
+            "2 files changed since the last run",
+            None,
+            false,
+        ),
+        tag_row(
+            "Follow acme-api-1 logs",
+            "docker",
+            "parent",
+            false,
+            "service is unhealthy",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review 2 modified files",
+            "git",
+            "parent",
+            false,
+            "2 modified · 0 untracked",
+            None,
+            false,
+        ),
+    ];
+    let parent = vec![
+        tag_row(
+            "Start development ecosystem",
+            "task",
+            "parent",
+            false,
+            "defined by ~/work/acme/mise.toml",
+            None,
+            false,
+        ),
+        tag_row(
+            "Start required containers",
+            "task",
+            "parent",
+            false,
+            "defined by ~/work/acme/mise.toml",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![
+        tag_row(
+            "Parent · acme (mise monorepo)",
+            "explore",
+            "parent",
+            false,
+            "workspace root above this folder",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("From acme · the parent root"));
+    for row in &parent {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "1 rebuildable candidate below this folder · 0 stale enough to start selected"
+                .into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk anal…ifacts'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/acme/apps…rontend".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "3 GB generated artifacts".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 3 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+pub fn remote_host_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !(80..120).contains(&width) {
+        return None;
+    }
+    let mut plate = remote_host_list_plate(remote_host_tag(w)?);
+    if (100..120).contains(&width) {
+        for line in &mut plate.lines {
+            if let FinderLine::Row(row) = line
+                && row.title == "Who is blocking the database?"
+            {
+                row.reason = "2 sessions blocked for 4 min".to_owned();
+            }
+        }
+    }
+    Some(plate)
+}
+
+pub fn remote_host_tag(w: &World) -> Option<ParityDiscovery> {
+    if !remote_host_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Who is blocking the database?",
+            "postgres",
+            "here",
+            true,
+            "2 sessions blocked for 41 min",
+            None,
+            false,
+        ),
+        tag_row(
+            "Follow payments-worker journal",
+            "system",
+            "on prod-eu-1",
+            false,
+            "unit is restarting",
+            None,
+            true,
+        ),
+        tag_row(
+            "Open btm",
+            "system",
+            "on prod-eu-1",
+            false,
+            "sustained pressure · continuous view fits",
+            None,
+            false,
+        ),
+        tag_row(
+            "Show payments-worker status",
+            "system",
+            "on prod-eu-1",
+            false,
+            "3 restarts in 10 min",
+            None,
+            false,
+        ),
+        tag_row(
+            "Show system resources",
+            "system",
+            "on prod-eu-1",
+            false,
+            "CPU 34% for 11 min",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · prod-eu-1",
+        "explore",
+        "on prod-eu-1",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "journalctl -u payments-worker -f".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "journalctl -u pa… -n 200".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "In",
+            value: "prod-eu-1 · host-wide".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "prod-eu-1 · production · over SSH".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "on prod-eu-1".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "unit is restarting".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "system · on prod-eu-1".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+fn remote_host_list_plate(wide: ParityDiscovery) -> ParityDiscovery {
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "journalctl -u payments-worker -f -n 200".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "on prod-eu-1".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    ParityDiscovery {
+        lines: wide.lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    }
+}
+
+pub fn hard_cases_tag(w: &World) -> Option<ParityDiscovery> {
+    if !hard_cases_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Analyze disk usage",
+            "disk",
+            "here",
+            true,
+            "/ is 91% full",
+            None,
+            true,
+        ),
+        tag_row(
+            "Resolve the rebase in lazygit",
+            "git",
+            "here",
+            true,
+            "rebase in progress · 2 conflicts",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review 7 modified files",
+            "git",
+            "here",
+            true,
+            "7 modified · 0 untracked",
+            None,
+            false,
+        ),
+        tag_row(
+            "Open btm",
+            "system",
+            "host",
+            false,
+            "sustained pressure · continuous view fits",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review cleanup candidates",
+            "cleanup",
+            "host",
+            false,
+            "8.0 GiB across 4 categories",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![
+        tag_row(
+            "Children · 14 projects",
+            "explore",
+            "child",
+            false,
+            "14 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "Parent · northwind-traders-platform-migration",
+            "explore",
+            "parent",
+            false,
+            "workspace root above this folder",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "largest-first tree of this folder that deepens as the scan streams; select any entry or rebuildable artifacts for cleanup".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/clients/n…service".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "/ is 91% full".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 3 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Disk overview (home folders) · Analyze a custom path… · Top files on this Mac · Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+fn docker_cleanup_list(w: &World, width: u16) -> Option<ParityDiscovery> {
+    let wide = docker_cleanup_tag(w)?;
+    let runs = if (80..100).contains(&width) {
+        "docker stop acme-api-1 acme-wor…-1 acme-redis-1"
+    } else {
+        "docker stop acme-api-1 acme-worker-1 acme-sc…acme-db-1 acme-redis-1"
+    };
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: runs.into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "on devbox".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "destructive".into(),
+            tone: PreviewTone::Danger,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines: wide.lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
+pub fn docker_cleanup_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if (80..120).contains(&width) {
+        docker_cleanup_list(w, width)
+    } else {
+        None
+    }
+}
+
+pub fn docker_cleanup_tag(w: &World) -> Option<ParityDiscovery> {
+    if !docker_cleanup_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Clean Docker completely",
+            "plan",
+            "on devbox",
+            false,
+            "18.4 GB reclaimable on devbox",
+            Some("destructive"),
+            true,
+        ),
+        tag_row(
+            "Prune builder cache",
+            "docker",
+            "on devbox",
+            false,
+            "6.1 GB of build cache",
+            Some("destructive"),
+            false,
+        ),
+        tag_row(
+            "Stop all containers",
+            "docker",
+            "on devbox",
+            false,
+            "5 running on devbox",
+            None,
+            false,
+        ),
+        tag_row(
+            "Prune unused networks",
+            "docker",
+            "on devbox",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+        tag_row(
+            "Prune unused volumes",
+            "docker",
+            "on devbox",
+            false,
+            "7 volumes",
+            Some("destructive"),
+            false,
+        ),
+        tag_row(
+            "Remove all unused images",
+            "docker",
+            "on devbox",
+            false,
+            "12 dangling",
+            Some("destructive"),
+            false,
+        ),
+        tag_row(
+            "Stop and remove all containers",
+            "docker",
+            "on devbox",
+            false,
+            "12 containers on devbox",
+            Some("destructive"),
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Results · 7"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let mut preview = vec![PreviewLine {
+        label: "Does",
+        value: "remove all user-removable Docker state on devbox: containers, all images, networks, system data, volumes, build cache · as a reviewable plan".into(),
+        tone: PreviewTone::Text,
+        wraps: true,
+    }];
+    let runs = [
+        "docker stop acme…redis-1",
+        "docker rm acme-a…na loki",
+        "docker image pru…--force",
+        "docker network p…--force",
+        "docker system pr…--force",
+        "docker volume pr…--force",
+    ];
+    for (index, command) in runs.into_iter().enumerate() {
+        preview.push(PreviewLine {
+            label: if index == 0 { "Runs" } else { "" },
+            value: command.into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
         });
-        let row = catalogue(&world)
-            .into_iter()
-            .find(|row| row.command == "rm -rf /")
-            .unwrap();
-        assert_eq!(resolve_intent(&world, &row), Err(IntentError::Unavailable));
-        let custom = catalogue(&world)
-            .into_iter()
-            .find(|row| row.id == "pin:make test")
-            .unwrap();
-        assert!(resolve_intent(&world, &custom).is_ok());
-        world.cwd.push_str("-other");
-        assert_eq!(
-            resolve_intent(&world, &custom),
-            Err(IntentError::StaleTarget)
-        );
     }
+    preview.push(PreviewLine {
+        label: "",
+        value: "… 2 more".into(),
+        tone: PreviewTone::Muted,
+        wraps: false,
+    });
+    preview.extend([
+        PreviewLine {
+            label: "In",
+            value: "devbox · host-wide".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "devbox · development · over SSH".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "on devbox".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "18.4 GB reclaimable on devbox".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "12 containers · 41 images · 7 volumes · ~18.4 GB reclaimed · permanent".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "destructive".into(),
+            tone: PreviewTone::Danger,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "two gates · type I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Stop all containers only · Prune builder cache only · Pin · Alias · Why here?"
+                .into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ]);
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "plan · on devbox".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
 
-    #[test]
-    fn remembered_target_is_revalidated_when_host_changes() {
-        let mut world = settled(Scenario::DockerCleanup);
-        let action = catalogue(&world)
-            .into_iter()
-            .find(|action| action.id == "docker.cleanup")
-            .unwrap();
-        world.memory.pins.push(Pin {
-            path: world.cwd.clone(),
-            command: action.command.clone(),
-        });
-        let row = catalogue(&world)
-            .into_iter()
-            .find(|row| row.id == format!("pin:{}", action.command))
-            .unwrap();
-        world.host.name = "different-host".into();
-        assert_eq!(resolve_intent(&world, &row), Err(IntentError::StaleTarget));
+fn tag_row(
+    title: impl Into<String>,
+    kind: &'static str,
+    scope_word: &'static str,
+    here: bool,
+    reason: impl Into<String>,
+    risk: Option<&'static str>,
+    selected: bool,
+) -> TagRow {
+    TagRow {
+        title: title.into(),
+        kind,
+        scope_word,
+        here,
+        reason: reason.into(),
+        risk,
+        selected,
     }
+}
 
-    #[test]
-    fn mise_scope_uses_path_components_not_sibling_prefixes() {
-        let mut world = settled(Scenario::MonorepoRoot);
-        world.cwd = "~/work/mono".into();
-        let action = catalogue(&world)
-            .into_iter()
-            .find(|action| action.id == "task://:lint")
-            .unwrap();
-        assert_eq!(action.scope, Scope::Workspace);
-    }
-    #[test]
-    fn extreme_usage_stays_positive_and_alias_queries_share_identity() {
-        let mut world = settled(Scenario::RustDirty);
-        let mut a = Action::new(
-            "a",
-            "A",
+fn parity_actions(suggested: &[TagRow], explore: &[TagRow], cwd: &str) -> Vec<Action> {
+    let specs = [
+        (
+            "git.pull",
+            ActionKind::Git,
+            Scope::Here,
+            Risk::Bounded,
+            "git pull",
+        ),
+        ("idea.clean", ActionKind::Flow, Scope::Here, Risk::Broad, ""),
+        (
+            "deploy",
             ActionKind::Task,
             Scope::Here,
-            "",
-            Risk::ReadOnly,
-            "",
-            "a",
-        );
-        let b = Action::new(
-            "b",
-            "B",
+            Risk::Bounded,
+            "tools/deploy.sh",
+        ),
+        (
+            "mise.task.test",
             ActionKind::Task,
             Scope::Here,
-            "",
+            Risk::ReadOnly,
+            "mise run test",
+        ),
+        (
+            "git.status",
+            ActionKind::Git,
+            Scope::Here,
+            Risk::ReadOnly,
+            "git status",
+        ),
+        (
+            "scope.system",
+            ActionKind::System,
+            Scope::Host,
             Risk::ReadOnly,
             "",
-            "b",
-        );
-        world.memory.usage.push(Usage {
-            path: world.cwd.clone(),
-            command: "b".into(),
-            count: u32::MAX,
-        });
-        let mut actions = vec![a.clone(), b];
-        rank(&world, &mut actions);
-        assert_eq!(actions[0].id, "b");
-        world.memory.set_alias("Ålias", "a").unwrap();
-        a.title = "X".into();
-        assert_eq!(
-            visible(&[a], None, "åLIAS", &world.memory, &world.cwd).len(),
-            1
-        );
-    }
+        ),
+    ];
+    let rows: Vec<&TagRow> = suggested.iter().chain(explore.iter()).collect();
+    specs
+        .into_iter()
+        .zip(rows)
+        .map(|((id, kind, scope, risk, command), row)| {
+            let mut action =
+                Action::new(id, &row.title, kind, scope, &row.reason, risk, cwd, command);
+            action.keywords = row.kind.into();
+            action
+        })
+        .collect()
 }

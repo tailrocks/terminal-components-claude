@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 87ae53c037d78691bb877c75e62e663b96e818da Alexey Zhokhov <alexey@zhokhov.com> 1792168908 +0700	branch: Created from HEAD
+87ae53c037d78691bb877c75e62e663b96e818da e7209a1f38a0faeeec84dedac905713a30c7a2af Alexey Zhokhov <alexey@zhokhov.com> 1792169949 +0700	commit: feat(showcase): Breadcrumbs & rails page (SC5)
+e7209a1f38a0faeeec84dedac905713a30c7a2af 48d4a13ace1f6c2a9fd45a3bf9b702f92dd2a830 Alexey Zhokhov <alexey@zhokhov.com> 1792171043 +0700	commit: feat(showcase): the header crumb is the library Breadcrumb (SC5)
+48d4a13ace1f6c2a9fd45a3bf9b702f92dd2a830 b77e92692cba9ab4c3b88c6aeb8440c913ce3e0d Alexey Zhokhov <alexey@zhokhov.com> 1792171087 +0700	commit: test(visual): showcase header crumb re-approval
+b77e92692cba9ab4c3b88c6aeb8440c913ce3e0d c7eeba65bb3df1ced37b9e88858e7e1920b15cd5 Alexey Zhokhov <alexey@zhokhov.com> 1792171928 +0700	rebase (finish): refs/heads/sc-group-e onto d2bcdd17fc33b9d8452dc4c14608389fdd5e7aa5
+c7eeba65bb3df1ced37b9e88858e7e1920b15cd5 e19fe7d81e0973d1de0b7f17f713b6c5a41cbc61 Alexey Zhokhov <alexey@zhokhov.com> 1792172616 +0700	commit: feat(showcase): Help & keys and Quit & leave pages; ? opens the HelpOverlay (SC6)
+e19fe7d81e0973d1de0b7f17f713b6c5a41cbc61 e4c9181d5fa4fdd1e8e5dac46d32d4c953582a7f Alexey Zhokhov <alexey@zhokhov.com> 1792173370 +0700	commit: feat(showcase): Lists and Trees on the template (SC15)
+e4c9181d5fa4fdd1e8e5dac46d32d4c953582a7f 2ae19fa20ffeaafcce60214cd42bbba76c8ada7d Alexey Zhokhov <alexey@zhokhov.com> 1792173651 +0700	commit: test(visual): showcase lists and trees re-approval
+2ae19fa20ffeaafcce60214cd42bbba76c8ada7d 1e7f888b19f0afa6248308b0eb5d49d797365fa1 Alexey Zhokhov <alexey@zhokhov.com> 1792173709 +0700	rebase (finish): refs/heads/sc-group-e onto 9ae6afc7ecd226bca34f87ab6db9ad9edb7b0590
+1e7f888b19f0afa6248308b0eb5d49d797365fa1 1ec63b73794283be6cbb88564e48c1f9a5da2b40 Alexey Zhokhov <alexey@zhokhov.com> 1792173860 +0700	commit: test(visual): the SC6 overlay rows belong in OVERLAYS

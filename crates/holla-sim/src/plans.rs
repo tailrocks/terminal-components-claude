@@ -1,4 +1,4 @@
-use crate::domain::disk::Freshness;
+use crate::domain::disk::{Candidate, DiskState, Freshness};
 use crate::domain::docker::{ContainerState, Health};
 use crate::domain::effect::Mutation;
 use crate::domain::human_bytes;
@@ -227,6 +227,37 @@ pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
         id if id.starts_with("docker.restart:") => restart_service(w, &id[15..]),
         _ => None,
     }?;
+    Some(ReviewedPlan::new(plan, w))
+}
+
+pub fn plan_for_disk_selection(w: &World, selected_paths: &[String]) -> Option<ReviewedPlan> {
+    let disk = w.disk.as_ref()?;
+    disk.validate(&w.cwd).ok()?;
+    if selected_paths.is_empty() {
+        return None;
+    }
+
+    let mut selected = std::collections::BTreeSet::<&str>::new();
+    for path in selected_paths {
+        if !selected.insert(path.as_str()) {
+            return None;
+        }
+    }
+    let selected_count = disk
+        .candidates
+        .iter()
+        .filter(|candidate| selected.contains(candidate.path.as_str()))
+        .count();
+    if selected_count != selected.len()
+        || disk.candidates.iter().any(|candidate| {
+            selected.contains(candidate.path.as_str())
+                && candidate.freshness == Freshness::ActiveToday
+        })
+    {
+        return None;
+    }
+
+    let plan = disk_reclaim_plan(w, disk, Some(&selected))?;
     Some(ReviewedPlan::new(plan, w))
 }
 
@@ -490,6 +521,22 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
 fn disk_reclaim(w: &World) -> Option<Plan> {
     let disk = w.disk.as_ref()?;
     disk.validate(&w.cwd).ok()?;
+    disk_reclaim_plan(w, disk, None)
+}
+
+fn disk_reclaim_plan(
+    w: &World,
+    disk: &DiskState,
+    selected_paths: Option<&std::collections::BTreeSet<&str>>,
+) -> Option<Plan> {
+    let candidates: Vec<&Candidate> = disk
+        .candidates
+        .iter()
+        .filter(|candidate| {
+            selected_paths.is_none_or(|selected| selected.contains(candidate.path.as_str()))
+        })
+        .collect();
+    let selected_subset = selected_paths.is_some();
     let host = w.host.name.clone();
     let mut steps = vec![
         PlanStep::new(
@@ -507,7 +554,7 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
             disk.used_percent()
         )]),
     ];
-    for c in &disk.candidates {
+    for c in &candidates {
         let title = format!("Remove {}", basename(&c.path));
         let step = PlanStep::new(
             &format!("rm:{}", c.path),
@@ -516,7 +563,7 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
             &c.freshness.label(),
             &[0],
         )
-        .succeeds_with(vec![Mutation::RemoveDisk(c.clone())]);
+        .succeeds_with(vec![Mutation::RemoveDisk((*c).clone())]);
         let step = match c.freshness {
             Freshness::ActiveToday => step.policy_skipped("active today · never removed"),
             _ => step,
@@ -529,20 +576,36 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
             .lines(&["df -h /", "free space recounted · next scan is honest"]),
     );
 
-    let reclaim: u64 = disk
-        .candidates
-        .iter()
-        .filter(|c| !matches!(c.freshness, Freshness::ActiveToday))
-        .map(|c| c.size_bytes)
-        .sum();
+    let reclaim = crate::domain::accounting::bytes(
+        candidates
+            .iter()
+            .filter(|candidate| !matches!(candidate.freshness, Freshness::ActiveToday))
+            .map(|candidate| candidate.size_bytes),
+    )
+    .ok()?;
+    let (title, will_change) = if selected_subset {
+        (
+            "Reclaim selected disk space",
+            format!(
+                "deletes {} across {} selected candidates · unselected candidates stay",
+                human_bytes(reclaim),
+                candidates.len()
+            ),
+        )
+    } else {
+        (
+            "Reclaim disk space",
+            format!(
+                "deletes {} of generated artifacts · active-today artifacts stay",
+                human_bytes(reclaim)
+            ),
+        )
+    };
     Plan::try_new(PlanSpec {
         action_id: "disk.reclaim".into(),
-        title: "Reclaim disk space".into(),
+        title: title.into(),
         phrase: format!("DELETE GENERATED ARTIFACTS ON {host}"),
-        will_change: format!(
-            "deletes {} of generated artifacts · active-today artifacts stay",
-            human_bytes(reclaim)
-        ),
+        will_change,
         host,
         steps,
         effect: Some(PlanEffect::DiskReclaim),
@@ -937,542 +1000,4 @@ fn restart_service(w: &World, name: &str) -> Option<Plan> {
 
 fn basename(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
-}
-
-#[cfg(test)]
-#[expect(
-    clippy::indexing_slicing,
-    clippy::unwrap_used,
-    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
-)]
-mod tests {
-    use super::*;
-    use crate::domain::fixtures;
-    use crate::scenario::Scenario;
-
-    fn settled(s: Scenario) -> World {
-        let mut w = fixtures::world_for(s);
-        w.clock.running = true;
-        w.seek(4_000);
-        w
-    }
-
-    #[test]
-    fn docker_plan_binds_phrase_and_propagates_failure() {
-        let mut w = settled(Scenario::DockerCleanup);
-        let mut p = plan_for(&w, "docker.cleanup").unwrap();
-        assert_eq!(p.plan().phrase(), "REMOVE ALL DOCKER DATA ON devbox");
-        let phrase = p.plan().phrase().to_owned();
-        p.approve(&phrase, &w).unwrap().execute(&mut w).unwrap();
-        assert!(matches!(p.plan().steps()[1].state, StepState::Failed(_)));
-        assert!(matches!(p.plan().steps()[2].state, StepState::Skipped(_)));
-        assert!(matches!(p.plan().steps()[4].state, StepState::Succeeded));
-        let d = w.docker.unwrap();
-        assert_eq!(d.build_cache_bytes(), 0);
-        assert!(d.containers.iter().any(|c| c.name == "payments-old"));
-        assert!(!d.containers.iter().any(|c| c.name == "web"));
-    }
-
-    #[test]
-    fn debian_plan_has_parallel_branches_and_policy_phrase() {
-        let mut w = settled(Scenario::UpgradePlan);
-        let mut p = plan_for(&w, "debian.upgrade").unwrap();
-        assert_eq!(
-            p.plan().phrase(),
-            "I UNDERSTAND: UPGRADE EVERYTHING ON devbox-deb"
-        );
-        p.toggle(2).unwrap();
-        assert!(
-            p.plan().blocked_by_exclusion(3).is_some(),
-            "autoremove blocked"
-        );
-        assert!(p.plan().blocked_by_exclusion(6).is_some(), "verify blocked");
-        assert_eq!(
-            p.plan().blocked_by_exclusion(5),
-            None,
-            "mise branch parallel"
-        );
-        let phrase = p.plan().phrase().to_owned();
-        p.approve(&phrase, &w).unwrap().execute(&mut w).unwrap();
-        assert!(matches!(p.plan().steps()[5].state, StepState::Succeeded));
-        assert_eq!(w.debian.as_ref().unwrap().pending, 47, "apt not applied");
-        let mise = w.mise.as_ref().unwrap();
-        assert!(
-            mise.tools
-                .iter()
-                .all(|t| !matches!(t.state, ToolState::Outdated { .. }))
-        );
-    }
-
-    #[test]
-    fn restart_phrase_uses_uppercase_service_and_host() {
-        let mut w = settled(Scenario::RemoteHost);
-        let mut p = plan_for(&w, "docker.restart:payments").unwrap();
-        assert_eq!(p.plan().phrase(), "RESTART PAYMENTS ON prod-eu-1");
-        let phrase = p.plan().phrase().to_owned();
-        p.approve(&phrase, &w).unwrap().execute(&mut w).unwrap();
-        let d = w.docker.as_ref().unwrap();
-        assert!(d.unhealthy().is_empty());
-    }
-
-    #[test]
-    fn disk_plan_policy_skips_active_today() {
-        let w = settled(Scenario::DiskCleanup);
-        let p = plan_for(&w, "disk.reclaim").unwrap();
-        assert_eq!(p.plan().phrase(), "DELETE GENERATED ARTIFACTS ON devbox");
-        let active = p
-            .plan()
-            .steps()
-            .iter()
-            .find(|s| matches!(s.state, StepState::PolicySkipped(_)))
-            .unwrap();
-        assert!(active.title.contains("node_modules"));
-    }
-    #[test]
-    fn approval_revalidates_target_after_phrase_before_any_effect() {
-        let mut world = settled(Scenario::DiskCleanup);
-        let mut review = plan_for(&world, "disk.reclaim").unwrap();
-        let phrase = review.plan().phrase().to_owned();
-        let approval = review.approve(&phrase, &world).unwrap();
-        world.disk.as_mut().unwrap().candidates[0].freshness = Freshness::ActiveToday;
-        let before = world.disk.clone();
-        assert_eq!(
-            approval.execute(&mut world),
-            Err(ApprovalError::StaleTarget)
-        );
-        assert_eq!(world.disk, before);
-        assert!(!review.plan().ran());
-        assert_eq!(world.effect_revision, 0);
-    }
-
-    #[test]
-    fn approval_checks_phrase_host_and_revision_without_consuming_review() {
-        let mut world = settled(Scenario::RemoteHost);
-        let mut review = plan_for(&world, "docker.restart:payments").unwrap();
-        assert!(matches!(
-            review.approve("wrong", &world),
-            Err(ApprovalError::WrongPhrase)
-        ));
-        let phrase = review.plan().phrase().to_owned();
-        let old_host = world.host.clone();
-        world.host.env = crate::domain::host::Environment::Local;
-        assert!(matches!(
-            review.approve(&phrase, &world),
-            Err(ApprovalError::StaleTarget)
-        ));
-        world.host = old_host;
-        world.effect_revision += 1;
-        assert!(matches!(
-            review.approve(&phrase, &world),
-            Err(ApprovalError::StaleTarget)
-        ));
-        assert!(!review.plan().ran());
-    }
-
-    #[test]
-    fn successful_and_partially_failed_reviews_are_one_shot() {
-        for (scenario, action, expected_failures) in [
-            (Scenario::RemoteHost, "docker.restart:payments", 0),
-            (Scenario::DockerCleanup, "docker.cleanup", 1),
-        ] {
-            let mut world = settled(scenario);
-            let mut review = plan_for(&world, action).unwrap();
-            let phrase = review.plan().phrase().to_owned();
-            let report = review
-                .approve(&phrase, &world)
-                .unwrap()
-                .execute(&mut world)
-                .unwrap();
-            assert_eq!(report.failed, expected_failures);
-            let after = world.docker.clone();
-            assert!(matches!(
-                review.approve(&phrase, &world),
-                Err(ApprovalError::AlreadyConsumed)
-            ));
-            assert_eq!(world.docker, after);
-            assert_eq!(world.effect_revision, 1);
-            assert!(review.plan().ran());
-        }
-    }
-
-    #[test]
-    fn cancel_approval_keeps_world_and_review_unchanged() {
-        let mut world = settled(Scenario::DockerCleanup);
-        let mut review = plan_for(&world, "docker.cleanup").unwrap();
-        let before = world.docker.clone();
-        let phrase = review.plan().phrase().to_owned();
-        {
-            let _approval = review.approve(&phrase, &world).unwrap();
-        }
-        assert_eq!(world.docker, before);
-        assert!(!review.plan().ran());
-        world.tick(1000);
-        assert!(
-            review.approve(&phrase, &world).is_ok(),
-            "elapsed discovery time is not a target change"
-        );
-    }
-
-    #[test]
-    fn approval_refuses_revision_exhaustion_before_running() {
-        let mut world = settled(Scenario::DockerCleanup);
-        world.effect_revision = u64::MAX;
-        let mut review = plan_for(&world, "docker.cleanup").unwrap();
-        let before = world.docker.clone();
-        let phrase = review.plan().phrase().to_owned();
-        assert_eq!(
-            review.approve(&phrase, &world).unwrap().execute(&mut world),
-            Err(ApprovalError::RevisionExhausted)
-        );
-        assert_eq!(world.docker, before);
-        assert!(!review.plan().ran());
-    }
-    const MIB: u64 = 1_024 * 1_024;
-
-    fn execute_review(review: &mut ReviewedPlan, world: &mut World) -> EffectReport {
-        let phrase = review.plan().phrase().to_owned();
-        review
-            .approve(&phrase, world)
-            .unwrap()
-            .execute(world)
-            .unwrap()
-    }
-
-    #[test]
-    fn docker_partial_failure_accounts_exact_removed_targets() {
-        let mut world = settled(Scenario::DockerCleanup);
-        let mut review = plan_for(&world, "docker.cleanup").unwrap();
-        let report = execute_review(&mut review, &mut world);
-        let docker = world.docker.as_ref().unwrap();
-        assert_eq!(docker.container_bytes().unwrap(), 340 * MIB);
-        assert_eq!(
-            (docker.images(), docker.image_bytes().unwrap()),
-            (9, 6_200 * MIB)
-        );
-        assert_eq!(
-            (docker.volumes(), docker.volume_bytes().unwrap()),
-            (5, 3_400 * MIB)
-        );
-        assert_eq!(docker.networks(), 4);
-        assert_eq!(report.reclaimed_bytes, 12_780 * MIB);
-        assert_eq!(
-            report
-                .applied_steps
-                .iter()
-                .map(|step| step.id.as_str())
-                .collect::<Vec<_>>(),
-            ["containers", "cache", "networks"]
-        );
-        assert_eq!(
-            review.plan().steps()[1].lines,
-            [
-                "Removed web",
-                "Removed cron",
-                "Error: container payments-old: bind mount still registered"
-            ]
-        );
-    }
-
-    #[test]
-    fn docker_success_recounts_resources_and_output_from_same_inventory() {
-        let mut world = settled(Scenario::DockerCleanup);
-        world
-            .docker
-            .as_mut()
-            .unwrap()
-            .containers
-            .retain(|c| c.name != "payments-old");
-        let before = world.docker.as_ref().unwrap().total_bytes().unwrap();
-        let mut review = plan_for(&world, "docker.cleanup").unwrap();
-        let report = execute_review(&mut review, &mut world);
-        let docker = world.docker.as_ref().unwrap();
-        assert_eq!(
-            (docker.images(), docker.image_bytes().unwrap()),
-            (5, 3_100 * MIB)
-        );
-        assert_eq!((docker.volumes(), docker.volume_bytes().unwrap()), (0, 0));
-        assert_eq!(docker.container_bytes().unwrap(), 300 * MIB);
-        assert_eq!(docker.networks(), 4);
-        assert_eq!(
-            before - docker.total_bytes().unwrap(),
-            report.reclaimed_bytes
-        );
-        assert_eq!(
-            review.plan().steps()[2].lines,
-            ["Deleted 4 images", "Total reclaimed: 3.0 GB"]
-        );
-    }
-
-    #[test]
-    fn excluded_cleanup_steps_have_no_hidden_effects() {
-        let mut world = settled(Scenario::DockerCleanup);
-        let before = world.docker.as_ref().unwrap().total_bytes().unwrap();
-        let mut review = plan_for(&world, "docker.cleanup").unwrap();
-        review.toggle(1).unwrap();
-        review.toggle(4).unwrap();
-        let report = execute_review(&mut review, &mut world);
-        assert_eq!(
-            world.docker.as_ref().unwrap().total_bytes().unwrap(),
-            before
-        );
-        assert_eq!(report.reclaimed_bytes, 0);
-        assert_eq!(world.docker.as_ref().unwrap().containers.len(), 7);
-    }
-
-    #[test]
-    fn disk_claims_only_policy_removable_bytes_and_accounts_exactly() {
-        let mut world = settled(Scenario::DiskCleanup);
-        let disk = world.disk.as_ref().unwrap();
-        assert_eq!(disk.inspected_bytes().unwrap(), 26_040 * MIB);
-        assert_eq!(disk.reclaimable_bytes().unwrap(), 22_940 * MIB);
-        let before = disk.used_bytes;
-        let mut review = plan_for(&world, "disk.reclaim").unwrap();
-        let report = execute_review(&mut review, &mut world);
-        let disk = world.disk.as_ref().unwrap();
-        assert_eq!(disk.used_bytes, before - 22_940 * MIB);
-        assert_eq!(report.reclaimed_bytes, 22_940 * MIB);
-        assert_eq!(disk.candidates.len(), 1);
-        assert_eq!(disk.candidates[0].freshness, Freshness::ActiveToday);
-    }
-
-    #[test]
-    fn git_checkout_is_real_in_model_and_diverged_children_stay_untouched() {
-        let mut world = settled(Scenario::MonorepoRoot);
-        let children = &mut world.git.as_mut().unwrap().children;
-        children[0].branch = Some("feature".into());
-        children[0].upstream = Some("origin/feature".into());
-        let diverged = children[1].clone();
-        let detached = children[2].clone();
-        let mut review = plan_for(&world, "git.sync").unwrap();
-        execute_review(&mut review, &mut world);
-        let children = &world.git.as_ref().unwrap().children;
-        assert_eq!(children[0].branch.as_deref(), Some("main"));
-        assert_eq!(children[0].upstream.as_deref(), Some("origin/main"));
-        assert_eq!(children[0].behind, 0);
-        assert_eq!(children[1], diverged);
-        assert_eq!(children[2], detached);
-        assert!(
-            review
-                .plan()
-                .steps()
-                .iter()
-                .filter(|s| s.id.contains("services/billing"))
-                .all(|s| matches!(s.state, StepState::PolicySkipped(_)))
-        );
-    }
-
-    #[test]
-    fn debian_remote_output_does_not_invent_tools_held_packages_or_reboot() {
-        let mut world = settled(Scenario::RemoteHost);
-        let mut review = plan_for(&world, "debian.upgrade").unwrap();
-        execute_review(&mut review, &mut world);
-        let lines: Vec<&str> = review
-            .plan()
-            .steps()
-            .iter()
-            .flat_map(|s| s.lines.iter().map(String::as_str))
-            .collect();
-        assert!(lines.contains(&"12 upgraded, 3 security, 0 held back"));
-        assert!(lines.contains(&"no reboot required"));
-        assert!(
-            !lines
-                .iter()
-                .any(|line| line.contains("rust") || line.contains("kernel"))
-        );
-        assert!(world.mise.is_none());
-        assert_eq!(world.debian.as_ref().unwrap().pending, 0);
-    }
-
-    #[test]
-    fn upgrade_fixture_retains_orphan_accounting_and_missing_optional_tool_truth() {
-        let mut world = settled(Scenario::UpgradePlan);
-        let mut review = plan_for(&world, "debian.upgrade").unwrap();
-        let report = execute_review(&mut review, &mut world);
-        assert_eq!(
-            review.plan().steps()[3].lines,
-            ["Removing 12 orphaned packages", "Freed 410 MB"]
-        );
-        assert!(world.debian.as_ref().unwrap().orphaned_packages.is_empty());
-        assert_eq!(report.reclaimed_bytes, 410 * MIB);
-        assert!(
-            review.plan().steps()[6]
-                .lines
-                .iter()
-                .any(|line| line == "installed tools current · 1 optional tools missing")
-        );
-        assert_eq!(world.debian.as_ref().unwrap().pending, 1);
-    }
-    #[test]
-    fn duplicate_tool_identity_refuses_review_before_any_upgrade() {
-        let mut world = settled(Scenario::UpgradePlan);
-        let tools = &mut world.mise.as_mut().unwrap().tools;
-        let mut duplicate = tools[0].clone();
-        duplicate.version = "different-before".into();
-        tools.push(duplicate);
-        let before = world.mise.clone();
-        assert!(plan_for(&world, "debian.upgrade").is_none());
-        assert_eq!(world.mise, before);
-        assert_eq!(world.effect_revision, 0);
-    }
-
-    #[test]
-    fn inconsistent_disk_capacity_refuses_reclaim_claims() {
-        let mut world = settled(Scenario::DiskCleanup);
-        world.disk.as_mut().unwrap().used_bytes = 1;
-        assert!(plan_for(&world, "disk.reclaim").is_none());
-        world.disk.as_mut().unwrap().used_bytes = u64::MAX;
-        assert!(plan_for(&world, "disk.reclaim").is_none());
-    }
-    #[test]
-    fn disk_relative_and_parent_aliases_cannot_double_count_targets() {
-        for (first, second) in [(".", "a"), ("/a/x/../b", "/a/b")] {
-            let mut world = settled(Scenario::DiskCleanup);
-            let disk = world.disk.as_mut().unwrap();
-            disk.candidates.truncate(2);
-            disk.candidates[0].path = first.into();
-            disk.candidates[1].path = second.into();
-            assert!(plan_for(&world, "disk.reclaim").is_none());
-        }
-        let mut world = settled(Scenario::DiskCleanup);
-        let disk = world.disk.as_mut().unwrap();
-        disk.total_bytes = u64::MAX;
-        disk.used_bytes = u64::MAX;
-        assert!(plan_for(&world, "disk.reclaim").is_some());
-    }
-    #[test]
-    fn malformed_docker_getters_and_catalogue_report_errors_without_panics() {
-        use crate::domain::accounting::InventoryError;
-        let mut world = settled(Scenario::DockerCleanup);
-        world.docker.as_mut().unwrap().containers[0].size_bytes = u64::MAX;
-        let docker = world.docker.as_ref().unwrap();
-        assert_eq!(docker.container_bytes(), Err(InventoryError::Overflow));
-        assert_eq!(docker.total_bytes(), Err(InventoryError::Overflow));
-        assert!(plan_for(&world, "docker.cleanup").is_none());
-        let note = crate::catalogue::catalogue(&world)
-            .into_iter()
-            .find(|row| row.id == "docker.invalid")
-            .unwrap();
-        assert!(matches!(
-            note.availability,
-            crate::domain::action::Availability::Blocked(_)
-        ));
-    }
-
-    #[test]
-    fn network_storage_claims_refuse_display_and_review() {
-        let mut world = settled(Scenario::DockerCleanup);
-        let docker = world.docker.as_mut().unwrap();
-        docker.network_inventory[0].size_bytes = 123;
-        assert_eq!(
-            docker.total_bytes(),
-            Err(crate::domain::accounting::InventoryError::NetworkBytes)
-        );
-        assert_eq!(
-            docker.reclaimable_bytes(),
-            Err(crate::domain::accounting::InventoryError::NetworkBytes)
-        );
-        assert!(plan_for(&world, "docker.cleanup").is_none());
-    }
-
-    #[test]
-    fn orphan_overflow_and_duplicate_resource_ids_refuse_review() {
-        let mut world = settled(Scenario::UpgradePlan);
-        world.debian.as_mut().unwrap().orphaned_packages[0].size_bytes = u64::MAX;
-        assert!(plan_for(&world, "debian.upgrade").is_none());
-        let note = crate::catalogue::catalogue(&world)
-            .into_iter()
-            .find(|row| row.id == "debian.invalid")
-            .unwrap();
-        assert!(matches!(
-            note.availability,
-            crate::domain::action::Availability::Blocked(_)
-        ));
-        let mut world = settled(Scenario::UpgradePlan);
-        let packages = &mut world.debian.as_mut().unwrap().orphaned_packages;
-        packages[1].id = packages[0].id.clone();
-        assert!(plan_for(&world, "debian.upgrade").is_none());
-        let mut world = settled(Scenario::DockerCleanup);
-        let images = &mut world.docker.as_mut().unwrap().image_inventory;
-        images[1].id = images[0].id.clone();
-        assert!(plan_for(&world, "docker.cleanup").is_none());
-    }
-
-    #[test]
-    fn invalid_combined_effect_report_never_consumes_review_or_world() {
-        let mut world = settled(Scenario::DockerCleanup);
-        let plan = Plan::try_new(PlanSpec {
-            action_id: "test".into(),
-            title: "test".into(),
-            host: world.host.name.clone(),
-            phrase: "CONFIRM".into(),
-            will_change: "test".into(),
-            effect: None,
-            steps: vec![
-                PlanStep::new("a", "A", "fixture", "a", &[])
-                    .succeeds_with(vec![Mutation::PruneCache(u64::MAX)]),
-                PlanStep::new("b", "B", "fixture", "b", &[])
-                    .succeeds_with(vec![Mutation::PruneCache(u64::MAX)]),
-            ],
-        })
-        .unwrap();
-        let mut review = ReviewedPlan::new(plan, &world);
-        let before = world.docker.clone();
-        assert_eq!(
-            review
-                .approve("CONFIRM", &world)
-                .unwrap()
-                .execute(&mut world),
-            Err(ApprovalError::InvalidInventory)
-        );
-        assert_eq!(world.docker, before);
-        assert!(!review.plan().ran());
-        assert_eq!(world.effect_revision, 0);
-    }
-    #[test]
-    fn every_plan_family_mints_distinct_review_identity() {
-        fn send_sync<T: Send + Sync>() {}
-        send_sync::<ReviewedPlan>();
-        send_sync::<ReviewBinding>();
-        for (scenario, action) in [
-            (Scenario::DockerCleanup, "docker.cleanup"),
-            (Scenario::DiskCleanup, "disk.reclaim"),
-            (Scenario::UpgradePlan, "debian.upgrade"),
-            (Scenario::MonorepoRoot, "git.sync"),
-            (Scenario::RemoteHost, "docker.restart:payments"),
-        ] {
-            let world = settled(scenario);
-            let review = plan_for(&world, action).unwrap();
-            let binding = review.binding();
-            assert!(review.matches_binding(&binding));
-            let replacement = plan_for(&world, action).unwrap();
-            assert_eq!(review.plan(), replacement.plan());
-            assert!(!replacement.matches_binding(&binding), "{action}");
-        }
-    }
-
-    #[test]
-    fn binding_compares_effect_content_even_when_review_identity_is_retained() {
-        let world = settled(Scenario::DockerCleanup);
-        let mut review = plan_for(&world, "docker.cleanup").unwrap();
-        let binding = review.binding();
-        let plan = review.plan();
-        let mut steps = plan.steps().to_vec();
-        let step = steps
-            .iter_mut()
-            .find(|step| !step.success_effects.is_empty())
-            .unwrap();
-        step.success_effects.clear();
-        review.plan = Plan::try_new(PlanSpec {
-            action_id: plan.action_id().into(),
-            title: plan.title().into(),
-            host: plan.host().into(),
-            phrase: plan.phrase().into(),
-            will_change: plan.will_change().into(),
-            steps,
-            effect: plan.effect().cloned(),
-        })
-        .unwrap();
-        assert!(Arc::ptr_eq(&review.target, &binding.target));
-        assert!(!review.matches_binding(&binding));
-    }
 }

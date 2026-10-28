@@ -1,0 +1,14 @@
+0000000000000000000000000000000000000000 ed1519e0bf446a8b5ad0471b40d4986e2d1893fd Alexey Zhokhov <alexey@zhokhov.com> 1792175074 +0700	branch: Created from HEAD
+ed1519e0bf446a8b5ad0471b40d4986e2d1893fd 26c2bd89c922169af665c7de6ea050e8e9fcfc62 Alexey Zhokhov <alexey@zhokhov.com> 1792176988 +0700	commit: feat(showcase): Dialogs on the template (SC17)
+26c2bd89c922169af665c7de6ea050e8e9fcfc62 4215c0c1ab0d6fe34e3f4d13299917a23a671fc9 Alexey Zhokhov <alexey@zhokhov.com> 1792177014 +0700	commit: test(visual): dialogs re-approval
+4215c0c1ab0d6fe34e3f4d13299917a23a671fc9 998dbfc5dad07debf50a3c6f89d5d6362f53b91a Alexey Zhokhov <alexey@zhokhov.com> 1792177294 +0700	rebase (finish): refs/heads/sc-group-h2 onto 79b40b343cc345edc394a9c376c2844ffeea07d4
+998dbfc5dad07debf50a3c6f89d5d6362f53b91a c35c244c6c4a549e2e6972a518f8c702c6151629 Alexey Zhokhov <alexey@zhokhov.com> 1792177451 +0700	commit: test(showcase): dialog tests Tab past the section strip (SC17)
+c35c244c6c4a549e2e6972a518f8c702c6151629 c2f78d0bce81b685c185138cd7c6b3336225b80c Alexey Zhokhov <alexey@zhokhov.com> 1792177614 +0700	commit (amend): test(showcase): dialog tests Tab past the section strip (SC17)
+c2f78d0bce81b685c185138cd7c6b3336225b80c 3b23a13af00a2863d2d9772105d01e095380241c Alexey Zhokhov <alexey@zhokhov.com> 1792178183 +0700	commit: feat(showcase): Dialog kinds page on a shared layer host (SC18)
+3b23a13af00a2863d2d9772105d01e095380241c 55eaa6643cbe32077778cb956d8214851799cb08 Alexey Zhokhov <alexey@zhokhov.com> 1792178191 +0700	rebase (finish): refs/heads/sc-group-h2 onto c9b8e733507afa9b68e1c8e6c9acaccb65e733b9
+55eaa6643cbe32077778cb956d8214851799cb08 a5f5be0a098878e1a1bba6a52d5fd5f33859ef58 Alexey Zhokhov <alexey@zhokhov.com> 1792178480 +0700	commit: feat(showcase): Popups & tooltips page (SC19)
+a5f5be0a098878e1a1bba6a52d5fd5f33859ef58 c9a080dad9fc769cdaed06fa41ccddfa0b04bfca Alexey Zhokhov <alexey@zhokhov.com> 1792178886 +0700	commit: feat(showcase): Pickers on the template with loading, errors and live rows (SC20)
+c9a080dad9fc769cdaed06fa41ccddfa0b04bfca e9f0acd38ba0e092c1ce7c75336e99668b6baa23 Alexey Zhokhov <alexey@zhokhov.com> 1792179246 +0700	commit (amend): feat(showcase): Pickers on the template with loading, errors and live rows (SC20)
+e9f0acd38ba0e092c1ce7c75336e99668b6baa23 072c73b881fbb925edd9abc06f0e237ad97b79af Alexey Zhokhov <alexey@zhokhov.com> 1792179246 +0700	rebase (finish): refs/heads/sc-group-h2 onto b16f4f87bcbd80b42e450ce793918d665de77bbd
+072c73b881fbb925edd9abc06f0e237ad97b79af 7d48f98fdff325497d38978da2b10cfd37f487cc Alexey Zhokhov <alexey@zhokhov.com> 1792179301 +0700	commit: test(visual): pickers re-approval
+7d48f98fdff325497d38978da2b10cfd37f487cc 71c5320eb912c21cd53e0bdb83905a2440b41d8e Alexey Zhokhov <alexey@zhokhov.com> 1792179343 +0700	commit: docs(audits): page-hosted info and help dialogs ignore an outside click (for S6)

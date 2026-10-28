@@ -1,0 +1,129 @@
+{
+  "candidate_source": "93defc22f1a98fb7e08aea2de10b490a9c344448",
+  "baseline_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design_source": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "frozen_design_cockpit_file_sha256": "f390c4ef1606dbe9e12afd26ba95779e8a67b789c0d12ab1c62a7dd32fd8f8ce",
+  "status": "Source-based staged architecture plan, not implementation approval or visual parity. Frozen and design cockpit.rs are byte-identical. The rejected 426bb0c9 alternate renderer and existing fixed RUNS replay are not adopted as component contracts.",
+  "region_mapping": [
+    {
+      "region": "Brand, heading and launch identity",
+      "reference": "screens/cockpit.rs:778-870",
+      "view_data": "Role label, workspace/directory target label, agent/provider names, real account title and why-label, preparing/running/terminal status. App derives these from World and LaunchRun; library never receives either object.",
+      "shared_owner": "Existing semantic text/brand/status primitives plus centered column composition. Add public composition leaf adapters for existing text components where absent. Centering, terminal-cell clipping, padding and maximum widths belong to the layout/component owner.",
+      "actions": "None for static identity; do not register hidden input anchors."
+    },
+    {
+      "region": "Stage progress rail",
+      "reference": "screens/cockpit.rs:783-789,872-877; widgets/steps.rs:106-132,247-349",
+      "view_data": "Stable Stage key, label, StepState and display metadata such as elapsed duration or skip/block reason. Pass a borrowed ordered view slice and public StepsState.",
+      "shared_owner": "termrock-navigation::Steps, its existing ScrollRegion, RowUi and collection reconciliation. Repair missing numbering/metadata/running indicator contracts there. Do not implement a Jackin stage renderer or move launch simulation into Termrock.",
+      "actions": "StepsAction::Moved/Activated only when the selected interaction policy allows them. The reference cockpit uses nonselectable StepRail; do not silently introduce arrow navigation or row activation."
+    },
+    {
+      "region": "Credential origin and value summary",
+      "reference": "screens/cockpit.rs:880-909 and credential_origin_for:194 onward",
+      "view_data": "Optional display-safe origin, already-redacted value and semantic tone. Account selection, credential precedence, masking and secrets stay in Jackin domain.",
+      "shared_owner": "Two-row labeled summary/detail component or existing text-section adapter within shared Group. Library owns label/value alignment and constrained clipping; app supplies text only.",
+      "actions": "None unless an actual reference interaction exists; do not expose credentials as invented editable controls."
+    },
+    {
+      "region": "Pinned activity and output count",
+      "reference": "screens/cockpit.rs:913-966",
+      "view_data": "Activity text, running/failure status, frame/moment supplied by the app clock, log count and whether opening log is available.",
+      "shared_owner": "termrock-feedback StatusBar/StatusItem already provide left/center/right groups, keyed items, spinner, priorities, semantic tone and typed StatusAction::Chose. Compose two rows through the shared layout; add a leaf adapter rather than another status engine.",
+      "actions": "A stable Activity item key maps Chose to app OpenBuildLog. The two-line activity hit area must be verified; current StatusBar registers only the rendered label rectangle, so a reusable grouped hit-span extension may be needed after a real regression."
+    },
+    {
+      "region": "Run/container context chips and cancel",
+      "reference": "screens/cockpit.rs:967-1004",
+      "view_data": "One real run identity, optional real container identity, debug visibility, terminal flag. No captured trace_label or scenario-specific ID.",
+      "shared_owner": "Keyed StatusItems or a real shared link component for context chips; existing Button for Cancel launch. A shared footer layout owns collision/priority behavior, never an app width calculation.",
+      "actions": "Run/Container key maps to OpenContainerInfo. Cancel Button Activated maps to RequestCancel; app decides confirmation and domain cancellation. Preserve reference suppression when insufficient room and reference nonterminal condition."
+    },
+    {
+      "region": "Build-log overlay",
+      "reference": "screens/cockpit.rs:466-535,609-624,660-674",
+      "view_data": "Borrowed live styled log lines, follow state, line count, running title, empty message. Docker-line parsing/classification stays in Jackin.",
+      "shared_owner": "Existing overlay/layer lifecycle plus TextViewport and HintBar. Add the missing typed LayerSlot viewport adapter if absent. Overlay owns placement, input scope, backdrop, cursor behavior, dismissal and focus restoration. Viewport owns selection, scrolling, follow and copy mechanics.",
+      "actions": "ViewportAction::Copy becomes app clipboard action; Close resolves the overlay close action. b/q/Esc reference dismissal must be expressed as shared overlay key configuration, not app pointer dispatch."
+    },
+    {
+      "region": "Information, failure, cancel and quit dialogs",
+      "reference": "screens/cockpit.rs:357-465,695 onward",
+      "view_data": "Dialog text and available actions computed from domain state.",
+      "shared_owner": "Existing Dialog/Picker/LayerSlot components and real stable action IDs; application owns the resulting domain transition.",
+      "actions": "Typed confirm/cancel results; cancellation, instance records, cleanup and routes remain in Jackin."
+    },
+    {
+      "region": "Ambient background and wrapped-arrow ornament",
+      "reference": "screens/cockpit.rs:790-811,1005; rain.rs",
+      "view_data": "Clock/motion inputs and decorative configuration only.",
+      "shared_owner": "This remains a required unresolved component-author contract. The allowed brand exceptions do not automatically authorize a new app cockpit painter. Extract a generic decorative background/layer primitive if it is retained, with resolved content exclusion slots; do not re-blit an app Buffer or select a captured frame.",
+      "actions": "None; decorative content must register no controls or cursor."
+    }
+  ],
+  "input_mapping": {
+    "reference": "screens/cockpit.rs:591-693,1008-1042",
+    "domain_actions": [
+      "OpenBuildLog",
+      "OpenContainerInfo",
+      "RequestCancel",
+      "RequestQuit",
+      "AbortAndRecord",
+      "ToggleDebug",
+      "AcknowledgeFailure"
+    ],
+    "boundary": "Keyboard chords and pointer activation route through shared component/overlay bindings. App handles only typed domain actions. Ctrl+C while log selection is active must retain viewport copy semantics; otherwise the domain abort path records FailedSetup and cleanup feedback. Esc on the unblocked cockpit produces reference feedback; it is not generic navigation back.",
+    "required_open_question": "Frozen cockpit registers a one-cell RAIL focus anchor while its StepRail is nonselectable. Current Steps::new is ClickOnly and publishes display-mode bindings. Preserve the actual reference focused-region behavior through a real shared progress control policy, not an invisible control or a forced navigable list. Capture reference focus/Tab/Enter before choosing a public focusable-display override."
+  },
+  "first_increment": {
+    "decision": "Start with the existing reusable Steps component and a typed public composition adapter; do not introduce a monolithic ProcessCockpit block. This is the smallest independently testable live component prerequisite.",
+    "writer_one_files": [
+      "crates/termrock-navigation/src/steps.rs",
+      "Focused navigation public consumer tests"
+    ],
+    "additive_contract": [
+      "Retain existing Steps::new, navigable, stable key callback, state ownership, row customization and ScrollRegion. Existing default behavior remains unless an explicitly source-backed generic defect is repaired.",
+      "Add a numbered(bool) option with existing default false, while the cockpit opts into frozen numbering. Render resolved view ordinal inside Steps, not via app RowUi geometry.",
+      "Add borrowed per-item metadata through a narrowly typed item-view callback or accessor returning Option<&str>; view data owns formatted duration/reason strings. Preserve existing step.label metadata fallback by default. Do not add a domain Stage or LaunchRun dependency.",
+      "Add a general metadata fit policy only if existing text/row slots cannot express frozen label-minimum12, gap2 and trailing1. Keep defaults for other consumers and test metadata absent/long/Unicode and narrow widths.",
+      "Running spinner, queued/skipped/blocked marks, numbered ink and state text styles must be verified against frozen widgets/steps.rs. Current StepState::glyph public mapping remains compatible; any animated rendering override belongs in Steps using existing theme motion/frame machinery, not an app timer or literal frame40.",
+      "Keep nonnavigable and navigable policies distinct. Do not add focusability or actions merely to match a screenshot. Resolve the actual cockpit focus-anchor contract independently before app adoption."
+    ],
+    "writer_two_after_api_agreement": [
+      "crates/termrock/src/composition.rs: add steps(&Steps,&StepsState,&[T]) Child adapter borrowing the exact same configured component and data; measurement delegates to Steps and drawing delegates once. No coordinate closure in app composition.",
+      "A separate public consumer example/test uses different deployment/import task labels, seven different stable keys, elapsed metadata, reordered/empty/long data and constrained area. It must compile using public facade APIs only.",
+      "Facade writer and any ongoing composition writer must serialize ownership. No new crate is needed."
+    ],
+    "red_before_green": [
+      "Actual Steps/runtime rendered cells must fail before numbering/metadata/indicator repairs and pass afterward; test hover/focus/action policy, clipped rows, scroll and stable IDs, all four profiles and custom part overrides.",
+      "Composition consumer verifies one prepared layout controls draw clip, actual hits and cursor/focus after resize; update does not depend on measuring or drawing for domain effects.",
+      "Nonnavigable reference consumer produces no invented row-selection action or extra Tab stops. Inert specimens produce zero controls/bindings/cursor/actions."
+    ]
+  },
+  "first_layout_block": {
+    "name": "AppShell with named body and footer slots; optional header only if a real consumer requires it.",
+    "decision": "Build this only after the leaf adapters are available. It is a small reusable layout block above Group, not a second shell/input runtime or a Jackin screen component.",
+    "files": [
+      "crates/termrock/src/blocks/shell.rs",
+      "crates/termrock/src/blocks/mod.rs",
+      "Facade export and public shell consumer example/tests"
+    ],
+    "api_shape": "AppShell::new(id).body(&Group).footer(&Group).show(ui), with a documented padding/gap/overflow policy and pure measure through the existing CompositionSlots resolver. Body is flexible, footer measured intrinsically and pinned to the block bottom; named groups are borrowed. The body Group separately centers an explicitly maximum-width44 rail using CrossAlign::Center and Child::max; no viewport selector or app Rect arithmetic.",
+    "state_actions": "Layout-only shell owns no duplicate app state, input queue or domain actions. Children own their actual state and typed actions; existing frame registration/prepared geometry remains authoritative.",
+    "second_consumer": "A public file-import example has seven stages and a live activity/status footer with different data. Alternatively Holla activity operations can adopt the same shell after separately proving their reference layout; never redesign Holla to demonstrate reuse.",
+    "proof": "Nested shell in a smaller parent, zero/narrow sizes, dynamic footer height, sibling overlays, resize-before-input and same-geometry hit regions. Existing MasterDetail/SplitBlock remain unchanged; cockpit has no reference master/detail split, so do not force that block into it."
+  },
+  "later_increments": [
+    "Add StatusBar/text/viewport typed composition adapters before ordinary app use. Prefer composing existing widgets before adding another toolbar/footer widget.",
+    "Implement the responsive two-row activity footer collision policy in shared layout after proving the exact reference constraints: run chip before optional container, container needs activity separation, cancel needs leading room24. Express these as general content-minimum/priority policies, not width120 checks.",
+    "Migrate live Jackin view-data and action adapters against the shared parts. Keep SQL, Git, credentials, simulation, routes and cleanup outside Termrock. There is one owner for each run identity, stage state, dialog state and log-follow state.",
+    "Only after real replacement checkpoints pass, remove paused_launch_scene, historical_launch_running_frame, fixed120x40 RUNS dependencies, launch_cockpit app Buffer painter, trace correction and exactRGB/NO_COLOR/frame selectors together for the affected route. Do not run replacement and repaint the replay afterward."
+  ],
+  "verification_limits": [
+    "Pinned full paired runner and cohort admission are not ready; component gates and capture-only diagnostics cannot satisfy the product gate. Keep that blocker visible.",
+    "Required real CLI checkpoints: launch initial/preparing, each stage transition, metadata change, long/custom account/workspace names, log empty/live/follow/selection/copy, debug run chip/info, cancel confirmation/dismissal, failure, Ctrl+C/Ctrl+Q, resize and repeated open-close, all supported profiles and adjacent sizes.",
+    "Reference expectations remain immutable. If reference capture and stored artifacts conflict, preserve both and require independent reference decision.",
+    "Native nextest, strict scoped Clippy and formatting; public consumer and executable example; independent exact-commit review; commit/push/remote SHA verification under shared lock before integration. No routine source or generated edits were made by this reviewer."
+  ]
+}

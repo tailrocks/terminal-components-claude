@@ -1,0 +1,28 @@
+{
+  "command": [
+    "git",
+    "-C",
+    "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+    "cat-file",
+    "--batch-check=%(objectname) %(objecttype) %(objectsize)"
+  ],
+  "cwd": "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+  "started_at_utc": "2026-10-28T19:49:09Z",
+  "ended_at_utc": "2026-10-28T19:49:13Z",
+  "exit_code": 0,
+  "alternates": "disabled",
+  "input_oid_count": 152827,
+  "output_row_count": 152827,
+  "output_unique_oid_count": 152827,
+  "output_oid_set_matches_input": true,
+  "type_size_mismatch_count": 0,
+  "type_size_mismatch_first": [],
+  "malformed_or_duplicate_count": 0,
+  "malformed_first": [],
+  "stdout_bytes": 7850936,
+  "stdout_sha256": "405ea9bd85a4f06c2fdb93d0b6456d3ceafc94013a115f6103c4bb3f0e989b0b",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "physical_inventory_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+  "integrity_match": true
+}

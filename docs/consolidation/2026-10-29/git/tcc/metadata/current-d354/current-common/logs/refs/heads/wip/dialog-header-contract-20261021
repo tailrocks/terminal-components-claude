@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 5f82c4d35d12e0fb77b0f580a8ef200240661602 Alexey Zhokhov <alexey@zhokhov.com> 1792542338 +0700	branch: Created from origin/parity/termrock-visual-baseline
+5f82c4d35d12e0fb77b0f580a8ef200240661602 6509b91e721057b9d5ec4f5c998ded752f29066c Alexey Zhokhov <alexey@zhokhov.com> 1792542655 +0700	commit: feat(controls): support click-only buttons
+6509b91e721057b9d5ec4f5c998ded752f29066c 05875f028f27b45805805b0529cd8b66b2dd1051 Alexey Zhokhov <alexey@zhokhov.com> 1792543728 +0700	commit: fix(controls): honor disabled button focusability

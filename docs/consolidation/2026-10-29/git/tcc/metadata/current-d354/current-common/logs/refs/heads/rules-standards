@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 8149379470465b4673860e7cd9c34e4d0f981f2a Alexey Zhokhov <alexey@zhokhov.com> 1792145112 +0700	branch: Created from HEAD
+8149379470465b4673860e7cd9c34e4d0f981f2a 9bf53d3084f843f57a1929d9ce5121032603212d Alexey Zhokhov <alexey@zhokhov.com> 1792145143 +0700	commit: docs(agents): standards-based defaults, every behaviour overridable
+9bf53d3084f843f57a1929d9ce5121032603212d 55bcf9ffe80a5c16acabea500c025e1ac3eb1d8d Alexey Zhokhov <alexey@zhokhov.com> 1792145163 +0700	commit: docs(audits): record the standards reviews
+55bcf9ffe80a5c16acabea500c025e1ac3eb1d8d 833e10e20a4149cb788e0dac8af1150213880197 Alexey Zhokhov <alexey@zhokhov.com> 1792145168 +0700	rebase (finish): refs/heads/rules-standards onto 85cec55af843c49536662a2d1eeec0b15340f0fa

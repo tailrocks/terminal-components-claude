@@ -1,0 +1,78 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "reviewed_commit": "12e011659e1f55a727de85fc6e6cfc17074bd35a",
+  "parent_commit": "25d2a36137be15e5aba140e280becbd918427bb9",
+  "reviewer": "/root/tree_adapter_independent_review",
+  "review_effort": "medium",
+  "created_utc": "2026-10-21T06:09:28.776169+00:00",
+  "decision": "CLEAR_BOUNDED_ADAPTER_WITH_DOCUMENTATION_CLARIFICATION",
+  "production_findings": [],
+  "documentation_findings": [
+    {
+      "priority": "P3",
+      "path": "docs/audits/2026-10-21-tree-composition-adapter.md:3",
+      "issue": "Source base is recorded as 48c5fc33b81626925d67facb278c7656e625b887, while the reviewed commit parent is 25d2a36137be15e5aba140e280becbd918427bb9. If the former is the development starting point, label it as such and record the final integrated parent separately.",
+      "required_action": "Clarify source provenance in the integration record; no executable blocker."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock --all-targets --features testing",
+      "exit": 0,
+      "passed": 58,
+      "skipped": 0,
+      "log": "/private/tmp/tree-adapter-review-12e0116-20261021/native.log",
+      "sha256": "79a9b54743fe79f75403f7ecdbbfe58c0e13248f7eddaec5ad151790f3cc0d69"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/tree-adapter-review-12e0116-20261021/external/Cargo.toml --offline",
+      "exit": 0,
+      "passed": 6,
+      "skipped": 0,
+      "log": "/private/tmp/tree-adapter-review-12e0116-20261021/external-final-six.log",
+      "sha256": "ad8de345bc0ce50ce33faec782293131e009d3cac0c8a6925b3ef36b0739f874"
+    },
+    {
+      "command": "cargo clippy -p termrock --all-targets --features testing -- -D warnings",
+      "exit": 0,
+      "log": "/private/tmp/tree-adapter-review-12e0116-20261021/clippy.log",
+      "sha256": "39a28c5642802bf1d8135b4d93472041e4248b447cb9cfa6a5092babccac016c"
+    },
+    {
+      "command": "cargo fmt --all --check",
+      "exit": 0,
+      "log": "/private/tmp/tree-adapter-review-12e0116-20261021/fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "git diff --check; git status --porcelain",
+      "exit": 0,
+      "output": "No differences or local changes in isolated candidate checkout."
+    }
+  ],
+  "external_consumer": {
+    "manifest": "/private/tmp/tree-adapter-review-12e0116-20261021/external/Cargo.toml",
+    "source": "/private/tmp/tree-adapter-review-12e0116-20261021/external/src/lib.rs",
+    "source_sha256": "f3542921af61507bb7e6c881eb4e2b08d1e55777afb1a4506b0f0cebe8538c38",
+    "dependency": "Only public termrock facade, with testing feature; standalone workspace; different inventory-domain labels and stable keys.",
+    "borrowed_lifetimes": "Local closure, local item slice, borrowed non-static string, caller-owned TreeState compile and draw.",
+    "comparison": "Buffer PartialEq compares terminal symbol, fg, bg, enabled underline_color, modifier, skip and diff_option including forced-width metadata. None-versus-space representation normalizes to the same observable symbol. Compare complete buffers, complete registered region slices, focus, cursor position, cursor_bar, TreeState and typed action at event checkpoints.",
+    "independent_matrix": "96 custom-row cases: four profiles \u00d7 two branch policies \u00d7 empty/4/100 items \u00d7 zero/offset 1-cell/narrow/normal roots; 8 ordered key/pointer/wheel inputs and final checkpoint. Additional 32 default-row disabled/enabled profile/width cases; custom marker slot with callback side effects proves measure does not invoke slot; original authored flow repeated externally covers sibling reorder and resize.",
+    "test_authoring_failures": "Preserved external.log: rejected foreign ancestor workspace until standalone [workspace] was added. external-final.log and external-final-corrected.log: reviewer fixture initially used nonexistent root Ui::area() then last-frame per-ID API; corrected direct test to use explicit harness root area. These were compile errors in review artifacts, not product defects."
+  },
+  "source_evidence": {
+    "composition": "TreeLeaf borrows exact component/state/items, delegates Tree::measure and Tree::draw; no update, state mutation, private renderer, raw painting, runtime change or application import. One existing resolver assigns logical bounds.",
+    "measurement": "Existing Tree::measure ignores Ui, returns Size and fits Constraints; does not invoke node/key/row/slot or domain handlers. Adapter forwards unchanged.",
+    "unchanged_tree_blob_before": "07a7e0a146801024ef9e4bc3ac6ee1e007a3e6ed",
+    "unchanged_tree_blob_after": "07a7e0a146801024ef9e4bc3ac6ee1e007a3e6ed",
+    "default_behavior": "Only adapter, explicit Cargo consumer-test registration, tests, and audit changed; existing widgets and runtime unchanged. No default-path change attributed to this commit.",
+    "allocation": "One Box per adapter leaf follows existing facade adapter contract; no new per-cell or per-row allocation introduced.",
+    "unsafe_concurrency_error_handling": "No unsafe, asynchronous ownership, lock, process or error-policy changes. Existing depth validation and resolver errors retained."
+  },
+  "limitations": [
+    "This is adapter-level source/runtime evidence, not frozen CLI parity or Manager migration.",
+    "No paired baseline captures, terminal-mode cleanup proof, full workspace nextest/Clippy or hosted CI acceptance in this scope.",
+    "Foreign Manager painter in base 25d2a361 is explicitly outside this review and is not approved.",
+    "No claim that every possible custom row or part callback is pure; only measurement bypasses them, drawing retains existing component-author API behavior."
+  ]
+}

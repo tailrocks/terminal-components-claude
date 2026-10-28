@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 ad20c7aadaa8c531ea639395a648ec6f624a2a8d Alexey Zhokhov <alexey@zhokhov.com> 1792579079 +0700	branch: Created from origin/parity/termrock-visual-baseline
+ad20c7aadaa8c531ea639395a648ec6f624a2a8d a83420f2b54f227438b5be2365254819c7fc4e71 Alexey Zhokhov <alexey@zhokhov.com> 1792579530 +0700	commit: ci: upgrade generated workflows to Velnor 0.1.36
+a83420f2b54f227438b5be2365254819c7fc4e71 bfd5c74b390df83792c21aeb6d59ddd1beae379e Alexey Zhokhov <alexey@zhokhov.com> 1792579607 +0700	commit (amend): ci: upgrade generated workflows to Velnor 0.1.36
+bfd5c74b390df83792c21aeb6d59ddd1beae379e 00034e59d5f1f036d1f57576ae2296da8eec27a1 Alexey Zhokhov <alexey@zhokhov.com> 1792579700 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+00034e59d5f1f036d1f57576ae2296da8eec27a1 7fb82cd235d0d78f4865db93b9b2194262970d2e Alexey Zhokhov <alexey@zhokhov.com> 1792582686 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+7fb82cd235d0d78f4865db93b9b2194262970d2e 507c232073b6877c6563b7d24e11450fbc2d56c4 Alexey Zhokhov <alexey@zhokhov.com> 1792583355 +0700	commit: ci: refresh Velnor verification on current PR head

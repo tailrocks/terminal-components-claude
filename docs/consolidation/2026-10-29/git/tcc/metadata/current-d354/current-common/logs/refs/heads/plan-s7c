@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 0d1979d22df11df1599dad8ce80db813421a32de Alexey Zhokhov <alexey@zhokhov.com> 1792193671 +0700	branch: Created from HEAD
+0d1979d22df11df1599dad8ce80db813421a32de 97d86a2f70a9643e2fc9bec8a093a1170f6fea3b Alexey Zhokhov <alexey@zhokhov.com> 1792194340 +0700	commit: refactor(showcase): page layers on the shell's ShellLayers
+97d86a2f70a9643e2fc9bec8a093a1170f6fea3b 08c8ae80bfdcc1b335c9ed87636d6f90e53cde27 Alexey Zhokhov <alexey@zhokhov.com> 1792194425 +0700	commit: docs(plan): mark S7 done with the showcase page layers on the shell
+08c8ae80bfdcc1b335c9ed87636d6f90e53cde27 f207eb2c687bc3ee08f02555f588b6c09e450b5d Alexey Zhokhov <alexey@zhokhov.com> 1792194494 +0700	commit: fixup! refactor(showcase): page layers on the shell's ShellLayers
+f207eb2c687bc3ee08f02555f588b6c09e450b5d 72c23bf1db982934a23dbecdb23520fb95644761 Alexey Zhokhov <alexey@zhokhov.com> 1792194494 +0700	rebase (finish): refs/heads/plan-s7c onto 0d1979d22df11df1599dad8ce80db813421a32de
+72c23bf1db982934a23dbecdb23520fb95644761 1615bb31774dcae5b5c640bc1e296b2f1e061fea Alexey Zhokhov <alexey@zhokhov.com> 1792195174 +0700	rebase (finish): refs/heads/plan-s7c onto ac7ef0eac4cd81d8fabf0cda85585dc839e1d887

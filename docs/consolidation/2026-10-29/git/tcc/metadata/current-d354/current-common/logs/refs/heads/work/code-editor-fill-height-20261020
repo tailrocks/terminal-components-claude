@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 dce462063a19d59577b56387e089dabc96e466b7 Alexey Zhokhov <alexey@zhokhov.com> 1792514913 +0700	branch: Created from HEAD
+dce462063a19d59577b56387e089dabc96e466b7 4e421879d3f6e482e321fe35e24602bb92e3e369 Alexey Zhokhov <alexey@zhokhov.com> 1792514913 +0700	commit: feat(editors): support allocated code editor height

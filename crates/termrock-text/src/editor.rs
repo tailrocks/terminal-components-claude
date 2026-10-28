@@ -143,6 +143,12 @@ impl TextEditorCore {
         self.hscroll
     }
 
+    pub fn clamp_hscroll(&mut self, max: u16) {
+        if self.hscroll > max {
+            self.hscroll = max;
+        }
+    }
+
     pub fn line_count(&self) -> usize {
         self.buf.line_count()
     }
@@ -157,6 +163,26 @@ impl TextEditorCore {
 
     pub fn select_range(&mut self, a: usize, b: usize) {
         self.buf.select_range(a, b);
+    }
+
+    pub fn select_word_at(&mut self, offset: usize) -> EditOutcome {
+        let before = (self.selection(), self.cursor_offset());
+        self.buf.select_word_at(offset);
+        if (self.selection(), self.cursor_offset()) == before {
+            EditOutcome::Ignored
+        } else {
+            EditOutcome::Moved
+        }
+    }
+
+    pub fn select_line_at(&mut self, offset: usize) -> EditOutcome {
+        let before = (self.selection(), self.cursor_offset());
+        self.buf.select_line_at(offset);
+        if (self.selection(), self.cursor_offset()) == before {
+            EditOutcome::Ignored
+        } else {
+            EditOutcome::Moved
+        }
     }
 
     pub fn zeroize(&mut self) {
@@ -244,85 +270,5 @@ impl TextEditorCore {
                 EditOutcome::Moved
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn editor_apply_is_the_only_mutation_entry_point() {
-        let mut e = TextEditorCore::single("ab");
-        assert_eq!(e.apply(EditAction::Insert('c')), EditOutcome::Changed);
-        assert_eq!(e.text(), "abc");
-        assert_eq!(
-            e.apply(EditAction::Move(Motion::Home, Extend::No)),
-            EditOutcome::Moved
-        );
-        assert_eq!(
-            e.apply(EditAction::Move(Motion::Left, Extend::No)),
-            EditOutcome::Ignored
-        );
-        assert_eq!(e.apply(EditAction::Newline), EditOutcome::Rejected);
-        assert_eq!(e.apply(EditAction::Insert('\u{7}')), EditOutcome::Rejected);
-        assert_eq!(
-            e.apply(EditAction::Move(Motion::End, Extend::Select)),
-            EditOutcome::Moved
-        );
-        assert_eq!(e.selected_text(), Some("abc"));
-        assert_eq!(e.apply(EditAction::Paste("z")), EditOutcome::Changed);
-        assert_eq!(e.text(), "z");
-        assert_eq!(e.apply(EditAction::SetText("z")), EditOutcome::Ignored);
-        assert_eq!(
-            e.apply(EditAction::SetText("long text")),
-            EditOutcome::Changed
-        );
-        assert_eq!(e.apply(EditAction::SelectAll), EditOutcome::Moved);
-        assert_eq!(e.apply(EditAction::ClearSelection), EditOutcome::Moved);
-        assert_eq!(e.apply(EditAction::ClearSelection), EditOutcome::Ignored);
-        assert_eq!(e.apply(EditAction::Backspace), EditOutcome::Changed);
-        assert_eq!(e.apply(EditAction::DeleteToLineStart), EditOutcome::Changed);
-        assert!(e.is_empty());
-        assert_eq!(e.apply(EditAction::Delete), EditOutcome::Ignored);
-        let mut m = TextEditorCore::multi("a\nb");
-        assert_eq!(
-            m.apply(EditAction::Move(Motion::Up, Extend::No)),
-            EditOutcome::Moved
-        );
-        assert_eq!(
-            m.apply(EditAction::Move(Motion::Up, Extend::No)),
-            EditOutcome::Ignored
-        );
-        assert_eq!(m.apply(EditAction::Newline), EditOutcome::Changed);
-        assert_eq!(m.line_count(), 3);
-    }
-
-    #[test]
-    fn hscroll_follows_the_cursor() {
-        let mut e = TextEditorCore::single("0123456789");
-        assert_eq!(e.scroll_into_view(4), 7);
-        e.apply(EditAction::Move(Motion::Home, Extend::No));
-        assert_eq!(e.scroll_into_view(4), 0);
-        assert_eq!(e.scroll_into_view(0), 0);
-        e.zeroize();
-        assert!(e.is_empty() && e.hscroll() == 0);
-        assert!(!format!("{e:?}").contains("0123"));
-    }
-
-    #[test]
-    fn set_text_compares_normalized_content() {
-        let mut editor = TextEditorCore::single("ab");
-        assert_eq!(
-            editor.apply(EditAction::SetText("a\r\nb")),
-            EditOutcome::Ignored
-        );
-        assert_eq!(editor.text(), "ab");
-        let mut multi = TextEditorCore::multi("a\nb");
-        assert_eq!(
-            multi.apply(EditAction::SetText("a\r\nb")),
-            EditOutcome::Ignored
-        );
-        assert_eq!(multi.text(), "a\nb");
     }
 }

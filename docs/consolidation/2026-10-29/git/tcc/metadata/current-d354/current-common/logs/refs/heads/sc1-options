@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 25751aadb4d2c5c827ec2581bea91c8eee3b5519 Alexey Zhokhov <alexey@zhokhov.com> 1792161543 +0700	branch: Created from HEAD
+25751aadb4d2c5c827ec2581bea91c8eee3b5519 413a931982d68e00a1ae927ee2e36ae29786f104 Alexey Zhokhov <alexey@zhokhov.com> 1792162759 +0700	commit: feat(showcase): Inspector State | Options pane and --opt (SC1)
+413a931982d68e00a1ae927ee2e36ae29786f104 bae587b0b1fe4ea00311116b14c2d9c6cbd70148 Alexey Zhokhov <alexey@zhokhov.com> 1792162829 +0700	rebase (finish): refs/heads/sc1-options onto 0e8d8c0a000774938408f2c91e66838c1502c4c9
+bae587b0b1fe4ea00311116b14c2d9c6cbd70148 fd596d2f5bb2416ac30693704ee25641477ade95 Alexey Zhokhov <alexey@zhokhov.com> 1792162847 +0700	commit (amend): feat(showcase): Inspector State | Options pane and --opt (SC1)
+fd596d2f5bb2416ac30693704ee25641477ade95 a441ce1bb09c6626f170810e9dae02f37ca6c2e7 Alexey Zhokhov <alexey@zhokhov.com> 1792163047 +0700	commit: docs(plan): record SC1 status, outcome and deviations
+a441ce1bb09c6626f170810e9dae02f37ca6c2e7 84a5ea451153b912a5a5a5b56ed5d2489852e29e Alexey Zhokhov <alexey@zhokhov.com> 1792163054 +0700	commit (amend): docs(plan): record SC1 status, outcome and deviations
+84a5ea451153b912a5a5a5b56ed5d2489852e29e 106a2646340a7221173bddcb530f267b3e7d26af Alexey Zhokhov <alexey@zhokhov.com> 1792163562 +0700	rebase (finish): refs/heads/sc1-options onto c7a5764cba0c907cdc888a1385fe4197f9f4e82e

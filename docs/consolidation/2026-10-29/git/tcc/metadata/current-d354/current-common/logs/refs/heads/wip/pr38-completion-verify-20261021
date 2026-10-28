@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 7649ee7ed8e8645e49f859a171ea0193fccc1e82 Alexey Zhokhov <alexey@zhokhov.com> 1792582691 +0700	branch: Created from HEAD
+7649ee7ed8e8645e49f859a171ea0193fccc1e82 b193afb3c000a6b5a47d8c355386080ca7df6b62 Alexey Zhokhov <alexey@zhokhov.com> 1792584300 +0700	commit: fix(theme): fingerprint semantic content and add picker row/filter contracts
+b193afb3c000a6b5a47d8c355386080ca7df6b62 c2aed0d7c42f5797dddba0dee28d2b0bdad2ff4b Alexey Zhokhov <alexey@zhokhov.com> 1792584380 +0700	rebase (finish): refs/heads/wip/pr38-completion-verify-20261021 onto 098bb3c94e69f033811de42de12b6dc4a779de78
+c2aed0d7c42f5797dddba0dee28d2b0bdad2ff4b 9a46172045a2a29d2e0beb5734a8b7c6cea0ee52 Alexey Zhokhov <alexey@zhokhov.com> 1792586617 +0700	commit: fix(conformance): open overlays before input checks
+9a46172045a2a29d2e0beb5734a8b7c6cea0ee52 786bee3dc1f9da95703ff82da30c193850760d4d Alexey Zhokhov <alexey@zhokhov.com> 1792586631 +0700	rebase (finish): refs/heads/wip/pr38-completion-verify-20261021 onto 5ff78614a62cf4ec0dae3e96c192b7fef654f53a
+786bee3dc1f9da95703ff82da30c193850760d4d 8e976098d1dda36acf446334c05e88a9d0e40c39 Alexey Zhokhov <alexey@zhokhov.com> 1792586787 +0700	commit: docs: record conformance driver handoff

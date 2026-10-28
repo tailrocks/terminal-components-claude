@@ -1,0 +1,54 @@
+{
+  "commit": "cb2e2a41bb1f4b7f5c1092cfaaa34041cb98e1f6",
+  "verdict": "CLEAR for the bounded read-only caret runtime correction; no actionable findings",
+  "findings": [],
+  "gates": {
+    "unchanged_public_meta_consumer": {
+      "passed": 5,
+      "failed": 0,
+      "source_unchanged_from_e0bf": true
+    },
+    "native_runtime_editors_fields_terminal_all_targets": {
+      "passed": 594,
+      "failed": 0,
+      "skipped": 3
+    },
+    "independent_external_edges": {
+      "passed": 5,
+      "failed": 0
+    },
+    "clippy_all_targets_D_warnings": "pass for the same four crates",
+    "changed_rustfmt": "pass",
+    "git_diff_check": "pass"
+  },
+  "bindings": {
+    "detached_worktree": "/Users/donbeave/Projects/termrock-review-worktrees/readonly-caret-cb2e-20261021",
+    "unique_target": "/Users/donbeave/Projects/termrock-review-targets/caret-cb2e-independent-20261021/build",
+    "metadata_local_packages": 22,
+    "all_local_dependencies_bound_to_exact_worktree_or_consumer": true,
+    "all_Rust_source_hashes_unchanged_before_after": true,
+    "test_binary_hash_manifest": "all-test-binaries.json"
+  },
+  "cell_comparison": {
+    "all_rendered_cells_identical": true,
+    "candidate_cells_sha256": "654101d24e922c0b3ddfe934c98cd896c20e6fbf33e7a67264f87fb42ddc7d43",
+    "before_cells_sha256": "654101d24e922c0b3ddfe934c98cd896c20e6fbf33e7a67264f87fb42ddc7d43",
+    "full_stream_identical": false
+  },
+  "reviewed_contracts": [
+    "Frozen CodeEditor focused read-only caret request (4169783 src/widgets/code.rs:1224-1227) is preserved without typing ownership.",
+    "typing::admissible filters disabled/empty/lower-layer/inactive-scope owners before read-only handling; only same-owner current-top noninert ordinary requests admit a read-only caret.",
+    "resolve_requests separates cursor owner and editable typing owner; undeclared typing-offer diagnostics still run before ownership filtering. Mixed declared typing offer cannot replace read-only ordinary cursor.",
+    "TypingPolicy fallback cursor=false remains hidden. No public signature changes; resolver is crate-private and all production/test call sites updated.",
+    "Visible versus strict retention remains governed by select_cursor_owner and retained-request validation; native retention tests pass.",
+    "Read-only TextInput/TextArea do not publish ordinary cursor requests; TerminalInteraction::ReadOnly/SelectionOnly paste forwarding remains disabled (native test passed)."
+  ],
+  "fixture_correction": "First independent edge run had one UndeliveredIntent because the test app did not consume focus intents. Preserved edges-unconsumed-focus-fixture.log; corrected fixture update consumes OWNER/OTHER intents; product and expected artifacts unchanged. All five edge assertions then passed.",
+  "gaps": [
+    "Three default ignored native tests were not run.",
+    "Full workspace formatting/Clippy/CI were not run; sparse worktree has unrelated applications omitted.",
+    "No whole-application parity or frozen paired tuiscotti acceptance is approved.",
+    "Cell equality excludes CHECK lines containing cursor/focus/ring/state metadata; read-only cursor metadata is intentionally corrected, not claimed identical."
+  ],
+  "source_status_after": ""
+}

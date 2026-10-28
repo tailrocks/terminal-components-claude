@@ -1,0 +1,8 @@
+Revert unsigned consolidation ports (re-landing with DCO sign-off)
+
+Reverts 7fbef7d23, a34c302aa, 67c88bd16, 291747abf, which were pushed
+without Signed-off-by trailers and fail the repo DCO check. The same
+ports are re-applied signed immediately after this commit; net tree
+effect is zero.
+
+Signed-off-by: Muse Code <muse@example.com>

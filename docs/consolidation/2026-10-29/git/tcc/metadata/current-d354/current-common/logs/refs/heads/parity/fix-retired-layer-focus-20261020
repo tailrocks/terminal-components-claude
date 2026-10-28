@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 dce462063a19d59577b56387e089dabc96e466b7 Alexey Zhokhov <alexey@zhokhov.com> 1792515020 +0700	branch: Created from dce462063a19d59577b56387e089dabc96e466b7
+dce462063a19d59577b56387e089dabc96e466b7 3b119a2d18647908fb5a90d33e03d8461aa56b22 Alexey Zhokhov <alexey@zhokhov.com> 1792515568 +0700	commit: fix(runtime): skip focus out to retired layers
+3b119a2d18647908fb5a90d33e03d8461aa56b22 eaff567066770f0fecb771abc2311c170a13f55b Alexey Zhokhov <alexey@zhokhov.com> 1792515575 +0700	merge 27e1837a79d5035aaa1d2911d16b5921ca8ad643: Merge made by the 'ort' strategy.
+eaff567066770f0fecb771abc2311c170a13f55b 6240562f86b4cbcc24d2430395fe37c716669b0a Alexey Zhokhov <alexey@zhokhov.com> 1792515686 +0700	commit: test(tablepro): assert clean dialog dismissal
+6240562f86b4cbcc24d2430395fe37c716669b0a 80b50e4c5fb993ad29b9edf5868391d1499e1764 Alexey Zhokhov <alexey@zhokhov.com> 1792515983 +0700	commit: fix(runtime): retain retired layer focus provenance through settle
+80b50e4c5fb993ad29b9edf5868391d1499e1764 a60fb0b7e6e698a63d273e61d4fb12d71cca8da9 Alexey Zhokhov <alexey@zhokhov.com> 1792516261 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

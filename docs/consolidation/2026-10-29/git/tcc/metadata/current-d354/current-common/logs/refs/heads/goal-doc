@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 362044c075d8b960630ee5eaf565221ebbc6f142 Alexey Zhokhov <alexey@zhokhov.com> 1792257617 +0700	branch: Created from HEAD
+362044c075d8b960630ee5eaf565221ebbc6f142 3c960ca2932b08b9cd2e0f81202f5057a2d5a9e3 Alexey Zhokhov <alexey@zhokhov.com> 1792257654 +0700	commit: docs: restartable goal prompt; ignore .claude/
+3c960ca2932b08b9cd2e0f81202f5057a2d5a9e3 8cc66a3c2750d4a5302fd17cc2b26c0080536f56 Alexey Zhokhov <alexey@zhokhov.com> 1792258222 +0700	rebase (finish): refs/heads/goal-doc onto d283a154967a823dda725dd3af615998bbd3ddb5

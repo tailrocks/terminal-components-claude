@@ -1,0 +1,88 @@
+{
+  "status": "Diagnosis complete; two real application regressions reproduced; no product source edits; no acceptance claim.",
+  "wip_commit": "3807e493c63416e87f1ac5e38d7325e2a638d733",
+  "pr38_observed_remote": "6825b07e86bab75872866c6ed49e6877084db9bb",
+  "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "source_sha256": {
+    "crates/showcase-demos/src/pages/editor.rs": "71c5de8b46bb66124a7232989bf86c80c8e1b4c1e6f9525b33299aa8bf14ef42",
+    "crates/termrock-runtime/src/runtime.rs": "7e0e65a139c28c9ef49b534a64540e41747a7de47356a138fab102ed2faa0648",
+    "crates/termrock-runtime/src/keymap.rs": "26fc8832fd76adb164f8e2b42cdaf56692082e72bf354d9af1b141df9ec2b809",
+    "crates/termrock-runtime/src/ui/mod.rs": "414e7c920a20aacc63c2e44c6d7e237d005a71f5deec153915f588913a8915b9",
+    "crates/termrock-runtime/src/author.rs": "f12bdbee1090c02e947f1f1073b30f9831ac54e0d3824f7a642d3d51ff8988c6",
+    "crates/termrock-editors/src/completion.rs": "6aa55a1349e48ffbc235b5941e94a559e24147dd316d564917a3804a202e0ab0",
+    "crates/termrock-editors/src/code.rs": "b100a78857f6e03040a4c5f44d8233a8448505aaddd6bc9980ed1b745f3d526e",
+    "crates/termrock-overlays/src/completion.rs": "c299996276930e3c53757978cdae8ff08eb3d9ef306cf778c5894d64e2c5293e"
+  },
+  "probe": {
+    "path": "/private/tmp/editor-shell-routing-review-3807-20261021/tests/routing.rs",
+    "sha256": "b65b21d1b800bc8645086453cf973bf74b089e0e14739633bf95ac975730080a",
+    "manifest_sha256": "30f012e6e12735ec4821981d2fb288734050984b921f7039ce5db8a010bcd5e8",
+    "command": "cargo nextest run --manifest-path /private/tmp/editor-shell-routing-review-3807-20261021/Cargo.toml --test routing --no-capture --no-fail-fast",
+    "target": "/private/tmp/editor-shell-routing-review-3807-20261021/target-3807",
+    "log": "/private/tmp/editor-shell-routing-review-3807-20261021/nextest-final.log",
+    "log_sha256": "13a6b7b28b259b1e50d9e1bae5b42a45d36557941e827f8eae3ce7abc309ba3e",
+    "exit": 100,
+    "run": 2,
+    "failed": 2,
+    "skipped": 0,
+    "observations": [
+      "Configured four-space Tab indentation loses focus to editor.find.",
+      "After fe renders actual async fn completion, Enter inserts newline and closes completion, not fetch()."
+    ],
+    "invalid_setup_preserved": "nextest-both.log contains an earlier completion setup without removing inserted i; that assertion is not used as acceptance evidence. nextest-final.log fixes setup using the existing authored test sequence."
+  },
+  "standalone": {
+    "command": "cargo nextest run -p termrock-editors --test completing_code_editor --no-capture",
+    "cwd": "/private/tmp/showcase-editor-live-d",
+    "log": "/private/tmp/editor-shell-routing-review-3807-20261021/standalone-composite.log",
+    "sha256": "38258a29b987b8acfedf801eeb6d79377bcd934ced56cc771c33b8137b88d54b",
+    "exit": 0,
+    "passed": 17,
+    "skipped": 0
+  },
+  "cause": {
+    "classification": "Misconfigured application consumer replaces shared component binding table; not a shell routing priority defect.",
+    "evidence": [
+      "showcase-demos/src/pages/editor.rs:658 calls Ui::publish_bindings after the real completing editor draws. Its RUN_BINDINGS contains only Ctrl+R.",
+      "termrock-runtime/src/keymap.rs:505 get(owner) searches publications in reverse; last same-owner table wins.",
+      "termrock-runtime/src/runtime.rs:899 resolves focused component binding before Tab/BackTab focus traversal at906/915.",
+      "termrock-editors/src/code.rs:1403 publishes active editor Tab/Enter/F6 bindings; completion.rs:389-407 draws completion layer and adds manual completion binding.",
+      "termrock-overlays/src/completion.rs:583 publishes active completion acceptance table on editor owner; handle_editor_intent:392 only interprets Intent::Binding, so raw Enter falls through to editor raw-key fallback code.rs:1080 and Newline binding.",
+      "Replacing table removes Tab binding; fallback runtime focus traversal executes before app update. Replacing table removes completion Enter binding; editor raw-key handling still finds own Newline command."
+    ],
+    "current_pr38_shared_source_comparison": "git diff --stat 6825b07 3807e493 -- runtime.rs keymap.rs editors/completion.rs overlays/completion.rs produced no differences."
+  },
+  "frozen_contract": {
+    "paths": [
+      "src/bin/showcase/pages/editor.rs:695-721 completion handles key before editor; accepts and returns immediately.",
+      "src/widgets/completion.rs:182 Tab or Enter accepts current suggestion.",
+      "src/widgets/code.rs:605-644 configured Tab indents; BackTab dedents selected lines; Ctrl+Tab leaves only when terminal delivers it.",
+      "src/widgets/code.rs:589 F6 and Shift+F6 commit and leave focus; no Ctrl/Alt."
+    ],
+    "no_actual_frozen_cli_claim": true
+  },
+  "decision": {
+    "minimal_change": "Use Ui::publish_additional_bindings at the existing editor RUN_BINDINGS customization point, retaining real editor/completion publication. Existing public API documents additive same-owner bindings. Alternatively use author::extend_bindings only if explicit conflict diagnostics are required; no new input/render system or runtime priority alteration.",
+    "files": [
+      "crates/showcase-demos/src/pages/editor.rs",
+      "crates/showcase-ui/tests/app_tests.rs"
+    ],
+    "shared_runtime_changes": "None justified by these failures. Keep replacement semantics of publish_bindings because components use intentional active-map replacement.",
+    "api_gap": "No missing adapter for this bounded fix: Ui::publish_additional_bindings already public and preserves hints. A future typed component extension builder may improve consumer ergonomics, but is not required to resolve routing."
+  },
+  "regression_plan": [
+    "Copy the two unchanged failing real-App probes into showcase-ui app_tests before changing the binding call; retain original RED evidence.",
+    "Use existing additive binding API in the consumer. Verify Tab with no completion retains focus and inserts exactly four spaces, completion Enter and Tab accept fetch() exactly once, following Tab indents, Ctrl+R run still works, manual completion still works, Escape dismisses then commits.",
+    "Check navigation-mode Tab/BackTab still traverses; F6/Shift+F6 leave editing; focused Find/Run buttons and other text fields keep their own activation and focus behavior.",
+    "Exercise same owner under actual completion layer and modal help; background run/edit actions must not execute through modal scope. Preserve remapping and conflict diagnostics.",
+    "Test BackTab in editing separately against frozen dedent semantics. Current CodeEditor CodeCmd::Tab(true) at1273 only consumes; this is a separate pre-existing shared editor parity gap, not fixed by routing change.",
+    "Plain Tab, Enter, Esc and F6 are deliverable baseline controls. Shift+F6 and Ctrl+Tab depend on terminal capabilities; do not advertise unconditional Ctrl+Tab or invent unavailable modifiers. Preserve frozen F6 escape from indentation.",
+    "Run 17 standalone completing editor tests plus real-App regression and scoped fmt/Clippy; follow with pinned tuiscotti real CLI paired captures. Missing Options/States, shortcut label presentation and full page/frame parity remain required."
+  ],
+  "limits": [
+    "No product source modifications, commits, expected hash updates or candidate snapshot approvals.",
+    "No post-fix behavior claimed; this is diagnosis and a minimal staged implementation plan.",
+    "No actual frozen/candidate CLI comparison or full workspace gate performed.",
+    "Current BackTab dedent gap is source-supported, not independently reproduced through this two-case probe."
+  ]
+}

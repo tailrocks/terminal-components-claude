@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 2554d85b64da50be58e79cf3497832461483b481 Alexey Zhokhov <alexey@zhokhov.com> 1792534877 +0700	branch: Created from origin/parity/termrock-visual-baseline
+2554d85b64da50be58e79cf3497832461483b481 962f6d2c2b55737e3bf2120f175f9186d4537b9b Alexey Zhokhov <alexey@zhokhov.com> 1792535379 +0700	commit: fix(theme): match Junie field hover profiles
+962f6d2c2b55737e3bf2120f175f9186d4537b9b b1c1eb3e8883c55f3052fc139d922bef4dd30618 Alexey Zhokhov <alexey@zhokhov.com> 1792535389 +0700	rebase (finish): refs/heads/wip/theme-field-hover-20261021 onto 781962a0de20e15432a867037f4cc0ccabcce80a
+b1c1eb3e8883c55f3052fc139d922bef4dd30618 4507e7de2b730985bc3e8f5478f6cd68be9b51a3 Alexey Zhokhov <alexey@zhokhov.com> 1792535437 +0700	commit: docs(audit): record field hover capability gates

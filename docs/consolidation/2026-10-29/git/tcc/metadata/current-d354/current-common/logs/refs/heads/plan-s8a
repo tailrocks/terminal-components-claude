@@ -1,0 +1,16 @@
+0000000000000000000000000000000000000000 942b869d7b719773870687d5bc39f164110bfd59 Alexey Zhokhov <alexey@zhokhov.com> 1792208344 +0700	branch: Created from HEAD
+942b869d7b719773870687d5bc39f164110bfd59 1e4f9da91a88e4d430809798a12b3e8d18c504a7 Alexey Zhokhov <alexey@zhokhov.com> 1792208821 +0700	commit: feat(shell): KeyRouter, ShellKeys and ShellAction with Page::on_interrupt
+1e4f9da91a88e4d430809798a12b3e8d18c504a7 bba75e8fa504fb0ef503f9b657ce5c002d630766 Alexey Zhokhov <alexey@zhokhov.com> 1792209279 +0700	commit: refactor(showcase): route keys through shell::KeyRouter
+bba75e8fa504fb0ef503f9b657ce5c002d630766 a34da11ec976a23b03aab7eb46822992e8f5551d Alexey Zhokhov <alexey@zhokhov.com> 1792209637 +0700	commit: feat(shell): priority and idle-only shell keys, KeyRouter::replay
+a34da11ec976a23b03aab7eb46822992e8f5551d ce4f34ce44908882c76bda070e047b63f17982f1 Alexey Zhokhov <alexey@zhokhov.com> 1792209637 +0700	commit: refactor(tablepro): route keys through shell::KeyRouter
+ce4f34ce44908882c76bda070e047b63f17982f1 79f57b5f380dc64b578c674cbacb538cfef7bc4e Alexey Zhokhov <alexey@zhokhov.com> 1792209949 +0700	commit: feat(shell): KeyHost::text_focus apart from capture
+79f57b5f380dc64b578c674cbacb538cfef7bc4e 746b23394365537b88acca94679f78a1294d39ec Alexey Zhokhov <alexey@zhokhov.com> 1792209949 +0700	commit: refactor(holla): route keys through shell::KeyRouter; background ticks wait (CO9)
+746b23394365537b88acca94679f78a1294d39ec 395cfa8d207e30926a0250187db53858cf064b2c Alexey Zhokhov <alexey@zhokhov.com> 1792210134 +0700	commit: refactor(jackin): route keys through shell::KeyRouter; focused menu bar keys (K11)
+395cfa8d207e30926a0250187db53858cf064b2c 6cabda46b2084c884aa1b822fe8387006b8e7b66 Alexey Zhokhov <alexey@zhokhov.com> 1792210399 +0700	commit: refactor(shell): route pastes through KeyRouter (A16)
+6cabda46b2084c884aa1b822fe8387006b8e7b66 132a68177427a621a424ed20c438ea776a944a6b Alexey Zhokhov <alexey@zhokhov.com> 1792210399 +0700	commit: fix(jackin): sticky Capsule prefix, Esc cancels (K26)
+132a68177427a621a424ed20c438ea776a944a6b 1e41ac25ade5855ab12fac583cfcb9b91af22c1d Alexey Zhokhov <alexey@zhokhov.com> 1792210406 +0700	rebase (finish): refs/heads/plan-s8a onto a2d52e0dbabef2df2397ce00e922744bbca97ce1
+1e41ac25ade5855ab12fac583cfcb9b91af22c1d f70ece1764d4950643191d04bf9b042631e43ce1 Alexey Zhokhov <alexey@zhokhov.com> 1792210521 +0700	commit: docs(plan): S8a done; CO2, CO9, A16, K11, K26, SI10, SI16, SI23 recorded
+f70ece1764d4950643191d04bf9b042631e43ce1 7872d7fbe0c1e4c3b300243fce9446f43c3bce4e Alexey Zhokhov <alexey@zhokhov.com> 1792210589 +0700	commit: test(visual): the Plan tab's cancel dialog opens from on_interrupt
+7872d7fbe0c1e4c3b300243fce9446f43c3bce4e d3fb61feadb2a10508b48c0578356e2242a32bc0 Alexey Zhokhov <alexey@zhokhov.com> 1792211775 +0700	commit: fix(code): Ctrl+C without a selection passes on while editing
+d3fb61feadb2a10508b48c0578356e2242a32bc0 2afa915380f5d5faae1880f8c6c197fc5ec5b2f4 Alexey Zhokhov <alexey@zhokhov.com> 1792211782 +0700	rebase (finish): refs/heads/plan-s8a onto b148d2098182f81c5f420c682843835c8a594a78
+2afa915380f5d5faae1880f8c6c197fc5ec5b2f4 bc99a174950df15fbb675be5357e6523878587fe Alexey Zhokhov <alexey@zhokhov.com> 1792217406 +0700	rebase (finish): refs/heads/plan-s8a onto 9570530a3c6123269174311e20ca84dc3dfd6ac8

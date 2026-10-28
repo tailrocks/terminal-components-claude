@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 3269986608a41dbca03c37a92f7c1562486936ca Alexey Zhokhov <alexey@zhokhov.com> 1792137112 +0700	branch: Created from origin/design/interaction-polish
+3269986608a41dbca03c37a92f7c1562486936ca dab27412a17eb1d02db7f18e7f1019e41cae256f Alexey Zhokhov <alexey@zhokhov.com> 1792137301 +0700	commit: fix(menu): restore disabled-with-reason menu items lost in 32a576251
+dab27412a17eb1d02db7f18e7f1019e41cae256f 28717da831edac55a8a270a1b4df198397da67e9 Alexey Zhokhov <alexey@zhokhov.com> 1792137304 +0700	rebase (finish): refs/heads/restore-reason onto 7338c7ecf84a31748614ee8108690ea1a2b64aa3
+28717da831edac55a8a270a1b4df198397da67e9 15d9a08ac21627f9cac541404a1451361e62d67c Alexey Zhokhov <alexey@zhokhov.com> 1792137312 +0700	commit: docs(audit): copy #19 points at the restored fix 28717da83
+15d9a08ac21627f9cac541404a1451361e62d67c c3aa99a17ee6058f88a341211bc4e0f1fe98dc6c Alexey Zhokhov <alexey@zhokhov.com> 1792137354 +0700	rebase (finish): refs/heads/restore-reason onto ca56bdc2ff3f380f6db828f50be687f0b01c2d2c
+c3aa99a17ee6058f88a341211bc4e0f1fe98dc6c 71d6a2d2248a43203f4f7984edafd898e4691fa7 Alexey Zhokhov <alexey@zhokhov.com> 1792137358 +0700	commit (amend): docs(audit): copy #19 points at the restored fix 147479eb1
+71d6a2d2248a43203f4f7984edafd898e4691fa7 ad3f7f198658020ad19221a14e7ccea4917ca9a8 Alexey Zhokhov <alexey@zhokhov.com> 1792137395 +0700	rebase (finish): refs/heads/restore-reason onto dc053d20f06baf2a77e81c6ceab3370906b7dc91
+ad3f7f198658020ad19221a14e7ccea4917ca9a8 3485a4e7a08c015229877d66c848bf96cac86e49 Alexey Zhokhov <alexey@zhokhov.com> 1792137399 +0700	commit (amend): docs(audit): copy #19 points at the restored fix ca7d3b02d

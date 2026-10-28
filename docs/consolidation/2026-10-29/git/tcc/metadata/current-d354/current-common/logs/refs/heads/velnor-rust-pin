@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 a312f64be20b966370b056506303202e8c4e18c3 Alexey Zhokhov <alexey@zhokhov.com> 1792157790 +0700	branch: Created from HEAD
+a312f64be20b966370b056506303202e8c4e18c3 d891aeef20026e74f3577f0c5aae53f881c04f71 Alexey Zhokhov <alexey@zhokhov.com> 1792157826 +0700	commit: docs(upstream): velnor ignores the repo Rust toolchain
+d891aeef20026e74f3577f0c5aae53f881c04f71 56a137c78907204f6086dff7436e7e5a63c2c04f Alexey Zhokhov <alexey@zhokhov.com> 1792157829 +0700	rebase (finish): refs/heads/velnor-rust-pin onto 76f6d52f58a98aac036ad9a3d1f69cc41b562f9f

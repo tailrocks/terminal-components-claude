@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 2ff3629ece9471685186f6ba6ea72f2c66cf8cdf Alexey Zhokhov <alexey@zhokhov.com> 1792231190 +0700	branch: Created from HEAD
+2ff3629ece9471685186f6ba6ea72f2c66cf8cdf 39da3d2151167e467a0eeca1df1fc4e662984c55 Alexey Zhokhov <alexey@zhokhov.com> 1792231817 +0700	commit: feat(showcase): Disk cleanup screen (SC49)
+39da3d2151167e467a0eeca1df1fc4e662984c55 11bfe26f8749402019544d696895566bf90104d8 Alexey Zhokhov <alexey@zhokhov.com> 1792232071 +0700	commit: feat(showcase): Activity screen (SC51)
+11bfe26f8749402019544d696895566bf90104d8 052f11fe3afeeab8b063af559ca405e4d1c91d08 Alexey Zhokhov <alexey@zhokhov.com> 1792232081 +0700	rebase (finish): refs/heads/p0-screens-b onto 804b9f8b4994ae02352a2c344fd8544dd8ed90f5
+052f11fe3afeeab8b063af559ca405e4d1c91d08 b29d44049d8d152e29790dfcecce5b1b6eb6a8bb Alexey Zhokhov <alexey@zhokhov.com> 1792232250 +0700	commit: feat(showcase): Disk cleanup pairs on the library MasterDetail (SC49, S19)
+b29d44049d8d152e29790dfcecce5b1b6eb6a8bb efe6c5b7a490d5c1c9ad69f0bf95e1bffc208e54 Alexey Zhokhov <alexey@zhokhov.com> 1792232620 +0700	commit: fix(showcase): Disk cleanup's collapsed summary fits and its stops keep order
+efe6c5b7a490d5c1c9ad69f0bf95e1bffc208e54 fe14d4c6a97f09ed09f21c5ff19a1b0c6194b534 Alexey Zhokhov <alexey@zhokhov.com> 1792232638 +0700	commit: feat(showcase): Workspaces screen (SC52)
+fe14d4c6a97f09ed09f21c5ff19a1b0c6194b534 a18a3cf5ea42e5e4dba3a45ee48018b3bdb3f026 Alexey Zhokhov <alexey@zhokhov.com> 1792232773 +0700	commit: test(visual): overlay rows for the Disk cleanup gates and the Workspaces purge
+a18a3cf5ea42e5e4dba3a45ee48018b3bdb3f026 23bd8d7deec87b3d53aabe4b91a40ddfe5023f03 Alexey Zhokhov <alexey@zhokhov.com> 1792232773 +0700	commit: test(showcase): the Screens pages cover five SC58 and SC41 functions; one stream hint is a range
+23bd8d7deec87b3d53aabe4b91a40ddfe5023f03 706b4a68c0f2468123529bbb7ed387e8819108c0 Alexey Zhokhov <alexey@zhokhov.com> 1792233347 +0700	rebase (finish): refs/heads/p0-screens-b onto 1303aea53850da3bb2020e33237808aab0de7954

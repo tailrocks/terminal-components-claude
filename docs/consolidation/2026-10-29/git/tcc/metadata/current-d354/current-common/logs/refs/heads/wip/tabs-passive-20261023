@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 8d8051bad399b07136b60116a6b82bc0553aa994 Alexey Zhokhov <alexey@zhokhov.com> 1792748591 +0700	branch: Created from origin/parity/termrock-visual-baseline
+8d8051bad399b07136b60116a6b82bc0553aa994 d34bd917cc6aee5b0cc12d75fec75f443ed4f7e0 Alexey Zhokhov <alexey@zhokhov.com> 1792748660 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+d34bd917cc6aee5b0cc12d75fec75f443ed4f7e0 4dee8aaf30c58604861866f4c0958ddf894b19e4 Alexey Zhokhov <alexey@zhokhov.com> 1792750058 +0700	commit: feat(navigation): support passive tabs
+4dee8aaf30c58604861866f4c0958ddf894b19e4 82f9c9b97409ef3241be779c2566591137efc035 Alexey Zhokhov <alexey@zhokhov.com> 1792750202 +0700	commit: test(navigation): prove passive false defaults
+82f9c9b97409ef3241be779c2566591137efc035 d90527663f0368e3f0f3f5d916aabd5114b313d5 Alexey Zhokhov <alexey@zhokhov.com> 1792750479 +0700	rebase (finish): refs/heads/wip/tabs-passive-20261023 onto 8dd9624546bb16a5d81b345bff2580e6329ee25e

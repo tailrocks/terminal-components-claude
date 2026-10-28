@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 72c2d3658f3d89f58b3f4690f9dbdce728be8cef Alexey Zhokhov <alexey@zhokhov.com> 1792511022 +0700	branch: Created from HEAD
+72c2d3658f3d89f58b3f4690f9dbdce728be8cef 1ac6dfced934a3015a7c90bc3006ccf2de0287a2 Alexey Zhokhov <alexey@zhokhov.com> 1792511456 +0700	commit: fix(tablepro): scope footer hints to focused query

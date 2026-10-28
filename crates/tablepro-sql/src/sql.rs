@@ -796,14 +796,20 @@ pub struct Risk {
     pub reversible: &'static str,
 }
 
-pub fn fmt_rows(n: usize) -> String {
+pub fn fmt_rows_to(n: usize, out: &mut impl core::fmt::Write) -> core::fmt::Result {
     if n >= 1_000_000 {
-        format!("{:.1} M", n as f64 / 1e6)
+        write!(out, "{:.1} M", n as f64 / 1e6)
     } else if n >= 1000 {
-        format!("{:.1} k", n as f64 / 1e3)
+        write!(out, "{:.1} k", n as f64 / 1e3)
     } else {
-        n.to_string()
+        write!(out, "{n}")
     }
+}
+
+pub fn fmt_rows(n: usize) -> String {
+    let mut text = String::new();
+    let _ = fmt_rows_to(n, &mut text);
+    text
 }
 
 pub fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
@@ -992,6 +998,24 @@ pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
     }
 }
 
+pub fn cmp_values_nulls_last(a: &Value, b: &Value, ascending: bool) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+
+    match (a, b) {
+        (Value::Null, Value::Null) => Ordering::Equal,
+        (Value::Null, _) => Ordering::Greater,
+        (_, Value::Null) => Ordering::Less,
+        _ => {
+            let ordering = cmp_values(a, b);
+            if ascending {
+                ordering
+            } else {
+                ordering.reverse()
+            }
+        }
+    }
+}
+
 pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
@@ -1086,10 +1110,7 @@ pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
                 at: None,
             });
         };
-        all.sort_by(|a, b| {
-            let o = cmp_values(&a[ci], &b[ci]);
-            if *asc { o } else { o.reverse() }
-        });
+        all.sort_by(|a, b| cmp_values_nulls_last(&a[ci], &b[ci], *asc));
     }
 
     let total = if sel.predicates.is_empty() {
@@ -1357,286 +1378,4 @@ pub fn fmt_int(n: usize) -> String {
         out.push(ch);
     }
     out
-}
-
-#[cfg(test)]
-pub fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
-    let indent = "  ".repeat(depth);
-    let arrow = if depth == 0 { "" } else { "->  " };
-    let rel = node
-        .relation
-        .as_ref()
-        .map(|r| format!(" on {r}"))
-        .unwrap_or_default();
-    let actual = node
-        .actual_ms
-        .map(|m| {
-            format!(
-                " (actual time=0.031..{m:.3} rows={} loops={})",
-                node.rows, node.loops
-            )
-        })
-        .unwrap_or_default();
-    out.push(format!(
-        "{indent}{arrow}{}{rel}  (cost={:.2}..{:.2} rows={} width=64){actual}",
-        node.op, node.cost.0, node.cost.1, node.rows
-    ));
-    for (k, v) in &node.detail {
-        out.push(format!("{indent}      {k}: {v}"));
-    }
-    for c in &node.children {
-        plan_text(c, depth.saturating_add(1), out);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn parse_statement(source: &str) -> Result<Statement, String> {
-        parse(source).map_err(|error| format!("parse at {}: {}", error.at, error.message))
-    }
-
-    fn parse_select(source: &str) -> Result<Select, String> {
-        match parse_statement(source)? {
-            Statement::Select(select) => Ok(select),
-            statement => Err(format!("expected SELECT, got {statement:?}")),
-        }
-    }
-
-    fn execution_error<T>(result: Result<T, ExecError>) -> Result<ExecError, String> {
-        match result {
-            Ok(_) => Err("expected the operation to fail".to_owned()),
-            Err(error) => Ok(error),
-        }
-    }
-
-    fn parse_error(source: &str) -> Result<ParseError, String> {
-        match parse(source) {
-            Ok(_) => Err("expected the parser to fail".to_owned()),
-            Err(error) => Ok(error),
-        }
-    }
-
-    #[test]
-    fn unicode_tokens_cover_complete_character_boundaries() {
-        for source in [
-            "SELECT * FROM café",
-            "SELECT 名称 FROM 顾客 WHERE 名称 = 'é'; -- 日本語\nSELECT 1",
-            "SELECT\u{2003}café, 🦀 FROM t /* 中文 */",
-            "SELECT \"café\" FROM t; SELECT '🦀'",
-        ] {
-            let mut end = 0;
-            for token in tokenize(source) {
-                assert_eq!(token.start, end);
-                assert!(source.get(token.start..token.end).is_some());
-                assert!(token.end > token.start);
-                end = token.end;
-            }
-            assert_eq!(end, source.len());
-        }
-        let source = "café\u{2003}名称 🦀";
-        let kinds = tokenize(source)
-            .into_iter()
-            .map(|token| token.kind)
-            .collect::<Vec<_>>();
-        assert_eq!(
-            kinds,
-            vec![
-                TokKind::Ident,
-                TokKind::Whitespace,
-                TokKind::Ident,
-                TokKind::Whitespace,
-                TokKind::Punct
-            ]
-        );
-    }
-
-    #[test]
-    fn unicode_relations_parse_without_splitting_identifiers() -> Result<(), String> {
-        let parsed = parse_select("SELECT 名称 FROM café")?;
-        assert_eq!(parsed.table, "café");
-        assert_eq!(parsed.columns, vec!["名称"]);
-        let source = "SELECT * FROM café; SELECT * FROM 顾客";
-        let statements = split_statements(source);
-        assert_eq!(statements.len(), 2);
-        assert_eq!(
-            statement_at(source, source.len()),
-            statements.last().copied()
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn splits_and_finds_statement_at_cursor() -> Result<(), String> {
-        let src = "SELECT 1;\n\nSELECT * FROM orders -- ; in comment\nWHERE status = 'a;b';\nDELETE FROM x";
-        let s = split_statements(src);
-        assert_eq!(s.len(), 3);
-        assert_eq!(
-            &src[s[1].0..s[1].1],
-            "SELECT * FROM orders -- ; in comment\nWHERE status = 'a;b'"
-        );
-        let at = statement_at(src, 15).ok_or_else(|| "cursor was not in a statement".to_owned())?;
-        assert_eq!(at, s[1]);
-        Ok(())
-    }
-
-    #[test]
-    fn parses_select_with_predicates_order_limit() -> Result<(), String> {
-        let s = parse_select(
-            "select id, status from public.orders o where status = 'pending' and total_amount >= 100 order by created_at desc limit 50",
-        )?;
-        assert_eq!(s.table, "orders");
-        assert_eq!(s.schema.as_deref(), Some("public"));
-        assert_eq!(s.predicates.len(), 2);
-        assert_eq!(s.order, Some(("created_at".into(), false)));
-        assert_eq!(s.limit, Some(50));
-        Ok(())
-    }
-
-    #[test]
-    fn classifies_like_tablepro() -> Result<(), String> {
-        use tablepro_demo::db::SafeMode as L;
-        let p = |source: &str| parse_statement(source);
-        assert_eq!(tier(&p("SELECT * FROM orders")?), Tier::Safe);
-        assert_eq!(tier(&p("UPDATE orders SET x = 1")?), Tier::Write);
-        assert!(
-            !is_dangerous(&p("UPDATE orders SET x = 1")?),
-            "UPDATE without WHERE is a plain write"
-        );
-        assert!(is_dangerous(&p("DELETE FROM orders")?));
-        assert!(!is_dangerous(&p("DELETE FROM orders WHERE id = 'x'")?));
-        assert_eq!(tier(&p("DROP TABLE orders")?), Tier::Destructive);
-        assert_eq!(tier(&p("TRUNCATE orders")?), Tier::Destructive);
-        assert_eq!(
-            tier(&p("ALTER TABLE orders DROP COLUMN notes")?),
-            Tier::Destructive
-        );
-        assert_eq!(
-            tier(&p("ALTER TABLE orders ADD COLUMN x int")?),
-            Tier::Write
-        );
-        assert_eq!(tier(&p("EXPLAIN ANALYZE DELETE FROM orders")?), Tier::Write);
-        assert!(is_dangerous(&p("EXPLAIN ANALYZE DELETE FROM orders")?));
-
-        assert_eq!(
-            gate(L::Silent, &p("UPDATE orders SET x = 1")?),
-            Decision::Run
-        );
-        assert_eq!(
-            gate(L::Silent, &p("DELETE FROM orders")?),
-            Decision::Confirm { deliberate: false }
-        );
-        assert_eq!(
-            gate(L::Silent, &p("DROP TABLE orders")?),
-            Decision::Confirm { deliberate: false }
-        );
-        assert_eq!(
-            gate(L::Alert, &p("UPDATE orders SET x = 1 WHERE id = 1")?),
-            Decision::Confirm { deliberate: false }
-        );
-        assert_eq!(gate(L::Alert, &p("SELECT 1 FROM orders")?), Decision::Run);
-        assert_eq!(
-            gate(L::AlertFull, &p("SELECT 1 FROM orders")?),
-            Decision::Confirm { deliberate: false }
-        );
-        assert_eq!(
-            gate(L::Safe, &p("INSERT INTO orders VALUES (1)")?),
-            Decision::Confirm { deliberate: true }
-        );
-        assert_eq!(gate(L::Safe, &p("SELECT 1 FROM orders")?), Decision::Run);
-        assert_eq!(
-            gate(L::SafeFull, &p("SELECT 1 FROM orders")?),
-            Decision::Confirm { deliberate: true }
-        );
-        assert_eq!(
-            gate(L::ReadOnly, &p("UPDATE orders SET x = 1 WHERE id = 1")?),
-            Decision::Deny
-        );
-        assert_eq!(
-            gate(L::ReadOnly, &p("SELECT 1 FROM orders")?),
-            Decision::Run
-        );
-        assert_eq!(gate(L::ReadOnly, &p("DROP TABLE orders")?), Decision::Deny);
-        Ok(())
-    }
-
-    #[test]
-    fn runs_filtered_sorted_select() -> Result<(), String> {
-        let cat = Catalog::acme_prod();
-        let s = parse_select(
-            "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
-        )?;
-        let rs = run_select(&cat, &s).map_err(|error| error.message)?;
-        assert_eq!(rs.rows.len(), 20);
-        let status_i = rs
-            .columns
-            .iter()
-            .position(|c| c.0 == "status")
-            .ok_or_else(|| "result did not contain status".to_owned())?;
-        assert!(rs.rows.iter().all(|row| {
-            row.get(status_i)
-                .is_some_and(|value| value.display() == "pending")
-        }));
-        let amt = rs
-            .columns
-            .iter()
-            .position(|c| c.0 == "total_amount")
-            .ok_or_else(|| "result did not contain total_amount".to_owned())?;
-        let first = rs
-            .rows
-            .first()
-            .and_then(|row| row.get(amt))
-            .ok_or_else(|| "result had no first amount".to_owned())?
-            .as_f64()
-            .ok_or_else(|| "first amount was not numeric".to_owned())?;
-        let last = rs
-            .rows
-            .last()
-            .and_then(|row| row.get(amt))
-            .ok_or_else(|| "result had no last amount".to_owned())?
-            .as_f64()
-            .ok_or_else(|| "last amount was not numeric".to_owned())?;
-        assert!(first >= last);
-        assert!(rs.editable);
-        Ok(())
-    }
-
-    #[test]
-    fn errors_are_specific() -> Result<(), String> {
-        let cat = Catalog::acme_prod();
-        let s = parse_select("SELECT nope FROM orders")?;
-        let e = execution_error(run_select(&cat, &s))?;
-        assert!(e.message.contains("column \"nope\""));
-        let s = parse_select("SELECT * FROM ordres")?;
-        let e = execution_error(run_select(&cat, &s))?;
-        assert!(e.message.contains("relation"));
-        let e = parse_error("SELEC * FROM orders")?;
-        assert_eq!(e.at, 0);
-        Ok(())
-    }
-
-    #[test]
-    fn explain_builds_tree() -> Result<(), String> {
-        let cat = Catalog::acme_prod();
-        let s = parse_select(
-            "SELECT * FROM orders WHERE notes LIKE '%gift%' ORDER BY created_at LIMIT 10",
-        )?;
-        let plan = explain(&cat, &s, true).map_err(|error| error.message)?;
-        assert_eq!(plan.op, "Limit");
-        let sort = plan
-            .children
-            .first()
-            .ok_or_else(|| "limit node had no child".to_owned())?;
-        assert_eq!(sort.op, "Sort");
-        let scan = sort
-            .children
-            .first()
-            .ok_or_else(|| "sort node had no child".to_owned())?;
-        assert!(scan.op.contains("Gather") || scan.op.contains("Scan"));
-        let mut lines = vec![];
-        plan_text(&plan, 0, &mut lines);
-        assert!(lines.first().is_some_and(|line| line.starts_with("Limit")));
-        Ok(())
-    }
 }

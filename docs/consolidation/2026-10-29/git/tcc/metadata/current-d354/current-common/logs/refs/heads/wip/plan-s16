@@ -1,0 +1,20 @@
+0000000000000000000000000000000000000000 b249a81be807879212bd4bf50a9246aff5c18d60 Alexey Zhokhov <alexey@zhokhov.com> 1792302245 +0700	branch: Created from origin/wip/plan-s16
+b249a81be807879212bd4bf50a9246aff5c18d60 a3569aca74f841d627ef26c908a346e0ba05bbf0 Alexey Zhokhov <alexey@zhokhov.com> 1792302505 +0700	commit: chore: remove Rust comments without changing code tokens
+a3569aca74f841d627ef26c908a346e0ba05bbf0 a9a18e7bf0211986131b8258cf94e86f90901368 Alexey Zhokhov <alexey@zhokhov.com> 1792304484 +0700	commit: chore: preserve CLI metadata in comment-free Rust
+a9a18e7bf0211986131b8258cf94e86f90901368 17ae62aad6d4b8c126ca54cf23f34499657b009f Alexey Zhokhov <alexey@zhokhov.com> 1792305694 +0700	commit: docs: reconcile branch authority and preserve planned work
+17ae62aad6d4b8c126ca54cf23f34499657b009f 60f6227a4bb09d4c106207b996e17d2503bb4a56 Alexey Zhokhov <alexey@zhokhov.com> 1792307902 +0700	commit: fix: preserve hash-pinned proof fixtures during cleanup
+60f6227a4bb09d4c106207b996e17d2503bb4a56 b2bb22192721ab85102d743a91d670e7c5df2685 Alexey Zhokhov <alexey@zhokhov.com> 1792308126 +0700	commit: docs: rebuild unified guides and preserve branch-specific future work
+b2bb22192721ab85102d743a91d670e7c5df2685 fdd30862ebf1fab3e97ff595c37bccec1eea3e25 Alexey Zhokhov <alexey@zhokhov.com> 1792309921 +0700	commit: docs: clarify WIP scope and retire stale audits
+fdd30862ebf1fab3e97ff595c37bccec1eea3e25 76362ded4072dd7b3bb22405ce4c5b75bf0c3c08 Alexey Zhokhov <alexey@zhokhov.com> 1792310001 +0700	commit: docs: date inherited WIP ledger evidence
+76362ded4072dd7b3bb22405ce4c5b75bf0c3c08 d87b13964368b464a789cb5855e03bdaaffc2c53 Alexey Zhokhov <alexey@zhokhov.com> 1792313181 +0700	commit: docs: refresh dependency and CI guidance
+d87b13964368b464a789cb5855e03bdaaffc2c53 32bc150f955412028c4c6726e7d39b7121547e31 Alexey Zhokhov <alexey@zhokhov.com> 1792313377 +0700	commit: docs: update Velnor Actions pin to 0.1.14
+32bc150f955412028c4c6726e7d39b7121547e31 a8878d7d036d1c6556d9c3a190145fc1fc030683 Alexey Zhokhov <alexey@zhokhov.com> 1792313420 +0700	commit: chore: upgrade Rust and development toolchain
+a8878d7d036d1c6556d9c3a190145fc1fc030683 7d51d3ca559751f74d7e3cb791f616c8852f6e1b Alexey Zhokhov <alexey@zhokhov.com> 1792313430 +0700	commit: chore: refresh dependencies and lint compatibility
+7d51d3ca559751f74d7e3cb791f616c8852f6e1b 11cd57849d79c71bcd3f36ec960d7c225fb631ab Alexey Zhokhov <alexey@zhokhov.com> 1792320729 +0700	commit: docs: state Rust source documentation policy
+11cd57849d79c71bcd3f36ec960d7c225fb631ab 347158e4e7386dde9b5af4ee0462bfd72087c264 Alexey Zhokhov <alexey@zhokhov.com> 1792320887 +0700	commit: docs: allow only necessary Rust source comments
+347158e4e7386dde9b5af4ee0462bfd72087c264 55c84ae8200409a834ecc6f1c63b327e7b19ffda Alexey Zhokhov <alexey@zhokhov.com> 1792322067 +0700	commit: refactor(cli): preserve help without Rust docs
+55c84ae8200409a834ecc6f1c63b327e7b19ffda 8b2a24c3b5a46ce959709be99c09d1246b2132c4 Alexey Zhokhov <alexey@zhokhov.com> 1792322528 +0700	commit: refactor(cli): retain Clap-consumed documentation
+8b2a24c3b5a46ce959709be99c09d1246b2132c4 a2aa7fdee13bb56bee3fa68ef13156dd36d48bb2 Alexey Zhokhov <alexey@zhokhov.com> 1792323139 +0700	commit: docs: replace legacy documentation with unified project guide
+a2aa7fdee13bb56bee3fa68ef13156dd36d48bb2 94d5d0212af62a015b1736874e7fffac1fee9af4 Alexey Zhokhov <alexey@zhokhov.com> 1792327888 +0700	commit: docs: identify missing Showcase route coverage
+94d5d0212af62a015b1736874e7fffac1fee9af4 57a607d292389275d1b8c147551e14788e178a8c Alexey Zhokhov <alexey@zhokhov.com> 1792330605 +0700	commit (amend): docs: reconcile validation contracts across branches
+57a607d292389275d1b8c147551e14788e178a8c 70e04be37adebd43a26af1e4ae14b73ee7298ca4 Alexey Zhokhov <alexey@zhokhov.com> 1792331193 +0700	commit (amend): docs: reconcile validation contracts across branches

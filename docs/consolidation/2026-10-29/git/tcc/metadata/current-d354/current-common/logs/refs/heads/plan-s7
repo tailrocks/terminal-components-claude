@@ -1,0 +1,17 @@
+0000000000000000000000000000000000000000 e9d2406b7337118dfba7fd3252bad3811f9d753f Alexey Zhokhov <alexey@zhokhov.com> 1792186680 +0700	branch: Created from HEAD
+e9d2406b7337118dfba7fd3252bad3811f9d753f 0b73d1f6a574ba7a636b2ad3796bb56b882ccb50 Alexey Zhokhov <alexey@zhokhov.com> 1792187986 +0700	commit: feat(shell): Shell and App own the frame, focus upkeep and blur fan-out
+0b73d1f6a574ba7a636b2ad3796bb56b882ccb50 b8bf339eb82ca923adaa6bc866a03fe84f406445 Alexey Zhokhov <alexey@zhokhov.com> 1792187996 +0700	commit: refactor(tablepro): run on the library Shell
+b8bf339eb82ca923adaa6bc866a03fe84f406445 9aca907d4c0f794a60049ae2f411c253b9dbb5ca Alexey Zhokhov <alexey@zhokhov.com> 1792188008 +0700	commit (amend): refactor(tablepro): run on the library Shell
+9aca907d4c0f794a60049ae2f411c253b9dbb5ca 8be39bd37cabc942696125722d12c7465c6e6971 Alexey Zhokhov <alexey@zhokhov.com> 1792188017 +0700	commit: refactor(holla): run on the library Shell
+8be39bd37cabc942696125722d12c7465c6e6971 64b66a166aaa6ef73cdc4033e281ecebe5a40f65 Alexey Zhokhov <alexey@zhokhov.com> 1792188029 +0700	commit: refactor(jackin): run on the library Shell
+64b66a166aaa6ef73cdc4033e281ecebe5a40f65 9a764e08c43a3a33bc45e921ac9ed5a2ece752d0 Alexey Zhokhov <alexey@zhokhov.com> 1792188039 +0700	commit: refactor(showcase): run on the library Shell
+9a764e08c43a3a33bc45e921ac9ed5a2ece752d0 36d44b6bc3045ce7161afe41fe9c0eb3286d5376 Alexey Zhokhov <alexey@zhokhov.com> 1792188042 +0700	commit: refactor(shell): delete impl_application!
+36d44b6bc3045ce7161afe41fe9c0eb3286d5376 b138f8382300560b5d7b82c41aec6be84cc2e433 Alexey Zhokhov <alexey@zhokhov.com> 1792188061 +0700	commit: test(visual): re-approve tablepro workbench/maximized
+b138f8382300560b5d7b82c41aec6be84cc2e433 b135b357a1d95e392d5b621913ffa402cea56a17 Alexey Zhokhov <alexey@zhokhov.com> 1792188078 +0700	rebase (finish): refs/heads/plan-s7 onto ccfac7676199c7102fa569b4b9e3b93a8e69f7f4
+b135b357a1d95e392d5b621913ffa402cea56a17 08f1695621fbd33cc843769d83d01a3c85086ee8 Alexey Zhokhov <alexey@zhokhov.com> 1792188988 +0700	commit: feat(shell): Cx and Request with the background-request policy
+08f1695621fbd33cc843769d83d01a3c85086ee8 dafde285e6ec77b773819267a1be922910de6049 Alexey Zhokhov <alexey@zhokhov.com> 1792188988 +0700	commit: refactor(holla): pages use the library Cx and Request
+dafde285e6ec77b773819267a1be922910de6049 8148ad6c60849e42f7d7f1cdccde94e7f27926da Alexey Zhokhov <alexey@zhokhov.com> 1792188988 +0700	commit: refactor(jackin): screens use the library Cx and Request
+8148ad6c60849e42f7d7f1cdccde94e7f27926da 7044850a814b0083154d426a6cca6a95f65d4659 Alexey Zhokhov <alexey@zhokhov.com> 1792189000 +0700	rebase (finish): refs/heads/plan-s7 onto 37221b014094541735a3cd1ba7084eaecd9742f0
+7044850a814b0083154d426a6cca6a95f65d4659 0d6ca9a696b6e595e854d2b6de335565db7bc02b Alexey Zhokhov <alexey@zhokhov.com> 1792189044 +0700	commit: fixup! refactor(jackin): run on the library Shell
+0d6ca9a696b6e595e854d2b6de335565db7bc02b 3376dcabfc69438f0bd94e158e7491075fb4928e Alexey Zhokhov <alexey@zhokhov.com> 1792189045 +0700	rebase (finish): refs/heads/plan-s7 onto 37221b014094541735a3cd1ba7084eaecd9742f0
+3376dcabfc69438f0bd94e158e7491075fb4928e 639f351caf0630f3226586e1fc48cbcdc6bca746 Alexey Zhokhov <alexey@zhokhov.com> 1792189604 +0700	commit: docs(plan): record S7 part 1 status, deviations and what remains

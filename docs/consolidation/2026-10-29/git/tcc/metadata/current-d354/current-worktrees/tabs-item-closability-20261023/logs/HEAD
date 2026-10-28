@@ -1,0 +1,296 @@
+0000000000000000000000000000000000000000 8363ebf4395d597ed01dc39b0d5e12ddafe0121d Alexey Zhokhov <alexey@zhokhov.com> 1792732165 +0700
+8363ebf4395d597ed01dc39b0d5e12ddafe0121d 8363ebf4395d597ed01dc39b0d5e12ddafe0121d Alexey Zhokhov <alexey@zhokhov.com> 1792732254 +0700	reset: moving to HEAD
+8363ebf4395d597ed01dc39b0d5e12ddafe0121d 3cd4fa05f9e2f7d99cacae11adbbc788fd52f278 Alexey Zhokhov <alexey@zhokhov.com> 1792732832 +0700	commit: feat(navigation): close tabs by stable key
+3cd4fa05f9e2f7d99cacae11adbbc788fd52f278 241d3fa0cbb5957d5846b3b9f9863f641f786bda Alexey Zhokhov <alexey@zhokhov.com> 1792733080 +0700	rebase (start): checkout FETCH_HEAD
+241d3fa0cbb5957d5846b3b9f9863f641f786bda 7304b2e138cf06c894affba4455c6bb539b8d2a2 Alexey Zhokhov <alexey@zhokhov.com> 1792733080 +0700	rebase (pick): feat(navigation): close tabs by stable key
+7304b2e138cf06c894affba4455c6bb539b8d2a2 7304b2e138cf06c894affba4455c6bb539b8d2a2 Alexey Zhokhov <alexey@zhokhov.com> 1792733080 +0700	rebase (finish): returning to refs/heads/wip/tabs-item-closability-20261023
+7304b2e138cf06c894affba4455c6bb539b8d2a2 b3691cd99f8eb95d9685abc9df5ee3d806eb58fb Alexey Zhokhov <alexey@zhokhov.com> 1792733438 +0700	checkout: moving from wip/tabs-item-closability-20261023 to wip/tabs-close-reveal-20261023
+b3691cd99f8eb95d9685abc9df5ee3d806eb58fb 1d6c3cb49bad4fb2c6cebbeb924996a156c8c24c Alexey Zhokhov <alexey@zhokhov.com> 1792734069 +0700	commit: feat(navigation): add hover-revealed tab close controls
+1d6c3cb49bad4fb2c6cebbeb924996a156c8c24c e95d513e32d129750f91832e076b405cb8d83916 Alexey Zhokhov <alexey@zhokhov.com> 1792734967 +0700	commit: fix(tabs): preserve hidden-close press target
+e95d513e32d129750f91832e076b405cb8d83916 e462e98c3266865969910a00dfb707fa4e65cee8 Alexey Zhokhov <alexey@zhokhov.com> 1792735741 +0700	commit: fix(tabs): separate close paint from hit deferral
+e462e98c3266865969910a00dfb707fa4e65cee8 8bb0ebb3085fdeff85d158bf0e1a519c959051b5 Alexey Zhokhov <alexey@zhokhov.com> 1792736131 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+8bb0ebb3085fdeff85d158bf0e1a519c959051b5 d19fbf5b3c4e21addcc5c9142e1fbe33e4fe075b Alexey Zhokhov <alexey@zhokhov.com> 1792736148 +0700	rebase (continue): feat(navigation): add hover-revealed tab close controls
+d19fbf5b3c4e21addcc5c9142e1fbe33e4fe075b ba50dfdf7231969496dd40965a1bd0e67d5a65d5 Alexey Zhokhov <alexey@zhokhov.com> 1792736148 +0700	rebase (pick): fix(tabs): preserve hidden-close press target
+ba50dfdf7231969496dd40965a1bd0e67d5a65d5 ea6f11852dd0bccb741463a85738a3f95d25a46a Alexey Zhokhov <alexey@zhokhov.com> 1792736148 +0700	rebase (pick): fix(tabs): separate close paint from hit deferral
+ea6f11852dd0bccb741463a85738a3f95d25a46a ea6f11852dd0bccb741463a85738a3f95d25a46a Alexey Zhokhov <alexey@zhokhov.com> 1792736148 +0700	rebase (finish): returning to refs/heads/wip/tabs-close-reveal-20261023
+ea6f11852dd0bccb741463a85738a3f95d25a46a 1b25a540764662457e553bbc478e98288b588930 Alexey Zhokhov <alexey@zhokhov.com> 1792736280 +0700	commit: style: format merged navigation exports
+1b25a540764662457e553bbc478e98288b588930 0b371f9be4271eea751652739d78b154f5eac782 Alexey Zhokhov <alexey@zhokhov.com> 1792737268 +0700	checkout: moving from wip/tabs-close-reveal-20261023 to wip/tabs-item-marks-20261023
+0b371f9be4271eea751652739d78b154f5eac782 90478ec9ca867d93287bb207c2d4db72c9b7ec70 Alexey Zhokhov <alexey@zhokhov.com> 1792739218 +0700	commit: feat(navigation): add per-tab status marks
+90478ec9ca867d93287bb207c2d4db72c9b7ec70 0a143cc739c86543630900d8648e571f1565d747 Alexey Zhokhov <alexey@zhokhov.com> 1792739721 +0700	commit: fix(navigation): preserve unmarked tab content budget
+0a143cc739c86543630900d8648e571f1565d747 eb1eded0d48adb02dbcde1a741d3e6ab8e477c61 Alexey Zhokhov <alexey@zhokhov.com> 1792739739 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+eb1eded0d48adb02dbcde1a741d3e6ab8e477c61 29c4857714f4bd8b46b0cfc1c5120456f6e5149a Alexey Zhokhov <alexey@zhokhov.com> 1792739739 +0700	rebase (pick): feat(navigation): add per-tab status marks
+29c4857714f4bd8b46b0cfc1c5120456f6e5149a fe788b6b50ecd3f4f13f4740c1cc471ef5121217 Alexey Zhokhov <alexey@zhokhov.com> 1792739739 +0700	rebase (pick): fix(navigation): preserve unmarked tab content budget
+fe788b6b50ecd3f4f13f4740c1cc471ef5121217 fe788b6b50ecd3f4f13f4740c1cc471ef5121217 Alexey Zhokhov <alexey@zhokhov.com> 1792739739 +0700	rebase (finish): returning to refs/heads/wip/tabs-item-marks-20261023
+fe788b6b50ecd3f4f13f4740c1cc471ef5121217 5fbb42ad1dc50782181de127e529f4069f7ba015 Alexey Zhokhov <alexey@zhokhov.com> 1792740074 +0700	commit: test(navigation): cover marked tabs with middle close
+5fbb42ad1dc50782181de127e529f4069f7ba015 0dd22cb1303e89c4d26cdf8a5caef9373f240aa9 Alexey Zhokhov <alexey@zhokhov.com> 1792740090 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+0dd22cb1303e89c4d26cdf8a5caef9373f240aa9 7ac802c50f5057e7e70b8fe629c0cdc5210cf1ea Alexey Zhokhov <alexey@zhokhov.com> 1792740090 +0700	rebase (pick): feat(navigation): add per-tab status marks
+7ac802c50f5057e7e70b8fe629c0cdc5210cf1ea 77dad06df89381848922c2fa6349aeba747f3c4c Alexey Zhokhov <alexey@zhokhov.com> 1792740090 +0700	rebase (pick): fix(navigation): preserve unmarked tab content budget
+77dad06df89381848922c2fa6349aeba747f3c4c 37ff12e47966faf5f3a2d2734639714e4b95ee83 Alexey Zhokhov <alexey@zhokhov.com> 1792740090 +0700	rebase (pick): test(navigation): cover marked tabs with middle close
+37ff12e47966faf5f3a2d2734639714e4b95ee83 37ff12e47966faf5f3a2d2734639714e4b95ee83 Alexey Zhokhov <alexey@zhokhov.com> 1792740090 +0700	rebase (finish): returning to refs/heads/wip/tabs-item-marks-20261023
+37ff12e47966faf5f3a2d2734639714e4b95ee83 a7ce290643b9a86930032399c7d3e531adf93d93 Alexey Zhokhov <alexey@zhokhov.com> 1792740257 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+a7ce290643b9a86930032399c7d3e531adf93d93 02a0503d95b3ccdc1dc2868a0b9c6174cf8d8911 Alexey Zhokhov <alexey@zhokhov.com> 1792740257 +0700	rebase (pick): feat(navigation): add per-tab status marks
+02a0503d95b3ccdc1dc2868a0b9c6174cf8d8911 96835992ff92909416cc29396a418ae33f45514d Alexey Zhokhov <alexey@zhokhov.com> 1792740257 +0700	rebase (pick): fix(navigation): preserve unmarked tab content budget
+96835992ff92909416cc29396a418ae33f45514d 339b814b0c778cab95e3b0a05ba9efdd11323953 Alexey Zhokhov <alexey@zhokhov.com> 1792740257 +0700	rebase (pick): test(navigation): cover marked tabs with middle close
+339b814b0c778cab95e3b0a05ba9efdd11323953 339b814b0c778cab95e3b0a05ba9efdd11323953 Alexey Zhokhov <alexey@zhokhov.com> 1792740257 +0700	rebase (finish): returning to refs/heads/wip/tabs-item-marks-20261023
+339b814b0c778cab95e3b0a05ba9efdd11323953 0c7f09eb2c9d09a57cd1098be065e4f32b17afb0 Alexey Zhokhov <alexey@zhokhov.com> 1792741555 +0700	checkout: moving from wip/tabs-item-marks-20261023 to wip/tabs-rule-policy-20261023
+0c7f09eb2c9d09a57cd1098be065e4f32b17afb0 0662e0a272fe670b2f201feb9b712ccdc8b43c75 Alexey Zhokhov <alexey@zhokhov.com> 1792742675 +0700	commit: feat(navigation): add opt-in tab rule policies
+0662e0a272fe670b2f201feb9b712ccdc8b43c75 c3edd7cf98fd849a7b8e413c8dbf3c3890c1693c Alexey Zhokhov <alexey@zhokhov.com> 1792743895 +0700	checkout: moving from wip/tabs-rule-policy-20261023 to wip/tabs-close-target-danger-20261023
+c3edd7cf98fd849a7b8e413c8dbf3c3890c1693c ebc8fb7be716ced621788a270eac310e728089ce Alexey Zhokhov <alexey@zhokhov.com> 1792744889 +0700	commit: feat(navigation): add close target width and danger hover
+ebc8fb7be716ced621788a270eac310e728089ce ebc8fb7be716ced621788a270eac310e728089ce Alexey Zhokhov <alexey@zhokhov.com> 1792745260 +0700	checkout: moving from wip/tabs-close-target-danger-20261023 to wip/tabs-close-target-danger-rest-20261023
+ebc8fb7be716ced621788a270eac310e728089ce a3c4313b9e2f04d80e30d1a7c3a7d26c32600fa5 Alexey Zhokhov <alexey@zhokhov.com> 1792745917 +0700	commit: fix(navigation): preserve opted close reset at rest
+a3c4313b9e2f04d80e30d1a7c3a7d26c32600fa5 5ec532e053ba0f35ae1161eab7c4bffe27a9d21e Alexey Zhokhov <alexey@zhokhov.com> 1792745939 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+5ec532e053ba0f35ae1161eab7c4bffe27a9d21e adf185b2d02d1d8baff18d386e2c452b27513bfb Alexey Zhokhov <alexey@zhokhov.com> 1792745939 +0700	rebase (pick): feat(navigation): add close target width and danger hover
+adf185b2d02d1d8baff18d386e2c452b27513bfb 39ae7cf762bf0b440403a4742677040d3a9f0fbe Alexey Zhokhov <alexey@zhokhov.com> 1792745939 +0700	rebase (pick): fix(navigation): preserve opted close reset at rest
+39ae7cf762bf0b440403a4742677040d3a9f0fbe 39ae7cf762bf0b440403a4742677040d3a9f0fbe Alexey Zhokhov <alexey@zhokhov.com> 1792745939 +0700	rebase (finish): returning to refs/heads/wip/tabs-close-target-danger-rest-20261023
+39ae7cf762bf0b440403a4742677040d3a9f0fbe 101f8a6ddf0abdac362d6a66cb891b72b7406812 Alexey Zhokhov <alexey@zhokhov.com> 1792746449 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+101f8a6ddf0abdac362d6a66cb891b72b7406812 f5e514f14e0f7b108f9136e5624d88dafb8038ae Alexey Zhokhov <alexey@zhokhov.com> 1792746449 +0700	rebase (pick): feat(navigation): add close target width and danger hover
+f5e514f14e0f7b108f9136e5624d88dafb8038ae 959b667f4709288f757d02f56df668801bf5ca26 Alexey Zhokhov <alexey@zhokhov.com> 1792746449 +0700	rebase (pick): fix(navigation): preserve opted close reset at rest
+959b667f4709288f757d02f56df668801bf5ca26 959b667f4709288f757d02f56df668801bf5ca26 Alexey Zhokhov <alexey@zhokhov.com> 1792746449 +0700	rebase (finish): returning to refs/heads/wip/tabs-close-target-danger-rest-20261023
+959b667f4709288f757d02f56df668801bf5ca26 959b667f4709288f757d02f56df668801bf5ca26 Alexey Zhokhov <alexey@zhokhov.com> 1792746969 +0700	checkout: moving from wip/tabs-close-target-danger-rest-20261023 to wip/tabs-auto-focus-20261023
+959b667f4709288f757d02f56df668801bf5ca26 3a624d92329cc6c6d1bf9764f0bf5205b625962b Alexey Zhokhov <alexey@zhokhov.com> 1792747776 +0700	commit: feat(navigation): add auto and focus-only tab rules
+3a624d92329cc6c6d1bf9764f0bf5205b625962b 8d8051bad399b07136b60116a6b82bc0553aa994 Alexey Zhokhov <alexey@zhokhov.com> 1792748591 +0700	checkout: moving from wip/tabs-auto-focus-20261023 to wip/tabs-passive-20261023
+8d8051bad399b07136b60116a6b82bc0553aa994 d34bd917cc6aee5b0cc12d75fec75f443ed4f7e0 Alexey Zhokhov <alexey@zhokhov.com> 1792748660 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+d34bd917cc6aee5b0cc12d75fec75f443ed4f7e0 4dee8aaf30c58604861866f4c0958ddf894b19e4 Alexey Zhokhov <alexey@zhokhov.com> 1792750058 +0700	commit: feat(navigation): support passive tabs
+4dee8aaf30c58604861866f4c0958ddf894b19e4 82f9c9b97409ef3241be779c2566591137efc035 Alexey Zhokhov <alexey@zhokhov.com> 1792750202 +0700	commit: test(navigation): prove passive false defaults
+82f9c9b97409ef3241be779c2566591137efc035 8dd9624546bb16a5d81b345bff2580e6329ee25e Alexey Zhokhov <alexey@zhokhov.com> 1792750479 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+8dd9624546bb16a5d81b345bff2580e6329ee25e d5aec75056afe234810defb5ed4005824ad4e63c Alexey Zhokhov <alexey@zhokhov.com> 1792750479 +0700	rebase (pick): feat(navigation): support passive tabs
+d5aec75056afe234810defb5ed4005824ad4e63c d90527663f0368e3f0f3f5d916aabd5114b313d5 Alexey Zhokhov <alexey@zhokhov.com> 1792750479 +0700	rebase (pick): test(navigation): prove passive false defaults
+d90527663f0368e3f0f3f5d916aabd5114b313d5 d90527663f0368e3f0f3f5d916aabd5114b313d5 Alexey Zhokhov <alexey@zhokhov.com> 1792750479 +0700	rebase (finish): returning to refs/heads/wip/tabs-passive-20261023
+d90527663f0368e3f0f3f5d916aabd5114b313d5 d90527663f0368e3f0f3f5d916aabd5114b313d5 Alexey Zhokhov <alexey@zhokhov.com> 1792750686 +0700	checkout: moving from wip/tabs-passive-20261023 to wip/tabs-keyboard-groups-20261023
+d90527663f0368e3f0f3f5d916aabd5114b313d5 b817b2b645d585f0383840951844060e0890be58 Alexey Zhokhov <alexey@zhokhov.com> 1792752009 +0700	commit: feat(navigation): configure Tabs New and Close keys
+b817b2b645d585f0383840951844060e0890be58 9201e4c9135380b2867b72c81fae9bd620f32e18 Alexey Zhokhov <alexey@zhokhov.com> 1792752523 +0700	commit: test(navigation): cover Close-only Tabs plan mismatches
+9201e4c9135380b2867b72c81fae9bd620f32e18 9201e4c9135380b2867b72c81fae9bd620f32e18 Alexey Zhokhov <alexey@zhokhov.com> 1792753004 +0700	checkout: moving from wip/tabs-keyboard-groups-20261023 to wip/tabs-digit-jump-20261023
+9201e4c9135380b2867b72c81fae9bd620f32e18 4fd30c26758b64576119ee37dc2fad2ecd1c86a4 Alexey Zhokhov <alexey@zhokhov.com> 1792753766 +0700	commit: feat(tabs): add digit jump toggle
+4fd30c26758b64576119ee37dc2fad2ecd1c86a4 1c75b543fb7067d654c1b4ad98540246aaef1f2f Alexey Zhokhov <alexey@zhokhov.com> 1792754604 +0700	commit: feat(navigation): add opt-in tab wrapping
+1c75b543fb7067d654c1b4ad98540246aaef1f2f e63fe6e99012903bef4ee9786719c103ec10586c Alexey Zhokhov <alexey@zhokhov.com> 1792755722 +0700	checkout: moving from wip/tabs-digit-jump-20261023 to wip/tabs-nav-profile-20261023
+e63fe6e99012903bef4ee9786719c103ec10586c 03af936fab3a09eceebbc0d30d5273c8f2434302 Alexey Zhokhov <alexey@zhokhov.com> 1792756660 +0700	commit: feat(navigation): add Tabs adjacent-navigation profiles
+03af936fab3a09eceebbc0d30d5273c8f2434302 8a156d44361518a65eb817bbf7ae772e4e6b85bd Alexey Zhokhov <alexey@zhokhov.com> 1792759756 +0700	commit: test(viewport): cover scrollbar visibility contract
+8a156d44361518a65eb817bbf7ae772e4e6b85bd 5a7110f634ddfdc5a7d736ed127c2bd9d8e5e723 Alexey Zhokhov <alexey@zhokhov.com> 1792760232 +0700	commit: test(viewport): assert full scrollbar spill bounds
+5a7110f634ddfdc5a7d736ed127c2bd9d8e5e723 0715b1645882e7a64b7d532040a9c008cfe3a87b Alexey Zhokhov <alexey@zhokhov.com> 1792762115 +0700	checkout: moving from wip/tabs-nav-profile-20261023 to recovery/list-fade-20261023
+0715b1645882e7a64b7d532040a9c008cfe3a87b 7640fc68188cfad643525118996ff73c7a46a570 Alexey Zhokhov <alexey@zhokhov.com> 1792763868 +0700	commit: fix(navigation): restore List edge fades
+7640fc68188cfad643525118996ff73c7a46a570 f1fbd446a12e7861fad29f304760b5cf137ba06c Alexey Zhokhov <alexey@zhokhov.com> 1792764277 +0700	rebase (start): checkout FETCH_HEAD
+f1fbd446a12e7861fad29f304760b5cf137ba06c d5df88548333adc9f59fd52784d69656a5e77625 Alexey Zhokhov <alexey@zhokhov.com> 1792764277 +0700	rebase (pick): fix(navigation): restore List edge fades
+d5df88548333adc9f59fd52784d69656a5e77625 d5df88548333adc9f59fd52784d69656a5e77625 Alexey Zhokhov <alexey@zhokhov.com> 1792764277 +0700	rebase (finish): returning to refs/heads/recovery/list-fade-20261023
+d5df88548333adc9f59fd52784d69656a5e77625 35303f52f218b74dea9b864e19e4b9f10d06d95e Alexey Zhokhov <alexey@zhokhov.com> 1792764834 +0700	commit: test(fields): cover fully disabled input
+35303f52f218b74dea9b864e19e4b9f10d06d95e a4c0ea144c9142f17a501a6b21a1200e10e48f16 Alexey Zhokhov <alexey@zhokhov.com> 1792766859 +0700	commit: feat(feedback): add typed drawer row projection
+a4c0ea144c9142f17a501a6b21a1200e10e48f16 8342ed688348fa9b12d6229e70054b21e7c8e17b Alexey Zhokhov <alexey@zhokhov.com> 1792767866 +0700	commit: fix(feedback): compose drawer projection overpaints
+8342ed688348fa9b12d6229e70054b21e7c8e17b b4c2baa86ffa1168512176ba2976c09f514f9082 Alexey Zhokhov <alexey@zhokhov.com> 1792768327 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+b4c2baa86ffa1168512176ba2976c09f514f9082 b797f92f3f6879c180bd0ef9b58be5f02f785daf Alexey Zhokhov <alexey@zhokhov.com> 1792768327 +0700	rebase (pick): feat(feedback): add typed drawer row projection
+b797f92f3f6879c180bd0ef9b58be5f02f785daf 755bff1e7767f1f83c495aadf7ab01a610f20a51 Alexey Zhokhov <alexey@zhokhov.com> 1792768327 +0700	rebase (pick): fix(feedback): compose drawer projection overpaints
+755bff1e7767f1f83c495aadf7ab01a610f20a51 755bff1e7767f1f83c495aadf7ab01a610f20a51 Alexey Zhokhov <alexey@zhokhov.com> 1792768327 +0700	rebase (finish): returning to refs/heads/recovery/list-fade-20261023
+755bff1e7767f1f83c495aadf7ab01a610f20a51 9e94f5f68fdb4a9ad270817c98ba8bbc964d7b5a Alexey Zhokhov <alexey@zhokhov.com> 1792770367 +0700	commit: feat(viewport): preserve rich projected paint styles
+9e94f5f68fdb4a9ad270817c98ba8bbc964d7b5a 54031f6fa5e6ba9a8dc57d0baaff1f30115d256d Alexey Zhokhov <alexey@zhokhov.com> 1792772340 +0700	commit: fix(viewport): preserve rich modifiers under selection
+54031f6fa5e6ba9a8dc57d0baaff1f30115d256d 6cb9473dd1bf1491e8b808bdda35c973bf80ee46 Alexey Zhokhov <alexey@zhokhov.com> 1792772537 +0700	rebase (start): checkout FETCH_HEAD
+6cb9473dd1bf1491e8b808bdda35c973bf80ee46 e760445f84de0833eff6e95d203f59378ed781d1 Alexey Zhokhov <alexey@zhokhov.com> 1792772537 +0700	rebase (pick): feat(viewport): preserve rich projected paint styles
+e760445f84de0833eff6e95d203f59378ed781d1 b0ab40ecc9a304c96699411504f13052429f1de2 Alexey Zhokhov <alexey@zhokhov.com> 1792772537 +0700	rebase (pick): fix(viewport): preserve rich modifiers under selection
+b0ab40ecc9a304c96699411504f13052429f1de2 b0ab40ecc9a304c96699411504f13052429f1de2 Alexey Zhokhov <alexey@zhokhov.com> 1792772537 +0700	rebase (finish): returning to refs/heads/recovery/list-fade-20261023
+b0ab40ecc9a304c96699411504f13052429f1de2 03574346691d2367cd9ba1d6caa394025e5a2a94 Alexey Zhokhov <alexey@zhokhov.com> 1792773585 +0700	merge 03574346691d2367cd9ba1d6caa394025e5a2a94: Fast-forward
+03574346691d2367cd9ba1d6caa394025e5a2a94 a88e2dccd39cbe75efacabbc8e787c20c5ba7574 Alexey Zhokhov <alexey@zhokhov.com> 1792773875 +0700	commit: docs(theme): restore current customization contracts
+a88e2dccd39cbe75efacabbc8e787c20c5ba7574 0fbe0dfc9efafca719e2b413270106064eab40b1 Alexey Zhokhov <alexey@zhokhov.com> 1792774031 +0700	commit: docs(theme): correct merge implementation link
+0fbe0dfc9efafca719e2b413270106064eab40b1 4dec34f1ab9d66e40b13a6fba6bb783400de090a Alexey Zhokhov <alexey@zhokhov.com> 1792774149 +0700	rebase (start): checkout FETCH_HEAD
+4dec34f1ab9d66e40b13a6fba6bb783400de090a df6eb727d8257a3bd99c72e08fdf050f49555279 Alexey Zhokhov <alexey@zhokhov.com> 1792774149 +0700	rebase (pick): docs(theme): restore current customization contracts
+df6eb727d8257a3bd99c72e08fdf050f49555279 fb308b240f170c177f2d9511f6bb08ad1e28c69b Alexey Zhokhov <alexey@zhokhov.com> 1792774149 +0700	rebase (pick): docs(theme): correct merge implementation link
+fb308b240f170c177f2d9511f6bb08ad1e28c69b fb308b240f170c177f2d9511f6bb08ad1e28c69b Alexey Zhokhov <alexey@zhokhov.com> 1792774149 +0700	rebase (finish): returning to refs/heads/recovery/list-fade-20261023
+fb308b240f170c177f2d9511f6bb08ad1e28c69b 54daace12e750db17ca785f2a076e8fd2266d5ae Alexey Zhokhov <alexey@zhokhov.com> 1792774815 +0700	merge 54daace12e750db17ca785f2a076e8fd2266d5ae: Fast-forward
+54daace12e750db17ca785f2a076e8fd2266d5ae b7a7e3c9ddf32ea1968268e6843696934cb9bb54 Alexey Zhokhov <alexey@zhokhov.com> 1792775566 +0700	commit: test(editors): characterize Code footer states
+b7a7e3c9ddf32ea1968268e6843696934cb9bb54 598689eaf2dc77bd363e7ea9bf2306ea01e01b50 Alexey Zhokhov <alexey@zhokhov.com> 1792775881 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+598689eaf2dc77bd363e7ea9bf2306ea01e01b50 3f5e0da2c996634da9a1632df16118dc74e33575 Alexey Zhokhov <alexey@zhokhov.com> 1792775881 +0700	rebase (pick): test(editors): characterize Code footer states
+3f5e0da2c996634da9a1632df16118dc74e33575 3f5e0da2c996634da9a1632df16118dc74e33575 Alexey Zhokhov <alexey@zhokhov.com> 1792775881 +0700	rebase (finish): returning to refs/heads/recovery/list-fade-20261023
+3f5e0da2c996634da9a1632df16118dc74e33575 625628459bf0faccfdce90521ac99ef4a6bd6c55 Alexey Zhokhov <alexey@zhokhov.com> 1792777837 +0700	commit: feat(editors): show Code idle scroll position on request
+625628459bf0faccfdce90521ac99ef4a6bd6c55 36e900192be5e953bf500e8dcbf6b76722a75598 Alexey Zhokhov <alexey@zhokhov.com> 1792778602 +0700	commit: test(editors): verify idle scroll frame geometry
+36e900192be5e953bf500e8dcbf6b76722a75598 7b2eb51c925a105f210c853e81b8ad440dad210f Alexey Zhokhov <alexey@zhokhov.com> 1792778831 +0700	rebase (start): checkout origin/parity/termrock-visual-baseline
+7b2eb51c925a105f210c853e81b8ad440dad210f b5c4b5abc92baa31d6fb1c12ae9ad2f088e7338d Alexey Zhokhov <alexey@zhokhov.com> 1792778831 +0700	rebase (pick): feat(editors): show Code idle scroll position on request
+b5c4b5abc92baa31d6fb1c12ae9ad2f088e7338d c8a31dd3fa6c65cf926228ca660bc7785dacb295 Alexey Zhokhov <alexey@zhokhov.com> 1792778831 +0700	rebase (pick): test(editors): verify idle scroll frame geometry
+c8a31dd3fa6c65cf926228ca660bc7785dacb295 c8a31dd3fa6c65cf926228ca660bc7785dacb295 Alexey Zhokhov <alexey@zhokhov.com> 1792778831 +0700	rebase (finish): returning to refs/heads/recovery/list-fade-20261023
+c8a31dd3fa6c65cf926228ca660bc7785dacb295 d3ade5ee859b4ef084c2ac22cdca1e751bf85acd Alexey Zhokhov <alexey@zhokhov.com> 1792781470 +0700	cherry-pick: docs: add source-bound tool runbooks
+d3ade5ee859b4ef084c2ac22cdca1e751bf85acd c3377bfa988e229a5cc9429834c47a0e65f1f71c Alexey Zhokhov <alexey@zhokhov.com> 1792781483 +0700	cherry-pick: fix(xtask): resolve package README paths
+c3377bfa988e229a5cc9429834c47a0e65f1f71c 4538b5479b1a80f508a7bd2552cbde7baaae351e Alexey Zhokhov <alexey@zhokhov.com> 1792782117 +0700	commit: docs: add project navigation guides
+4538b5479b1a80f508a7bd2552cbde7baaae351e 7f4a1a4f376d6161a91c37fb70eb634d7cb2bf59 Alexey Zhokhov <alexey@zhokhov.com> 1792782122 +0700	commit: docs(e2e): document scenario groups
+7f4a1a4f376d6161a91c37fb70eb634d7cb2bf59 fe58b2445db6bc18083027905482cabe7a10c5ff Alexey Zhokhov <alexey@zhokhov.com> 1792782126 +0700	commit: docs: align migration and development guidance
+fe58b2445db6bc18083027905482cabe7a10c5ff 07ba30f5cb33410d7d6fbe09a3691c877f082915 Alexey Zhokhov <alexey@zhokhov.com> 1792782262 +0700	cherry-pick: test(theme): retain PaintStyle compile contract pilot
+07ba30f5cb33410d7d6fbe09a3691c877f082915 c57e1791913fe2799b06f38f205a68f443459897 Alexey Zhokhov <alexey@zhokhov.com> 1792783023 +0700	commit: chore(xtask): remove stale terminal paint exception
+c57e1791913fe2799b06f38f205a68f443459897 3ff0f4fb0c5cec82632296a6912286ca78b9ac01 Alexey Zhokhov <alexey@zhokhov.com> 1792783652 +0700	commit: docs: add public consumer quickstart
+3ff0f4fb0c5cec82632296a6912286ca78b9ac01 0783e8a85c9e05aa775b45020dbe0265e734373d Alexey Zhokhov <alexey@zhokhov.com> 1792785202 +0700	cherry-pick: fix(xtask): scope inline cfg(test) ownership ranges
+0783e8a85c9e05aa775b45020dbe0265e734373d 2f51175cb9aebc2b254972a99f97ba34135c4c9c Alexey Zhokhov <alexey@zhokhov.com> 1792786340 +0700	commit: test(tablepro-ui): add Workbench tabs privacy fixture
+2f51175cb9aebc2b254972a99f97ba34135c4c9c c18d5d17174f733e90d0367abfea3340bf137388 Alexey Zhokhov <alexey@zhokhov.com> 1792790667 +0700	commit: fix(ci): adopt Velnor 0.1.48 workflow generation
+c18d5d17174f733e90d0367abfea3340bf137388 034767f022b7669963441c916673f41ebefec630 Alexey Zhokhov <alexey@zhokhov.com> 1792792647 +0700	cherry-pick: fix(runtime): consume disabled primary pointer refusals
+034767f022b7669963441c916673f41ebefec630 13c5a40d8dd5386b1a1c7fd1f5a4199a83fdad29 Alexey Zhokhov <alexey@zhokhov.com> 1792793582 +0700	commit: test(termrock): classify auxiliary facade types
+13c5a40d8dd5386b1a1c7fd1f5a4199a83fdad29 c73481aa2e344b676ffab2385492b6d240bb9e4f Alexey Zhokhov <alexey@zhokhov.com> 1792798307 +0700	commit: fix(select): restore cursor after stale popup closure
+c73481aa2e344b676ffab2385492b6d240bb9e4f 807643bf23c64a7d3f021d59f37dd402ae466820 Alexey Zhokhov <alexey@zhokhov.com> 1792798346 +0700	commit: fix(showcase): restore Inputs selection policy
+807643bf23c64a7d3f021d59f37dd402ae466820 78cf36ba1eaf86c1ed3123fba75e685a5384d819 Alexey Zhokhov <alexey@zhokhov.com> 1792798383 +0700	commit: test(conformance): recover native selection coverage
+78cf36ba1eaf86c1ed3123fba75e685a5384d819 4ed35b91af56b47269f2cb976b2e20ca3a2b2ec4 Alexey Zhokhov <alexey@zhokhov.com> 1792804570 +0700	commit: fix(editors): allow caret placement in read-only code
+4ed35b91af56b47269f2cb976b2e20ca3a2b2ec4 fa36c473a334170e5b668b072ee363837c6adfaf Alexey Zhokhov <alexey@zhokhov.com> 1792805142 +0700	commit: fix(frozen-baseline): validate selected receipt set
+fa36c473a334170e5b668b072ee363837c6adfaf 24460b58ab1a1314ec873bcaba9f9d33bb3bb09c Alexey Zhokhov <alexey@zhokhov.com> 1792805295 +0700	commit: fix(xtask): recognize bounded cfg test modules
+24460b58ab1a1314ec873bcaba9f9d33bb3bb09c 927e3af335f4d6ee92dd646356f3092d303e15a5 Alexey Zhokhov <alexey@zhokhov.com> 1792806063 +0700	commit: test(theme): recover picker title style coverage
+927e3af335f4d6ee92dd646356f3092d303e15a5 3c1c9d8f63a807026569de64db88e1d18ee394b1 Alexey Zhokhov <alexey@zhokhov.com> 1792808866 +0700	commit: fix(visual-harness): include consumer app bins in test archives
+3c1c9d8f63a807026569de64db88e1d18ee394b1 b511bbaf23178d843f5f2513ff818f92da082d44 Alexey Zhokhov <alexey@zhokhov.com> 1792809720 +0700	commit: fix(examples): preserve button update responses
+b511bbaf23178d843f5f2513ff818f92da082d44 3400e8e851c721e7ea9d3b229bc9609cef80eb2a Alexey Zhokhov <alexey@zhokhov.com> 1792809779 +0700	commit: test(tablepro): preserve picker choice contracts
+3400e8e851c721e7ea9d3b229bc9609cef80eb2a 9831aae8304d86793b5c74cdf84cdeac92cf5096 Alexey Zhokhov <alexey@zhokhov.com> 1792811493 +0700	commit: test(showcase): preserve inspector navigation lifecycle
+9831aae8304d86793b5c74cdf84cdeac92cf5096 f94bda184cf93e05ebe74d588c93b5c79f411a57 Alexey Zhokhov <alexey@zhokhov.com> 1792821092 +0700	commit: test(editors): cover code binding states
+f94bda184cf93e05ebe74d588c93b5c79f411a57 1f58e09fda7508e3d3ec3e3d92fe22c4019973a1 Alexey Zhokhov <alexey@zhokhov.com> 1792821708 +0700	commit: test(runtime): characterize recolor provenance
+1f58e09fda7508e3d3ec3e3d92fe22c4019973a1 9a9eb60be06f4a4c0e8420aafec8c9cdb3c1bc0a Alexey Zhokhov <alexey@zhokhov.com> 1792822349 +0700	commit: test(showcase): preserve quit key selection journeys
+9a9eb60be06f4a4c0e8420aafec8c9cdb3c1bc0a aa6e436f1d60ca1b059723a0d68a4e4492a5f095 Alexey Zhokhov <alexey@zhokhov.com> 1792823755 +0700	commit: fix(xtask): normalize Cargo target source paths
+aa6e436f1d60ca1b059723a0d68a4e4492a5f095 9946dda0e81e0e8b679a9e0b4b42ae7cd90012e2 Alexey Zhokhov <alexey@zhokhov.com> 1792835116 +0700	commit: fix(holla): add PTY spawn context
+9946dda0e81e0e8b679a9e0b4b42ae7cd90012e2 20cbcbe754110ce8a5bf146bfa66ae5e3a9927e8 Alexey Zhokhov <alexey@zhokhov.com> 1792836890 +0700	commit: fix(session): restore startup resize reconciliation
+20cbcbe754110ce8a5bf146bfa66ae5e3a9927e8 85c686b00d0b78621646a85e3f2367e902c45e88 Alexey Zhokhov <alexey@zhokhov.com> 1792837052 +0700	commit: docs: clarify current keyboard protocol wiring
+85c686b00d0b78621646a85e3f2367e902c45e88 d317aae8a30a4261f1da17ac0e04cf2b0c982b84 Alexey Zhokhov <alexey@zhokhov.com> 1792837797 +0700	commit: feat(keys): add optional protocol overrides
+d317aae8a30a4261f1da17ac0e04cf2b0c982b84 76c808bc44f139c2524bd48e9e59e3b8f17451a7 Alexey Zhokhov <alexey@zhokhov.com> 1792838447 +0700	commit: fix(keyboard): track session-owned protocol state
+76c808bc44f139c2524bd48e9e59e3b8f17451a7 c297712f6383c793009dc1181fb85880fbd6a12b Alexey Zhokhov <alexey@zhokhov.com> 1792840501 +0700	commit: test(jackin-preview): cover returning Paper and Mono gutters
+c297712f6383c793009dc1181fb85880fbd6a12b 1134cd25c32569bbef660553bf455d92c797a447 Alexey Zhokhov <alexey@zhokhov.com> 1792842510 +0700	commit: feat(showcase): restore narrow inspector overlay
+1134cd25c32569bbef660553bf455d92c797a447 c0cb91288f7b0ee37dd240b6a44b1569f4aef68e Alexey Zhokhov <alexey@zhokhov.com> 1792845049 +0700	commit: feat(keyboard): negotiate protocol on app startup
+c0cb91288f7b0ee37dd240b6a44b1569f4aef68e e2fb324b67c8d73e1b378d5f0a6bb394af8c104e Alexey Zhokhov <alexey@zhokhov.com> 1792845158 +0700	commit: docs(keyboard): clarify startup policy wiring
+e2fb324b67c8d73e1b378d5f0a6bb394af8c104e 5b35589af1ddb99d2a89d7fa9e4d523187d3f4b3 Alexey Zhokhov <alexey@zhokhov.com> 1792846364 +0700	commit: fix(xtask): bound immutable plan file operations
+5b35589af1ddb99d2a89d7fa9e4d523187d3f4b3 3dba8d8794690e5fcfc20d5318f94bae7583a0f1 Alexey Zhokhov <alexey@zhokhov.com> 1792846539 +0700	commit: feat(settings): render shared agents panel
+3dba8d8794690e5fcfc20d5318f94bae7583a0f1 e1a5e7386eb222462023028487e4ecb6c568ae4e Alexey Zhokhov <alexey@zhokhov.com> 1792847607 +0700	commit: fix(showcase): preserve manager row pointer hits
+e1a5e7386eb222462023028487e4ecb6c568ae4e dce8e4d6f30b3126e44b301e475e049ab1aad890 Alexey Zhokhov <alexey@zhokhov.com> 1792848022 +0700	commit: test(xtask): cover synthetic reference partitioning
+dce8e4d6f30b3126e44b301e475e049ab1aad890 7b407ee1216ac0a3c278e09fddcab316f16d3945 Alexey Zhokhov <alexey@zhokhov.com> 1792849308 +0700	commit: fix(app): settle route focus ownership
+7b407ee1216ac0a3c278e09fddcab316f16d3945 9b6a9a8d2e5b5b2fc76580c75bf856e7db14c100 Alexey Zhokhov <alexey@zhokhov.com> 1792849955 +0700	commit: fix(consumer): open detail for narrow navigation
+9b6a9a8d2e5b5b2fc76580c75bf856e7db14c100 7fd14dbde30fb3f751021b0c80ed50e3850e7b90 Alexey Zhokhov <alexey@zhokhov.com> 1792850750 +0700	commit: feat(feedback): add windowed Inspector body rendering
+7fd14dbde30fb3f751021b0c80ed50e3850e7b90 b045dd02cf84b12c3b8502b67842f6e0e42de036 Alexey Zhokhov <alexey@zhokhov.com> 1792851018 +0700	commit: test(forms): verify chooser bounds after presentation
+b045dd02cf84b12c3b8502b67842f6e0e42de036 70946b34df8f1b6c2a58eb2f384eca3db357c712 Alexey Zhokhov <alexey@zhokhov.com> 1792851358 +0700	commit: test(conformance): cover Help launcher lifecycle
+70946b34df8f1b6c2a58eb2f384eca3db357c712 5a12d1789c573762dc85beeff0258892741df23f Alexey Zhokhov <alexey@zhokhov.com> 1792851713 +0700	commit: feat(runtime): add owned surface authoring
+5a12d1789c573762dc85beeff0258892741df23f 51d2f70c65525594e8feafb6a16f60fc9d0eff3e Alexey Zhokhov <alexey@zhokhov.com> 1792852044 +0700	commit: test(holla): exercise raw keyboard streams over PTY
+51d2f70c65525594e8feafb6a16f60fc9d0eff3e 8a188084f06c253448a45caaea83cbf197edd576 Alexey Zhokhov <alexey@zhokhov.com> 1792853214 +0700	commit: feat(xtask): add bounded owned fresh-plan verification
+8a188084f06c253448a45caaea83cbf197edd576 6d51c3c7d8e438a5adc236027b59b964ca774003 Alexey Zhokhov <alexey@zhokhov.com> 1792853655 +0700	commit: test(jackin): cover Paper Mono detail replay
+6d51c3c7d8e438a5adc236027b59b964ca774003 0c6b4ca0d8acbd9c5d1e915bd43ca7268ed6c7c4 Alexey Zhokhov <alexey@zhokhov.com> 1792854462 +0700	commit: feat(navigation): plan owned default tabs layouts
+0c6b4ca0d8acbd9c5d1e915bd43ca7268ed6c7c4 6d1c1f0efce29eb7b9743a432efc155a28840c70 Alexey Zhokhov <alexey@zhokhov.com> 1792855165 +0700	commit: test(holla): recheck output at timeout deadline
+6d1c1f0efce29eb7b9743a432efc155a28840c70 43eab2a47aab166aade7e48f394c510df4fdbf96 Alexey Zhokhov <alexey@zhokhov.com> 1792856046 +0700	commit: feat(layout): add initial cell sizing primitives
+43eab2a47aab166aade7e48f394c510df4fdbf96 cd3f868faf3b71e0418b6a706fc5224f0be6dc8e Alexey Zhokhov <alexey@zhokhov.com> 1792856981 +0700	commit: feat(tabs): add planned wheel navigation
+cd3f868faf3b71e0418b6a706fc5224f0be6dc8e 7d972bdb596bd021c470d6c266be18c13cc99448 Alexey Zhokhov <alexey@zhokhov.com> 1792857822 +0700	commit: feat(holla): add owned fresh-plan creator
+7d972bdb596bd021c470d6c266be18c13cc99448 bf181456227759700c78ee0f00b3f841f94ae62f Alexey Zhokhov <alexey@zhokhov.com> 1792858316 +0700	commit: feat(manager): add responsive manager details
+bf181456227759700c78ee0f00b3f841f94ae62f 41bc6f78128a74728944267acf610c56d08ac3e5 Alexey Zhokhov <alexey@zhokhov.com> 1792859149 +0700	commit: fix(tablepro-ui): respect viewport margins in pickers
+41bc6f78128a74728944267acf610c56d08ac3e5 332c54d9a766a8f4c845809dba007b708313729f Alexey Zhokhov <alexey@zhokhov.com> 1792859200 +0700	commit: fix(jackin-preview-app): preserve footer paint semantics
+332c54d9a766a8f4c845809dba007b708313729f c7fa675a9ce8c6ff0b247806602ee9e6d5ecd654 Alexey Zhokhov <alexey@zhokhov.com> 1792860025 +0700	commit: fix(tablepro-ui): confirm dirty tab deletion
+c7fa675a9ce8c6ff0b247806602ee9e6d5ecd654 2a7c3bb52d08264808bf219214dcf26e52468edb Alexey Zhokhov <alexey@zhokhov.com> 1792860138 +0700	commit: feat(xtask): add owned fresh-plan CLI
+2a7c3bb52d08264808bf219214dcf26e52468edb 4e80ec8d31456e39d474d0cbd685f898856f709e Alexey Zhokhov <alexey@zhokhov.com> 1792860822 +0700	commit: feat(settings): share Trust settings body
+4e80ec8d31456e39d474d0cbd685f898856f709e 30bceedd8067feb1ab14bf91d7b7d56cdf7f850d Alexey Zhokhov <alexey@zhokhov.com> 1792862551 +0700	commit: feat(accounts): add responsive live detail panel
+30bceedd8067feb1ab14bf91d7b7d56cdf7f850d 08ee7e09cfa4b878fbcdbc41144b1e2abd649f53 Alexey Zhokhov <alexey@zhokhov.com> 1792863088 +0700	commit: test(app): restore live Manager CI controls
+08ee7e09cfa4b878fbcdbc41144b1e2abd649f53 4948577dd9ced320a0fddbb5939d6c5b1a2d03fb Alexey Zhokhov <alexey@zhokhov.com> 1792863535 +0700	commit: feat(files): add read-only simulated Files route
+4948577dd9ced320a0fddbb5939d6c5b1a2d03fb bf8de152fb8a30ba1e8992e00c8fc82377fe3aa1 Alexey Zhokhov <alexey@zhokhov.com> 1792865430 +0700	commit: feat(tabs): add planned hidden-tab overflow menu
+bf8de152fb8a30ba1e8992e00c8fc82377fe3aa1 d8aed53301f598c45513877b72c6041bd8a7e638 Alexey Zhokhov <alexey@zhokhov.com> 1792865839 +0700	commit: test(holla): clarify raw PTY wait diagnostics
+d8aed53301f598c45513877b72c6041bd8a7e638 75db77ac40853b854fbbee4e64b40cfd92bea977 Alexey Zhokhov <alexey@zhokhov.com> 1792867195 +0700	commit: feat(settings): share Mounts body rendering
+75db77ac40853b854fbbee4e64b40cfd92bea977 ffd7816dc075017a50dd3b74454f42a8ac90daa4 Alexey Zhokhov <alexey@zhokhov.com> 1792867899 +0700	commit: feat(settings): share General body rendering
+ffd7816dc075017a50dd3b74454f42a8ac90daa4 7b06fed55dcea8323a57681d5c983888869e990c Alexey Zhokhov <alexey@zhokhov.com> 1792868533 +0700	commit: feat(manager): navigate tree with Left and h
+7b06fed55dcea8323a57681d5c983888869e990c 375f70abee67cb01b3db511a6648ee9bdcbd78dd Alexey Zhokhov <alexey@zhokhov.com> 1792870172 +0700	commit: feat(editor): share environment settings body
+375f70abee67cb01b3db511a6648ee9bdcbd78dd 6b4800b8b558aa2c3d7701675a24d139462370c4 Alexey Zhokhov <alexey@zhokhov.com> 1792870675 +0700	commit: chore(toolchain): pin mr-boxington to 1.27.0
+6b4800b8b558aa2c3d7701675a24d139462370c4 e2a3e4e094a0ad69c9e4f7dbdeabf69d593b2342 Alexey Zhokhov <alexey@zhokhov.com> 1792871512 +0700	commit: feat(launch): preserve selected launch target
+e2a3e4e094a0ad69c9e4f7dbdeabf69d593b2342 bd11f51332c1ccd1ea8130957bdaff6977b4d273 Alexey Zhokhov <alexey@zhokhov.com> 1792871672 +0700	commit: fix(ci): align MBX project pin
+bd11f51332c1ccd1ea8130957bdaff6977b4d273 c80c1b85ae4e49ec92fe16ac9fd48afb7164f8cf Alexey Zhokhov <alexey@zhokhov.com> 1792872316 +0700	commit: feat(showcase): add editable Members grid
+c80c1b85ae4e49ec92fe16ac9fd48afb7164f8cf 671c4995a1da1ede4a4608ba212a48c555918026 Alexey Zhokhov <alexey@zhokhov.com> 1792872598 +0700	commit: fix(session): preserve split escape suffix until consumed
+671c4995a1da1ede4a4608ba212a48c555918026 ea7713074c5a6df887207b580baa70b15ff7b46c Alexey Zhokhov <alexey@zhokhov.com> 1792873409 +0700	commit: feat(files): add safe preview and viewport navigation
+ea7713074c5a6df887207b580baa70b15ff7b46c 6fe89ea2ba376c4b3576440b74fd566f1b3fd45d Alexey Zhokhov <alexey@zhokhov.com> 1792873838 +0700	commit: fix(tablepro): reuse history tab on reopen
+6fe89ea2ba376c4b3576440b74fd566f1b3fd45d f76a91a02d15b8aa758d6ca74e949c7abf6aae71 Alexey Zhokhov <alexey@zhokhov.com> 1792874085 +0700	commit: fix(holla): resume task after file trust
+f76a91a02d15b8aa758d6ca74e949c7abf6aae71 db110e30298e57a9d8b6e14efaaa3ce6e07a1577 Alexey Zhokhov <alexey@zhokhov.com> 1792874403 +0700	commit: fix(jackin): honor manager workspace role policy
+db110e30298e57a9d8b6e14efaaa3ce6e07a1577 c8de6a53c466edf210647142892f45ed5ba4141f Alexey Zhokhov <alexey@zhokhov.com> 1792875214 +0700	commit: feat(holla-ui): add parity discovery action rows
+c8de6a53c466edf210647142892f45ed5ba4141f 8584f81414f8426518d9ace4fff4498b45e1897a Alexey Zhokhov <alexey@zhokhov.com> 1792875814 +0700	commit: feat(holla-ui): add clone option editing
+8584f81414f8426518d9ace4fff4498b45e1897a 8e175336cdb6f8adc39f7732b2c35d4bc14a5994 Alexey Zhokhov <alexey@zhokhov.com> 1792876202 +0700	commit: feat(showcase-demos): add task-card workflow
+8e175336cdb6f8adc39f7732b2c35d4bc14a5994 258a2af396b13523f91ae23384c7d4639374850d Alexey Zhokhov <alexey@zhokhov.com> 1792876470 +0700	commit: feat(tablepro-ui): add native history filters
+258a2af396b13523f91ae23384c7d4639374850d ecd42edd2e1c2d63ea98dcf631e768a89d93c48e Alexey Zhokhov <alexey@zhokhov.com> 1792876753 +0700	commit: feat(holla-sim): add selected disk reclaim plans
+ecd42edd2e1c2d63ea98dcf631e768a89d93c48e 4e7a9d302c764c7cad408feecdfbece1fc785d50 Alexey Zhokhov <alexey@zhokhov.com> 1792876971 +0700	commit: feat(holla-ui): delegate parity status row to StatusBar
+4e7a9d302c764c7cad408feecdfbece1fc785d50 0c9388b823c5c6b74651737509602091840d64d5 Alexey Zhokhov <alexey@zhokhov.com> 1792878491 +0700	commit: feat(holla-ui): add reviewed disk candidate chooser
+0c9388b823c5c6b74651737509602091840d64d5 1bdaff2603b816e472d8da069b9a0c3688536ddd Alexey Zhokhov <alexey@zhokhov.com> 1792880135 +0700	commit: feat(editor): add per-workspace default roles
+1bdaff2603b816e472d8da069b9a0c3688536ddd 267af201bfaaf1921abe9f2ffefd8171306c6473 Alexey Zhokhov <alexey@zhokhov.com> 1792881990 +0700	commit: fix(forms): reveal fields when navigating upward
+267af201bfaaf1921abe9f2ffefd8171306c6473 d1275e0e479452778fbed7e88202d9d3bd3c8632 Alexey Zhokhov <alexey@zhokhov.com> 1792882823 +0700	commit: feat(showcase): add scrollable task card
+d1275e0e479452778fbed7e88202d9d3bd3c8632 5f80dafddffc4a01ef3acd07bc86f6f3b008d5a8 Alexey Zhokhov <alexey@zhokhov.com> 1792883725 +0700	commit: feat(holla-ui): own ParityFiles status bar
+5f80dafddffc4a01ef3acd07bc86f6f3b008d5a8 2fe94456fc3d1b7802ca4e997341fb509dfc67c1 Alexey Zhokhov <alexey@zhokhov.com> 1792884078 +0700	commit: feat(holla-domain): add typed task args foundation
+2fe94456fc3d1b7802ca4e997341fb509dfc67c1 fd6e91d7075db6c2d23cda314a55f3b368511d32 Alexey Zhokhov <alexey@zhokhov.com> 1792884710 +0700	commit: feat(termrock-navigation): add planned tab affixes
+fd6e91d7075db6c2d23cda314a55f3b368511d32 88f24727413c1d4cd1205721a441b8ab90366359 Alexey Zhokhov <alexey@zhokhov.com> 1792885556 +0700	commit: feat(forms): support partial field enrollment
+88f24727413c1d4cd1205721a441b8ab90366359 6944159e96c7981babeff1848c9a637ccc0c1a03 Alexey Zhokhov <alexey@zhokhov.com> 1792886699 +0700	commit: feat(forms): support scoped dialog submission
+6944159e96c7981babeff1848c9a637ccc0c1a03 cc257fc05f7210b8300b6fdd06565b4bf6fe70be Alexey Zhokhov <alexey@zhokhov.com> 1792887975 +0700	commit: feat(forms): configure dialog Enter policy
+cc257fc05f7210b8300b6fdd06565b4bf6fe70be ee41b0328bd3f23877e144ee12f724e725fdfc3e Alexey Zhokhov <alexey@zhokhov.com> 1792888356 +0700	commit: fix(overlays): ignore deferred self-close receipts
+ee41b0328bd3f23877e144ee12f724e725fdfc3e 4378ea64d900d5f87dd333f83a62652a495dc5f9 Alexey Zhokhov <alexey@zhokhov.com> 1792888700 +0700	commit: feat(holla): add typed task argument review
+4378ea64d900d5f87dd333f83a62652a495dc5f9 6ad3e3ecd8c4a26702d7cbe434a2f6535f192ba3 Alexey Zhokhov <alexey@zhokhov.com> 1792889699 +0700	commit: feat(tablepro): bind explain plans to cursor statement
+6ad3e3ecd8c4a26702d7cbe434a2f6535f192ba3 94bbce43b96ae3dd36466c11f3a816dae403e8ac Alexey Zhokhov <alexey@zhokhov.com> 1792890545 +0700	commit: feat(tablepro): add native History navigation
+94bbce43b96ae3dd36466c11f3a816dae403e8ac 00172eb64fb51a76548d5520bc04c6a0a58af804 Alexey Zhokhov <alexey@zhokhov.com> 1792893595 +0700	commit: feat(navigation): support tab plate padding and affix separators
+00172eb64fb51a76548d5520bc04c6a0a58af804 3b3c728e3e99c5840659d204e88b4d43ec42a339 Alexey Zhokhov <alexey@zhokhov.com> 1792894554 +0700	commit: fix(holla): resolve remembered task aliases canonically
+3b3c728e3e99c5840659d204e88b4d43ec42a339 2828ba1b2258cc36a2a811149aca0ea5b23c5c28 Alexey Zhokhov <alexey@zhokhov.com> 1792895037 +0700	commit: test(visual-harness): account for keyboard probe deadlines
+2828ba1b2258cc36a2a811149aca0ea5b23c5c28 4da8f6e7449a752b0a70a2ad5c0fa3452ee21929 Alexey Zhokhov <alexey@zhokhov.com> 1792897755 +0700	commit: fix(navigation): reconcile planned tab windows and retired menus
+4da8f6e7449a752b0a70a2ad5c0fa3452ee21929 0cef68d0d0cfae919d512069483024cf0e227c6a Alexey Zhokhov <alexey@zhokhov.com> 1792899314 +0700	commit: fix(xtask): recognize generic return types in OWN11
+0cef68d0d0cfae919d512069483024cf0e227c6a c2330a6e853740d0e5a09ff40e95ae2b05c59631 Alexey Zhokhov <alexey@zhokhov.com> 1792899939 +0700	commit: fix(visual-harness): ignore action-id-only overlay calls
+c2330a6e853740d0e5a09ff40e95ae2b05c59631 587152ca88bc1b62642c04e1403e98a44854ba3d Alexey Zhokhov <alexey@zhokhov.com> 1792901605 +0700	commit: feat(port): add checked TCP lookup review
+587152ca88bc1b62642c04e1403e98a44854ba3d ca76261143b3378e39559c22b6d0664ab03a05a2 Alexey Zhokhov <alexey@zhokhov.com> 1792902182 +0700	commit: refactor(scanner): isolate overlay projection helpers
+ca76261143b3378e39559c22b6d0664ab03a05a2 7c97bfadb71c79ae8013ad6dffbb3d675082c44b Alexey Zhokhov <alexey@zhokhov.com> 1792902864 +0700	commit: feat(navigation): add opt-in whole-row tabs
+7c97bfadb71c79ae8013ad6dffbb3d675082c44b 135cf3102799e351e0493da6032eba86d3ea94bb Alexey Zhokhov <alexey@zhokhov.com> 1792904224 +0700	commit: fix(jackin): preserve capsule native focus lifecycle
+135cf3102799e351e0493da6032eba86d3ea94bb 2810fba14951de78384e9fc657ba8ce81f2bb677 Alexey Zhokhov <alexey@zhokhov.com> 1792905043 +0700	commit: feat(editor): share Roles body with one root owner
+2810fba14951de78384e9fc657ba8ce81f2bb677 60fcf560f9cd4d7e7d9d2754ab8c5ee29cad968f Alexey Zhokhov <alexey@zhokhov.com> 1792908109 +0700	commit: fix(capsule): suppress underlay cursor in zoom frame
+60fcf560f9cd4d7e7d9d2754ab8c5ee29cad968f a55c871475b85e7f0a3caff78dd9e8c5b4fed54d Alexey Zhokhov <alexey@zhokhov.com> 1792909204 +0700	commit: feat(tablepro): add native History SQL copy
+a55c871475b85e7f0a3caff78dd9e8c5b4fed54d f4611b1fe98a98b78c9e2c32a6c9522fe72fd863 Alexey Zhokhov <alexey@zhokhov.com> 1792912357 +0700	commit: fix(feedback): restore Junie Mono manager layout
+f4611b1fe98a98b78c9e2c32a6c9522fe72fd863 7450c7f484655ca3397a451a2944907f7d94408e Alexey Zhokhov <alexey@zhokhov.com> 1792913114 +0700	commit: feat(footer): show clipped Home row value
+7450c7f484655ca3397a451a2944907f7d94408e 301cda8790408e16269fd06689bc2b23bde9c610 Alexey Zhokhov <alexey@zhokhov.com> 1792913731 +0700	commit: feat(runtime): bind layer receipts to exact queue intents
+301cda8790408e16269fd06689bc2b23bde9c610 f1d1fa240cc07c98b7b64adbf735ac2e666f3ab9 Alexey Zhokhov <alexey@zhokhov.com> 1792914114 +0700	commit: docs: record current source contracts
+f1d1fa240cc07c98b7b64adbf735ac2e666f3ab9 78a0915176420f4068f2f1c43d4c4cecd3d84299 Alexey Zhokhov <alexey@zhokhov.com> 1792914686 +0700	commit: fix(holla-sim): preserve known scan totals
+78a0915176420f4068f2f1c43d4c4cecd3d84299 dff611c25ed7e0e195217b47c9a315287153d1fb Alexey Zhokhov <alexey@zhokhov.com> 1792915375 +0700	commit: feat(holla-sim): model typed port listeners
+dff611c25ed7e0e195217b47c9a315287153d1fb 88c4493877cfcec0ab1d3c3b37e5a16e58e74e17 Muse Code <muse@example.com> 1792918404 +0700	commit: fix(theme): preserve Paper manager rendering
+88c4493877cfcec0ab1d3c3b37e5a16e58e74e17 78c37ab176fc034b39eaf5dcbcf72fd1bcbfc0ac Muse Code <muse@example.com> 1792919132 +0700	commit: feat(runtime): guard layer draws by exact opening
+78c37ab176fc034b39eaf5dcbcf72fd1bcbfc0ac 18bfa50d25f7c6ba9f9c6c0a66dae9a2c2e60a1a Muse Code <muse@example.com> 1792920275 +0700	commit: fix(xtask): recover bounded impl method body macros
+18bfa50d25f7c6ba9f9c6c0a66dae9a2c2e60a1a d1acf17eb594073cb796a900f8d5df9c1e51ffe8 Muse Code <muse@example.com> 1792920384 +0700	merge refs/remotes/origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+d1acf17eb594073cb796a900f8d5df9c1e51ffe8 d441b55c67099a6937f24a524a26c187c2759786 Muse Code <muse@example.com> 1792920964 +0700	commit: fix: preserve PR38 runtime invariants
+d441b55c67099a6937f24a524a26c187c2759786 cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1 Muse Code <muse@example.com> 1792922883 +0700	commit: docs(theme): document ASCII glyph contract
+cd349edc6dbaa1d2e550e69a7fb5edae1a766bf1 88b3ef1aef45720bd4f3bbb07eb9672b78f5487f Muse Code <muse@example.com> 1792923687 +0700	commit: fix(tablepro-ui): preserve History detail lifecycle
+88b3ef1aef45720bd4f3bbb07eb9672b78f5487f aaf92411183c907ac4ffb30bf71e51b67dcb43be Muse Code <muse@example.com> 1792925982 +0700	commit: fix(feedback): preserve Paper Mono role semantics
+aaf92411183c907ac4ffb30bf71e51b67dcb43be b960845e591dabcf7842531be2668130a913921a Muse Code <muse@example.com> 1792926095 +0700	commit: docs: clarify terminal color selection
+b960845e591dabcf7842531be2668130a913921a a5bec4eb908909c63bddb2b8ecc25f32e6b31607 Muse Code <muse@example.com> 1792927026 +0700	commit: fix(xtask): certify file-root ownership tests
+a5bec4eb908909c63bddb2b8ecc25f32e6b31607 4f472ddafabba23a5ba54631fd041b1f12c805de Muse Code <muse@example.com> 1792927113 +0700	commit: docs: clarify form and grid contracts
+4f472ddafabba23a5ba54631fd041b1f12c805de 908e4b6375dd3b64709333edb49e59a39e483bb4 Muse Code <muse@example.com> 1792930358 +0700	commit: feat(holla-ui): add disk scan browser
+908e4b6375dd3b64709333edb49e59a39e483bb4 b6f82a623842c2bd75d1387d021cc50e06e83794 Muse Code <muse@example.com> 1792930729 +0700	commit: feat(holla-sim): add modeled task run lifecycle
+b6f82a623842c2bd75d1387d021cc50e06e83794 6de2a1eaaf7b1e5865395065288ec2aefac92140 Muse Code <muse@example.com> 1792932915 +0700	commit: fix(xtask): account for visible return types
+6de2a1eaaf7b1e5865395065288ec2aefac92140 d6138c6ed32d45a13fda03f70b672b5ff7c1f2c1 Muse Code <muse@example.com> 1792935917 +0700	commit: docs: clarify pull request template contracts
+d6138c6ed32d45a13fda03f70b672b5ff7c1f2c1 a8fada5eb0e9694838f13a66c1e56da669068220 Muse Code <muse@example.com> 1792936069 +0700	commit: test: align Paper Mono returning contract
+a8fada5eb0e9694838f13a66c1e56da669068220 87f5fa7e68a34722a779873c0287935f49d821f5 Muse Code <muse@example.com> 1792937104 +0700	commit: test(holla-ui): update first-use TrueColor baseline
+87f5fa7e68a34722a779873c0287935f49d821f5 0d0b4b89f222e3ea7099c5a89a82d264c0d3a741 Muse Code <muse@example.com> 1792938113 +0700	commit: refactor(holla-ui): render disk scan headings with TextSection
+0d0b4b89f222e3ea7099c5a89a82d264c0d3a741 523602a07f570fd2538fb90fd675c5d70737e32a Muse Code <muse@example.com> 1792940582 +0700	commit: fix(ownership): certify file-root test gates
+523602a07f570fd2538fb90fd675c5d70737e32a 75e3fc4699440b3cd60fe74054c754682f8edeee Muse Code <muse@example.com> 1792943161 +0700	commit: docs: link historical design source documents
+75e3fc4699440b3cd60fe74054c754682f8edeee 6809d7e2a9f34f934b8c724e17f230f3c02cf73b Muse Code <muse@example.com> 1792943546 +0700	commit: fix(visual): update admitted first-use digests
+6809d7e2a9f34f934b8c724e17f230f3c02cf73b 149ccec92a183a65cbc910116aee0b311100ad6a Muse Code <muse@example.com> 1792945859 +0700	commit: fix(ui): render Finder and Disk labels with TextSection
+149ccec92a183a65cbc910116aee0b311100ad6a 311a27ceb0d2987484a4a16b2d5a2bca28684e88 Muse Code <muse@example.com> 1792946990 +0700	commit: test: scope ownership checks to test modules
+311a27ceb0d2987484a4a16b2d5a2bca28684e88 43f75daeaf3422d23789c049ceb8c16396fc0de8 Muse Code <muse@example.com> 1792948093 +0700	commit: docs: clarify authoring contracts
+43f75daeaf3422d23789c049ceb8c16396fc0de8 c2759fc14c3586b3f49aa9a7da49f475ea41e4c3 Muse Code <muse@example.com> 1792948923 +0700	commit: test: update 31 admitted RustDirty baselines
+c2759fc14c3586b3f49aa9a7da49f475ea41e4c3 cdd0656c6c3d413e71b753caf1dcffcee05fbd6a Muse Code <muse@example.com> 1792952044 +0700	commit: feat(holla-ui): add simulated TaskRun workflow
+cdd0656c6c3d413e71b753caf1dcffcee05fbd6a 14e94dcaaf6a33630c6c41d5ed8634cd53a812df Muse Code <muse@example.com> 1792952647 +0700	commit: chore(conformance): mark visual fixtures test-only
+14e94dcaaf6a33630c6c41d5ed8634cd53a812df a843b495928bf0c68d16bd4d35e62cdbe2a36505 Muse Code <muse@example.com> 1792952919 +0700	commit: docs: compile Quickstart API examples
+a843b495928bf0c68d16bd4d35e62cdbe2a36505 e08ac57d10ae54c87337eae0be08b1f5e8f4bda4 Muse Code <muse@example.com> 1792953475 +0700	commit: test(showcase): add bounded coverage inventory
+e08ac57d10ae54c87337eae0be08b1f5e8f4bda4 10fd1971a442cd2834bf3e3bcc21af5b95473d2d Muse Code <muse@example.com> 1792958000 +0700	commit: test(holla-ui): update Activities faint baseline
+10fd1971a442cd2834bf3e3bcc21af5b95473d2d fb27b92f3aa1840ae0142bb57ee46025d5e57ab2 Muse Code <muse@example.com> 1792958904 +0700	commit: fix(xtask): honor certified test spans in OWN-13
+fb27b92f3aa1840ae0142bb57ee46025d5e57ab2 ce19fea01dbab5216fb3e8cb4f9e90a79225de84 Muse Code <muse@example.com> 1792959972 +0700	commit: test(showcase): move coverage tooling behind test boundary
+ce19fea01dbab5216fb3e8cb4f9e90a79225de84 3a2c977c881cd1745de16425c982791ee3ef2cc3 Muse Code <muse@example.com> 1792961973 +0700	commit: fix(xtask): certify closed default enum ranges
+3a2c977c881cd1745de16425c982791ee3ef2cc3 31f856f43d20920ea99aa81b8f40adeeb5bff358 Muse Code <muse@example.com> 1792963253 +0700	commit: chore(ownership): remove stale exceptions
+31f856f43d20920ea99aa81b8f40adeeb5bff358 1d6ee92adf6ccca38eeee64b1371cba1497e8fcd Muse Code <muse@example.com> 1792963808 +0700	commit: test(showcase): correct narrow Buttons heading reference
+1d6ee92adf6ccca38eeee64b1371cba1497e8fcd bc826e426dee9a875af3b6b3c58eab601b5b1be6 Muse Code <muse@example.com> 1792964470 +0700	commit: fix(tablepro): sync history chosen marker
+bc826e426dee9a875af3b6b3c58eab601b5b1be6 994bc0f33f5a742ec1c76986a55b7908a12ab463 Muse Code <muse@example.com> 1792965065 +0700	commit: feat(holla-sim): model activity stop lifecycle
+994bc0f33f5a742ec1c76986a55b7908a12ab463 6102e07a2a70ffbd076df117d5a99a36cbd8b7da Muse Code <muse@example.com> 1792966057 +0700	commit: fix(holla-ui): certify files tests as test-only
+6102e07a2a70ffbd076df117d5a99a36cbd8b7da d0582d5f9fb21d4d593e72b539db6ad27f46ab72 Muse Code <muse@example.com> 1792966141 +0700	commit: style(showcase-ui): wrap navigation assertion
+d0582d5f9fb21d4d593e72b539db6ad27f46ab72 809757b133c0d57427dd12ad7cec0aab49eeacfa Muse Code <muse@example.com> 1792966874 +0700	commit: test(showcase-ui): align captured sidebar prefixes
+809757b133c0d57427dd12ad7cec0aab49eeacfa 08ab5f371c3faa3d6f70a69ce644f9809b067c57 Muse Code <muse@example.com> 1792967097 +0700	commit: test(showcase-ui): finish approved heading captures
+08ab5f371c3faa3d6f70a69ce644f9809b067c57 a7029fcfae7511293c2f6cae7223f219a94f085d Muse Code <muse@example.com> 1792967475 +0700	commit: fix(showcase): clarify implemented picker routes
+a7029fcfae7511293c2f6cae7223f219a94f085d 1fad195f1b5e61bf2b1d778d7ae477976e9f053f Muse Code <muse@example.com> 1792967569 +0700	commit: test(showcase): match full-width picker heading punctuation
+1fad195f1b5e61bf2b1d778d7ae477976e9f053f f858d6ec241784138085883e94de72d008daa4fa Muse Code <muse@example.com> 1792969052 +0700	commit: fix(holla): coordinate task run stop lifecycle
+f858d6ec241784138085883e94de72d008daa4fa 05934a3e5d8fa1aa6aa870de7102c0b6dff3b20f Muse Code <muse@example.com> 1792969990 +0700	commit: fix(holla): register terminal activities atomically
+05934a3e5d8fa1aa6aa870de7102c0b6dff3b20f 637973eb4d29af52b950dce83a3c8ddf49ac28c7 Muse Code <muse@example.com> 1792970410 +0700	commit: feat(holla): add parity activity stop scenario
+637973eb4d29af52b950dce83a3c8ddf49ac28c7 4aebf8e706964a1cd7c9e260eac446d436023feb Muse Code <muse@example.com> 1792970758 +0700	commit: fix(grid): reveal columns after resize
+4aebf8e706964a1cd7c9e260eac446d436023feb 447346bd106d0089751f12e84bc123b99a3b8562 Muse Code <muse@example.com> 1792971295 +0700	commit: feat(showcase): add Commands and Remote pickers
+447346bd106d0089751f12e84bc123b99a3b8562 e85e97f33dc3fcedac0414d25a2287d7c30f0052 Muse Code <muse@example.com> 1792971768 +0700	commit: refactor(holla-ui): extract app tests
+e85e97f33dc3fcedac0414d25a2287d7c30f0052 2eb294a600edf6ba4db992d8d18ba2df8e04a84c Muse Code <muse@example.com> 1792972143 +0700	commit: test(holla): mark PTY source as test-only
+2eb294a600edf6ba4db992d8d18ba2df8e04a84c 6eebcf33f776f1a349d571fdbf002b7db505690a Muse Code <muse@example.com> 1792973538 +0700	commit: feat(showcase): add Progress page playground
+6eebcf33f776f1a349d571fdbf002b7db505690a c65ec96aa55a2565c91d378e01b626f07381e886 Muse Code <muse@example.com> 1792974618 +0700	commit: fix(showcase): recover Inputs page controls
+c65ec96aa55a2565c91d378e01b626f07381e886 1e5fd07c6cc8a0c84be0cc0be3a0403e547228d7 Muse Code <muse@example.com> 1792976228 +0700	commit: feat(runtime): route paste to focused idle editors
+1e5fd07c6cc8a0c84be0cc0be3a0403e547228d7 aca54cb00f8d4d01e8c3bda60c5fa297100a7f6c Muse Code <muse@example.com> 1792977092 +0700	commit: feat(showcase): add interactive text areas page
+aca54cb00f8d4d01e8c3bda60c5fa297100a7f6c 83f50819142ec6e6159761e050d6755ca8f12ff0 Muse Code <muse@example.com> 1792979321 +0700	commit: test(termrock): characterize master-detail preferred sizing
+83f50819142ec6e6159761e050d6755ca8f12ff0 b7814575e6f334fcc1e5a3cd216acdc7042d15eb Muse Code <muse@example.com> 1792979945 +0700	commit: fix(showcase): preserve button options focus semantics
+b7814575e6f334fcc1e5a3cd216acdc7042d15eb 0c2b32d9baf2d3921fe19facfacec137cd76ce8a Muse Code <muse@example.com> 1792980122 +0700	commit: test(showcase): track deferred textarea capabilities
+0c2b32d9baf2d3921fe19facfacec137cd76ce8a 3dcfc0c6301891ff042ad7b4436f562e82c685fa Muse Code <muse@example.com> 1792980792 +0700	commit: fix(navigation): prioritize chip close pointer targets
+3dcfc0c6301891ff042ad7b4436f562e82c685fa e470126d2d5ae4c6d621469734b29da319cd0ade Muse Code <muse@example.com> 1792981470 +0700	commit: fix(chips): keep close alias actions unique
+e470126d2d5ae4c6d621469734b29da319cd0ade 3946fcac4d612fdada65c59513911f1236bcadb9 Muse Code <muse@example.com> 1792981902 +0700	commit: fix(showcase): recover chips controls and states
+3946fcac4d612fdada65c59513911f1236bcadb9 b6a579144dc2ef817887942683a34181f59786d0 Muse Code <muse@example.com> 1792983076 +0700	commit: feat(showcase): add TextArea session controls
+b6a579144dc2ef817887942683a34181f59786d0 59cc07b0e2c944c41e41e00f34043db26f98de64 Muse Code <muse@example.com> 1792983869 +0700	commit: test(showcase-ui): prove textarea option behavior
+59cc07b0e2c944c41e41e00f34043db26f98de64 69a8ff5a4328765093784d0f35f02b94ee7230d3 Muse Code <muse@example.com> 1792985367 +0700	commit: feat(viewport): add logical window geometry
+69a8ff5a4328765093784d0f35f02b94ee7230d3 02828e4d945af707053f51767bdc951b42107666 Muse Code <muse@example.com> 1792987971 +0700	commit: fix(showcase): restore scrolling tab skin
+02828e4d945af707053f51767bdc951b42107666 fbd62be9743b329e16ae380f5673ed981c8887f9 Muse Code <muse@example.com> 1792989034 +0700	commit: fix(showcase): preserve bounded gallery source checks
+fbd62be9743b329e16ae380f5673ed981c8887f9 eb333ec88f5d132eb31c24c1ab7c4bb736d60efe Muse Code <muse@example.com> 1792990024 +0700	commit: fix(termrock-shell): detect barless scroll progress
+eb333ec88f5d132eb31c24c1ab7c4bb736d60efe 96924fa8ce02b045f61590f59d2d9e29367a3c61 Muse Code <muse@example.com> 1792990491 +0700	commit: feat(termrock-runtime): preserve decoded wheel delta
+96924fa8ce02b045f61590f59d2d9e29367a3c61 42a29a4118c899bda1a21e2ee7d7325bbb7a9e49 Muse Code <muse@example.com> 1792991524 +0700	commit: feat(fields): add idle horizontal text-area scrolling
+42a29a4118c899bda1a21e2ee7d7325bbb7a9e49 ff3be011d19d2485bafabb06dce51436eec923b0 Muse Code <muse@example.com> 1792991672 +0700	commit: fix(test-support): resize before harness prepare
+ff3be011d19d2485bafabb06dce51436eec923b0 eba1e11bb02c72dcb3b6a682a02791bbbdfc5a28 Muse Code <muse@example.com> 1792992676 +0700	commit: test(visual-harness): scope scenario helpers to tests
+eba1e11bb02c72dcb3b6a682a02791bbbdfc5a28 885e06cbc89836a0cb7ab480dea22334b5f10ece Muse Code <muse@example.com> 1792993085 +0700	commit: test(termrock): characterize live split measurement
+885e06cbc89836a0cb7ab480dea22334b5f10ece 0cba237eebf57432509f0d826863e6d14a590bf2 Muse Code <muse@example.com> 1792993968 +0700	commit: fix(showcase): preserve native progress button controls
+0cba237eebf57432509f0d826863e6d14a590bf2 0df53c8df6d58325349f3f665b1a8157b8e29c25 Muse Code <muse@example.com> 1792995110 +0700	commit: fix(showcase): preserve progress tab skin
+0df53c8df6d58325349f3f665b1a8157b8e29c25 14d45f8bc3f1612bf6549f5e415343124f9d203e Muse Code <muse@example.com> 1793020101 +0700	merge 14d45f8bc3f1612bf6549f5e415343124f9d203e: Fast-forward

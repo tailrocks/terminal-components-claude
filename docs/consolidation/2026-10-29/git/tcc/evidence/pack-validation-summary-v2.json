@@ -1,0 +1,277 @@
+{
+  "purpose": "TCC physical object pack validation; no canonical/source refs/worktrees/push/deletion modified.",
+  "created_at_utc": "2026-10-28T20:03:15Z",
+  "archive_pack_sha256": "3524526d4accf5bb689fb2ab5b4896728802c25a59c7fc5864756239d9133c85",
+  "archive_pack_bytes": 4847685238,
+  "base_github_fetch_exact_f629": true,
+  "base_fetch_refs_zero_before_archive": true,
+  "baseline_pack_input_partition": {
+    "baseline_count": 104389,
+    "baseline_list_sha256": "1568ba5671ec995483169332d4982e41993549e067a88ac3828274ebf7e7b8fe",
+    "pack_count": 152827,
+    "pack_list_sha256": "42680f1f94d19a88a11a2e004893f7a4c2fd754bc0b92d7aaa9560af7580250d",
+    "intersection_count": 0,
+    "union_count": 257216,
+    "physical_count": 257216,
+    "missing_from_union_count": 0,
+    "extra_in_union_count": 0,
+    "type_counts": {
+      "tree": 75406,
+      "blob": 168467,
+      "commit": 13337,
+      "tag": 6
+    },
+    "exact_partition": true
+  },
+  "initial_strict_failure_missing_oid": {
+    "oid": "1f00089aeeff719f78ab7e37ca62dedacaaf341f",
+    "physical_type_size": [
+      "blob",
+      1576
+    ],
+    "in_baseline": true,
+    "in_pack_input": false
+  },
+  "payload_no_strict_indexpack_exit": 0,
+  "verify_pack_id_type": {
+    "expected_oid_count": 152827,
+    "actual_unique_oid_count": 152827,
+    "oid_set_exact": true,
+    "type_mismatch_count": 0,
+    "duplicate_count": 0,
+    "summary_lines": [
+      "chain length = 45: 20 objects",
+      "chain length = 46: 22 objects",
+      "chain length = 47: 2 objects",
+      "chain length = 48: 1 object",
+      "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/objects/pack/pack-76a683e5830832b1d0a1235d39bf632f823d4289.pack: ok"
+    ],
+    "stdout_sha256": "f79324e4c57ab08e27e7a31d6f615799623bb3c9c738fb83a1518c2d3319e2e2",
+    "note": "verify-pack size columns encode deltified representation sizes for delta objects; logical type/size was independently verified with cat-file batch-check."
+  },
+  "payload_logical_type_size_reconciliation": {
+    "command": [
+      "git",
+      "-C",
+      "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+      "cat-file",
+      "--batch-check=%(objectname) %(objecttype) %(objectsize)"
+    ],
+    "cwd": "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+    "started_at_utc": "2026-10-28T19:49:09Z",
+    "ended_at_utc": "2026-10-28T19:49:13Z",
+    "exit_code": 0,
+    "alternates": "disabled",
+    "input_oid_count": 152827,
+    "output_row_count": 152827,
+    "output_unique_oid_count": 152827,
+    "output_oid_set_matches_input": true,
+    "type_size_mismatch_count": 0,
+    "type_size_mismatch_first": [],
+    "malformed_or_duplicate_count": 0,
+    "malformed_first": [],
+    "stdout_bytes": 7850936,
+    "stdout_sha256": "405ea9bd85a4f06c2fdb93d0b6456d3ceafc94013a115f6103c4bb3f0e989b0b",
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "physical_inventory_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "integrity_match": true
+  },
+  "archive_strict_indexpack": {
+    "command": [
+      "git",
+      "-C",
+      "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+      "index-pack",
+      "--stdin",
+      "--strict",
+      "--threads=1"
+    ],
+    "cwd": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+    "started_at_utc": "2026-10-28T19:56:15Z",
+    "ended_at_utc": "2026-10-28T19:57:29Z",
+    "exit_code": 0,
+    "strict": true,
+    "threads": 1,
+    "alternates": "disabled",
+    "fix_thin": false,
+    "promisor": false,
+    "streamed_pack_bytes": 4847685238,
+    "streamed_pack_sha256": "3524526d4accf5bb689fb2ab5b4896728802c25a59c7fc5864756239d9133c85",
+    "expected_pack_bytes": 4847685238,
+    "expected_pack_sha256": "3524526d4accf5bb689fb2ab5b4896728802c25a59c7fc5864756239d9133c85",
+    "chunk_manifest_sha256": "240c0e287653c9b4abee5e11893e7fa53d9feb29b2dbb9ade7a9154a01d63319",
+    "stdout_sha256": "a3f7cacfece021a186c5ea60f27aff8cf38c0804739609ca7cb1acf6157ade4b",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "combined_exact_typed_object_inventory": {
+    "command": [
+      "git",
+      "--git-dir=/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+      "cat-file",
+      "--batch-all-objects",
+      "--batch-check=%(objectname) %(objecttype) %(objectsize)"
+    ],
+    "repository": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+    "started_at_utc": "2026-10-28T19:58:16Z",
+    "ended_at_utc": "2026-10-28T19:58:18Z",
+    "exit_code": 0,
+    "alternates_disabled": true,
+    "expected_count": 257216,
+    "actual_count": 257216,
+    "expected_type_counts": {
+      "tree": 75406,
+      "blob": 168467,
+      "commit": 13337,
+      "tag": 6
+    },
+    "missing_count": 0,
+    "missing_first": [],
+    "extra_count": 0,
+    "extra_first": [],
+    "type_size_mismatch_count": 0,
+    "type_size_mismatch_first": [],
+    "malformed_duplicate_count": 0,
+    "malformed_first": [],
+    "stdout_bytes": 13222313,
+    "stdout_sha256": "3d1b9980b8f5c758377c6ea88ea19b464c55e0b3ca7e327279c472b845ef1ccd",
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "physical_inventory_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "exact_typed_union": true
+  },
+  "full_strict_fsck": {
+    "exit_code": 0,
+    "stdout_sha256": "463e51f1f4c1288797f3f6b7ac1d512d42a3a52421681517b6221a0686a3b411",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_line_count": 14,
+    "dangling_objects": [
+      {
+        "kind": "blob",
+        "oid": "dcdd38685d5a13470d855304ebe4ef5336634964",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "04d019d32fc7bc6b3a772d7e3e3123c4de6e621e",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "243b1a7f8061f2f1296546d45cb4e57ced2e4adb",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "6c9f4b310e2e8b9f815ac4136c2dea6d55431824",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "d6848c5d413bb7e1cfb3299a77f8490b7d14a4e8",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "c0bfb457338ed1e7d00028e985f68fdc77d01967",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "abc45503c132558a02d24fedf07193ca43ae5593",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "4f061674657a111d53d7972fc1abce4ce90c0d1e",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "f4b6266d661ade23dff130dacde51e2fa1f8e4b7",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "46c826a49c5d002d5b6a3608c032cbbf93cf34e6",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "1c4a67cf189a6b7425579404ab2bafe7ba33a2a9",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "0e5f0ff41aeb895b770447e1f68f3a2d2affca29",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "c1db5f72fb5a7ff845005083121802535384f15e",
+        "in_potential_orphan_list": true
+      },
+      {
+        "kind": "blob",
+        "oid": "54f2ff414eb51b618cbc5e8862b9aea961d30887",
+        "in_potential_orphan_list": true
+      }
+    ],
+    "missing_or_broken_link_lines": []
+  },
+  "source_freeze_after_validation": {
+    "head": "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+    "expected_head": "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+    "status_sha256": "30d8dffe83a61889d0ed528004bcb340b3de81c20e461c4d1215416e0b5c44c4",
+    "expected_status_sha256": "30d8dffe83a61889d0ed528004bcb340b3de81c20e461c4d1215416e0b5c44c4",
+    "status_matches": true,
+    "ref_count": 1598,
+    "refs_sha256": "3cdd5b2272e177145e3cbbe0251c625d4b2965165732ea1a7dad3906656c8821",
+    "expected_refs_sha256_before_pack": "3cdd5b2272e177145e3cbbe0251c625d4b2965165732ea1a7dad3906656c8821",
+    "refs_match": true,
+    "physical_inventory_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "expected_physical_inventory_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+    "physical_inventory_unchanged": true,
+    "objects_alternates_file_present": false
+  },
+  "receipt_sha256": {
+    "github-base-fetch-receipt.json": "2fdb7ce4c720ba8279acf09cb211e521f6a2e8d57b224311cb782f79c68691bc",
+    "github-base-object-reconciliation.json": "386446ed87405b9a806353d0aa88726544845101d68f263159e9d90bcea734f4",
+    "github-ls-remote-receipt.json": "7b8b545d327b0bd0b02658754af9ad559931cd718a138bdeefcb1bcc949654b3",
+    "combined-strict-index-pack-result.json": "49e30caa05ec0e1fce7adc5719192db25314beac56da9c2c7fdf3f67734b5e66",
+    "combined-object-inventory.json": "586c121d6fcc850ccf02f922e9c3581d624eab1f1fedc10562d7a831181b6b1f",
+    "combined-full-strict-fsck-result.json": "8835c60e6b24b8ae62794297660c4614d6e939b232275f1d3efa5765aa19bece",
+    "cat-file-reconciliation.json": "38f9c0c528b43cec669530639fb5377f203e5a69e6a576c6a159fb2c81d3dfd3",
+    "dangling-object-classification.json": "9deeadde943feff74c04d1d561f02bfaa9c8832d2d4d9881d0b15b4c95abf7e1",
+    "verification-root-setup.json": "983baaf9ddffa3845909ebed1e0d7734a271d2d618c19d9ceb15f74a959c40d5",
+    "index-pack-result.json": "86d7c58b3ac29312fc887926a628bdf9ca3ab135a95233f02b7c69c3a189509f",
+    "verify-pack-reconciliation.json": "ffe431b8868f4c6b8a0958cefacfa9a72d44ec871154d057bde15f521f96f4c3"
+  },
+  "limits": [
+    "TCC shared Git object database only; separate PLAN_ROOT, query reconstruction, tc-claude, Cargo/product, and T01 bare-store groups remain to be preserved.",
+    "Verification refs are namespaced synthetic roots in separate external combined-fsck-verification repo; fresh GitHub base fetch receipt records zero refs before archive import.",
+    "Initial strict index-pack failure was preserved; payload-only index-pack was non-strict, then exact f629 seed plus identical archive passed strict import and full strict fsck.",
+    "All 14 dangling blob notices are present in the 293-object potential-orphan list; fsck emitted no missing, broken-link, or error lines."
+  ],
+  "preservation_root_partition": {
+    "known_closure_count": 256923,
+    "known_closure_sha256": "381783d4c980b7a1c35fd8be0947c7ba01823c36f18f94699f23a3dcc987959d",
+    "potential_orphan_count": 293,
+    "potential_orphan_list_sha256": "2675b5f86bef7f1bc2501cd48fa92df412b3931bae02a77e7b6771d1ce1bfbf4",
+    "orphan_type_counts": {
+      "blob": 42,
+      "tree": 178,
+      "commit": 73,
+      "tag": 0
+    },
+    "known_orphan_intersection_count": 0,
+    "known_plus_orphan_union_count": 257216,
+    "physical_count": 257216,
+    "known_nonbaseline_pack_count": 152534,
+    "potential_orphans_in_pack_count": 293,
+    "baseline_subset_of_known": true,
+    "orphan_partition_exact": true,
+    "all_orphans_preserved_in_pack": true
+  },
+  "pack_validation_summary_version": 2
+}

@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 ecb271501618508aa6fadc9c9b75c178fcaaa41e Alexey Zhokhov <alexey@zhokhov.com> 1792523905 +0700	branch: Created from origin/parity/termrock-visual-baseline
+ecb271501618508aa6fadc9c9b75c178fcaaa41e 6375fcee053d7859279ce436efde98c258ae649f Alexey Zhokhov <alexey@zhokhov.com> 1792524292 +0700	rebase (finish): refs/heads/wip/cohort-capture-adapter-20261021 onto 6375fcee053d7859279ce436efde98c258ae649f
+6375fcee053d7859279ce436efde98c258ae649f 3fe5399ce02521b1132c85275d64e9804816dba8 Alexey Zhokhov <alexey@zhokhov.com> 1792524296 +0700	commit: feat(test): separate capture cohort review from frame approval
+3fe5399ce02521b1132c85275d64e9804816dba8 9ec8756ab30d4e3f6ab28be6109e5479537a1da3 Alexey Zhokhov <alexey@zhokhov.com> 1792524877 +0700	commit: fix(test): reject aliased candidate executables
+9ec8756ab30d4e3f6ab28be6109e5479537a1da3 262ac2f73393e58b4ef4d09d9187922912e701e8 Alexey Zhokhov <alexey@zhokhov.com> 1792524887 +0700	rebase (finish): refs/heads/wip/cohort-capture-adapter-20261021 onto defc823d5e078a6fbf5cfdf2d821d801e4d248f7
+262ac2f73393e58b4ef4d09d9187922912e701e8 6704c3a9a466a99e90619e72db6bb12105318cd4 Alexey Zhokhov <alexey@zhokhov.com> 1792524911 +0700	commit (merge): Merge remote-tracking branch 'origin/wip/baseline-cohort-admission-20261021' into wip/cohort-capture-adapter-20261021
+6704c3a9a466a99e90619e72db6bb12105318cd4 3fe5399ce02521b1132c85275d64e9804816dba8 Alexey Zhokhov <alexey@zhokhov.com> 1792524923 +0700	reset: moving to origin/wip/baseline-cohort-admission-20261021
+3fe5399ce02521b1132c85275d64e9804816dba8 ca5989af07b43b8d2531904be9b969df31413bcb Alexey Zhokhov <alexey@zhokhov.com> 1792524923 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+ca5989af07b43b8d2531904be9b969df31413bcb 1d3b3966e5c25e71123d59afc518a7c24f4da55e Alexey Zhokhov <alexey@zhokhov.com> 1792524925 +0700	cherry-pick: fix(test): reject aliased candidate executables
+1d3b3966e5c25e71123d59afc518a7c24f4da55e 411ea75348c0f132bd9ce54d409a38f96a1fed7a Alexey Zhokhov <alexey@zhokhov.com> 1792525425 +0700	commit: fix(test): require fresh candidate build targets
+411ea75348c0f132bd9ce54d409a38f96a1fed7a 979acbe0f3b7125d51f8f5cae2c25e786adbd544 Alexey Zhokhov <alexey@zhokhov.com> 1792525427 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

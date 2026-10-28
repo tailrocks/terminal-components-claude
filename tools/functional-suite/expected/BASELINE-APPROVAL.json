@@ -1,0 +1,1754 @@
+{
+  "accepted_generation": {
+    "accepted_candidate_count": 30,
+    "baseline_root": "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected",
+    "candidate_rows": [
+      {
+        "baseline_sha256": "e6d3fa2ff5a27a212781c4fae086d6fad918f8f214614cb2c6a9b3f97b1ed80f",
+        "bytes": 1372476,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/cleared.sample.json",
+        "candidate_sha256": "e6d3fa2ff5a27a212781c4fae086d6fad918f8f214614cb2c6a9b3f97b1ed80f",
+        "expected_file": "termrock/first_delivery_holla_first_use/cleared/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "661884fcda7d8effb7dcfc6cc3ff1e0e59ba20013e3f8ffec7d0126b2887ba1c",
+        "test_id": "termrock/first_delivery_holla_first_use/cleared/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "65de5f566d2de131b0694ada86152d6398d1a539cd60f32aec209264fca2a66e",
+        "bytes": 1242293,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/empty.sample.json",
+        "candidate_sha256": "65de5f566d2de131b0694ada86152d6398d1a539cd60f32aec209264fca2a66e",
+        "expected_file": "termrock/first_delivery_holla_first_use/empty/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "cd40a211aacd0ab82e4e958ec2305a0b95d1df4178b2f4f40480b90bb0ed49fe",
+        "test_id": "termrock/first_delivery_holla_first_use/empty/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "ebd34bf027bb39fa1f3a0797c8e3ca05254374f14fef585f5180c3fed285ba28",
+        "bytes": 1468762,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/help.sample.json",
+        "candidate_sha256": "ebd34bf027bb39fa1f3a0797c8e3ca05254374f14fef585f5180c3fed285ba28",
+        "expected_file": "termrock/first_delivery_holla_first_use/help/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "c688de98fa5017ba0d6e4bb22cbf93f97cad19fd3d6c98bbb0688dc129972339",
+        "test_id": "termrock/first_delivery_holla_first_use/help/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "2ae3c7878fee2644ca00508bb8bbe3fa86aa0c57400b9704bf37dbc5ccc24555",
+        "bytes": 1372476,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/initial.sample.json",
+        "candidate_sha256": "2ae3c7878fee2644ca00508bb8bbe3fa86aa0c57400b9704bf37dbc5ccc24555",
+        "expected_file": "termrock/first_delivery_holla_first_use/initial/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "63458c056d6ea32c3e8156f26af3b3f5f3f25e9b6b9759dfa6336ccbd587e10b",
+        "test_id": "termrock/first_delivery_holla_first_use/initial/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "7d3cb2b820ccca4a9656b5528019705e323f5655711a29ebc617453bc3ed3068",
+        "bytes": 1372478,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/restored.sample.json",
+        "candidate_sha256": "7d3cb2b820ccca4a9656b5528019705e323f5655711a29ebc617453bc3ed3068",
+        "expected_file": "termrock/first_delivery_holla_first_use/restored/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "2a81bd7e41d078d009cff966005d3356b2472dbc396723ac925581618eac6368",
+        "test_id": "termrock/first_delivery_holla_first_use/restored/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "d3dd2db8ec0d5fc609c35d9b555482c85ccdbd1b35650193dc867c16b4bf176c",
+        "bytes": 1372477,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/returned.sample.json",
+        "candidate_sha256": "d3dd2db8ec0d5fc609c35d9b555482c85ccdbd1b35650193dc867c16b4bf176c",
+        "expected_file": "termrock/first_delivery_holla_first_use/returned/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "6e4aa36ce060cfa75a7c35acc7c20a4700517899fb5e4f850576b196b922f07e",
+        "test_id": "termrock/first_delivery_holla_first_use/returned/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "01d081bc143cc8f9464504efedfc1bc06d936a8c8c9318ed7a5785c8a1606198",
+        "bytes": 591831,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/small.sample.json",
+        "candidate_sha256": "01d081bc143cc8f9464504efedfc1bc06d936a8c8c9318ed7a5785c8a1606198",
+        "expected_file": "termrock/first_delivery_holla_first_use/small/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "0bad284c4b75c5ae9d28943c23c718efe9a00530de2695574766686c084804ea",
+        "test_id": "termrock/first_delivery_holla_first_use/small/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "6424cfc851425d106a5fb8b5a03485196d5817911dde87ba1f1bf3ac76efc69f",
+        "bytes": 1251241,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/general.sample.json",
+        "candidate_sha256": "6424cfc851425d106a5fb8b5a03485196d5817911dde87ba1f1bf3ac76efc69f",
+        "expected_file": "termrock/first_delivery_jackin_settings/general/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "b37383ee991913f4ed220e98084d613f11df14e6628a0a78d645153ab087af61",
+        "test_id": "termrock/first_delivery_jackin_settings/general/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "fa0cb0102ed586e57c7f5309f10a3881877e893b5ffe830f2f98aeb52b753be8",
+        "bytes": 1251247,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/general_return.sample.json",
+        "candidate_sha256": "fa0cb0102ed586e57c7f5309f10a3881877e893b5ffe830f2f98aeb52b753be8",
+        "expected_file": "termrock/first_delivery_jackin_settings/general_return/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "ce200bc82aa411042f62ce3deed5a4ced8962872295f8c837466bfb313ad8f57",
+        "test_id": "termrock/first_delivery_jackin_settings/general_return/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "07b3a4a8300f4ca11558ffe0749f29df802f78bd88be146817145c98affb37f8",
+        "bytes": 1404758,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/help.sample.json",
+        "candidate_sha256": "07b3a4a8300f4ca11558ffe0749f29df802f78bd88be146817145c98affb37f8",
+        "expected_file": "termrock/first_delivery_jackin_settings/help/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "0fa7b69d359832c521876cbc345b8b5e0dbc9ba5ecc4e919732e724f89136afe",
+        "test_id": "termrock/first_delivery_jackin_settings/help/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "f3af1c2fa23e874a8bcd4b8378cb763ed63df6f16a34a940cba6ea813f79bcf6",
+        "bytes": 1345638,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/help_return.sample.json",
+        "candidate_sha256": "f3af1c2fa23e874a8bcd4b8378cb763ed63df6f16a34a940cba6ea813f79bcf6",
+        "expected_file": "termrock/first_delivery_jackin_settings/help_return/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "e4e85692cbc5146783a27f895186255028c3af2aa5df76d4670a964eb270d4ab",
+        "test_id": "termrock/first_delivery_jackin_settings/help_return/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "f70b9dff70114333b0894a7fd2d71426b727a6fff47c71a867ee115d1644952a",
+        "bytes": 1336428,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/initial.sample.json",
+        "candidate_sha256": "f70b9dff70114333b0894a7fd2d71426b727a6fff47c71a867ee115d1644952a",
+        "expected_file": "termrock/first_delivery_jackin_settings/initial/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "e06d657e2747bc753fff50ac4d86d8fd0a02348814713fec387663bbc8bd8d02",
+        "test_id": "termrock/first_delivery_jackin_settings/initial/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "04af36ef122fc88f323f246b60f8d31576601440890d49f68e9470f0d97e0c1e",
+        "bytes": 1345640,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/manager_return.sample.json",
+        "candidate_sha256": "04af36ef122fc88f323f246b60f8d31576601440890d49f68e9470f0d97e0c1e",
+        "expected_file": "termrock/first_delivery_jackin_settings/manager_return/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "c2c9a71f60506ecc40aefdcd4069c81399ce8b06bee419bf58464f308f5bc977",
+        "test_id": "termrock/first_delivery_jackin_settings/manager_return/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "bd40d1b4910a3655b749a93a95145a2c61a950fecf093ea39e2dc85787bb5a01",
+        "bytes": 1259214,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/mounts.sample.json",
+        "candidate_sha256": "bd40d1b4910a3655b749a93a95145a2c61a950fecf093ea39e2dc85787bb5a01",
+        "expected_file": "termrock/first_delivery_jackin_settings/mounts/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "acc62cbe0f69c74e759962526b72409a1d42703d06fe5bdc36d89b83cc26c8e0",
+        "test_id": "termrock/first_delivery_jackin_settings/mounts/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "5d0d03fc5c94dfbe6a199776a2997bbb17b01b5c53bbd599e3b892623e9fd5d2",
+        "bytes": 1345635,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/restored.sample.json",
+        "candidate_sha256": "5d0d03fc5c94dfbe6a199776a2997bbb17b01b5c53bbd599e3b892623e9fd5d2",
+        "expected_file": "termrock/first_delivery_jackin_settings/restored/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "5b382bc43bb69ad656d9833af94635dd720b41b51b3ada8a45e6301ba48730a2",
+        "test_id": "termrock/first_delivery_jackin_settings/restored/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "b3fbae44914b99de4e053b91c6ceaba81fc14a270e343b6ddfc2548c0f1b44f6",
+        "bytes": 1345634,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/selected.sample.json",
+        "candidate_sha256": "b3fbae44914b99de4e053b91c6ceaba81fc14a270e343b6ddfc2548c0f1b44f6",
+        "expected_file": "termrock/first_delivery_jackin_settings/selected/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "622b0c5d5447b6af79ac2328ae2c5a26dfa0031a6838f8a8b1bf01dec733f391",
+        "test_id": "termrock/first_delivery_jackin_settings/selected/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "649de00d3669c7a9891d97252e7b37a6d019c17c7dcc68467abe6832324ef066",
+        "bytes": 574191,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/small.sample.json",
+        "candidate_sha256": "649de00d3669c7a9891d97252e7b37a6d019c17c7dcc68467abe6832324ef066",
+        "expected_file": "termrock/first_delivery_jackin_settings/small/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "775acfa2b155306525e21fbc16d2271de089a0f510aa5af880b1ab4a0f485091",
+        "test_id": "termrock/first_delivery_jackin_settings/small/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "bef062ed83085339d6962278393f4b78a65be9028308bd78f06507f6efdd144c",
+        "bytes": 1361657,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/help.sample.json",
+        "candidate_sha256": "bef062ed83085339d6962278393f4b78a65be9028308bd78f06507f6efdd144c",
+        "expected_file": "termrock/first_delivery_showcase_buttons/help/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "0877ce2c090da7bae2eb1b0b50a37c7fcc8cd0dfb4e4264d8e5df421e888f376",
+        "test_id": "termrock/first_delivery_showcase_buttons/help/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "46ccb91399516517cd1e0ca7f59f0525fded413643ce31dca36f345c927c6235",
+        "bytes": 1363842,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/initial.sample.json",
+        "candidate_sha256": "46ccb91399516517cd1e0ca7f59f0525fded413643ce31dca36f345c927c6235",
+        "expected_file": "termrock/first_delivery_showcase_buttons/initial/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "37e7c1a7ae23998531a8cfb3b0f04a7d540ec3cbd0767b084877a2c724aae1f7",
+        "test_id": "termrock/first_delivery_showcase_buttons/initial/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "9dc1de776f3e3633d2adae7ac8167ad0239924267092bb323463efcc2e13f5ba",
+        "bytes": 1365088,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/preview.sample.json",
+        "candidate_sha256": "9dc1de776f3e3633d2adae7ac8167ad0239924267092bb323463efcc2e13f5ba",
+        "expected_file": "termrock/first_delivery_showcase_buttons/preview/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "a75e68acd4c9141a1d1bc09c1f513af888074b6d79392555054f14b8a9176de4",
+        "test_id": "termrock/first_delivery_showcase_buttons/preview/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "973cc5178128b6593518ee20102e31e2455e2e6c489f6ebc69160334b9f38b82",
+        "bytes": 1365097,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/restored.sample.json",
+        "candidate_sha256": "973cc5178128b6593518ee20102e31e2455e2e6c489f6ebc69160334b9f38b82",
+        "expected_file": "termrock/first_delivery_showcase_buttons/restored/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "24302fda21013dfcdcc10256a8c89538905c2c00bb0d4a8b2f0c9c9ec48715f5",
+        "test_id": "termrock/first_delivery_showcase_buttons/restored/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "cc984ce8d7c4db11267b6c6c92377bc76a721af7e14f72f4642abef38c442549",
+        "bytes": 1365096,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/returned.sample.json",
+        "candidate_sha256": "cc984ce8d7c4db11267b6c6c92377bc76a721af7e14f72f4642abef38c442549",
+        "expected_file": "termrock/first_delivery_showcase_buttons/returned/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "aa14effb1c109b5ba51358fce6c60bb3a5d4fdbd591f6cbad4aec0ac570c7101",
+        "test_id": "termrock/first_delivery_showcase_buttons/returned/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "de804518fdba43a6f299e18a3348fb2c7bd0b1958c47a0900958ccae3e740f20",
+        "bytes": 1364740,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/run.sample.json",
+        "candidate_sha256": "de804518fdba43a6f299e18a3348fb2c7bd0b1958c47a0900958ccae3e740f20",
+        "expected_file": "termrock/first_delivery_showcase_buttons/run/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "d2f4aa43fd16afc037deaa7c47cc7a05946a69fdcc163d75549e126cf2aa5f0f",
+        "test_id": "termrock/first_delivery_showcase_buttons/run/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "da94cae64428f97fe8a417630809d71cc319f8970bfa0b3c8808a27d00422326",
+        "bytes": 593884,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/small.sample.json",
+        "candidate_sha256": "da94cae64428f97fe8a417630809d71cc319f8970bfa0b3c8808a27d00422326",
+        "expected_file": "termrock/first_delivery_showcase_buttons/small/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "14f99e45633b801f875cac546d6a99f1c6bddbba2519fc0b974c9e3cfe7661b2",
+        "test_id": "termrock/first_delivery_showcase_buttons/small/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "e9c495e28f28b5f29e1ffb4d94ac023cdfb6eb8bfd7767edf9f771c7804b4c63",
+        "bytes": 1396203,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/help.sample.json",
+        "candidate_sha256": "e9c495e28f28b5f29e1ffb4d94ac023cdfb6eb8bfd7767edf9f771c7804b4c63",
+        "expected_file": "termrock/first_delivery_tablepro_connections/help/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "9bac2a81210ae69c7ecad3f3cf9e3fa2d29072ff712ed72e31c618fffbcf0ed1",
+        "test_id": "termrock/first_delivery_tablepro_connections/help/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "1f4c1004fa590fe09206e86363283df019445c4163ab98abed64517c8fb343f4",
+        "bytes": 1284631,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/initial.sample.json",
+        "candidate_sha256": "1f4c1004fa590fe09206e86363283df019445c4163ab98abed64517c8fb343f4",
+        "expected_file": "termrock/first_delivery_tablepro_connections/initial/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "1a2d439c6bcd5a88ff07356b1cb44c50642efd3529a5047cdcb2cab6be31d81b",
+        "test_id": "termrock/first_delivery_tablepro_connections/initial/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "ecf7f20cf3f9689f7f011dafc3fad38984b9911313ae1bb3673adacfcb5c9042",
+        "bytes": 1284596,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/restored.sample.json",
+        "candidate_sha256": "ecf7f20cf3f9689f7f011dafc3fad38984b9911313ae1bb3673adacfcb5c9042",
+        "expected_file": "termrock/first_delivery_tablepro_connections/restored/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "94136488550684275269e3aba3ede94f99b7e2aff77e2523f4ce9c4c2cbe3b18",
+        "test_id": "termrock/first_delivery_tablepro_connections/restored/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "c1de3de58c4bb795e58e24a80424b79ff5d05fe5b852bea2cbad764e0b7fd98a",
+        "bytes": 1284596,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/returned.sample.json",
+        "candidate_sha256": "c1de3de58c4bb795e58e24a80424b79ff5d05fe5b852bea2cbad764e0b7fd98a",
+        "expected_file": "termrock/first_delivery_tablepro_connections/returned/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "40380198fcc03e35d4b73197f3add0277b17aac7e3dcb5a5d053c80ad678ed2a",
+        "test_id": "termrock/first_delivery_tablepro_connections/returned/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "12483fc3ccadbb0bc515573d21a8dbad45b25df723f6d9197012d19502a284f0",
+        "bytes": 1284594,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/selected.sample.json",
+        "candidate_sha256": "12483fc3ccadbb0bc515573d21a8dbad45b25df723f6d9197012d19502a284f0",
+        "expected_file": "termrock/first_delivery_tablepro_connections/selected/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "4fdf2af8ea29be11e65e4c1a43188e12274e20966ac9282a4140a4e2ce1878f3",
+        "test_id": "termrock/first_delivery_tablepro_connections/selected/pixels-macos-aarch64"
+      },
+      {
+        "baseline_sha256": "c8ec5edcb0f7c727829a51620071fc4890a662c9d00e502ed28bcf0f0a9f51a5",
+        "bytes": 528748,
+        "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/small.sample.json",
+        "candidate_sha256": "c8ec5edcb0f7c727829a51620071fc4890a662c9d00e502ed28bcf0f0a9f51a5",
+        "expected_file": "termrock/first_delivery_tablepro_connections/small/pixels-macos-aarch64.tui.json",
+        "previous_baseline_sha256": "fed4fe64e8d2b1825a10eb8875c8597f440bae38fb08c7346eb71907dae2838a",
+        "test_id": "termrock/first_delivery_tablepro_connections/small/pixels-macos-aarch64"
+      }
+    ],
+    "expected_reference_rerun": "required and pending against this approved generation; do not treat A/B acquisition as a pass",
+    "official_cli_acceptance_receipt": "/private/tmp/termrock-functional-suite-v02-generation-acceptance-20261028/baseline-generation-acceptance-receipt.json",
+    "official_cli_acceptance_receipt_sha256": "5a40aa89c440da0dd6fbe5c77d2e073d0d705bddd4bcd8780e8293645318c57f",
+    "target_comparison": "not run / not approved"
+  },
+  "acquisition": {
+    "reference_A_exit_code": 100,
+    "reference_A_receipt": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/terminal-receipt.json",
+    "reference_A_receipt_sha256": "633507b10976a5bbb3be4aee7a8db1e6c18436398042272d2f1f13b8cca2358c",
+    "reference_B_exit_code": 100,
+    "reference_B_receipt": "/private/tmp/termrock-functional-suite-v02-reference-b-20261028/terminal-receipt.json",
+    "reference_B_receipt_sha256": "401ed614f5fe4c32ddc605ad64ec02a342565ba00a556c02772381fcfc3a1d7d",
+    "reviewed_outcome": "30/30 complete candidate checkpoints stable in native state and decoded RGBA; all four application exits clean, drained, and restored. A/B acquisition compared against old 0.1.1 store and is not a passing reference gate.",
+    "stable_candidate_map_path": "/private/tmp/termrock-functional-suite-v02-reference-ab-candidate-20261028/candidate-stability-map.json",
+    "stable_candidate_map_sha256": "71092c3151fecb78ba31f855f809a083946355e20048f04de4d0d0bd579553a9"
+  },
+  "approval": {
+    "candidate_digest_map_sha256": "8d3f0b8d8aaa201d6bd8c7286cb051aafdf187b037da8062128d9ef581d3a74b",
+    "decision": "APPROVED: all30 exact A reference candidates are stable against sealed B and may be explicitly accepted outside CI into a separate renderer0.2.0 reference generation that preserves the old0.1.1 generation. This approval does not itself accept baselines.",
+    "previous_baseline_digest_map_sha256": "363004c8e23744cb99aae30af83d971f69b76ae60926e1fcf0b12098718d6780",
+    "review_scope": "Exactly 30 A candidates; exact A/B stability and state/pixel review. No target candidate approval.",
+    "reviewer": "/root/engine02_pin_independent_review",
+    "reviewer_record": "/private/tmp/termrock-functional-suite-v02-reference-independent-review-20261028/reference-review.json",
+    "reviewer_record_sha256": "f2caf089c4fd1f1878e2b8fc1ced70c635e403975ae59914e8ef172a193952be"
+  },
+  "files": [
+    {
+      "baseline_sha256": "e6d3fa2ff5a27a212781c4fae086d6fad918f8f214614cb2c6a9b3f97b1ed80f",
+      "bytes": 1372476,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/cleared.sample.json",
+      "candidate_sha256": "e6d3fa2ff5a27a212781c4fae086d6fad918f8f214614cb2c6a9b3f97b1ed80f",
+      "expected_file": "termrock/first_delivery_holla_first_use/cleared/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "661884fcda7d8effb7dcfc6cc3ff1e0e59ba20013e3f8ffec7d0126b2887ba1c",
+      "test_id": "termrock/first_delivery_holla_first_use/cleared/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "65de5f566d2de131b0694ada86152d6398d1a539cd60f32aec209264fca2a66e",
+      "bytes": 1242293,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/empty.sample.json",
+      "candidate_sha256": "65de5f566d2de131b0694ada86152d6398d1a539cd60f32aec209264fca2a66e",
+      "expected_file": "termrock/first_delivery_holla_first_use/empty/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "cd40a211aacd0ab82e4e958ec2305a0b95d1df4178b2f4f40480b90bb0ed49fe",
+      "test_id": "termrock/first_delivery_holla_first_use/empty/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "ebd34bf027bb39fa1f3a0797c8e3ca05254374f14fef585f5180c3fed285ba28",
+      "bytes": 1468762,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/help.sample.json",
+      "candidate_sha256": "ebd34bf027bb39fa1f3a0797c8e3ca05254374f14fef585f5180c3fed285ba28",
+      "expected_file": "termrock/first_delivery_holla_first_use/help/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "c688de98fa5017ba0d6e4bb22cbf93f97cad19fd3d6c98bbb0688dc129972339",
+      "test_id": "termrock/first_delivery_holla_first_use/help/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "2ae3c7878fee2644ca00508bb8bbe3fa86aa0c57400b9704bf37dbc5ccc24555",
+      "bytes": 1372476,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/initial.sample.json",
+      "candidate_sha256": "2ae3c7878fee2644ca00508bb8bbe3fa86aa0c57400b9704bf37dbc5ccc24555",
+      "expected_file": "termrock/first_delivery_holla_first_use/initial/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "63458c056d6ea32c3e8156f26af3b3f5f3f25e9b6b9759dfa6336ccbd587e10b",
+      "test_id": "termrock/first_delivery_holla_first_use/initial/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "7d3cb2b820ccca4a9656b5528019705e323f5655711a29ebc617453bc3ed3068",
+      "bytes": 1372478,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/restored.sample.json",
+      "candidate_sha256": "7d3cb2b820ccca4a9656b5528019705e323f5655711a29ebc617453bc3ed3068",
+      "expected_file": "termrock/first_delivery_holla_first_use/restored/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "2a81bd7e41d078d009cff966005d3356b2472dbc396723ac925581618eac6368",
+      "test_id": "termrock/first_delivery_holla_first_use/restored/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "d3dd2db8ec0d5fc609c35d9b555482c85ccdbd1b35650193dc867c16b4bf176c",
+      "bytes": 1372477,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/returned.sample.json",
+      "candidate_sha256": "d3dd2db8ec0d5fc609c35d9b555482c85ccdbd1b35650193dc867c16b4bf176c",
+      "expected_file": "termrock/first_delivery_holla_first_use/returned/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "6e4aa36ce060cfa75a7c35acc7c20a4700517899fb5e4f850576b196b922f07e",
+      "test_id": "termrock/first_delivery_holla_first_use/returned/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "01d081bc143cc8f9464504efedfc1bc06d936a8c8c9318ed7a5785c8a1606198",
+      "bytes": 591831,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/holla.first_use/samples/small.sample.json",
+      "candidate_sha256": "01d081bc143cc8f9464504efedfc1bc06d936a8c8c9318ed7a5785c8a1606198",
+      "expected_file": "termrock/first_delivery_holla_first_use/small/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "0bad284c4b75c5ae9d28943c23c718efe9a00530de2695574766686c084804ea",
+      "test_id": "termrock/first_delivery_holla_first_use/small/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "6424cfc851425d106a5fb8b5a03485196d5817911dde87ba1f1bf3ac76efc69f",
+      "bytes": 1251241,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/general.sample.json",
+      "candidate_sha256": "6424cfc851425d106a5fb8b5a03485196d5817911dde87ba1f1bf3ac76efc69f",
+      "expected_file": "termrock/first_delivery_jackin_settings/general/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "b37383ee991913f4ed220e98084d613f11df14e6628a0a78d645153ab087af61",
+      "test_id": "termrock/first_delivery_jackin_settings/general/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "fa0cb0102ed586e57c7f5309f10a3881877e893b5ffe830f2f98aeb52b753be8",
+      "bytes": 1251247,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/general_return.sample.json",
+      "candidate_sha256": "fa0cb0102ed586e57c7f5309f10a3881877e893b5ffe830f2f98aeb52b753be8",
+      "expected_file": "termrock/first_delivery_jackin_settings/general_return/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "ce200bc82aa411042f62ce3deed5a4ced8962872295f8c837466bfb313ad8f57",
+      "test_id": "termrock/first_delivery_jackin_settings/general_return/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "07b3a4a8300f4ca11558ffe0749f29df802f78bd88be146817145c98affb37f8",
+      "bytes": 1404758,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/help.sample.json",
+      "candidate_sha256": "07b3a4a8300f4ca11558ffe0749f29df802f78bd88be146817145c98affb37f8",
+      "expected_file": "termrock/first_delivery_jackin_settings/help/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "0fa7b69d359832c521876cbc345b8b5e0dbc9ba5ecc4e919732e724f89136afe",
+      "test_id": "termrock/first_delivery_jackin_settings/help/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "f3af1c2fa23e874a8bcd4b8378cb763ed63df6f16a34a940cba6ea813f79bcf6",
+      "bytes": 1345638,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/help_return.sample.json",
+      "candidate_sha256": "f3af1c2fa23e874a8bcd4b8378cb763ed63df6f16a34a940cba6ea813f79bcf6",
+      "expected_file": "termrock/first_delivery_jackin_settings/help_return/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "e4e85692cbc5146783a27f895186255028c3af2aa5df76d4670a964eb270d4ab",
+      "test_id": "termrock/first_delivery_jackin_settings/help_return/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "f70b9dff70114333b0894a7fd2d71426b727a6fff47c71a867ee115d1644952a",
+      "bytes": 1336428,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/initial.sample.json",
+      "candidate_sha256": "f70b9dff70114333b0894a7fd2d71426b727a6fff47c71a867ee115d1644952a",
+      "expected_file": "termrock/first_delivery_jackin_settings/initial/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "e06d657e2747bc753fff50ac4d86d8fd0a02348814713fec387663bbc8bd8d02",
+      "test_id": "termrock/first_delivery_jackin_settings/initial/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "04af36ef122fc88f323f246b60f8d31576601440890d49f68e9470f0d97e0c1e",
+      "bytes": 1345640,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/manager_return.sample.json",
+      "candidate_sha256": "04af36ef122fc88f323f246b60f8d31576601440890d49f68e9470f0d97e0c1e",
+      "expected_file": "termrock/first_delivery_jackin_settings/manager_return/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "c2c9a71f60506ecc40aefdcd4069c81399ce8b06bee419bf58464f308f5bc977",
+      "test_id": "termrock/first_delivery_jackin_settings/manager_return/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "bd40d1b4910a3655b749a93a95145a2c61a950fecf093ea39e2dc85787bb5a01",
+      "bytes": 1259214,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/mounts.sample.json",
+      "candidate_sha256": "bd40d1b4910a3655b749a93a95145a2c61a950fecf093ea39e2dc85787bb5a01",
+      "expected_file": "termrock/first_delivery_jackin_settings/mounts/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "acc62cbe0f69c74e759962526b72409a1d42703d06fe5bdc36d89b83cc26c8e0",
+      "test_id": "termrock/first_delivery_jackin_settings/mounts/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "5d0d03fc5c94dfbe6a199776a2997bbb17b01b5c53bbd599e3b892623e9fd5d2",
+      "bytes": 1345635,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/restored.sample.json",
+      "candidate_sha256": "5d0d03fc5c94dfbe6a199776a2997bbb17b01b5c53bbd599e3b892623e9fd5d2",
+      "expected_file": "termrock/first_delivery_jackin_settings/restored/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "5b382bc43bb69ad656d9833af94635dd720b41b51b3ada8a45e6301ba48730a2",
+      "test_id": "termrock/first_delivery_jackin_settings/restored/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "b3fbae44914b99de4e053b91c6ceaba81fc14a270e343b6ddfc2548c0f1b44f6",
+      "bytes": 1345634,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/selected.sample.json",
+      "candidate_sha256": "b3fbae44914b99de4e053b91c6ceaba81fc14a270e343b6ddfc2548c0f1b44f6",
+      "expected_file": "termrock/first_delivery_jackin_settings/selected/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "622b0c5d5447b6af79ac2328ae2c5a26dfa0031a6838f8a8b1bf01dec733f391",
+      "test_id": "termrock/first_delivery_jackin_settings/selected/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "649de00d3669c7a9891d97252e7b37a6d019c17c7dcc68467abe6832324ef066",
+      "bytes": 574191,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/jackin.settings/samples/small.sample.json",
+      "candidate_sha256": "649de00d3669c7a9891d97252e7b37a6d019c17c7dcc68467abe6832324ef066",
+      "expected_file": "termrock/first_delivery_jackin_settings/small/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "775acfa2b155306525e21fbc16d2271de089a0f510aa5af880b1ab4a0f485091",
+      "test_id": "termrock/first_delivery_jackin_settings/small/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "bef062ed83085339d6962278393f4b78a65be9028308bd78f06507f6efdd144c",
+      "bytes": 1361657,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/help.sample.json",
+      "candidate_sha256": "bef062ed83085339d6962278393f4b78a65be9028308bd78f06507f6efdd144c",
+      "expected_file": "termrock/first_delivery_showcase_buttons/help/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "0877ce2c090da7bae2eb1b0b50a37c7fcc8cd0dfb4e4264d8e5df421e888f376",
+      "test_id": "termrock/first_delivery_showcase_buttons/help/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "46ccb91399516517cd1e0ca7f59f0525fded413643ce31dca36f345c927c6235",
+      "bytes": 1363842,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/initial.sample.json",
+      "candidate_sha256": "46ccb91399516517cd1e0ca7f59f0525fded413643ce31dca36f345c927c6235",
+      "expected_file": "termrock/first_delivery_showcase_buttons/initial/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "37e7c1a7ae23998531a8cfb3b0f04a7d540ec3cbd0767b084877a2c724aae1f7",
+      "test_id": "termrock/first_delivery_showcase_buttons/initial/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "9dc1de776f3e3633d2adae7ac8167ad0239924267092bb323463efcc2e13f5ba",
+      "bytes": 1365088,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/preview.sample.json",
+      "candidate_sha256": "9dc1de776f3e3633d2adae7ac8167ad0239924267092bb323463efcc2e13f5ba",
+      "expected_file": "termrock/first_delivery_showcase_buttons/preview/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "a75e68acd4c9141a1d1bc09c1f513af888074b6d79392555054f14b8a9176de4",
+      "test_id": "termrock/first_delivery_showcase_buttons/preview/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "973cc5178128b6593518ee20102e31e2455e2e6c489f6ebc69160334b9f38b82",
+      "bytes": 1365097,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/restored.sample.json",
+      "candidate_sha256": "973cc5178128b6593518ee20102e31e2455e2e6c489f6ebc69160334b9f38b82",
+      "expected_file": "termrock/first_delivery_showcase_buttons/restored/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "24302fda21013dfcdcc10256a8c89538905c2c00bb0d4a8b2f0c9c9ec48715f5",
+      "test_id": "termrock/first_delivery_showcase_buttons/restored/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "cc984ce8d7c4db11267b6c6c92377bc76a721af7e14f72f4642abef38c442549",
+      "bytes": 1365096,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/returned.sample.json",
+      "candidate_sha256": "cc984ce8d7c4db11267b6c6c92377bc76a721af7e14f72f4642abef38c442549",
+      "expected_file": "termrock/first_delivery_showcase_buttons/returned/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "aa14effb1c109b5ba51358fce6c60bb3a5d4fdbd591f6cbad4aec0ac570c7101",
+      "test_id": "termrock/first_delivery_showcase_buttons/returned/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "de804518fdba43a6f299e18a3348fb2c7bd0b1958c47a0900958ccae3e740f20",
+      "bytes": 1364740,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/run.sample.json",
+      "candidate_sha256": "de804518fdba43a6f299e18a3348fb2c7bd0b1958c47a0900958ccae3e740f20",
+      "expected_file": "termrock/first_delivery_showcase_buttons/run/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "d2f4aa43fd16afc037deaa7c47cc7a05946a69fdcc163d75549e126cf2aa5f0f",
+      "test_id": "termrock/first_delivery_showcase_buttons/run/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "da94cae64428f97fe8a417630809d71cc319f8970bfa0b3c8808a27d00422326",
+      "bytes": 593884,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/showcase.buttons/samples/small.sample.json",
+      "candidate_sha256": "da94cae64428f97fe8a417630809d71cc319f8970bfa0b3c8808a27d00422326",
+      "expected_file": "termrock/first_delivery_showcase_buttons/small/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "14f99e45633b801f875cac546d6a99f1c6bddbba2519fc0b974c9e3cfe7661b2",
+      "test_id": "termrock/first_delivery_showcase_buttons/small/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "e9c495e28f28b5f29e1ffb4d94ac023cdfb6eb8bfd7767edf9f771c7804b4c63",
+      "bytes": 1396203,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/help.sample.json",
+      "candidate_sha256": "e9c495e28f28b5f29e1ffb4d94ac023cdfb6eb8bfd7767edf9f771c7804b4c63",
+      "expected_file": "termrock/first_delivery_tablepro_connections/help/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "9bac2a81210ae69c7ecad3f3cf9e3fa2d29072ff712ed72e31c618fffbcf0ed1",
+      "test_id": "termrock/first_delivery_tablepro_connections/help/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "1f4c1004fa590fe09206e86363283df019445c4163ab98abed64517c8fb343f4",
+      "bytes": 1284631,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/initial.sample.json",
+      "candidate_sha256": "1f4c1004fa590fe09206e86363283df019445c4163ab98abed64517c8fb343f4",
+      "expected_file": "termrock/first_delivery_tablepro_connections/initial/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "1a2d439c6bcd5a88ff07356b1cb44c50642efd3529a5047cdcb2cab6be31d81b",
+      "test_id": "termrock/first_delivery_tablepro_connections/initial/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "ecf7f20cf3f9689f7f011dafc3fad38984b9911313ae1bb3673adacfcb5c9042",
+      "bytes": 1284596,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/restored.sample.json",
+      "candidate_sha256": "ecf7f20cf3f9689f7f011dafc3fad38984b9911313ae1bb3673adacfcb5c9042",
+      "expected_file": "termrock/first_delivery_tablepro_connections/restored/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "94136488550684275269e3aba3ede94f99b7e2aff77e2523f4ce9c4c2cbe3b18",
+      "test_id": "termrock/first_delivery_tablepro_connections/restored/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "c1de3de58c4bb795e58e24a80424b79ff5d05fe5b852bea2cbad764e0b7fd98a",
+      "bytes": 1284596,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/returned.sample.json",
+      "candidate_sha256": "c1de3de58c4bb795e58e24a80424b79ff5d05fe5b852bea2cbad764e0b7fd98a",
+      "expected_file": "termrock/first_delivery_tablepro_connections/returned/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "40380198fcc03e35d4b73197f3add0277b17aac7e3dcb5a5d053c80ad678ed2a",
+      "test_id": "termrock/first_delivery_tablepro_connections/returned/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "12483fc3ccadbb0bc515573d21a8dbad45b25df723f6d9197012d19502a284f0",
+      "bytes": 1284594,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/selected.sample.json",
+      "candidate_sha256": "12483fc3ccadbb0bc515573d21a8dbad45b25df723f6d9197012d19502a284f0",
+      "expected_file": "termrock/first_delivery_tablepro_connections/selected/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "4fdf2af8ea29be11e65e4c1a43188e12274e20966ac9282a4140a4e2ce1878f3",
+      "test_id": "termrock/first_delivery_tablepro_connections/selected/pixels-macos-aarch64"
+    },
+    {
+      "baseline_sha256": "c8ec5edcb0f7c727829a51620071fc4890a662c9d00e502ed28bcf0f0a9f51a5",
+      "bytes": 528748,
+      "candidate_file": "/private/tmp/termrock-functional-suite-v02-reference-a-20261028/out/v3/tablepro.connections/samples/small.sample.json",
+      "candidate_sha256": "c8ec5edcb0f7c727829a51620071fc4890a662c9d00e502ed28bcf0f0a9f51a5",
+      "expected_file": "termrock/first_delivery_tablepro_connections/small/pixels-macos-aarch64.tui.json",
+      "previous_baseline_sha256": "fed4fe64e8d2b1825a10eb8875c8597f440bae38fb08c7346eb71907dae2838a",
+      "test_id": "termrock/first_delivery_tablepro_connections/small/pixels-macos-aarch64"
+    }
+  ],
+  "official_cli": {
+    "build_receipt": "/private/tmp/termrock-functional-suite-cli-build-evidence-20261028-b59dc36-run01/cli-build-execution-receipt.json",
+    "build_receipt_sha256": "9a4b66b8842a523b6ce53cbf549f47148b0bc29d51f1d3fb41ce5ec5fc90c23f",
+    "path": "/private/tmp/termrock-functional-suite-cli-build-evidence-20261028-b59dc36-run01/staged-cli/tuiscotti",
+    "sha256": "c7fab52f7f197cb0dc46b631124da62d616a200ca8ebe2692085d1575830d92d",
+    "staging_receipt": "/private/tmp/termrock-functional-suite-cli-build-evidence-20261028-b59dc36-run01/cli-staging-receipt.json",
+    "staging_receipt_sha256": "e2c70b43c4bda3a860ce569c11b5de40bbe07e8e0b7c52a284baf9ca9323e3b7"
+  },
+  "reference_binaries": {
+    "architecture": "Mach-O64-bit arm64",
+    "path": "/private/tmp/pr26-reference-5b3dbd7-20261028/BIN26",
+    "sha256": {
+      "build-record": "49679ebfb8de99cecacbf40e93ecda12a0d5fecfcb2c646838d8a140c612179e",
+      "holla": "8fded1b38adb91cbc277a6b76570f3b53a9345ea8ffac28f7f4d017a2c1561c5",
+      "jackin-preview": "b621569f064220f6c700c6b910133c381ea6bbface26437bb8e85c22a88afa69",
+      "rustc-info": "bc9ed6d63cf26eca7286b342b545a4b7ab0bdbcef8e82497e059c7e4d3888fbf",
+      "showcase": "f2dfbb0a8b5e064808f611a2cca0fc24675fc64406a95ac597aeda716ce6b4f7",
+      "tablepro": "93ce87a0f335ff4f18342ac36e56288f134c7b48caed980c2eef2cb80f4a5ab4"
+    },
+    "source_commit": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+    "toolchain": "1.99.1; LLVM23.1.1; aarch64-apple-darwin; debug"
+  },
+  "renderer_generation": {
+    "contract_change": "The renderer_version contract changed. Native state and decoded RGBA pixels are identical to the previous generation for all 30 reference checkpoints; the renderer_version field was preserved as produced, not normalized.",
+    "previous_generation": {
+      "approval_record_sha256": "f0b1d89d44829c88b54cf0b6686835b241e7cb5a7a97a7b18bafadad56e2b3a9",
+      "canonical_expected_inventory_sha256": "bfd9663ff196c9da096ad0e2dad9158518ee436510779e3a7f4dbb60df106ada",
+      "immutable_export_receipt_sha256": "975f7c62c46eb35c25c99dcb0fc8581dc3acb0fe5c13bb0c44a330ed584be860",
+      "immutable_warning_fix_export": "/private/tmp/termrock-functional-suite-canonical-export-20261028-warningfix-c1cbb0f5"
+    },
+    "previous_renderer_version": "0.1.1",
+    "renderer_version": "0.2.0"
+  },
+  "schema": "termrock.functional-suite-reference-baseline-approval.v2",
+  "scope": {
+    "case_count": 4,
+    "cases": [
+      "first_delivery_holla_first_use",
+      "first_delivery_jackin_settings",
+      "first_delivery_showcase_buttons",
+      "first_delivery_tablepro_connections"
+    ],
+    "checkpoint_count": 30,
+    "clean_exit_count": 4,
+    "filtered_out_case_count": 85,
+    "registered_case_count": 89,
+    "selected_case_count": 4
+  },
+  "source": {
+    "Cargo.lock": "88822e5c44bf9660fb3586a8a8c52eed861fb46386b8cb99f40bdde88a9d9d76",
+    "Cargo.toml": "225d03aa5c58ff3ede42d9c49e1fd100b93b4430f7e292f7b4a59b20c01fc3f3",
+    "backend": {
+      "commit": "59a8ded6d8f419f93aaf2c0edcf8253a6e6c7496",
+      "package": "tuiscotti-tui-test",
+      "patch_sha256": "1c827f5074a28a8d129fa93308c1a39e57a163bfb405d2d440d6b1494a9a399d",
+      "version": "0.2.0"
+    },
+    "cases/cases.toml": "28fbdf64f6678b3bcd2798f14295a25ac180ece31dcccc174e492195ae63178d",
+    "delivered_commit": "b59dc3618d296ee62ed983a0d4bf32ee086bc823",
+    "engine-pins.json": "5370c471d303c19a7982505e051311e6f76fe5fa350b6980a1e0a9a5191a5dd7",
+    "export": "/private/tmp/termrock-functional-suite-canonical-export-20261028-warningfix-c1cbb0f5",
+    "export_receipt": "/private/tmp/termrock-functional-suite-canonical-export-evidence-20261028-warningfix-c1cbb0f5/export-receipt.json",
+    "export_receipt_sha256": "975f7c62c46eb35c25c99dcb0fc8581dc3acb0fe5c13bb0c44a330ed584be860",
+    "fixture_sha256": "9c268e1097ab5a92ced9ec90b80c79d4914984a98d764b151f5ed867570ed48e",
+    "source_manifest_sha256": "69e69ae1c90baacfee18d6ced8e1d992983063e324f725233f877036bacd4446",
+    "tests/functional.rs": "c1cbb0f5979ff566247ed3ac8dd6fb8e6e5272eee31fc83a534408654a2896f3",
+    "tuiscotti": {
+      "commit": "4b3a5e49ea2e5dbaa913534ced91aa9e45337d67",
+      "pixel_patch_sha256": "ed4c9ac1d03b6aac8347e7018311aebad100d37a1a8fea400378ee434038955d",
+      "version": "0.4.0"
+    }
+  },
+  "status": "accepted-reference-generation",
+  "additional_reference_setup": {
+    "schema": "termrock.functional-suite-additive-reference-setup.v1",
+    "status": "reference-check-accepted",
+    "case_id": "showcase_status_and_hints",
+    "renderer_contract": "tuiscotti-tui-test 0.2.0",
+    "scope": {
+      "candidate_count": 5,
+      "prior_expected_sample_count": 30,
+      "current_expected_sample_count": 35,
+      "registered_case_count": 89,
+      "coverage_id_count": 276,
+      "planned_case_count": 10,
+      "cases_without_plans": 79
+    },
+    "independent_approval_path": "/private/tmp/showcase-status-hints-v2-independent-reference-approval-20261028.json",
+    "independent_approval_sha256": "f9aaa723dee1d43bb71740dacf6f9d62b438fe10b7cfcdbdd464c287f478cf26",
+    "candidate_digest_map_path": "/private/tmp/termrock-functional-suite-showcase-status-hints-evidence-20261028-v2/status-hints-v2-candidate-digest-map.json",
+    "candidate_digest_map_sha256": "660bcda2fbc36b4a71769fc1f7e293d86aee0cb1eae6590acb36607489807b16",
+    "reference_A_B_evidence_path": "/private/tmp/termrock-functional-suite-showcase-status-hints-evidence-20261028-v2/status-hints-v2-reference-A-B-evidence.json",
+    "reference_A_B_evidence_sha256": "a1cb06765fe052725a1f0fef0acc21b9136aa45563e9d7b323ea84dee1b61141",
+    "reference_A_B_correction_path": "/private/tmp/termrock-functional-suite-showcase-status-hints-evidence-20261028-v2/status-hints-v2-reference-A-B-evidence-correction-01.json",
+    "reference_A_B_correction_sha256": "6ed3ca6babd91612f53e3f5a25b87dd6ef54a807c2380a4dcdfea0b56dc6508f",
+    "v1_oracle_history": {
+      "review_path": "/private/tmp/showcase-status-hints-v1-oracle-review-20261028.md",
+      "review_sha256": "aed72c96587e7a85c509dd567f4773912e646cb7a42fb00c98af42db6e2d1aa6",
+      "decision_summary": "The v1 Options-menu oracle required Playground content and was incorrect; the retained failed acquisition is not a product defect finding. V2 readiness correction was independently approved and did not change actions or checkpoint IDs."
+    },
+    "official_acceptance_receipt_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/status-hints-v2-official-acceptance-receipt.json",
+    "official_acceptance_receipt_sha256": "02426a776564452d60598689411c1919108cd025f9c5a884fe91e1d42fb495b4",
+    "prior_metadata_snapshot_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/BASELINE-APPROVAL.previous.json",
+    "prior_metadata_snapshot_sha256": "4613c2288a3a3e9c92fbfe3f4ec90ad6c7582012bddac3447a29c8fa08723038",
+    "accepted_candidates": [
+      {
+        "checkpoint": "initial",
+        "test_id": "termrock/showcase_status_and_hints/initial/pixels-macos-aarch64",
+        "expected_previous_baseline": "missing",
+        "candidate_path": "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/initial.sample.json",
+        "candidate_sha256": "22424478acb38b421aee5c274101f1507a9cf4e9e3d84cabdd23f24924f472af",
+        "accepted_baseline_path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected/termrock/showcase_status_and_hints/initial/pixels-macos-aarch64.tui.json",
+        "accepted_baseline_sha256": "22424478acb38b421aee5c274101f1507a9cf4e9e3d84cabdd23f24924f472af",
+        "bytes": 1522475,
+        "cli_argv": [
+          "/private/tmp/termrock-functional-suite-cli-build-evidence-20261028-b59dc36-run01/staged-cli/tuiscotti",
+          "--json",
+          "accept",
+          "--candidate",
+          "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/initial.sample.json",
+          "--candidate-sha256",
+          "22424478acb38b421aee5c274101f1507a9cf4e9e3d84cabdd23f24924f472af",
+          "--expect-baseline",
+          "missing",
+          "--baselines",
+          "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected"
+        ],
+        "cli_exit_code": 0,
+        "started_utc": "2026-10-28T02:23:37.233Z",
+        "finished_utc": "2026-10-28T02:23:39.042Z",
+        "wall_time_seconds": 1.633418459,
+        "stdout_json_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/initial.stdout.json",
+        "stdout_sha256": "70031810dbba2957520855cf4238deb2e43b4f2f3d0945053ddcb9e88e2997b0",
+        "stderr_log_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/initial.stderr.log",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/initial.exit-code",
+        "actual_png_sha256": "ed4bef54cbac560d285b6436608df44de23d10b32e02a796f326986b94f34569",
+        "raw_prefix_offset": 16319,
+        "raw_prefix_sha256": "6f9c9fba480c4bab5de3445edd6c85e77d58a0f17f4ac76af29b4ca5eb415936",
+        "A_sample_sha256": "22424478acb38b421aee5c274101f1507a9cf4e9e3d84cabdd23f24924f472af",
+        "B_sample_sha256": "9560506377420bea9434195137fe2dd3683563da3bd4ce3c623288160d198dc5",
+        "A_B_raw_prefix_equal": true,
+        "A_B_png_equal": true
+      },
+      {
+        "checkpoint": "options_menu",
+        "test_id": "termrock/showcase_status_and_hints/options_menu/pixels-macos-aarch64",
+        "expected_previous_baseline": "missing",
+        "candidate_path": "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/options_menu.sample.json",
+        "candidate_sha256": "efad1d1e42e253a7b5fe50320849fe606ffe65f6a22f6e7864a02d063066172d",
+        "accepted_baseline_path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected/termrock/showcase_status_and_hints/options_menu/pixels-macos-aarch64.tui.json",
+        "accepted_baseline_sha256": "efad1d1e42e253a7b5fe50320849fe606ffe65f6a22f6e7864a02d063066172d",
+        "bytes": 1311516,
+        "cli_argv": [
+          "/private/tmp/termrock-functional-suite-cli-build-evidence-20261028-b59dc36-run01/staged-cli/tuiscotti",
+          "--json",
+          "accept",
+          "--candidate",
+          "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/options_menu.sample.json",
+          "--candidate-sha256",
+          "efad1d1e42e253a7b5fe50320849fe606ffe65f6a22f6e7864a02d063066172d",
+          "--expect-baseline",
+          "missing",
+          "--baselines",
+          "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected"
+        ],
+        "cli_exit_code": 0,
+        "started_utc": "2026-10-28T02:23:39.042Z",
+        "finished_utc": "2026-10-28T02:23:40.768Z",
+        "wall_time_seconds": 1.56232875,
+        "stdout_json_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/options_menu.stdout.json",
+        "stdout_sha256": "ec230b902c93cc7dc03fc0fd5a9b6ff5bed90c37f02cb4ec61bcf432c5483ffb",
+        "stderr_log_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/options_menu.stderr.log",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/options_menu.exit-code",
+        "actual_png_sha256": "638e254e3101c96737234b76a63ac5ebb6b40ec6029258eeedca498fdf7f3cc6",
+        "raw_prefix_offset": 25956,
+        "raw_prefix_sha256": "59acfc7ba0177142af98d8b195e2c688d32a512b27f3dafa9fab7b008af80b80",
+        "A_sample_sha256": "efad1d1e42e253a7b5fe50320849fe606ffe65f6a22f6e7864a02d063066172d",
+        "B_sample_sha256": "b18e85961e34f633fca3d70abe01a2735a7bb42b5e31c601dacb7bede4bdc46a",
+        "A_B_raw_prefix_equal": true,
+        "A_B_png_equal": true
+      },
+      {
+        "checkpoint": "resolved_menu",
+        "test_id": "termrock/showcase_status_and_hints/resolved_menu/pixels-macos-aarch64",
+        "expected_previous_baseline": "missing",
+        "candidate_path": "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/resolved_menu.sample.json",
+        "candidate_sha256": "2723fe2e669ad1fdf85ae04209e9da4216409dc7aae485406136d7cc8fb65238",
+        "accepted_baseline_path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected/termrock/showcase_status_and_hints/resolved_menu/pixels-macos-aarch64.tui.json",
+        "accepted_baseline_sha256": "2723fe2e669ad1fdf85ae04209e9da4216409dc7aae485406136d7cc8fb65238",
+        "bytes": 1518115,
+        "cli_argv": [
+          "/private/tmp/termrock-functional-suite-cli-build-evidence-20261028-b59dc36-run01/staged-cli/tuiscotti",
+          "--json",
+          "accept",
+          "--candidate",
+          "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/resolved_menu.sample.json",
+          "--candidate-sha256",
+          "2723fe2e669ad1fdf85ae04209e9da4216409dc7aae485406136d7cc8fb65238",
+          "--expect-baseline",
+          "missing",
+          "--baselines",
+          "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected"
+        ],
+        "cli_exit_code": 0,
+        "started_utc": "2026-10-28T02:23:40.768Z",
+        "finished_utc": "2026-10-28T02:23:42.560Z",
+        "wall_time_seconds": 1.626341208,
+        "stdout_json_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/resolved_menu.stdout.json",
+        "stdout_sha256": "682b46eebd5eaee89e2864e7758848d6d6d41fac7593900babd630e4a4313602",
+        "stderr_log_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/resolved_menu.stderr.log",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/resolved_menu.exit-code",
+        "actual_png_sha256": "40cb7d08a559f48bbcae47fdb9b77e236492803885c19a439ca3782b80f4320c",
+        "raw_prefix_offset": 35368,
+        "raw_prefix_sha256": "d31f8d995a9679e3c6a832229a27f5b3d88d75bd6841cd1e37a785dc06eefa39",
+        "A_sample_sha256": "2723fe2e669ad1fdf85ae04209e9da4216409dc7aae485406136d7cc8fb65238",
+        "B_sample_sha256": "3d328a6449fc33f5a1c9e4146ecaec636733eaa805fe18107840fa5f1742ceaa",
+        "A_B_raw_prefix_equal": true,
+        "A_B_png_equal": true
+      },
+      {
+        "checkpoint": "small",
+        "test_id": "termrock/showcase_status_and_hints/small/pixels-macos-aarch64",
+        "expected_previous_baseline": "missing",
+        "candidate_path": "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/small.sample.json",
+        "candidate_sha256": "a218b16fdb10fc7dad85eed73a8a99728b7fd47dda08fa68d0e90459e081e54b",
+        "accepted_baseline_path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected/termrock/showcase_status_and_hints/small/pixels-macos-aarch64.tui.json",
+        "accepted_baseline_sha256": "a218b16fdb10fc7dad85eed73a8a99728b7fd47dda08fa68d0e90459e081e54b",
+        "bytes": 662969,
+        "cli_argv": [
+          "/private/tmp/termrock-functional-suite-cli-build-evidence-20261028-b59dc36-run01/staged-cli/tuiscotti",
+          "--json",
+          "accept",
+          "--candidate",
+          "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/small.sample.json",
+          "--candidate-sha256",
+          "a218b16fdb10fc7dad85eed73a8a99728b7fd47dda08fa68d0e90459e081e54b",
+          "--expect-baseline",
+          "missing",
+          "--baselines",
+          "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected"
+        ],
+        "cli_exit_code": 0,
+        "started_utc": "2026-10-28T02:23:42.560Z",
+        "finished_utc": "2026-10-28T02:23:44.025Z",
+        "wall_time_seconds": 1.303871542,
+        "stdout_json_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/small.stdout.json",
+        "stdout_sha256": "c0b1d3b19f142fc51363b6a76a650398155c8a8ea58022b104da1f57a304099f",
+        "stderr_log_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/small.stderr.log",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/small.exit-code",
+        "actual_png_sha256": "f20b18d278d527813e6631792de1d1410311b735d0c1be15000c0ddb401d383f",
+        "raw_prefix_offset": 44139,
+        "raw_prefix_sha256": "29c11bc630c8ba0ec1e3f8b561fafa7d953dab2514e0c2bc16e6b1fa77ea7a15",
+        "A_sample_sha256": "a218b16fdb10fc7dad85eed73a8a99728b7fd47dda08fa68d0e90459e081e54b",
+        "B_sample_sha256": "485798f20ceb247f120492dbe5a480a62f749be13af60b1b6bfeb2000075786f",
+        "A_B_raw_prefix_equal": true,
+        "A_B_png_equal": true
+      },
+      {
+        "checkpoint": "restored",
+        "test_id": "termrock/showcase_status_and_hints/restored/pixels-macos-aarch64",
+        "expected_previous_baseline": "missing",
+        "candidate_path": "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/restored.sample.json",
+        "candidate_sha256": "1f28cbff7685a29fcbbf35a7563bee9c351ce53d3b6dcccd0570643dd3e19f1b",
+        "accepted_baseline_path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected/termrock/showcase_status_and_hints/restored/pixels-macos-aarch64.tui.json",
+        "accepted_baseline_sha256": "1f28cbff7685a29fcbbf35a7563bee9c351ce53d3b6dcccd0570643dd3e19f1b",
+        "bytes": 1518110,
+        "cli_argv": [
+          "/private/tmp/termrock-functional-suite-cli-build-evidence-20261028-b59dc36-run01/staged-cli/tuiscotti",
+          "--json",
+          "accept",
+          "--candidate",
+          "/private/tmp/termrock-functional-suite-showcase-status-hints-reference-A-20261028-v2-2ad12bc6/v3/showcase_status_and_hints/samples/restored.sample.json",
+          "--candidate-sha256",
+          "1f28cbff7685a29fcbbf35a7563bee9c351ce53d3b6dcccd0570643dd3e19f1b",
+          "--expect-baseline",
+          "missing",
+          "--baselines",
+          "/Users/donbeave/Projects/termrock-recovery-verify-20261027/tools/functional-suite/expected"
+        ],
+        "cli_exit_code": 0,
+        "started_utc": "2026-10-28T02:23:44.025Z",
+        "finished_utc": "2026-10-28T02:23:45.807Z",
+        "wall_time_seconds": 1.61701875,
+        "stdout_json_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/restored.stdout.json",
+        "stdout_sha256": "6be51dde1d67fea822b15997fda75e69f7a9ccf5b958a390c50b874602791ad3",
+        "stderr_log_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/restored.stderr.log",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code_path": "/private/tmp/showcase-status-hints-v2-official-acceptance-20261028-run01/restored.exit-code",
+        "actual_png_sha256": "40cb7d08a559f48bbcae47fdb9b77e236492803885c19a439ca3782b80f4320c",
+        "raw_prefix_offset": 60355,
+        "raw_prefix_sha256": "a60c32c274f40b1b2f0de4f0813872323d90be80e9fa9edff7555606ced5f0e0",
+        "A_sample_sha256": "1f28cbff7685a29fcbbf35a7563bee9c351ce53d3b6dcccd0570643dd3e19f1b",
+        "B_sample_sha256": "55bfb9d7581cd6b3081579cffef0466c89ce4620d3351c820252034b16b7d7e3",
+        "A_B_raw_prefix_equal": true,
+        "A_B_png_equal": true
+      }
+    ],
+    "reference_check": {
+      "checkpoint_count": 5,
+      "state_and_pixel_pass_count": 5,
+      "receipt_path": "/private/tmp/showcase-status-hints-v2-reference-check-20261028-run01/reference-check-run-receipt.json",
+      "receipt_sha256": "96a0826447d3e0f812274ecaeac585320142069e5b9bb6e86c37ed8eab290bc5",
+      "independent_review_path": "/private/tmp/showcase-status-hints-v2-independent-reference-check-review-20261028.json",
+      "independent_review_sha256": "07840e9d1d6e4ac0d6c306c6d29979fa10c8f55b36b4b5f6192b5f84e89376b3",
+      "target_comparison": "separate published-source pair reached 12/12 but matched 0/12 exact state-and-pixel comparisons; no target acceptance"
+    },
+    "target_comparison": "not run / not approved",
+    "resolved_menu_and_restored_note": "Both approved candidates are retained separately: they have identical PNG bytes but distinct hidden cursor positions in full state.",
+    "prior_status": "setup-approved/reference-check-pending"
+  },
+  "current_expected_store_state": {
+    "status": "reference-check-accepted",
+    "baseline_sample_count": 42,
+    "accepted_reference_sample_count": 42,
+    "pending_reference_sample_count": 0,
+    "prior_30_samples_preserved": true,
+    "prior_35_samples_preserved": true,
+    "new_status_hints_samples": 5,
+    "new_holla_home_actions_samples": 7,
+    "sample_inventory_manifest_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/canonical-expected-sample-manifest-v42.sha256",
+    "sample_inventory_manifest_sha256": "a5074c6fd2860d8c612379fc1a324baccc0a245082271c00ac1afe59e5cc8a53",
+    "prior_approval_record_sha256": "d2472258c6f9f8ece6ee5a63795f9f303470c750bf8f2c553cdaace66607d41b",
+    "reference_check": "All 42 expected samples have accepted reference evidence: original 30, Status & Hints 5, and Holla Home Actions 7. The newest Holla check is reference-only.",
+    "target_comparison": "not run / not approved for Holla Home Actions; reference acceptance does not establish target parity",
+    "reference_check_receipts": [
+      {
+        "case_id": "showcase_status_and_hints",
+        "sample_count": 5,
+        "receipt_sha256": "96a0826447d3e0f812274ecaeac585320142069e5b9bb6e86c37ed8eab290bc5",
+        "independent_review_sha256": "07840e9d1d6e4ac0d6c306c6d29979fa10c8f55b36b4b5f6192b5f84e89376b3"
+      },
+      {
+        "case_id": "holla_home_actions",
+        "sample_count": 7,
+        "receipt_sha256": "43614f6a134ffa75ee99c9fdb9fb35ba3188101ac4c9705950fddd509e34a259",
+        "independent_review_sha256": "da69695378fb559934ecb914edc69c0dd6a62c63c478bbf530378043077eb9b6"
+      }
+    ]
+  },
+  "previous_current_expected_store_state": {
+    "status": "setup-approved/reference-check-pending-for-showcase-status-and-hints",
+    "baseline_sample_count": 35,
+    "prior_30_samples_preserved": true,
+    "new_status_hints_samples": 5,
+    "sample_inventory_manifest_sha256": "cdd7ec53ae25a1bf2685d69e187bbaf5b26159145f93be544792e4a186ba49d4",
+    "prior_approval_record_sha256": "4613c2288a3a3e9c92fbfe3f4ec90ad6c7582012bddac3447a29c8fa08723038"
+  },
+  "pending_reference_addenda": [],
+  "completed_reference_addenda": [
+    {
+      "draft_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/approval-record-addendum-draft-v1.json",
+      "draft_sha256": "15862d6ffe87d8f97d55ae55f511e84cc8addfb825a6c6b9f093c476144fc601",
+      "independent_review_path": "/private/tmp/pr38-approval-cli-copy-independent-review-20261028/store-review.md",
+      "independent_review_sha256": "25c57c9067189efa32b864942b9de7f39e8af38210bed086d2608c2a7d6598cf",
+      "status": "reference-check-accepted",
+      "draft_record": {
+        "acquisition_stability": {
+          "finding": "A/B2 are stable per checkpoint under the approved native-state/render/pixel comparison; both acquisitions had all seven baselines missing, so neither run supplied a passing baseline comparison.",
+          "independent_review_path": "/private/tmp/holla-home-actions-ab2-independent-review-20261028/review.md",
+          "independent_review_sha256": "3d92b1b233d7ebd631bfccc77c16a143c739dde4e3d6ebaa222d24049f9abeed",
+          "reference_a_receipt_path": "/private/tmp/pr38-holla-home-actions-reference-a-20261028-f1dd7492-receipt.json",
+          "reference_a_receipt_sha256": "ff82e70dfe3024bf17b69bbe388a7739cfc2edd216526234277ea3306e78e58d",
+          "reference_b2_receipt_path": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773-evidence/terminal-receipt-v2.json",
+          "reference_b2_receipt_sha256": "8655634060d3db79d01a0901c55097d7dfe3d9fd9924a3e600e8bdbf78883890"
+        },
+        "candidate_review": {
+          "decision_scope": "Exact seven B2 sample digests eligible for baseline acquisition only.",
+          "review_path": "/private/tmp/holla-home-actions-ab2-independent-review-20261028/review.md",
+          "review_sha256": "3d92b1b233d7ebd631bfccc77c16a143c739dde4e3d6ebaa222d24049f9abeed",
+          "verification_path": "/private/tmp/holla-home-actions-ab2-independent-review-20261028/verification.json",
+          "verification_sha256": "4b08f4da87704229364e880a653f55567425bc384b33f533050aca780cd7063f"
+        },
+        "cli_acceptance": {
+          "binary_path": "/private/tmp/pr38-tuiscotti-04-cli-build-artifact-20261028-b2/tuiscotti",
+          "binary_sha256": "667257ae7e3882ccd9b2e92cd7b166cf5e63279fb8e3660263cb4ac98f5d4fa2",
+          "build_receipt_path": "/private/tmp/pr38-tuiscotti-04-cli-build-artifact-20261028-b2/cli-build-receipt-v1.json",
+          "build_receipt_sha256": "80c6b9ed9faccf7f4081d4fff56a55c2f826ebd10e607c6e369f53626664da2e",
+          "errata": [
+            {
+              "path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/smoke-receipt-erratum.json",
+              "sha256": "2b285163aecfeb675abdcaa3bcf5b292539b645099e7d3fd5e1656b0a4f379a9"
+            },
+            {
+              "note": "Corrects only the allowed runtime-lock classification typo; original inventory receipt is retained.",
+              "path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/post-inventory-erratum-v1.json"
+            }
+          ],
+          "grant_path": "/Users/donbeave/.local/state/termrock-pr38-coordination/outbox/2a2de576-dc61-4d38-a622-af04f97db94b.json",
+          "grant_sha256": "4f09efe41b2aa11a781eee7d1042b4bbbd93a61e33c9fd0a3e5cf9b67b3ac9ac",
+          "seven_calls": [
+            {
+              "argv_order": "not separately retained; do not infer exact global --json placement",
+              "authorized_options": {
+                "baselines": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected",
+                "candidate": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/initial.sample.json",
+                "candidate_sha256": "443da4eb02cece714ecd63fb240e0984155b927f9529ea56f75d74e78e1f159c",
+                "expect_baseline": "missing",
+                "json": true
+              },
+              "baseline_file_mode": "0600",
+              "baseline_file_sha256": "443da4eb02cece714ecd63fb240e0984155b927f9529ea56f75d74e78e1f159c",
+              "baseline_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected/termrock/holla_home_actions/initial/pixels-macos-aarch64.tui.json",
+              "baseline_sha256": "443da4eb02cece714ecd63fb240e0984155b927f9529ea56f75d74e78e1f159c",
+              "binary": "/private/tmp/pr38-tuiscotti-04-cli-build-artifact-20261028-b2/tuiscotti",
+              "binary_sha256": "667257ae7e3882ccd9b2e92cd7b166cf5e63279fb8e3660263cb4ac98f5d4fa2",
+              "candidate_path": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/initial.sample.json",
+              "candidate_sha256": "443da4eb02cece714ecd63fb240e0984155b927f9529ea56f75d74e78e1f159c",
+              "checkpoint": "initial",
+              "cli_error_code": null,
+              "cli_reason": null,
+              "cli_schema": "tuiscotti.cli.v1",
+              "cli_status": "pass",
+              "direct_exec_exit_code": 0,
+              "sequence": 1,
+              "stderr_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-01-initial.stderr",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-01-initial.stdout.json",
+              "stdout_sha256": "a507ece04abdce961d53fc73de898c48b05149446af3812eec40fc9e29eb7033",
+              "test_id": "termrock/holla_home_actions/initial/pixels-macos-aarch64"
+            },
+            {
+              "argv_order": "not separately retained; do not infer exact global --json placement",
+              "authorized_options": {
+                "baselines": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected",
+                "candidate": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/origin.sample.json",
+                "candidate_sha256": "2713d2d1a0c9fbc157bc7634c5b28eab318aaa506b778f00d268365798208253",
+                "expect_baseline": "missing",
+                "json": true
+              },
+              "baseline_file_mode": "0600",
+              "baseline_file_sha256": "2713d2d1a0c9fbc157bc7634c5b28eab318aaa506b778f00d268365798208253",
+              "baseline_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected/termrock/holla_home_actions/origin/pixels-macos-aarch64.tui.json",
+              "baseline_sha256": "2713d2d1a0c9fbc157bc7634c5b28eab318aaa506b778f00d268365798208253",
+              "binary": "/private/tmp/pr38-tuiscotti-04-cli-build-artifact-20261028-b2/tuiscotti",
+              "binary_sha256": "667257ae7e3882ccd9b2e92cd7b166cf5e63279fb8e3660263cb4ac98f5d4fa2",
+              "candidate_path": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/origin.sample.json",
+              "candidate_sha256": "2713d2d1a0c9fbc157bc7634c5b28eab318aaa506b778f00d268365798208253",
+              "checkpoint": "origin",
+              "cli_error_code": null,
+              "cli_reason": null,
+              "cli_schema": "tuiscotti.cli.v1",
+              "cli_status": "pass",
+              "direct_exec_exit_code": 0,
+              "sequence": 2,
+              "stderr_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-02-origin.stderr",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-02-origin.stdout.json",
+              "stdout_sha256": "662f0722a26b934abca2d005dfc97c8e6474c662aede08d21c591214f500a0e5",
+              "test_id": "termrock/holla_home_actions/origin/pixels-macos-aarch64"
+            },
+            {
+              "argv_order": "not separately retained; do not infer exact global --json placement",
+              "authorized_options": {
+                "baselines": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected",
+                "candidate": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/actions.sample.json",
+                "candidate_sha256": "086f77a761fafe33bb4d76d3a85c5c86ad64a029b856e8d6ac7f87cd48aa205c",
+                "expect_baseline": "missing",
+                "json": true
+              },
+              "baseline_file_mode": "0600",
+              "baseline_file_sha256": "086f77a761fafe33bb4d76d3a85c5c86ad64a029b856e8d6ac7f87cd48aa205c",
+              "baseline_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected/termrock/holla_home_actions/actions/pixels-macos-aarch64.tui.json",
+              "baseline_sha256": "086f77a761fafe33bb4d76d3a85c5c86ad64a029b856e8d6ac7f87cd48aa205c",
+              "binary": "/private/tmp/pr38-tuiscotti-04-cli-build-artifact-20261028-b2/tuiscotti",
+              "binary_sha256": "667257ae7e3882ccd9b2e92cd7b166cf5e63279fb8e3660263cb4ac98f5d4fa2",
+              "candidate_path": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/actions.sample.json",
+              "candidate_sha256": "086f77a761fafe33bb4d76d3a85c5c86ad64a029b856e8d6ac7f87cd48aa205c",
+              "checkpoint": "actions",
+              "cli_error_code": null,
+              "cli_reason": null,
+              "cli_schema": "tuiscotti.cli.v1",
+              "cli_status": "pass",
+              "direct_exec_exit_code": 0,
+              "sequence": 3,
+              "stderr_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-03-actions.stderr",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-03-actions.stdout.json",
+              "stdout_sha256": "3d8cbdb8b4d0ea782cef8bb5b6d4c1c001c69d8decda4acd07eaee86a4b97cf9",
+              "test_id": "termrock/holla_home_actions/actions/pixels-macos-aarch64"
+            },
+            {
+              "argv_order": "not separately retained; do not infer exact global --json placement",
+              "authorized_options": {
+                "baselines": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected",
+                "candidate": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/returned.sample.json",
+                "candidate_sha256": "e116f3cfde0801d6a007d2ce61012e9c4a10fe39c023a41dba54f2f7746fea38",
+                "expect_baseline": "missing",
+                "json": true
+              },
+              "baseline_file_mode": "0600",
+              "baseline_file_sha256": "e116f3cfde0801d6a007d2ce61012e9c4a10fe39c023a41dba54f2f7746fea38",
+              "baseline_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected/termrock/holla_home_actions/returned/pixels-macos-aarch64.tui.json",
+              "baseline_sha256": "e116f3cfde0801d6a007d2ce61012e9c4a10fe39c023a41dba54f2f7746fea38",
+              "binary": "/private/tmp/pr38-tuiscotti-04-cli-build-artifact-20261028-b2/tuiscotti",
+              "binary_sha256": "667257ae7e3882ccd9b2e92cd7b166cf5e63279fb8e3660263cb4ac98f5d4fa2",
+              "candidate_path": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/returned.sample.json",
+              "candidate_sha256": "e116f3cfde0801d6a007d2ce61012e9c4a10fe39c023a41dba54f2f7746fea38",
+              "checkpoint": "returned",
+              "cli_error_code": null,
+              "cli_reason": null,
+              "cli_schema": "tuiscotti.cli.v1",
+              "cli_status": "pass",
+              "direct_exec_exit_code": 0,
+              "sequence": 4,
+              "stderr_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-04-returned.stderr",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-04-returned.stdout.json",
+              "stdout_sha256": "20ca42b924b4530c46c8a5cc1e66249dbe51fae8afea5b97bac9c77d81e998fd",
+              "test_id": "termrock/holla_home_actions/returned/pixels-macos-aarch64"
+            },
+            {
+              "argv_order": "not separately retained; do not infer exact global --json placement",
+              "authorized_options": {
+                "baselines": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected",
+                "candidate": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/focus_probe.sample.json",
+                "candidate_sha256": "b7a20b11385f2fa5a8b14c6534b7728e862949fcc565a92130634cac2e34c041",
+                "expect_baseline": "missing",
+                "json": true
+              },
+              "baseline_file_mode": "0600",
+              "baseline_file_sha256": "b7a20b11385f2fa5a8b14c6534b7728e862949fcc565a92130634cac2e34c041",
+              "baseline_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected/termrock/holla_home_actions/focus_probe/pixels-macos-aarch64.tui.json",
+              "baseline_sha256": "b7a20b11385f2fa5a8b14c6534b7728e862949fcc565a92130634cac2e34c041",
+              "binary": "/private/tmp/pr38-tuiscotti-04-cli-build-artifact-20261028-b2/tuiscotti",
+              "binary_sha256": "667257ae7e3882ccd9b2e92cd7b166cf5e63279fb8e3660263cb4ac98f5d4fa2",
+              "candidate_path": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/focus_probe.sample.json",
+              "candidate_sha256": "b7a20b11385f2fa5a8b14c6534b7728e862949fcc565a92130634cac2e34c041",
+              "checkpoint": "focus_probe",
+              "cli_error_code": null,
+              "cli_reason": null,
+              "cli_schema": "tuiscotti.cli.v1",
+              "cli_status": "pass",
+              "direct_exec_exit_code": 0,
+              "sequence": 5,
+              "stderr_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-05-focus_probe.stderr",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-05-focus_probe.stdout.json",
+              "stdout_sha256": "14648ad5baaa413705edff9c5abc70af4e3c966e5867400bb55c4f6c15ddc4d7",
+              "test_id": "termrock/holla_home_actions/focus_probe/pixels-macos-aarch64"
+            },
+            {
+              "argv_order": "not separately retained; do not infer exact global --json placement",
+              "authorized_options": {
+                "baselines": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected",
+                "candidate": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/small.sample.json",
+                "candidate_sha256": "3a9e98a2695b2d56687215f19c893342c746a2568efc18f62b58474b9908b529",
+                "expect_baseline": "missing",
+                "json": true
+              },
+              "baseline_file_mode": "0600",
+              "baseline_file_sha256": "3a9e98a2695b2d56687215f19c893342c746a2568efc18f62b58474b9908b529",
+              "baseline_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected/termrock/holla_home_actions/small/pixels-macos-aarch64.tui.json",
+              "baseline_sha256": "3a9e98a2695b2d56687215f19c893342c746a2568efc18f62b58474b9908b529",
+              "binary": "/private/tmp/pr38-tuiscotti-04-cli-build-artifact-20261028-b2/tuiscotti",
+              "binary_sha256": "667257ae7e3882ccd9b2e92cd7b166cf5e63279fb8e3660263cb4ac98f5d4fa2",
+              "candidate_path": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/small.sample.json",
+              "candidate_sha256": "3a9e98a2695b2d56687215f19c893342c746a2568efc18f62b58474b9908b529",
+              "checkpoint": "small",
+              "cli_error_code": null,
+              "cli_reason": null,
+              "cli_schema": "tuiscotti.cli.v1",
+              "cli_status": "pass",
+              "direct_exec_exit_code": 0,
+              "sequence": 6,
+              "stderr_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-06-small.stderr",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-06-small.stdout.json",
+              "stdout_sha256": "aecf5f04475122ab2d49893e8d5a06f25f79cc446c6f0aaae657656370b095a7",
+              "test_id": "termrock/holla_home_actions/small/pixels-macos-aarch64"
+            },
+            {
+              "argv_order": "not separately retained; do not infer exact global --json placement",
+              "authorized_options": {
+                "baselines": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected",
+                "candidate": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/restored.sample.json",
+                "candidate_sha256": "a4568a6de284398650c09eaa79a6afbae218d0bb1eef8f98cce7f188620cdee9",
+                "expect_baseline": "missing",
+                "json": true
+              },
+              "baseline_file_mode": "0600",
+              "baseline_file_sha256": "a4568a6de284398650c09eaa79a6afbae218d0bb1eef8f98cce7f188620cdee9",
+              "baseline_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected/termrock/holla_home_actions/restored/pixels-macos-aarch64.tui.json",
+              "baseline_sha256": "a4568a6de284398650c09eaa79a6afbae218d0bb1eef8f98cce7f188620cdee9",
+              "binary": "/private/tmp/pr38-tuiscotti-04-cli-build-artifact-20261028-b2/tuiscotti",
+              "binary_sha256": "667257ae7e3882ccd9b2e92cd7b166cf5e63279fb8e3660263cb4ac98f5d4fa2",
+              "candidate_path": "/private/tmp/pr38-holla-home-actions-reference-b2-20261028-63efd773/v3/holla_home_actions/samples/restored.sample.json",
+              "candidate_sha256": "a4568a6de284398650c09eaa79a6afbae218d0bb1eef8f98cce7f188620cdee9",
+              "checkpoint": "restored",
+              "cli_error_code": null,
+              "cli_reason": null,
+              "cli_schema": "tuiscotti.cli.v1",
+              "cli_status": "pass",
+              "direct_exec_exit_code": 0,
+              "sequence": 7,
+              "stderr_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-07-restored.stderr",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/accept-07-restored.stdout.json",
+              "stdout_sha256": "df5685e0940e2c32ba8b6cd48b59ae7dd4c0e38adad66e1d7610d9fcabe3ccc0",
+              "test_id": "termrock/holla_home_actions/restored/pixels-macos-aarch64"
+            }
+          ]
+        },
+        "decision_boundary": {
+          "approval_record_mutation": "The existing BASELINE-APPROVAL.json is unchanged at its prior SHA. This is an additive draft outside expected; it is not an approval replacement.",
+          "cli_acceptance": "Seven official CLI accept calls returned status=pass and created digest-matching baselines in this isolated staging store.",
+          "reference_check": "PENDING. The A/B2 review approved these exact candidates for acquisition only; A and B2 runs themselves had missing-baseline comparisons. A fresh current-export reference check is still required.",
+          "target_comparison": "NOT RUN. No target parity or product acceptance is claimed."
+        },
+        "engine_identity": {
+          "named_engine_postimage_bindings": 15,
+          "postimage_review": "Bound and verified by the A/B2 independent review; no new checkout census is claimed.",
+          "tui_test_base_commit": "59a8ded6d8f419f93aaf2c0edcf8253a6e6c7496",
+          "tui_test_patch_sha256": "1c827f5074a28a8d129fa93308c1a39e57a163bfb405d2d440d6b1494a9a399d",
+          "tuiscotti_base_commit": "4b3a5e49ea2e5dbaa913534ced91aa9e45337d67",
+          "tuiscotti_pixel_patch_sha256": "ed4c9ac1d03b6aac8347e7018311aebad100d37a1a8fea400378ee434038955d"
+        },
+        "next_required_gate": "After independent review of this external draft/store, create a fresh immutable export from this staged store and run the approved reference check against PR26. Do not treat this draft as final approval until that check passes and is independently reviewed.",
+        "previous_generation": {
+          "approval_record_sha256": "d2472258c6f9f8ece6ee5a63795f9f303470c750bf8f2c553cdaace66607d41b",
+          "expected_root": "/private/tmp/termrock-functional-suite-holla-actions-v1-export-20261028-e1224ffd/expected",
+          "inventory_sha256": "d5f5e358c42a6225bdfeaa76ed474a6a01726e913c4ef35837c073109ef35a0c",
+          "preserved_byte_and_mode_identity": true,
+          "readme_sha256": "b02ed4d11d752e3db75b58adfa57e6f877abe9940fbd74837b68d26c00ae9653",
+          "sample_count": 35
+        },
+        "reference_binary": {
+          "actual_compiler_path_or_full_binary_digest": "not captured in the prior accepted build receipt; no stronger claim is made",
+          "build_record_path": "/private/tmp/pr26-reference-5b3dbd7-20261028/build-record.json",
+          "build_record_sha256": "49679ebfb8de99cecacbf40e93ecda12a0d5fecfcb2c646838d8a140c612179e",
+          "path": "/private/tmp/pr26-reference-5b3dbd7-20261028/BIN26/holla",
+          "sha256": "8fded1b38adb91cbc277a6b76570f3b53a9345ea8ffac28f7f4d017a2c1561c5",
+          "source_commit": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+          "toolchain": "Rust 1.99.1; LLVM 23.1.1; aarch64-apple-darwin; debug"
+        },
+        "render_contract": {
+          "contract_version": 1,
+          "font_contracts": [
+            {
+              "bold": false,
+              "digest": "604c14112e27072a2049bc87c21743733fd04efdf66cf8e5f88a4cabd411b0fc",
+              "face_index": 0,
+              "fallback_position": 0,
+              "italic": false
+            },
+            {
+              "bold": false,
+              "digest": "18516f691edeb15cda8d54196cff44aa4571352601fa753d8704d0f34c69ac2c",
+              "face_index": 0,
+              "fallback_position": 1,
+              "italic": false
+            },
+            {
+              "bold": false,
+              "digest": "a255234f01f47b52e560ed6bc94ccaf3fb3e2f7c4f21c1a6db31c754bb4fe205",
+              "face_index": 0,
+              "fallback_position": 2,
+              "italic": false
+            },
+            {
+              "bold": true,
+              "digest": "ca72b122a56389b6777dc620303b9c0fec8005aad486e2ee7b7ccb5338d609f7",
+              "face_index": 0,
+              "fallback_position": 3,
+              "italic": false
+            },
+            {
+              "bold": true,
+              "digest": "1778e859d8ee6b2fbd2d652b8335836d4147377eec8dabd4b5f76c88316097a0",
+              "face_index": 0,
+              "fallback_position": 4,
+              "italic": false
+            },
+            {
+              "bold": true,
+              "digest": "24a5466be8a20942c8b2a0de360a37f317a7bf0f3408157e7703138a246c9958",
+              "face_index": 0,
+              "fallback_position": 5,
+              "italic": false
+            },
+            {
+              "bold": true,
+              "digest": "a1f7972a4f2b2bb23564ffa67b1f3a224da020a50a879a939679e787e10271cb",
+              "face_index": 0,
+              "fallback_position": 6,
+              "italic": false
+            },
+            {
+              "bold": false,
+              "digest": "00c821561f6ed53627807b161966754b9cef7c63cafd0b605b7b23caf02cc2b7",
+              "face_index": 0,
+              "fallback_position": 7,
+              "italic": true
+            },
+            {
+              "bold": false,
+              "digest": "1cc9298bffdf86b39b70e92c73660b7eff27a7c7869feb62ea0536a1fc694e6c",
+              "face_index": 0,
+              "fallback_position": 8,
+              "italic": true
+            },
+            {
+              "bold": false,
+              "digest": "10ae86b9c00dc9eda91409601b11ad6dd1027d92892f8327fc902873a372bf60",
+              "face_index": 0,
+              "fallback_position": 9,
+              "italic": true
+            },
+            {
+              "bold": false,
+              "digest": "e5eece4bafd6b006746ac26496bf0e7f2507e46172d7df013bcdc75a2cb6e595",
+              "face_index": 0,
+              "fallback_position": 10,
+              "italic": true
+            },
+            {
+              "bold": true,
+              "digest": "9fbfd0eb8d0cc37d8104ba1cceb3c7e3a292ea4d8463290f31b332c589701068",
+              "face_index": 0,
+              "fallback_position": 11,
+              "italic": true
+            },
+            {
+              "bold": true,
+              "digest": "5b6cc0059d1d6a40d188d1c3904143740aabe5ef58c2375cc0a0569fd6b4e650",
+              "face_index": 0,
+              "fallback_position": 12,
+              "italic": true
+            },
+            {
+              "bold": true,
+              "digest": "90c277c467f388fdee927fd27ea9408fbc9326ae9b6b22ee48536577fe5d1610",
+              "face_index": 0,
+              "fallback_position": 13,
+              "italic": true
+            },
+            {
+              "bold": true,
+              "digest": "ef698a4abbad7d270702e8847b6635eaffdf66569265e0a019cab0d86ca49230",
+              "face_index": 0,
+              "fallback_position": 14,
+              "italic": true
+            }
+          ],
+          "palette_digest": "38f64979c4c0c9e65966308a52c27d01d65ea87eb2571216c8c4be071730ff3d",
+          "per_checkpoint_contracts": [
+            {
+              "checkpoint": "initial",
+              "cursor_phase": "shown",
+              "render_contract_sha256": "0b3d0a0e8dbc69ea159dcef4d8fadda6c5b25bb9e17377f666814608d76a5596"
+            },
+            {
+              "checkpoint": "origin",
+              "cursor_phase": "shown",
+              "render_contract_sha256": "0b3d0a0e8dbc69ea159dcef4d8fadda6c5b25bb9e17377f666814608d76a5596"
+            },
+            {
+              "checkpoint": "actions",
+              "cursor_phase": "hidden",
+              "render_contract_sha256": "259d74baf774135ade9a9ac2a159c1b21af96ea143400e82d3cf058843b29039"
+            },
+            {
+              "checkpoint": "returned",
+              "cursor_phase": "shown",
+              "render_contract_sha256": "0b3d0a0e8dbc69ea159dcef4d8fadda6c5b25bb9e17377f666814608d76a5596"
+            },
+            {
+              "checkpoint": "focus_probe",
+              "cursor_phase": "shown",
+              "render_contract_sha256": "0b3d0a0e8dbc69ea159dcef4d8fadda6c5b25bb9e17377f666814608d76a5596"
+            },
+            {
+              "checkpoint": "small",
+              "cursor_phase": "shown",
+              "render_contract_sha256": "0b3d0a0e8dbc69ea159dcef4d8fadda6c5b25bb9e17377f666814608d76a5596"
+            },
+            {
+              "checkpoint": "restored",
+              "cursor_phase": "shown",
+              "render_contract_sha256": "0b3d0a0e8dbc69ea159dcef4d8fadda6c5b25bb9e17377f666814608d76a5596"
+            }
+          ],
+          "phase_rule": "Cursor phase remains checkpoint-specific: actions is hidden; the other six are shown. Do not normalize phases across checkpoints.",
+          "profile": "tuiscotti-pinned-v1",
+          "raster_policy": "pinned-v1",
+          "renderer_version": "0.2.0"
+        },
+        "schema": "termrock.functional-suite.reference-baseline-approval-addendum-draft.v1",
+        "staged_generation": {
+          "approval_record_sha256": "d2472258c6f9f8ece6ee5a63795f9f303470c750bf8f2c553cdaace66607d41b",
+          "expected_root": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576/expected",
+          "inventory": {
+            ".tuiscotti-approval.lock": {
+              "bytes": 0,
+              "mode": "0600",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "BASELINE-APPROVAL.json": {
+              "bytes": 64116,
+              "mode": "0644",
+              "sha256": "d2472258c6f9f8ece6ee5a63795f9f303470c750bf8f2c553cdaace66607d41b"
+            },
+            "README.md": {
+              "bytes": 376,
+              "mode": "0644",
+              "sha256": "b02ed4d11d752e3db75b58adfa57e6f877abe9940fbd74837b68d26c00ae9653"
+            },
+            "termrock/first_delivery_holla_first_use/cleared/pixels-macos-aarch64.tui.json": {
+              "bytes": 1372476,
+              "mode": "0644",
+              "sha256": "e6d3fa2ff5a27a212781c4fae086d6fad918f8f214614cb2c6a9b3f97b1ed80f"
+            },
+            "termrock/first_delivery_holla_first_use/empty/pixels-macos-aarch64.tui.json": {
+              "bytes": 1242293,
+              "mode": "0644",
+              "sha256": "65de5f566d2de131b0694ada86152d6398d1a539cd60f32aec209264fca2a66e"
+            },
+            "termrock/first_delivery_holla_first_use/help/pixels-macos-aarch64.tui.json": {
+              "bytes": 1468762,
+              "mode": "0644",
+              "sha256": "ebd34bf027bb39fa1f3a0797c8e3ca05254374f14fef585f5180c3fed285ba28"
+            },
+            "termrock/first_delivery_holla_first_use/initial/pixels-macos-aarch64.tui.json": {
+              "bytes": 1372476,
+              "mode": "0644",
+              "sha256": "2ae3c7878fee2644ca00508bb8bbe3fa86aa0c57400b9704bf37dbc5ccc24555"
+            },
+            "termrock/first_delivery_holla_first_use/restored/pixels-macos-aarch64.tui.json": {
+              "bytes": 1372478,
+              "mode": "0644",
+              "sha256": "7d3cb2b820ccca4a9656b5528019705e323f5655711a29ebc617453bc3ed3068"
+            },
+            "termrock/first_delivery_holla_first_use/returned/pixels-macos-aarch64.tui.json": {
+              "bytes": 1372477,
+              "mode": "0644",
+              "sha256": "d3dd2db8ec0d5fc609c35d9b555482c85ccdbd1b35650193dc867c16b4bf176c"
+            },
+            "termrock/first_delivery_holla_first_use/small/pixels-macos-aarch64.tui.json": {
+              "bytes": 591831,
+              "mode": "0644",
+              "sha256": "01d081bc143cc8f9464504efedfc1bc06d936a8c8c9318ed7a5785c8a1606198"
+            },
+            "termrock/first_delivery_jackin_settings/general/pixels-macos-aarch64.tui.json": {
+              "bytes": 1251241,
+              "mode": "0644",
+              "sha256": "6424cfc851425d106a5fb8b5a03485196d5817911dde87ba1f1bf3ac76efc69f"
+            },
+            "termrock/first_delivery_jackin_settings/general_return/pixels-macos-aarch64.tui.json": {
+              "bytes": 1251247,
+              "mode": "0644",
+              "sha256": "fa0cb0102ed586e57c7f5309f10a3881877e893b5ffe830f2f98aeb52b753be8"
+            },
+            "termrock/first_delivery_jackin_settings/help/pixels-macos-aarch64.tui.json": {
+              "bytes": 1404758,
+              "mode": "0644",
+              "sha256": "07b3a4a8300f4ca11558ffe0749f29df802f78bd88be146817145c98affb37f8"
+            },
+            "termrock/first_delivery_jackin_settings/help_return/pixels-macos-aarch64.tui.json": {
+              "bytes": 1345638,
+              "mode": "0644",
+              "sha256": "f3af1c2fa23e874a8bcd4b8378cb763ed63df6f16a34a940cba6ea813f79bcf6"
+            },
+            "termrock/first_delivery_jackin_settings/initial/pixels-macos-aarch64.tui.json": {
+              "bytes": 1336428,
+              "mode": "0644",
+              "sha256": "f70b9dff70114333b0894a7fd2d71426b727a6fff47c71a867ee115d1644952a"
+            },
+            "termrock/first_delivery_jackin_settings/manager_return/pixels-macos-aarch64.tui.json": {
+              "bytes": 1345640,
+              "mode": "0644",
+              "sha256": "04af36ef122fc88f323f246b60f8d31576601440890d49f68e9470f0d97e0c1e"
+            },
+            "termrock/first_delivery_jackin_settings/mounts/pixels-macos-aarch64.tui.json": {
+              "bytes": 1259214,
+              "mode": "0644",
+              "sha256": "bd40d1b4910a3655b749a93a95145a2c61a950fecf093ea39e2dc85787bb5a01"
+            },
+            "termrock/first_delivery_jackin_settings/restored/pixels-macos-aarch64.tui.json": {
+              "bytes": 1345635,
+              "mode": "0644",
+              "sha256": "5d0d03fc5c94dfbe6a199776a2997bbb17b01b5c53bbd599e3b892623e9fd5d2"
+            },
+            "termrock/first_delivery_jackin_settings/selected/pixels-macos-aarch64.tui.json": {
+              "bytes": 1345634,
+              "mode": "0644",
+              "sha256": "b3fbae44914b99de4e053b91c6ceaba81fc14a270e343b6ddfc2548c0f1b44f6"
+            },
+            "termrock/first_delivery_jackin_settings/small/pixels-macos-aarch64.tui.json": {
+              "bytes": 574191,
+              "mode": "0644",
+              "sha256": "649de00d3669c7a9891d97252e7b37a6d019c17c7dcc68467abe6832324ef066"
+            },
+            "termrock/first_delivery_showcase_buttons/help/pixels-macos-aarch64.tui.json": {
+              "bytes": 1361657,
+              "mode": "0644",
+              "sha256": "bef062ed83085339d6962278393f4b78a65be9028308bd78f06507f6efdd144c"
+            },
+            "termrock/first_delivery_showcase_buttons/initial/pixels-macos-aarch64.tui.json": {
+              "bytes": 1363842,
+              "mode": "0644",
+              "sha256": "46ccb91399516517cd1e0ca7f59f0525fded413643ce31dca36f345c927c6235"
+            },
+            "termrock/first_delivery_showcase_buttons/preview/pixels-macos-aarch64.tui.json": {
+              "bytes": 1365088,
+              "mode": "0644",
+              "sha256": "9dc1de776f3e3633d2adae7ac8167ad0239924267092bb323463efcc2e13f5ba"
+            },
+            "termrock/first_delivery_showcase_buttons/restored/pixels-macos-aarch64.tui.json": {
+              "bytes": 1365097,
+              "mode": "0644",
+              "sha256": "973cc5178128b6593518ee20102e31e2455e2e6c489f6ebc69160334b9f38b82"
+            },
+            "termrock/first_delivery_showcase_buttons/returned/pixels-macos-aarch64.tui.json": {
+              "bytes": 1365096,
+              "mode": "0644",
+              "sha256": "cc984ce8d7c4db11267b6c6c92377bc76a721af7e14f72f4642abef38c442549"
+            },
+            "termrock/first_delivery_showcase_buttons/run/pixels-macos-aarch64.tui.json": {
+              "bytes": 1364740,
+              "mode": "0644",
+              "sha256": "de804518fdba43a6f299e18a3348fb2c7bd0b1958c47a0900958ccae3e740f20"
+            },
+            "termrock/first_delivery_showcase_buttons/small/pixels-macos-aarch64.tui.json": {
+              "bytes": 593884,
+              "mode": "0644",
+              "sha256": "da94cae64428f97fe8a417630809d71cc319f8970bfa0b3c8808a27d00422326"
+            },
+            "termrock/first_delivery_tablepro_connections/help/pixels-macos-aarch64.tui.json": {
+              "bytes": 1396203,
+              "mode": "0644",
+              "sha256": "e9c495e28f28b5f29e1ffb4d94ac023cdfb6eb8bfd7767edf9f771c7804b4c63"
+            },
+            "termrock/first_delivery_tablepro_connections/initial/pixels-macos-aarch64.tui.json": {
+              "bytes": 1284631,
+              "mode": "0644",
+              "sha256": "1f4c1004fa590fe09206e86363283df019445c4163ab98abed64517c8fb343f4"
+            },
+            "termrock/first_delivery_tablepro_connections/restored/pixels-macos-aarch64.tui.json": {
+              "bytes": 1284596,
+              "mode": "0644",
+              "sha256": "ecf7f20cf3f9689f7f011dafc3fad38984b9911313ae1bb3673adacfcb5c9042"
+            },
+            "termrock/first_delivery_tablepro_connections/returned/pixels-macos-aarch64.tui.json": {
+              "bytes": 1284596,
+              "mode": "0644",
+              "sha256": "c1de3de58c4bb795e58e24a80424b79ff5d05fe5b852bea2cbad764e0b7fd98a"
+            },
+            "termrock/first_delivery_tablepro_connections/selected/pixels-macos-aarch64.tui.json": {
+              "bytes": 1284594,
+              "mode": "0644",
+              "sha256": "12483fc3ccadbb0bc515573d21a8dbad45b25df723f6d9197012d19502a284f0"
+            },
+            "termrock/first_delivery_tablepro_connections/small/pixels-macos-aarch64.tui.json": {
+              "bytes": 528748,
+              "mode": "0644",
+              "sha256": "c8ec5edcb0f7c727829a51620071fc4890a662c9d00e502ed28bcf0f0a9f51a5"
+            },
+            "termrock/holla_home_actions/actions/pixels-macos-aarch64.tui.json": {
+              "bytes": 1341025,
+              "mode": "0600",
+              "sha256": "086f77a761fafe33bb4d76d3a85c5c86ad64a029b856e8d6ac7f87cd48aa205c"
+            },
+            "termrock/holla_home_actions/focus_probe/pixels-macos-aarch64.tui.json": {
+              "bytes": 1245800,
+              "mode": "0600",
+              "sha256": "b7a20b11385f2fa5a8b14c6534b7728e862949fcc565a92130634cac2e34c041"
+            },
+            "termrock/holla_home_actions/initial/pixels-macos-aarch64.tui.json": {
+              "bytes": 1372467,
+              "mode": "0600",
+              "sha256": "443da4eb02cece714ecd63fb240e0984155b927f9529ea56f75d74e78e1f159c"
+            },
+            "termrock/holla_home_actions/origin/pixels-macos-aarch64.tui.json": {
+              "bytes": 1315111,
+              "mode": "0600",
+              "sha256": "2713d2d1a0c9fbc157bc7634c5b28eab318aaa506b778f00d268365798208253"
+            },
+            "termrock/holla_home_actions/restored/pixels-macos-aarch64.tui.json": {
+              "bytes": 1315114,
+              "mode": "0600",
+              "sha256": "a4568a6de284398650c09eaa79a6afbae218d0bb1eef8f98cce7f188620cdee9"
+            },
+            "termrock/holla_home_actions/returned/pixels-macos-aarch64.tui.json": {
+              "bytes": 1315113,
+              "mode": "0600",
+              "sha256": "e116f3cfde0801d6a007d2ce61012e9c4a10fe39c023a41dba54f2f7746fea38"
+            },
+            "termrock/holla_home_actions/small/pixels-macos-aarch64.tui.json": {
+              "bytes": 536139,
+              "mode": "0600",
+              "sha256": "3a9e98a2695b2d56687215f19c893342c746a2568efc18f62b58474b9908b529"
+            },
+            "termrock/showcase_status_and_hints/initial/pixels-macos-aarch64.tui.json": {
+              "bytes": 1522475,
+              "mode": "0644",
+              "sha256": "22424478acb38b421aee5c274101f1507a9cf4e9e3d84cabdd23f24924f472af"
+            },
+            "termrock/showcase_status_and_hints/options_menu/pixels-macos-aarch64.tui.json": {
+              "bytes": 1311516,
+              "mode": "0644",
+              "sha256": "efad1d1e42e253a7b5fe50320849fe606ffe65f6a22f6e7864a02d063066172d"
+            },
+            "termrock/showcase_status_and_hints/resolved_menu/pixels-macos-aarch64.tui.json": {
+              "bytes": 1518115,
+              "mode": "0644",
+              "sha256": "2723fe2e669ad1fdf85ae04209e9da4216409dc7aae485406136d7cc8fb65238"
+            },
+            "termrock/showcase_status_and_hints/restored/pixels-macos-aarch64.tui.json": {
+              "bytes": 1518110,
+              "mode": "0644",
+              "sha256": "1f28cbff7685a29fcbbf35a7563bee9c351ce53d3b6dcccd0570643dd3e19f1b"
+            },
+            "termrock/showcase_status_and_hints/small/pixels-macos-aarch64.tui.json": {
+              "bytes": 662969,
+              "mode": "0644",
+              "sha256": "a218b16fdb10fc7dad85eed73a8a99728b7fd47dda08fa68d0e90459e081e54b"
+            }
+          },
+          "inventory_erratum_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/post-inventory-erratum-v1.json",
+          "inventory_sha256": "96d7ad54fa029817d28c3dc60ad1bae565c7abd452925e194e6376ff617bedd1",
+          "new_candidate_count": 7,
+          "new_candidate_ids": [
+            "termrock/holla_home_actions/initial/pixels-macos-aarch64",
+            "termrock/holla_home_actions/origin/pixels-macos-aarch64",
+            "termrock/holla_home_actions/actions/pixels-macos-aarch64",
+            "termrock/holla_home_actions/returned/pixels-macos-aarch64",
+            "termrock/holla_home_actions/focus_probe/pixels-macos-aarch64",
+            "termrock/holla_home_actions/small/pixels-macos-aarch64",
+            "termrock/holla_home_actions/restored/pixels-macos-aarch64"
+          ],
+          "readme_sha256": "b02ed4d11d752e3db75b58adfa57e6f877abe9940fbd74837b68d26c00ae9653",
+          "runtime_lock": {
+            "bytes": 0,
+            "inode": 1624144397,
+            "mode": "0600",
+            "path": ".tuiscotti-approval.lock",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "sample_count": 42,
+          "total_file_count": 45
+        },
+        "status": "draft-reference-check-pending",
+        "suite_identity": {
+          "Cargo.lock": "88822e5c44bf9660fb3586a8a8c52eed861fb46386b8cb99f40bdde88a9d9d76",
+          "cases/cases.toml": "57b31c256c1ad01567e1d5ba2d573e5b2dedf83ce95d2de18c2d1a3d4063628e",
+          "engine-pins.json": "5370c471d303c19a7982505e051311e6f76fe5fa350b6980a1e0a9a5191a5dd7",
+          "export": "/private/tmp/termrock-functional-suite-holla-actions-v1-export-20261028-e1224ffd",
+          "fixtures/dataset.json": "9c268e1097ab5a92ced9ec90b80c79d4914984a98d764b151f5ed867570ed48e",
+          "planned_case_count": 12,
+          "registered_case_count": 89,
+          "requirement_mapping_count": 276,
+          "source_manifest_entries": 49,
+          "source_manifest_path": "/private/tmp/holla-home-actions-source-manifest-current-20261028-f1dd7492.sha256",
+          "source_manifest_sha256": "f30a1415610d5d41b6d97edbf1b93da956ecc4c03a564fde8048ad3939311d69",
+          "tests/functional.rs": "5c57284d9cf726c924852a1908cfa1b7de39234e28cc3c4eea848aec235ee1fe",
+          "unplanned_case_count": 77
+        }
+      },
+      "completion_record": {
+        "status": "independently-reviewed-reference-check-passed",
+        "case_id": "holla_home_actions",
+        "selected_case_count": 1,
+        "registered_case_count": 89,
+        "filtered_out_case_count": 88,
+        "checkpoint_count": 7,
+        "state_and_pixel_pass_count": 7,
+        "nextest_run_id": "6f556213-e503-4499-8510-7a87afe3b97d",
+        "nextest_summary": "1 test passed; 88 filtered out",
+        "direct_tool_exit": 0,
+        "child_exit": 0,
+        "pty_output_drained_to_eof": true,
+        "terminal_restoration_passed": true,
+        "target_comparison": "not run; reference-only evidence does not establish target parity",
+        "reference_receipt": {
+          "path": "/private/tmp/pr38-holla-home-actions-reference-approved-v42-20261028-325ada83-run01-evidence/terminal-receipt-v1.json",
+          "sha256": "43614f6a134ffa75ee99c9fdb9fb35ba3188101ac4c9705950fddd509e34a259"
+        },
+        "independent_review": {
+          "path": "/private/tmp/pr38-holla-v42-independent-evidence-review-20261028/review.txt",
+          "sha256": "da69695378fb559934ecb914edc69c0dd6a62c63c478bbf530378043077eb9b6",
+          "decision": "ACCEPT seven canonical reference checkpoints"
+        },
+        "output_inventory": {
+          "path": "/private/tmp/pr38-holla-home-actions-reference-approved-v42-20261028-325ada83-run01-evidence/output-inventory.json",
+          "sha256": "6bb7ab09d4cd1b9e8a052bc017cc11c818f8585964446f6b21b0f030536b88c6"
+        },
+        "evidence_inventory": {
+          "path": "/private/tmp/pr38-holla-home-actions-reference-approved-v42-20261028-325ada83-run01-evidence/evidence-inventory.json",
+          "sha256": "901a449651cd96e31101a86325999386912df9c08e4201235f3be6dc7041b6d1"
+        },
+        "frozen_export": {
+          "path": "/private/tmp/termrock-functional-suite-holla-actions-v42-export-20261028-e1224ffd",
+          "receipt_sha256": "816b73ca081d54afd969f3b52c98bf6ea2b8e642b0f1004b7416635a5cc4f49b",
+          "source_manifest_sha256": "1505c47dc4a6e7dd23516051e0e2e6b789f7045ad5dfa227c83be2ff5d7a36c0",
+          "source_manifest_entries": 56,
+          "source_manifest_mismatches": 0,
+          "cases_sha256": "57b31c256c1ad01567e1d5ba2d573e5b2dedf83ce95d2de18c2d1a3d4063628e",
+          "functional_rs_sha256": "5c57284d9cf726c924852a1908cfa1b7de39234e28cc3c4eea848aec235ee1fe",
+          "cargo_lock_sha256": "88822e5c44bf9660fb3586a8a8c52eed861fb46386b8cb99f40bdde88a9d9d76",
+          "dataset_sha256": "9c268e1097ab5a92ced9ec90b80c79d4914984a98d764b151f5ed867570ed48e",
+          "engine_pins_sha256": "5370c471d303c19a7982505e051311e6f76fe5fa350b6980a1e0a9a5191a5dd7"
+        },
+        "reference_binary": {
+          "path": "/private/tmp/pr26-reference-5b3dbd7-20261028/BIN26/holla",
+          "sha256": "8fded1b38adb91cbc277a6b76570f3b53a9345ea8ffac28f7f4d017a2c1561c5",
+          "source_commit": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
+        },
+        "expected_samples": [
+          {
+            "checkpoint": "initial",
+            "test_id": "termrock/holla_home_actions/initial/pixels-macos-aarch64",
+            "expected_path": "expected/termrock/holla_home_actions/initial/pixels-macos-aarch64.tui.json",
+            "sha256": "443da4eb02cece714ecd63fb240e0984155b927f9529ea56f75d74e78e1f159c"
+          },
+          {
+            "checkpoint": "origin",
+            "test_id": "termrock/holla_home_actions/origin/pixels-macos-aarch64",
+            "expected_path": "expected/termrock/holla_home_actions/origin/pixels-macos-aarch64.tui.json",
+            "sha256": "2713d2d1a0c9fbc157bc7634c5b28eab318aaa506b778f00d268365798208253"
+          },
+          {
+            "checkpoint": "actions",
+            "test_id": "termrock/holla_home_actions/actions/pixels-macos-aarch64",
+            "expected_path": "expected/termrock/holla_home_actions/actions/pixels-macos-aarch64.tui.json",
+            "sha256": "086f77a761fafe33bb4d76d3a85c5c86ad64a029b856e8d6ac7f87cd48aa205c"
+          },
+          {
+            "checkpoint": "returned",
+            "test_id": "termrock/holla_home_actions/returned/pixels-macos-aarch64",
+            "expected_path": "expected/termrock/holla_home_actions/returned/pixels-macos-aarch64.tui.json",
+            "sha256": "e116f3cfde0801d6a007d2ce61012e9c4a10fe39c023a41dba54f2f7746fea38"
+          },
+          {
+            "checkpoint": "focus_probe",
+            "test_id": "termrock/holla_home_actions/focus_probe/pixels-macos-aarch64",
+            "expected_path": "expected/termrock/holla_home_actions/focus_probe/pixels-macos-aarch64.tui.json",
+            "sha256": "b7a20b11385f2fa5a8b14c6534b7728e862949fcc565a92130634cac2e34c041"
+          },
+          {
+            "checkpoint": "small",
+            "test_id": "termrock/holla_home_actions/small/pixels-macos-aarch64",
+            "expected_path": "expected/termrock/holla_home_actions/small/pixels-macos-aarch64.tui.json",
+            "sha256": "3a9e98a2695b2d56687215f19c893342c746a2568efc18f62b58474b9908b529"
+          },
+          {
+            "checkpoint": "restored",
+            "test_id": "termrock/holla_home_actions/restored/pixels-macos-aarch64",
+            "expected_path": "expected/termrock/holla_home_actions/restored/pixels-macos-aarch64.tui.json",
+            "sha256": "a4568a6de284398650c09eaa79a6afbae218d0bb1eef8f98cce7f188620cdee9"
+          }
+        ],
+        "official_cli_acceptance": {
+          "draft_path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/approval-record-addendum-draft-v1.json",
+          "draft_sha256": "15862d6ffe87d8f97d55ae55f511e84cc8addfb825a6c6b9f093c476144fc601",
+          "independent_store_review_path": "/private/tmp/pr38-approval-cli-copy-independent-review-20261028/store-review.md",
+          "independent_store_review_sha256": "25c57c9067189efa32b864942b9de7f39e8af38210bed086d2608c2a7d6598cf",
+          "accepted_call_count": 7,
+          "all_calls_reported_success": true,
+          "literal_argv_order": "not separately retained; per-call candidate, digest, expected-baseline, baseline-root, and successful outcome are preserved",
+          "smoke_receipt_erratum": {
+            "path": "/private/tmp/pr38-holla-home-actions-expected-v42-20261028-2a2de576-evidence/smoke-receipt-erratum.json",
+            "sha256": "2b285163aecfeb675abdcaa3bcf5b292539b645099e7d3fd5e1656b0a4f379a9"
+          }
+        },
+        "resource_archive_limits": {
+          "raw_lsof_or_lease_body_saved_separately": false,
+          "raw_terminal_tool_return_saved_separately": false,
+          "retained_terminal_receipt_and_process_lineage_are_independently_reviewed": true,
+          "setup_false_positive_recorded_separately": {
+            "path": "/private/tmp/pr38-holla-home-actions-reference-approved-v42-20261028-325ada83-run01-evidence/preflight-correction-01.json",
+            "sha256": "afa4f407492e1c699e286d7de80d1bd85f1549f13e43cfb1c2119d1367780204"
+          }
+        }
+      },
+      "historical_draft_record_preserved_unchanged": true
+    }
+  ]
+}

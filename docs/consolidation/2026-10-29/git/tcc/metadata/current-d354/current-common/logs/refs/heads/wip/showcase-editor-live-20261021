@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 491f9cfc8193718b284797d251db585cef81c022 Alexey Zhokhov <alexey@zhokhov.com> 1792553501 +0700	branch: Created from HEAD
+491f9cfc8193718b284797d251db585cef81c022 b0db2ae69f617bf1f6a5a72d12d2d5aed3c1847c Alexey Zhokhov <alexey@zhokhov.com> 1792554372 +0700	commit: feat(showcase): restore live editor playground flows
+b0db2ae69f617bf1f6a5a72d12d2d5aed3c1847c 3807e493c63416e87f1ac5e38d7325e2a638d733 Alexey Zhokhov <alexey@zhokhov.com> 1792554381 +0700	rebase (finish): refs/heads/wip/showcase-editor-live-20261021 onto 6825b07e86bab75872866c6ed49e6877084db9bb
+3807e493c63416e87f1ac5e38d7325e2a638d733 c65631b49da5b60e7022292506a723e8319c99d7 Alexey Zhokhov <alexey@zhokhov.com> 1792555225 +0700	commit: fix(showcase): preserve editor bindings in page
+c65631b49da5b60e7022292506a723e8319c99d7 f4a4a11cc498740ecdd9930330b830d39ea67de2 Alexey Zhokhov <alexey@zhokhov.com> 1792555937 +0700	commit: fix(showcase): preserve editor run and completion contracts
+f4a4a11cc498740ecdd9930330b830d39ea67de2 de754a4a16997eb18d96a6bea5cf672d41a4b830 Alexey Zhokhov <alexey@zhokhov.com> 1792556352 +0700	commit: fix(showcase): preserve editor run state parity
+de754a4a16997eb18d96a6bea5cf672d41a4b830 59a4eae3bfc4b3a420f3999864efb763a7523573 Alexey Zhokhov <alexey@zhokhov.com> 1792556843 +0700	commit: docs(audit): map frozen editor options and states

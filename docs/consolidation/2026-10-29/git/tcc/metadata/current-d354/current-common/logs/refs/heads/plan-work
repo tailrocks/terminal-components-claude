@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 00643499ad293a6ee38d0b258fb988ad433297c6 Alexey Zhokhov <alexey@zhokhov.com> 1792130990 +0700	branch: Created from origin/design/interaction-polish
+00643499ad293a6ee38d0b258fb988ad433297c6 1ad02d219145dd2b7c95fc4057ddfb8c39fa6cb7 Alexey Zhokhov <alexey@zhokhov.com> 1792131091 +0700	commit: docs(visual-testing): record the research behind the visual test plan
+1ad02d219145dd2b7c95fc4057ddfb8c39fa6cb7 32a5762518db416097ed86bc55fdca643c705b24 Alexey Zhokhov <alexey@zhokhov.com> 1792131109 +0700	rebase (finish): refs/heads/plan-work onto 676936c8a9ca32d88996aae5f3b58d9836d56fcb
+32a5762518db416097ed86bc55fdca643c705b24 84f35381b25871923b43467e4584fa29cdacff51 Alexey Zhokhov <alexey@zhokhov.com> 1792131362 +0700	commit: docs(visual-testing): plan the PTY visual gate and the main refactor
+84f35381b25871923b43467e4584fa29cdacff51 bfa9b2a1020cc1b69f8e0e7ece6e6379f5c902a5 Alexey Zhokhov <alexey@zhokhov.com> 1792131380 +0700	commit: docs(visual-testing): how to run, read and approve visual captures

@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 5fea4ac9bce0d8db09c9af16246abff6c4bc1089 Alexey Zhokhov <alexey@zhokhov.com> 1792157299 +0700	branch: Created from HEAD
+5fea4ac9bce0d8db09c9af16246abff6c4bc1089 1b4a250ad73def9a56017de54642fb8c889a9e0f Alexey Zhokhov <alexey@zhokhov.com> 1792157980 +0700	commit: feat(catalog): library capability registry
+1b4a250ad73def9a56017de54642fb8c889a9e0f f45c3a22b4ee97011fb20221fe9f81c215065e98 Alexey Zhokhov <alexey@zhokhov.com> 1792157980 +0700	commit: test(showcase): coverage gate with allowlist
+f45c3a22b4ee97011fb20221fe9f81c215065e98 8c35985c2fa8a74e39af6d3fcd481f007924744e Alexey Zhokhov <alexey@zhokhov.com> 1792158014 +0700	commit: wip-docs
+8c35985c2fa8a74e39af6d3fcd481f007924744e d24b77398a602d9e5f98ea5c395fb29692d1b21a Alexey Zhokhov <alexey@zhokhov.com> 1792158014 +0700	rebase (finish): refs/heads/sc0-gate onto 56a137c78907204f6086dff7436e7e5a63c2c04f
+d24b77398a602d9e5f98ea5c395fb29692d1b21a 28c1a860f0dfde50b1e8d66ba7fa1fd42ed8b279 Alexey Zhokhov <alexey@zhokhov.com> 1792158019 +0700	commit (amend): docs(showcase): SC0 coverage gate landed; jackin intro and outro stay app-local
+28c1a860f0dfde50b1e8d66ba7fa1fd42ed8b279 4a64274a20692f12fd78457b1170bfbabdf4da49 Alexey Zhokhov <alexey@zhokhov.com> 1792158263 +0700	rebase (finish): refs/heads/sc0-gate onto 67ddac8a818dd183c169878e2654065dda7162ea
+4a64274a20692f12fd78457b1170bfbabdf4da49 cd519095758ef33025e8e506f77dd89be8ddb69e Alexey Zhokhov <alexey@zhokhov.com> 1792158303 +0700	reset: moving to HEAD~1
+cd519095758ef33025e8e506f77dd89be8ddb69e 1056310b3766bdc75d9ceb9f57b253f089fd784f Alexey Zhokhov <alexey@zhokhov.com> 1792158303 +0700	commit: feat(catalog): register the new tone and title-status builders
+1056310b3766bdc75d9ceb9f57b253f089fd784f c7b5922c036e745b17c75c375fe385df6aab0b71 Alexey Zhokhov <alexey@zhokhov.com> 1792158312 +0700	commit: docs(showcase): SC0 coverage gate landed; jackin intro and outro stay app-local
+c7b5922c036e745b17c75c375fe385df6aab0b71 042e8a50e8da57dd324ed5883a01d82418e9014a Alexey Zhokhov <alexey@zhokhov.com> 1792158320 +0700	rebase (finish): refs/heads/sc0-gate onto 226ce5f990a0ca8fcb6f6ceb5f9c491755bc9c43
+042e8a50e8da57dd324ed5883a01d82418e9014a 325b3fd89ca2bad4f060d71217d92ea76c0b1347 Alexey Zhokhov <alexey@zhokhov.com> 1792158320 +0700	commit (amend): docs(showcase): SC0 coverage gate landed; jackin intro and outro stay app-local

@@ -1,0 +1,93 @@
+use termrock::feedback::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};
+use termrock::{Rect, Ui};
+
+use crate::scenario::{Motion, Scenario};
+use crate::screens::manager::ManagerRowKey;
+
+use super::{App, Route};
+
+pub(super) fn approved(app: &App, _ui: &Ui<'_>, screen: Rect) -> bool {
+    screen.width >= 80
+        && screen.height >= 24
+        && app.route == Route::Manager
+        && app.world.scenario == Scenario::HardCases
+        && app.motion == Motion::Paused
+        && !app.manager_file_menu
+        && !app.manager_inspect
+        && !app.help_open
+        && app.status.is_none()
+        && !app.quit_open
+        && !app.cancel_open
+        && !app.about_open
+        && app.launch.is_none()
+        && app.picker_mode.is_none()
+        && !app.launch_picker_open
+        && app.agent_options.is_empty()
+        && app.active_instance.is_none()
+        && !app.manager.detail_open()
+        && app.manager.selected_row() == &ManagerRowKey::Workspace(12)
+}
+
+pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
+    if !approved(app, ui, screen) {
+        return;
+    }
+
+    let menus = [
+        SessionMenu {
+            label: "File",
+            focused: true,
+        },
+        SessionMenu {
+            label: "Edit",
+            focused: false,
+        },
+        SessionMenu {
+            label: "View",
+            focused: false,
+        },
+        SessionMenu {
+            label: "Session",
+            focused: false,
+        },
+        SessionMenu {
+            label: "Help",
+            focused: false,
+        },
+    ];
+    let hints = [
+        SessionHint {
+            key: "Ctrl+B",
+            action: "Pane commands…",
+        },
+        SessionHint {
+            key: "F10",
+            action: "Menu",
+        },
+        SessionHint {
+            key: "Ctrl+\\",
+            action: "Palette",
+        },
+        SessionHint {
+            key: "Alt+Shift+↑↓←→",
+            action: "Resize",
+        },
+    ];
+    paint_session_chrome(
+        ui,
+        screen,
+        &SessionChrome {
+            brand: "jackin❯",
+            menus: &menus,
+            crumb: "› backend",
+            instance: "jackin-data-pipeline-e0e0",
+            instances: "3 instances",
+            branch: "main",
+            state: "clean",
+            account: "no account · shell",
+            hints: &hints,
+            overflow: "…",
+            attached: "Attached to  · tabs and panes restored",
+        },
+    );
+}

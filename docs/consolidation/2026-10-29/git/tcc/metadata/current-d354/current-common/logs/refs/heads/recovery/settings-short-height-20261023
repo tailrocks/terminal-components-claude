@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 0536893d456e0458c0cdb37464b710ce029d1847 Alexey Zhokhov <alexey@zhokhov.com> 1792744714 +0700	branch: Created from FETCH_HEAD
+0536893d456e0458c0cdb37464b710ce029d1847 beb9e7999645bcc60892cfceae7983f6052fa393 Alexey Zhokhov <alexey@zhokhov.com> 1792745666 +0700	commit: fix(showcase): contain short Settings body
+beb9e7999645bcc60892cfceae7983f6052fa393 101f8a6ddf0abdac362d6a66cb891b72b7406812 Alexey Zhokhov <alexey@zhokhov.com> 1792746262 +0700	rebase (finish): refs/heads/recovery/settings-short-height-20261023 onto 5ec532e053ba0f35ae1161eab7c4bffe27a9d21e

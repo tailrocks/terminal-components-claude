@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 f633191bf06c994d4bc6a4542b814c283e63376d Alexey Zhokhov <alexey@zhokhov.com> 1792243875 +0700	branch: Created from HEAD
+f633191bf06c994d4bc6a4542b814c283e63376d b39b3696917172e0f1d67c3000f36bc50139717e Alexey Zhokhov <alexey@zhokhov.com> 1792244115 +0700	commit: fix(holla): the disk page keeps its filesystems on a short screen (R-apps-6)
+b39b3696917172e0f1d67c3000f36bc50139717e 0c7bb902c07f3e32b8133ed40e17ab27f519fd3c Alexey Zhokhov <alexey@zhokhov.com> 1792244385 +0700	commit: test(visual): holla disk at 72x20/80x24 re-approved for R-apps-6
+0c7bb902c07f3e32b8133ed40e17ab27f519fd3c 2800846124ca43bc01188509d3a0dfbe4f519d2c Alexey Zhokhov <alexey@zhokhov.com> 1792244390 +0700	commit: wip R-apps-1
+2800846124ca43bc01188509d3a0dfbe4f519d2c 0c7bb902c07f3e32b8133ed40e17ab27f519fd3c Alexey Zhokhov <alexey@zhokhov.com> 1792244390 +0700	reset: moving to HEAD~1
+0c7bb902c07f3e32b8133ed40e17ab27f519fd3c e0bb6fc10c86957a38960009125cebcd4a4078f5 Alexey Zhokhov <alexey@zhokhov.com> 1792244759 +0700	rebase (finish): refs/heads/rapps-6-1 onto 889825d996609f808fe8b8b508e6009902f64cef
+e0bb6fc10c86957a38960009125cebcd4a4078f5 7e8da69c0930b72ed4209576ece820b78301292e Alexey Zhokhov <alexey@zhokhov.com> 1792245063 +0700	branch: Reset to HEAD
+7e8da69c0930b72ed4209576ece820b78301292e 6454745cfa373da3538ba7b29f1da24dec04f838 Alexey Zhokhov <alexey@zhokhov.com> 1792245286 +0700	commit: test(visual): strips with an overflow … re-approved for R-apps-1
+6454745cfa373da3538ba7b29f1da24dec04f838 bad3f3ae4949a86d1bb7eb0561944308ecd855d1 Alexey Zhokhov <alexey@zhokhov.com> 1792245845 +0700	rebase (finish): refs/heads/rapps-6-1 onto d1160fe815e5023c6e564b6cd0c4b1e65fd2eba8
+bad3f3ae4949a86d1bb7eb0561944308ecd855d1 454b7bff11679fb062c51d489df6850c3ee4dcac Alexey Zhokhov <alexey@zhokhov.com> 1792246220 +0700	commit (amend): test(visual): strips with an overflow … re-approved for R-apps-1

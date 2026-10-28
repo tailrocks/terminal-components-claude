@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 a130b4041847772d4fa6f3533bb0490546dc2437 Alexey Zhokhov <alexey@zhokhov.com> 1792552804 +0700	branch: Created from HEAD
+a130b4041847772d4fa6f3533bb0490546dc2437 1b752409024ed8a1f28eb6ade491e29199db2615 Alexey Zhokhov <alexey@zhokhov.com> 1792553349 +0700	commit: feat(termrock): add opt-in resizable master detail policy
+1b752409024ed8a1f28eb6ade491e29199db2615 23fb59a40da6724a9bb478c5deb79a88bfb7f065 Alexey Zhokhov <alexey@zhokhov.com> 1792553373 +0700	rebase (finish): refs/heads/wip/master-detail-policy-20261021 onto 491f9cfc8193718b284797d251db585cef81c022
+23fb59a40da6724a9bb478c5deb79a88bfb7f065 3e2b0fe1e7f8bf4aefafd248d4eaeb3a3610148d Alexey Zhokhov <alexey@zhokhov.com> 1792554088 +0700	commit: fix(termrock): preserve master detail API and reset ratio
+3e2b0fe1e7f8bf4aefafd248d4eaeb3a3610148d 9305b7469b0fd0c03321c0932531449180884b85 Alexey Zhokhov <alexey@zhokhov.com> 1792554090 +0700	rebase (finish): refs/heads/wip/master-detail-policy-20261021 onto 0b524f16dd74d3de9875babe139b8b0a9a3cf673
+9305b7469b0fd0c03321c0932531449180884b85 f861b24518132a0f8e1ba177fab88f67da82a188 Alexey Zhokhov <alexey@zhokhov.com> 1792554146 +0700	merge 23fb59a40da6724a9bb478c5deb79a88bfb7f065: Merge made by the 'ours' strategy.

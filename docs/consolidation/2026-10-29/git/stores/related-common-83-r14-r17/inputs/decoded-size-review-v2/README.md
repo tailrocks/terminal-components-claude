@@ -1,0 +1,5 @@
+# Decoded object-size and pack verification addendum
+
+This is a portable copy of the sealed read-only verification outputs bound to candidate v2. The source pack-OID manifests under `../r14/pack-oids/` are retained unchanged. For 4,510 unique OIDs, their `size_bytes` values are pack delta-representation sizes, not decoded logical object sizes; use `decoded-size-corrections.json` with its source-row/index provenance. `decoded-object-inventory.json` covers all 9,026 OID/type/logical-size entries. The original review seal is retained verbatim; absolute paths inside it are historical provenance, while the copied evidence files and payload locators are relative.
+
+All 11 unique packs passed `git index-pack --index-version=2` in an isolated verifier without source alternates or promisor flags, and the oversized pack was reconstructed exactly from its two chunks. This verifies payload/index decode, not a runnable standalone repository. OIDSET-007 has 1,734 edges absent within that set and OIDSET-009 has 1; the referenced objects are present in the wider 83-store union. OIDSET-011 is empty, and its refs require the canonical TCC and separate Downloads-TCC dependencies.

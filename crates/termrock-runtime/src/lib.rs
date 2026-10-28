@@ -16,6 +16,7 @@ pub use termrock_layout as layout;
 pub use termrock_layout as measure;
 pub mod author;
 pub mod capture;
+pub mod clock_paste;
 pub mod cursor;
 pub mod decor;
 pub mod empty;
@@ -27,11 +28,16 @@ pub mod layer;
 pub mod rowui;
 pub mod runtime;
 pub mod scroll_region;
+pub mod size_watch;
 pub mod support;
+pub mod tooltip;
 pub mod ui;
 
 pub use author::*;
 pub use capture::*;
+pub use clock_paste::{
+    TEST_CLOCK_ENV, TEST_CLOCK_PASTE_PREFIX, parse_test_clock_step, test_clock_enabled,
+};
 pub use decor::*;
 pub use empty::*;
 pub use focus::*;
@@ -41,10 +47,9 @@ pub use layer::*;
 pub use rowui::*;
 pub use runtime::*;
 pub use scroll_region::*;
+pub use size_watch::SizeWatch;
 pub use termrock_core::event::Chord;
 pub use termrock_core::intent::Intent;
+pub use tooltip::Tooltips;
 pub use ui::cx;
 pub use ui::*;
-
-#[cfg(any(test, feature = "testing"))]
-pub use runtime::stub;

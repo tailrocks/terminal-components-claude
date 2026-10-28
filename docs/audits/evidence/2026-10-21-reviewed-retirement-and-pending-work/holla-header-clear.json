@@ -1,0 +1,228 @@
+{
+  "reviewer": "/root/menu_reason_independent_review",
+  "review_commit": "b7963f5241b584cb239a66724f7a6ac33be9654f",
+  "parent_commit": "623bb46b82b3e1e021f25a33f42a2522177fda64",
+  "decision": "CLEAR_BOUNDED_HOLLA_HOME_HEADER_OWNERSHIP_ADOPTION",
+  "findings": [],
+  "production_review": [
+    "Only production change configures existing public NavList::header_text_patch with unchanged HEADER_TEXT and removes application section-row arithmetic/postpainting. No Termrock source or expected artifact changes.",
+    "The same nav_list() constructor configures real update and draw; no fixture, viewport, clock or accent selector was added.",
+    "Existing shared header slot precedence remains intact; shared NavList owns padding, inset, text clipping and visible-row traversal.",
+    "No extra control registration, focus logic, selection mechanics or state owner was introduced."
+  ],
+  "test_review": [
+    "Two focused native tests pass;139 filtered/unrun native cases are not passes. Grid exercises9 widths and4 profiles with real Home rows, header text/padding, focus and selected-item hit-bound checks.",
+    "Layer test opens actual App MenuBar and verifies focus ownership changes, Quit content and persistent Home header styles. It intentionally does not claim Escape dismissal/restoration.",
+    "Changed task id is passed into real Home row generation, proving live model labels change; the test does not assert the changed action label is rendered. No blanket changed-data or Unicode rendering coverage is claimed.",
+    "Tests are preservation coverage, not a behavior-fix regression required to fail against the previous candidate. Independent unchanged before/after consumer provides preservation proof."
+  ],
+  "frame_comparison": {
+    "before_commit": "623bb46b82b3e1e021f25a33f42a2522177fda64",
+    "after_commit": "b7963f5241b584cb239a66724f7a6ac33be9654f",
+    "bytes": 29215235,
+    "sha256": "08e5bf9a11ef055aa11ce904a8aa258a363a6fee634293f078b45f851ca61c70",
+    "cases": 36,
+    "checkpoints": 216,
+    "exact_equal": true,
+    "encoding": "Ordered RLE of complete native Cell debug values plus public focus ring, cursor position and root owner bounds; lossless full-buffer comparison, native TestBackend only, not PTY/frozen CLI"
+  },
+  "public_consumer": {
+    "source": "public-comparison.rs",
+    "identical_before_after_source": true,
+    "cases": "9 widths79/80/81/99/100/101/119/120/121 \u00d74 profiles",
+    "events": [
+      "initial",
+      "real rows focus",
+      "End",
+      "Home then F10 actual menu",
+      "Escape retaining inherited behavior",
+      "resize width-1,height23"
+    ],
+    "limitations": "Native TestBackend introspection only. Cursor position and public focus/owner bounds included; no PTY cursor-shape/modes/cleanup claim. Row hit bounds are checked by the native focused test, not exhaustively enumerated in the external matrix."
+  },
+  "inherited_failure": {
+    "test": "app::tests::menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit",
+    "before": "1 failed,138 filtered/unrun",
+    "after": "1 failed,140 filtered/unrun",
+    "same_assertion": "crates/holla-ui/src/app.rs:2577:13 column11; leftRgb(138,138,138),rightRgb(255,255,255)",
+    "disposition": "Pre-existing, independently reproduced unchanged; not fixed or accepted as green."
+  },
+  "scope_limits": [
+    "No approval of existing15focus gutters or Menu Escape failure; full Holla parity and reusable-composition gates remain incomplete.",
+    "Preservation baseline is previous candidate623, not immutable product oracle4169783. No fixed-baseline expected frame approval or snapshot changes.",
+    "No full Holla library inventory, full workspace, fresh Clippy/fmt, real CLI/Tuiscotti comparison, terminal modes/cleanup or twice-repeated application gate run in this review.",
+    "No source edits, helpers, original checkout mutation, shared author/parent target reuse, commits, pushes or tag/reference changes."
+  ],
+  "source_identities": [
+    {
+      "revision": "623bb46b82b3e1e021f25a33f42a2522177fda64",
+      "path": "crates/holla-ui/src/screens/home.rs",
+      "sha256": "9696fefb8ad7333718246e57f0e50aee52ecdb5dffe2f1d8d6164499fcc6e3f3",
+      "exact_git_bytes": true
+    },
+    {
+      "revision": "623bb46b82b3e1e021f25a33f42a2522177fda64",
+      "path": "crates/termrock-navigation/src/nav_list.rs",
+      "sha256": "82fcad90ec7f4381fbf9d0c2d6e6d6330af18b5171626a8ebca04d30f7e58464",
+      "exact_git_bytes": true
+    },
+    {
+      "revision": "623bb46b82b3e1e021f25a33f42a2522177fda64",
+      "path": "Cargo.toml",
+      "sha256": "193a03b13a248aa022fcaa2c72c4b8bbddeb5169523360ec3d7e57b555e78074",
+      "exact_git_bytes": true
+    },
+    {
+      "revision": "623bb46b82b3e1e021f25a33f42a2522177fda64",
+      "path": "Cargo.lock",
+      "sha256": "b0c5412c430bb522fea7a865823c11493d89da4b8aeb3816e43ba54f0008b68a",
+      "exact_git_bytes": true
+    },
+    {
+      "revision": "b7963f5241b584cb239a66724f7a6ac33be9654f",
+      "path": "crates/holla-ui/src/screens/home.rs",
+      "sha256": "eccea66cc0ba6b876748de311e7549e5e6910738cc2b6d83d9dd16332051b267",
+      "exact_git_bytes": true
+    },
+    {
+      "revision": "b7963f5241b584cb239a66724f7a6ac33be9654f",
+      "path": "crates/termrock-navigation/src/nav_list.rs",
+      "sha256": "82fcad90ec7f4381fbf9d0c2d6e6d6330af18b5171626a8ebca04d30f7e58464",
+      "exact_git_bytes": true
+    },
+    {
+      "revision": "b7963f5241b584cb239a66724f7a6ac33be9654f",
+      "path": "Cargo.toml",
+      "sha256": "193a03b13a248aa022fcaa2c72c4b8bbddeb5169523360ec3d7e57b555e78074",
+      "exact_git_bytes": true
+    },
+    {
+      "revision": "b7963f5241b584cb239a66724f7a6ac33be9654f",
+      "path": "Cargo.lock",
+      "sha256": "b0c5412c430bb522fea7a865823c11493d89da4b8aeb3816e43ba54f0008b68a",
+      "exact_git_bytes": true
+    }
+  ],
+  "execution": {
+    "workers": {
+      "CARGO_BUILD_JOBS": 4,
+      "NEXTEST_TEST_THREADS": 4
+    },
+    "deadline": "Each invocation owns a new process group, main205seconds +TERM5/KILL3 cleanup; every invocation finished normally within154seconds. No timeouts or signals.",
+    "receipts": {
+      "public-after-receipt": {
+        "command": [
+          "rustup",
+          "run",
+          "1.99.1",
+          "cargo",
+          "nextest",
+          "run",
+          "--all-targets"
+        ],
+        "cwd": "/private/tmp/holla-header-b796-public-after-20261021",
+        "target": "/private/tmp/holla-header-b796-review-after-owned-target-20261021",
+        "exit": 0,
+        "timed_out": false,
+        "seconds": 137.69981262501096
+      },
+      "hover-before-receipt": {
+        "command": [
+          "rustup",
+          "run",
+          "1.99.1",
+          "cargo",
+          "nextest",
+          "run",
+          "--locked",
+          "-p",
+          "holla-ui",
+          "--lib",
+          "-E",
+          "test(menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit)"
+        ],
+        "cwd": "/private/tmp/holla-header-b796-review-before-20261021",
+        "exit": 100,
+        "timed_out": false,
+        "seconds": 81.00929891702253
+      },
+      "native-after-receipt": {
+        "command": [
+          "rustup",
+          "run",
+          "1.99.1",
+          "cargo",
+          "nextest",
+          "run",
+          "--locked",
+          "-p",
+          "holla-ui",
+          "--lib",
+          "-E",
+          "test(section_headers_use_nav_list_text_policy_across_widths_and_color_levels) | test(home_header_text_policy_survives_open_menu_layer)"
+        ],
+        "cwd": "/private/tmp/holla-header-b796-review-after-20261021",
+        "target": "/private/tmp/holla-header-b796-review-after-owned-target-20261021",
+        "exit": 0,
+        "timed_out": false,
+        "seconds": 107.09012233401882
+      },
+      "hover-after-receipt": {
+        "command": [
+          "rustup",
+          "run",
+          "1.99.1",
+          "cargo",
+          "nextest",
+          "run",
+          "--locked",
+          "-p",
+          "holla-ui",
+          "--lib",
+          "-E",
+          "test(menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit)"
+        ],
+        "cwd": "/private/tmp/holla-header-b796-review-after-20261021",
+        "exit": 100,
+        "timed_out": false,
+        "seconds": 1.7708734999760054
+      },
+      "public-before-receipt": {
+        "command": [
+          "rustup",
+          "run",
+          "1.99.1",
+          "cargo",
+          "nextest",
+          "run",
+          "--all-targets"
+        ],
+        "cwd": "/private/tmp/holla-header-b796-public-before-20261021",
+        "target": "/private/tmp/holla-header-b796-review-before-owned-target-20261021",
+        "exit": 0,
+        "timed_out": false,
+        "seconds": 153.84686883399263
+      }
+    }
+  },
+  "source_status_at_end": "",
+  "created_utc": "2026-10-21T12:23:07.297223+00:00",
+  "artifacts": {
+    "public-after-receipt.json": "df93e758e8ebefcb0045176c338d2a22b03c4d95ac7af76363dd8a5d5aa59c25",
+    "after-frames.rle": "08e5bf9a11ef055aa11ce904a8aa258a363a6fee634293f078b45f851ca61c70",
+    "before-frames.rle": "08e5bf9a11ef055aa11ce904a8aa258a363a6fee634293f078b45f851ca61c70",
+    "hover-before.log": "76bc2dab40d93e1a489cd1cdb41b045b8f5aa168edb1d52b4b1eb469cd19dd79",
+    "reviewed.patch": "1bfcadc816ff1d677f317b353ee9371046c73afa5ce470ab0b399cab5579aa20",
+    "hover-before-receipt.json": "830851485676124034bf7ce53090b35ebfe489a06feb8938a5b4e0d0d9dd3bd8",
+    "frame-comparison.json": "fe9217060b95e532c1f7fa2020a754fa6a9821275a6b0131756cccb4fe39c007",
+    "native-after-receipt.json": "8617e78d41f713bb9f9f103b133a2f5cfc18c2ce12ce0531ffb3cebafa0f1ad2",
+    "hover-after-receipt.json": "04a5bdbd992a3fd2a0fda9824d9df30c703dc51100052d6fcce90f0e8094e0c5",
+    "hover-after.log": "67715e7f7320f9577aad4df93308815fdbbb1ae3f2c85bc8860d667519b24ab7",
+    "public-before-receipt.json": "58f37d8e2900ae8a00d9437fbe9c99f6a2b24943d0369865851d52d739d1b34b",
+    "public-after.log": "46fdcd11159b9d42d58cca26d0ba871cf057f888abeb222c82116c57cb1bb8ab",
+    "public-comparison.rs": "a81ef2bfe6aeaaa58d3075aea57aa89ea45647608e3803d9d821b54c5629453d",
+    "public-before.log": "a32cf583bb3daa22f9a7ad7830397bb21cbb615a0d76a97021d4e04bae264f60",
+    "source-identities.json": "b759bfa9b2b8cdc0b234141af4ea98188f378eec3e669a1a4d212939294b1902",
+    "native-after.log": "b2246f104b334405e0ac67c24fde79c60159b4e0455b7c8033ccc6dd4bd7a136"
+  }
+}

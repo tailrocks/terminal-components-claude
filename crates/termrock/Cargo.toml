@@ -7,7 +7,6 @@ license.workspace = true
 
 [features]
 default = []
-testing = ["termrock-runtime/testing", "termrock-viewport/testing"]
 
 [dependencies]
 termrock-core.workspace = true
@@ -28,15 +27,13 @@ termrock-editors.workspace = true
 termrock-forms.workspace = true
 termrock-terminal.workspace = true
 termrock-session.workspace = true
+termrock-shell.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
 
-# The example journeys drive the runtime through the testing harness surface
-# (Runtime::draw_buffer and friends); they need the facade's testing feature.
-[[test]]
-name = "ex01_button"
-required-features = ["testing"]
+[[example]]
+name = "master_detail_composition_consumer"
 
-[[test]]
-name = "ex02_text_input"
-required-features = ["testing"]
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

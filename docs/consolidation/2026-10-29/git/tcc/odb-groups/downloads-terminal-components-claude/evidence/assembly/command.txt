@@ -1,0 +1,5 @@
+set +e
+python3 /private/tmp/pr38-consolidation-staging-20261029/build-downloads-odb-publication-v1.py > /private/tmp/pr38-consolidation-staging-20261029/downloads-odb-publication-v1.stdout.raw 2> /private/tmp/pr38-consolidation-staging-20261029/downloads-odb-publication-v1.stderr.raw
+run_exit_code=$?
+printf '%s\n' "$run_exit_code" > /private/tmp/pr38-consolidation-staging-20261029/downloads-odb-publication-v1.exit_code.txt
+exit "$run_exit_code"

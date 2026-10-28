@@ -1,3 +1,6 @@
+use crate::activity_supervisor::{
+    ActivityExecutionStart, ActivityStopProfile, ActivitySupervisorError,
+};
 use crate::domain::activity::{Activity, ActivityState};
 use crate::domain::debian::{DebianState, OrphanPackage};
 use crate::domain::disk::{Candidate, DiskState, Family, Freshness};
@@ -9,8 +12,9 @@ use crate::domain::mise::{MiseState, MiseTask, MiseTool, ToolState, Trust};
 use crate::domain::pg::PgSession;
 use crate::domain::ranking::{Alias, Memory, Pin, Usage};
 use crate::domain::ssh::{HostKeyPolicy, SshHost};
+use crate::listeners::{ListenerModel, ListenerModelError, ListenerRecord, PortConflict};
 use crate::scenario::Scenario;
-use crate::world::{Discovery, Domain, World};
+use crate::world::{Discovery, Domain, ProcessFact, SystemFacts, World};
 
 pub const HOME: &str = "/home/dev";
 
@@ -18,17 +22,106 @@ pub fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
 }
 
+pub fn files_for_cwd(cwd: &str) -> crate::files::FilesSnapshot {
+    use crate::files::{FileEntry, FilesSnapshot};
+
+    fn add_directory_chain(snapshot: &mut FilesSnapshot, cwd: &str) {
+        if cwd.starts_with("~/") || cwd == "~" {
+            snapshot.insert(FileEntry::directory("~"));
+            let mut current = "~".to_owned();
+            let suffix = if cwd == "~" {
+                ""
+            } else {
+                cwd.trim_start_matches("~/")
+            };
+            for segment in suffix.split('/').filter(|part| !part.is_empty()) {
+                current = FilesSnapshot::join(&current, segment);
+                snapshot.insert(FileEntry::directory(current.clone()));
+            }
+        } else {
+            snapshot.insert(FileEntry::directory("/"));
+            let mut current = "/".to_owned();
+            for segment in cwd
+                .trim_start_matches('/')
+                .split('/')
+                .filter(|part| !part.is_empty())
+            {
+                current = FilesSnapshot::join(&current, segment);
+                snapshot.insert(FileEntry::directory(current.clone()));
+            }
+        }
+    }
+
+    let cwd = if cwd.is_empty() {
+        "/"
+    } else {
+        cwd.trim_end_matches('/')
+    };
+    let cwd = if cwd.is_empty() { "/" } else { cwd };
+    let mut snapshot = FilesSnapshot::new();
+    add_directory_chain(&mut snapshot, cwd);
+    if cwd.ends_with("/empty") || cwd == "~" || cwd == "/" {
+        return snapshot;
+    }
+
+    let archive = FilesSnapshot::join(cwd, "archive");
+    let drafts = FilesSnapshot::join(cwd, "drafts");
+    let private = FilesSnapshot::join(cwd, "restricted");
+    snapshot.insert(FileEntry::directory(archive.clone()));
+    snapshot.insert(FileEntry::directory(drafts.clone()));
+    snapshot.insert(FileEntry::directory(private).unreadable());
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(cwd, ".notes-index")));
+    snapshot.insert(FileEntry::file_with_bytes(
+        FilesSnapshot::join(cwd, "README.md"),
+        b"# Simulated workspace\n\nThis file is part of the in-memory fixture.\n".to_vec(),
+    ));
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(cwd, "résumé.txt")));
+    snapshot.insert(FileEntry::symlink(
+        FilesSnapshot::join(cwd, "broken-shortcut"),
+        FilesSnapshot::join(cwd, "missing-target"),
+    ));
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(&archive, "2025.txt")));
+    snapshot.insert(FileEntry::file_with_bytes(
+        FilesSnapshot::join(&drafts, "meeting-notes.md"),
+        b"Meeting notes\n\n- Review the preview flow\n".to_vec(),
+    ));
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(&drafts, "秘密.md")));
+    snapshot
+}
+
 pub fn cwd_for(scenario: Scenario) -> &'static str {
     match scenario {
-        Scenario::FirstUse => "~/scratch/empty",
+        Scenario::ParityActivityStop => "~/work/activity-stop",
+        Scenario::FirstUse => "~/scratch",
         Scenario::RustDirty | Scenario::LaunchFailure => "~/work/pave",
         Scenario::MonorepoRoot | Scenario::ActivitiesMulti => "~/work/monorepo",
         Scenario::MonorepoChild => "~/work/monorepo/apps/frontend",
         Scenario::DockerCleanup => "~/work/scratch",
         Scenario::DiskCleanup => "~/work",
         Scenario::UpgradePlan => "~",
-        Scenario::RemoteHost => "/srv/payments",
+        Scenario::RemoteHost | Scenario::ParityTaskInput => "/srv/payments",
         Scenario::HardCases => "~/work/supercalifragilistic-expiadocious-monorepository-of-doom",
+        Scenario::ParityDiscovery => "~/work/probe",
+        Scenario::ParityHistory => "~/work/holla",
+        Scenario::ParityFiles => "~/work/notes",
+        Scenario::ParityBrowser => "~/work/site",
+        Scenario::ParityGitCurrent => "~/work/svc",
+        Scenario::ParityGitBatch => "~/work/repos",
+        Scenario::ParityTaskSources => "~/work/poly",
+        Scenario::ParityCargo => "~/work/engine",
+        Scenario::ParityDocker => "~/work/docker",
+        Scenario::ParityBrewServices => "~/work/brew",
+        Scenario::ParityGradle => "~/work/android",
+        Scenario::ParityIdea => "~/work/idea",
+        Scenario::ParityUpgradeManagers => "~/work/upgrades",
+        Scenario::ParityExecutor => "~/work/batch",
+        Scenario::ParityCustomActions => "~/work/team",
+        Scenario::ParityDiskScan => "~/work/data",
+        Scenario::ParityDiskNavigation => "~/work/big",
+        Scenario::ParityInsights => "~/work/web",
+        Scenario::ParityDeleteSafety | Scenario::ParityCleanupResults => "~/Projects/safe",
+        Scenario::ParityPlatforms => "~/work/mac",
+        Scenario::ParityPlatformsLinux => "/home/alex",
     }
 }
 
@@ -36,13 +129,34 @@ pub fn host_for(scenario: Scenario) -> Host {
     match scenario {
         Scenario::RemoteHost => Host::remote("prod-eu-1", Environment::Production),
         Scenario::UpgradePlan => Host::remote("devbox-deb", Environment::Dev),
-        _ => Host::local("devbox"),
+        Scenario::ParityTaskInput => Host::remote("devbox", Environment::Production),
+        Scenario::ParityPlatformsLinux => Host::local("devbox"),
+        Scenario::RustDirty
+        | Scenario::MonorepoRoot
+        | Scenario::MonorepoChild
+        | Scenario::DockerCleanup
+        | Scenario::DiskCleanup
+        | Scenario::ActivitiesMulti
+        | Scenario::LaunchFailure
+        | Scenario::HardCases => Host::local("devbox"),
+        Scenario::ParityActivityStop => Host::local("devbox"),
+        _ => Host::local("mbp"),
     }
 }
 
 pub fn world_for(scenario: Scenario) -> World {
     let mut w = World::new(scenario, host_for(scenario), cwd_for(scenario));
     w.discovery = match scenario {
+        Scenario::FirstUse => World::default_schedule()
+            .into_iter()
+            .map(|mut discovery| {
+                if discovery.domain == Domain::Disk {
+                    discovery.at_ms = 0;
+                    discovery.done = true;
+                }
+                discovery
+            })
+            .collect(),
         Scenario::HardCases => World::default_schedule()
             .into_iter()
             .map(|d| {
@@ -56,7 +170,7 @@ pub fn world_for(scenario: Scenario) -> World {
         _ => World::default_schedule(),
     };
     match scenario {
-        Scenario::FirstUse => {}
+        Scenario::FirstUse => seed_first_use(&mut w),
         Scenario::RustDirty => seed_rust_dirty(&mut w),
         Scenario::LaunchFailure => {
             seed_rust_dirty(&mut w);
@@ -80,10 +194,96 @@ pub fn world_for(scenario: Scenario) -> World {
         Scenario::DiskCleanup => seed_disk_cleanup(&mut w),
         Scenario::UpgradePlan => seed_upgrade_plan(&mut w),
         Scenario::ActivitiesMulti => seed_activities_multi(&mut w),
+        Scenario::ParityActivityStop => return parity_activity_stop_world(w),
         Scenario::RemoteHost => seed_remote_host(&mut w),
         Scenario::HardCases => seed_hard_cases(&mut w),
+        Scenario::ParityDiscovery
+        | Scenario::ParityHistory
+        | Scenario::ParityFiles
+        | Scenario::ParityBrowser
+        | Scenario::ParityGitCurrent
+        | Scenario::ParityGitBatch
+        | Scenario::ParityTaskSources
+        | Scenario::ParityCargo
+        | Scenario::ParityDocker
+        | Scenario::ParityBrewServices
+        | Scenario::ParityGradle
+        | Scenario::ParityIdea
+        | Scenario::ParityUpgradeManagers
+        | Scenario::ParityExecutor
+        | Scenario::ParityTaskInput
+        | Scenario::ParityCustomActions
+        | Scenario::ParityDiskScan
+        | Scenario::ParityDiskNavigation
+        | Scenario::ParityInsights
+        | Scenario::ParityDeleteSafety
+        | Scenario::ParityCleanupResults
+        | Scenario::ParityPlatforms
+        | Scenario::ParityPlatformsLinux => {}
     }
     w
+}
+
+pub fn nextest_args_world() -> World {
+    let mut world = world_for(Scenario::RustDirty);
+    if let Some(mise) = &mut world.mise {
+        mise.tasks.push(task(
+            "test-nextest",
+            "cargo nextest run",
+            "~/work/pave/mise.toml",
+        ));
+    }
+    for discovery in &mut world.discovery {
+        if discovery.domain == Domain::Mise {
+            discovery.done = true;
+        }
+    }
+    world
+}
+
+pub struct PortConflictCase {
+    pub world: World,
+
+    pub listeners: Option<ListenerModel>,
+
+    pub conflict: PortConflict,
+}
+
+pub fn port_conflict_case() -> Result<PortConflictCase, ListenerModelError> {
+    let mut world = world_for(Scenario::MonorepoChild);
+    let mut activity = Activity::new(
+        1_000_001,
+        "frontend dev",
+        &world.cwd,
+        ActivityState::Failed,
+        world.now_ms(),
+    );
+    activity.lines = vec![
+        "npm run dev".to_owned(),
+        "Error: listen EADDRINUSE: address already in use 127.0.0.1:5173".to_owned(),
+        "exit code 1".to_owned(),
+    ];
+    let conflict = PortConflict::capture(&world, 5173, &activity);
+    world.activities.push(activity);
+
+    let listeners = ListenerModel::new(
+        &world,
+        vec![ListenerRecord::new(
+            5120,
+            1,
+            5173,
+            "node (stale vite)",
+            "sleeping",
+            0,
+            310,
+        )?],
+    )?;
+
+    Ok(PortConflictCase {
+        world,
+        listeners: Some(listeners),
+        conflict,
+    })
 }
 
 fn tool(name: &str, version: &str, state: ToolState) -> MiseTool {
@@ -149,6 +349,63 @@ fn child_repo(
 
 const GB: u64 = 1_073_741_824;
 const MB: u64 = 1_048_576;
+
+fn seed_first_use(world: &mut World) {
+    world.host.metrics.load_x100 = (940, 780, 510);
+    world.host.metrics.mem_used_mb = 12_698;
+    world.host.metrics.mem_total_mb = 16_384;
+    world.disk = Some(DiskState {
+        total_bytes: 926 * GB,
+        used_bytes: 842 * GB,
+        candidates: Vec::new(),
+    });
+    world.system = Some(SystemFacts {
+        cpu_percent: 78,
+        swap_used_mb: 1_126,
+        pressure_minutes: 4,
+        btm_installed: true,
+        network: vec![("en0".into(), "rx 1.2 MB/s · tx 240 KB/s".into())],
+        processes: vec![
+            ProcessFact {
+                pid: 4812,
+                name: "rust-analyzer".into(),
+                cpu_percent: 41,
+                memory_mb: 2_900,
+                state: "running".into(),
+                port: None,
+            },
+            ProcessFact {
+                pid: 9120,
+                name: "cargo".into(),
+                cpu_percent: 32,
+                memory_mb: 1_100,
+                state: "running".into(),
+                port: None,
+            },
+            ProcessFact {
+                pid: 2201,
+                name: "Docker".into(),
+                cpu_percent: 9,
+                memory_mb: 3_800,
+                state: "sleeping".into(),
+                port: None,
+            },
+            ProcessFact {
+                pid: 7731,
+                name: "node (vite)".into(),
+                cpu_percent: 6,
+                memory_mb: 420,
+                state: "sleeping".into(),
+                port: Some(5173),
+            },
+        ],
+    });
+    world.memory.usage.push(Usage {
+        path: world.cwd.clone(),
+        command: "holla snapshot system".into(),
+        count: 2,
+    });
+}
 
 fn ssh_hosts_devbox() -> Vec<SshHost> {
     vec![
@@ -660,6 +917,95 @@ fn seed_activities_multi(w: &mut World) {
     w.activities = vec![dev, watch, deploy, seed];
 }
 
+fn parity_activity_stop_world(world: World) -> World {
+    match seed_parity_activity_stop(world) {
+        Ok(world) => world,
+        Err(error) => parity_activity_stop_setup_failure(error),
+    }
+}
+
+fn parity_activity_stop_setup_failure(error: ActivitySupervisorError) -> World {
+    let scenario = Scenario::ParityActivityStop;
+    let mut world = World::new(scenario, host_for(scenario), cwd_for(scenario));
+    world.discovery = World::default_schedule();
+    let mut diagnostic = Activity::new(
+        0,
+        "Activity stop fixture unavailable",
+        cwd_for(scenario),
+        ActivityState::Failed,
+        0,
+    );
+    diagnostic.lines = vec![format!("Activity stop fixture unavailable · {error}")];
+    world.activities.push(diagnostic);
+    world
+}
+
+fn seed_parity_activity_stop(mut world: World) -> Result<World, ActivitySupervisorError> {
+    let mut ordinary = Activity::new(
+        1,
+        "ordinary worker",
+        "~/work/activity-stop/workers/ordinary",
+        ActivityState::Running,
+        0,
+    );
+    ordinary.lines = vec!["worker started".into(), "health check: ready".into()];
+    world.register_scenario_activity(
+        ordinary,
+        ActivityExecutionStart::Running,
+        ActivityStopProfile::Responsive,
+    )?;
+
+    let mut queued = Activity::new(
+        2,
+        "queued worker",
+        "~/work/activity-stop/queue",
+        ActivityState::Running,
+        0,
+    );
+    queued.lines = vec!["waiting for a worker slot".into()];
+    world.register_scenario_activity(
+        queued,
+        ActivityExecutionStart::Queued,
+        ActivityStopProfile::Responsive,
+    )?;
+
+    let mut detached = Activity::new(
+        3,
+        "detached follower",
+        "~/work/activity-stop/containers/api",
+        ActivityState::Detached,
+        0,
+    );
+    detached.lines = vec![
+        "container log stream attached".into(),
+        "service: api · state: healthy".into(),
+    ];
+    world.register_scenario_activity(
+        detached,
+        ActivityExecutionStart::Detached,
+        ActivityStopProfile::Responsive,
+    )?;
+
+    let mut resistant = Activity::new(
+        4,
+        "resistant worker",
+        "~/work/activity-stop/workers/resistant",
+        ActivityState::Running,
+        0,
+    );
+    resistant.lines = vec![
+        "worker started".into(),
+        "shutdown hook: waiting for response".into(),
+    ];
+    world.register_scenario_activity(
+        resistant,
+        ActivityExecutionStart::Running,
+        ActivityStopProfile::Resistant,
+    )?;
+
+    Ok(world)
+}
+
 fn seed_remote_host(w: &mut World) {
     w.git = Some(GitRepo {
         root: "/srv/payments".into(),
@@ -829,146 +1175,4 @@ pub fn memory_command(
         .iter()
         .copied()
         .find(|candidate| candidate.command() == command)
-}
-
-#[cfg(test)]
-#[expect(
-    clippy::indexing_slicing,
-    clippy::unwrap_used,
-    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
-)]
-mod tests {
-    use super::*;
-    use crate::domain::pg;
-
-    fn settled(scenario: Scenario) -> World {
-        let mut w = world_for(scenario);
-        w.clock.running = true;
-        w.seek(10_000);
-        w
-    }
-
-    #[test]
-    fn every_scenario_settles_discovery() {
-        for s in Scenario::ALL {
-            let w = settled(s);
-            assert!(!w.discovering(), "{} still discovering", s.name());
-        }
-    }
-
-    #[test]
-    fn hard_cases_docker_discovery_fails() {
-        let w = settled(Scenario::HardCases);
-        assert!(w.discovery_failed(Domain::Docker));
-        assert!(w.discovered(Domain::Git));
-        assert!(w.docker.is_none());
-    }
-
-    #[test]
-    fn rust_dirty_facts_match_the_vocabulary() {
-        let w = settled(Scenario::RustDirty);
-        let git = w.git.as_ref().unwrap();
-        assert_eq!(git.behind, 3);
-        assert_eq!(git.modified, 4);
-        assert_eq!(git.primary_branch, "trunk");
-        assert!(
-            git.summary()
-                .contains(&"branch is 3 commits behind".to_owned())
-        );
-        assert!(git.summary().contains(&"4 modified files".to_owned()));
-        assert_eq!(w.memory.usage_at("~/work/pave", "cargo build"), 6);
-        assert!(w.memory.pin_at("~/work/pave", "make test"));
-        assert_eq!(w.memory.alias("gs"), Some("git status"));
-    }
-
-    #[test]
-    fn docker_cleanup_has_serious_reclaimable() {
-        let w = settled(Scenario::DockerCleanup);
-        let d = w.docker.as_ref().unwrap();
-        assert_eq!(d.unhealthy().len(), 1);
-        assert!(
-            d.reclaimable_bytes().unwrap() >= 12 * GB,
-            "{}",
-            d.reclaimable_bytes().unwrap()
-        );
-        assert_eq!(d.running(), 3);
-    }
-
-    #[test]
-    fn remote_host_has_blocker_tree_and_production_identity() {
-        let w = settled(Scenario::RemoteHost);
-        assert_eq!(w.host.env, Environment::Production);
-        let sessions = w.pg.as_ref().unwrap();
-        let roots = pg::blockers(sessions);
-        assert_eq!(roots.len(), 1);
-        assert_eq!(roots[0].pid, 4201);
-        assert_eq!(pg::blocked_by(sessions, 4201).len(), 2);
-        let d = w.docker.as_ref().unwrap();
-        assert_eq!(d.unhealthy()[0].name, "payments");
-    }
-
-    #[test]
-    fn activities_multi_carries_four_states() {
-        let w = settled(Scenario::ActivitiesMulti);
-        assert_eq!(w.activities.len(), 4);
-        for state in [
-            ActivityState::Running,
-            ActivityState::Waiting,
-            ActivityState::Detached,
-            ActivityState::Failed,
-        ] {
-            assert!(
-                w.activities.iter().any(|a| a.state == state),
-                "missing {state:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn upgrade_plan_facts() {
-        let w = settled(Scenario::UpgradePlan);
-        let deb = w.debian.as_ref().unwrap();
-        assert_eq!(deb.pending, 47);
-        assert!(deb.reboot_required);
-        let mise = w.mise.as_ref().unwrap();
-        assert!(mise.tools.iter().any(|t| t.state == ToolState::Missing));
-        assert_eq!(
-            mise.tools
-                .iter()
-                .filter(|t| matches!(t.state, ToolState::Outdated { .. }))
-                .count(),
-            2
-        );
-    }
-
-    #[test]
-    fn monorepo_child_sees_parent_tasks_and_local_dev() {
-        let w = settled(Scenario::MonorepoChild);
-        let mise = w.mise.as_ref().unwrap();
-        assert!(
-            mise.tasks
-                .iter()
-                .any(|t| t.id == "//projects/frontend:build")
-        );
-        assert!(mise.tasks.iter().any(|t| t.id == "dev"));
-        assert!(
-            mise.tasks
-                .iter()
-                .any(|t| t.trust == Trust::Untrusted && t.id == "//projects/backend:reset-db")
-        );
-    }
-
-    #[test]
-    fn worlds_are_deterministic() {
-        let a = settled(Scenario::DiskCleanup);
-        let b = settled(Scenario::DiskCleanup);
-        assert_eq!(a.disk, b.disk);
-        assert_eq!(a.memory, b.memory);
-        assert_eq!(a.git, b.git);
-    }
-
-    #[test]
-    fn expand_home_resolves_typed_phrase_targets() {
-        assert_eq!(expand_home("~/work/scratch"), "/home/dev/work/scratch");
-    }
 }

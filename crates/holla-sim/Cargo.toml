@@ -9,3 +9,7 @@ license.workspace = true
 holla-domain.workspace = true
 holla-catalog.workspace = true
 holla-plan.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

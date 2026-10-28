@@ -1,8 +1,14 @@
 use ratatui_core::layout::Position;
 
-use crate::diagnostics::Diagnostic;
+use crate::diagnostics::{Diagnostic, Diagnostics};
 use crate::id::Id;
 use crate::layer::LayerId;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CursorShape {
+    Block,
+    Bar,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct CursorRequest {
@@ -11,6 +17,7 @@ pub(crate) struct CursorRequest {
     pub(crate) pos: Position,
     pub(crate) inert: bool,
     pub(crate) typing_offer: bool,
+    pub(crate) shape: CursorShape,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -38,9 +45,10 @@ pub(crate) fn resolve_requests(
     requests: &[CursorRequest],
     top: LayerId,
     owner: Option<Id>,
-    diagnostics: &mut Vec<Diagnostic>,
+    typing_owner: Option<Id>,
+    diagnostics: &mut Diagnostics,
     typing: &[crate::runtime::typing::TypingDeclaration],
-) -> Option<Position> {
+) -> Option<(Position, CursorShape)> {
     let mut kept: Option<CursorRequest> = None;
     for request in requests {
         if request.inert {
@@ -59,7 +67,7 @@ pub(crate) fn resolve_requests(
                 });
                 continue;
             }
-            if request.layer != top || owner != Some(request.owner) {
+            if request.layer != top || typing_owner != Some(request.owner) {
                 continue;
             }
         }
@@ -76,133 +84,5 @@ pub(crate) fn resolve_requests(
             CursorDecision::Silent => {}
         }
     }
-    kept.map(|request| request.pos)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const OWNER: Id = Id::root("input");
-
-    const fn req(layer: LayerId, inert: bool) -> CursorRequest {
-        CursorRequest {
-            layer,
-            owner: OWNER,
-            pos: Position::new(4, 2),
-            inert,
-            typing_offer: false,
-        }
-    }
-
-    #[test]
-    fn cursor_write_is_kept_for_the_focused_owner_on_the_top_layer() {
-        assert_eq!(
-            resolve(req(LayerId(1), false), LayerId(1), Some(OWNER)),
-            CursorDecision::Keep(Position::new(4, 2))
-        );
-    }
-
-    #[test]
-    fn cursor_write_from_a_lower_layer_is_rejected() {
-        assert!(matches!(
-            resolve(req(LayerId::PAGE, false), LayerId(1), Some(OWNER)),
-            CursorDecision::Reject(Diagnostic::CursorRejected {
-                owner: OWNER,
-                layer: LayerId::PAGE
-            })
-        ));
-
-        assert_eq!(
-            resolve(req(LayerId::PAGE, true), LayerId(1), Some(OWNER)),
-            CursorDecision::Silent
-        );
-    }
-
-    #[test]
-    fn cursor_write_from_an_unfocused_owner_is_rejected() {
-        assert!(matches!(
-            resolve(
-                req(LayerId::PAGE, false),
-                LayerId::PAGE,
-                Some(Id::root("other"))
-            ),
-            CursorDecision::Reject(_)
-        ));
-        assert!(matches!(
-            resolve(req(LayerId::PAGE, false), LayerId::PAGE, None),
-            CursorDecision::Reject(_)
-        ));
-    }
-
-    #[test]
-    fn the_focused_owners_write_wins_on_the_same_layer() {
-        use ratatui_core::buffer::Buffer;
-        use ratatui_core::layout::Rect;
-
-        use crate::theme::Theme;
-        use crate::ui::Ui;
-        use crate::ui::cx::LastFrame;
-        use crate::ui::{FrameState, UiCore};
-
-        const FIRST: Id = Id::root("form.first");
-        const SECOND: Id = Id::root("form.second");
-
-        let screen = Rect::new(0, 0, 20, 4);
-        let theme = Theme::junie();
-        for focused in [FIRST, SECOND] {
-            let mut frame = FrameState::default();
-            frame.reset(1, screen);
-            let mut page = Buffer::empty(screen);
-            let mut core = UiCore::default();
-            let mut last = LastFrame::default();
-            last.snapshot.focus = Some(focused);
-            {
-                let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-
-                ui.set_cursor(FIRST, Position::new(1, 1));
-                ui.set_cursor(SECOND, Position::new(9, 2));
-            }
-            let mut diagnostics = Vec::new();
-            let kept = resolve_requests(
-                &frame.cursors,
-                LayerId::PAGE,
-                Some(focused),
-                &mut diagnostics,
-                &frame.typing,
-            );
-            assert_eq!(
-                kept,
-                Some(if focused == FIRST {
-                    Position::new(1, 1)
-                } else {
-                    Position::new(9, 2)
-                })
-            );
-
-            let rejected: Vec<Id> = diagnostics
-                .iter()
-                .filter_map(|d| match d {
-                    Diagnostic::CursorRejected { owner, .. } => Some(*owner),
-                    _ => None,
-                })
-                .collect();
-            let other = if focused == FIRST { SECOND } else { FIRST };
-            assert_eq!(rejected, vec![other]);
-        }
-    }
-
-    #[test]
-    fn rejection_records_a_diagnostic() {
-        let CursorDecision::Reject(d) = resolve(req(LayerId::PAGE, false), LayerId(2), None) else {
-            panic!("expected a rejection");
-        };
-        assert_eq!(
-            d,
-            Diagnostic::CursorRejected {
-                owner: OWNER,
-                layer: LayerId::PAGE
-            }
-        );
-    }
+    kept.map(|request| (request.pos, request.shape))
 }

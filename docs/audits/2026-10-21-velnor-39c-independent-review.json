@@ -1,0 +1,65 @@
+{
+  "reviewed_commit": "39c188c7dc8fea5dec9b2b5d90db9d609925b514",
+  "disposition": "Not cleared yet: regenerate from complete tracked inputs. Release, configuration migration, source preservation and task inventory are bounded-clear; exact generated reproducibility fails.",
+  "official_release": {
+    "version": "0.1.30",
+    "source": "a6b1d7873151dc62711844158490e8687d191943",
+    "manifest_sha256": "81f24072a16f35f30845fd373b114f7c615e9119ee434fe39dab83de84fc56ea",
+    "macos_arm64_sha256": "7cb74f0a82edbc9545d5d2170387a21dab33c84e8674610fd1e46dad2ca2ad3c",
+    "checks": "Official GitHub tag API and downloaded release manifest match committed manifest; installed exact binary hash matches official asset digest. Mise version and platform locks pin 0.1.30."
+  },
+  "source_preservation": "6f68e22a6666c44c9f9cf726b4ddb895e6daf68a is an ancestor. The diff against that base contains no crates, src, tests, tools, Cargo.toml or Cargo.lock changes. Disabled binary release configuration alone is schema-migrated; preview and stable remain disabled and no release products are enabled.",
+  "required_fix": {
+    "severity": "P1",
+    "problem": "The author checkout lacks tracked rust-toolchain.toml. Generation therefore produces a workflow for a different toolchain-file input inventory. Exact independent generation has different ci.yml and task manifest hashes from the committed outputs.",
+    "source_proof": [
+      "Official source a6b1d787 crates/velnor-actions-orchestrator/src/tool_catalog_resolve.rs:61-97 reads rust-toolchain.toml and sets export_rustup_toolchain=file_tc.is_none().",
+      "Official source crates/velnor-actions-workflow-renderer/src/document.rs:301-306 emits CARGO_CACHE_AUTO_CLEAN_FREQUENCY=never only when step env contains RUSTUP_TOOLCHAIN.",
+      "Author path /private/tmp/termrock-velnor-0130-20261021/rust-toolchain.toml is absent; Git object 39c188 has the tracked 1.99.1 toolchain file."
+    ],
+    "repair": "Materialize all tracked generator input files, including rust-toolchain.toml, before generation. Run the exact official binary through the documented wrapper, regenerate without hand editing, and repeat an independent complete-input preview comparison. Preserve the earlier mismatches and supersede the prior one-checkout exactness claim."
+  },
+  "generation": {
+    "direct_preview": "/private/tmp/velnor-independent-39c188-preview",
+    "mise_wrapper_preview": "/private/tmp/velnor-independent-39c188-mise-preview",
+    "result": "Both commands exited zero within the explicit 220-second timeout. All 21 entries have matching path kinds and modes, but ci.yml and task manifest hashes differ. Each of 518 task entries loses RUSTUP_TOOLCHAIN and changes its execution digest; all task IDs and argv remain identical. Workflow also loses CARGO_CACHE_AUTO_CLEAN_FREQUENCY.",
+    "comparison": "/tmp/velnor-independent-39c188-mise-generated-comparison.json",
+    "logs": [
+      "/tmp/velnor-independent-39c188-generate.log",
+      "/tmp/velnor-independent-39c188-mise-generate.log"
+    ]
+  },
+  "coverage_inventory": {
+    "tasks": 518,
+    "testing_variant_tasks": 259,
+    "cargo_test_doc_tasks": 78,
+    "retained_packages": [
+      "termrock-controls",
+      "termrock-forms",
+      "termrock-runtime",
+      "termrock"
+    ],
+    "facts": "Each inspected package retains six testing-named tasks. Controls and Forms do not declare the feature and correctly receive fallback argv; runtime and facade pass --no-default-features --features default,testing. Facade master_detail_consumer remains declared with required-features testing, so the package-wide Nextest task includes it. Inventory is not executed test coverage."
+  },
+  "actionlint": {
+    "version": "1.7.12",
+    "result": 0,
+    "args": [
+      "-color",
+      "-ignore",
+      "^unexpected key \"background\" for step to (run shell command|execute action)\\. ",
+      "-ignore",
+      "^step must run script with \"run\" section or run action with \"uses\" section$"
+    ],
+    "log": "/tmp/velnor-independent-39c188-actionlint.log",
+    "limitation": "The second ignore can hide malformed ordinary steps lacking run and uses. Official parallel-step schema support was independently reviewed by the parent; this pass does not remove the broad-ignore coverage risk."
+  },
+  "symlinks": "Root CLAUDE.md and generated .github/CLAUDE.md both remain symlinks to AGENTS.md.",
+  "remaining_acceptance_blockers": [
+    "78 generated cargo test --doc tasks conflict with the repository Nextest-only rule; no task was waived or run by this review.",
+    "The generated Plan job remains limited to five minutes; previous checkout timeout and skipped Rust jobs are not resolved by this upgrade.",
+    "Generator warns Rust 1.99.1 has no checksum in the tool lock.",
+    "No hosted CI completion, application parity or full Rust gate success is claimed."
+  ],
+  "scope": "Read-only exact Git/source/config/release review, external preview generation and pinned actionlint. No source or generated-output edits, no helper agents."
+}

@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 1809d6ef4140003585f009eb68365bb8207cbb46 Alexey Zhokhov <alexey@zhokhov.com> 1792491272 +0700	branch: Created from HEAD
+1809d6ef4140003585f009eb68365bb8207cbb46 33df0d210ece3d6b05a0e967539e59fbbdec02e7 Alexey Zhokhov <alexey@zhokhov.com> 1792492449 +0700	commit: test: add frozen CLI table sorting workflows
+33df0d210ece3d6b05a0e967539e59fbbdec02e7 b6d75a22d79dd20cdd12fb53f2e03a7c7bad02b6 Alexey Zhokhov <alexey@zhokhov.com> 1792492459 +0700	rebase (finish): refs/heads/parity/frozen-table-workflows-20261020 onto 5d9f5b1772e733dad4940c84fb9a06b3baaae0ce

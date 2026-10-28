@@ -1,0 +1,24 @@
+0000000000000000000000000000000000000000 e61c16a06d28e6f68e37055923b605de6cd44f16 Alexey Zhokhov <alexey@zhokhov.com> 1792507961 +0700	branch: Created from e61c16a06d28e6f68e37055923b605de6cd44f16
+e61c16a06d28e6f68e37055923b605de6cd44f16 e329fc366804373ca948f7d9233752b10e89d392 Alexey Zhokhov <alexey@zhokhov.com> 1792508130 +0700	cherry-pick: feat(text): add shared clipboard and pointer edit support
+e329fc366804373ca948f7d9233752b10e89d392 6fbff7dfe2b7b58bafbd08f0b1d7aaf009ba8a6c Alexey Zhokhov <alexey@zhokhov.com> 1792508130 +0700	cherry-pick: fix(runtime): retain captured click sequences
+6fbff7dfe2b7b58bafbd08f0b1d7aaf009ba8a6c 3b717bfc631886ee4071ebf165de6892bb21722d Alexey Zhokhov <alexey@zhokhov.com> 1792508130 +0700	cherry-pick: fix(runtime): expire held double-clicks on release
+3b717bfc631886ee4071ebf165de6892bb21722d 365333661e21dabf0cc7c498612d82fa5940ea01 Alexey Zhokhov <alexey@zhokhov.com> 1792508131 +0700	cherry-pick: fix(runtime): match baseline click release bounds
+365333661e21dabf0cc7c498612d82fa5940ea01 be9dfbc03b384ec61188f5e6397a6738b19c54e4 Alexey Zhokhov <alexey@zhokhov.com> 1792508131 +0700	cherry-pick: feat(runtime): constrain layers to viewport margins
+be9dfbc03b384ec61188f5e6397a6738b19c54e4 488b05ee2a92b54693d6184674526a3b32bdf3a0 Alexey Zhokhov <alexey@zhokhov.com> 1792508131 +0700	cherry-pick: chore(session): restore reviewed caret capability
+488b05ee2a92b54693d6184674526a3b32bdf3a0 d4ed03a22727c474fb9a40cc03e4a2e090a51463 Alexey Zhokhov <alexey@zhokhov.com> 1792508132 +0700	cherry-pick: feat(runtime): prepare settled frames before terminal output
+d4ed03a22727c474fb9a40cc03e4a2e090a51463 3b701c196927d0ff1f350ab87caf52a92f10f185 Alexey Zhokhov <alexey@zhokhov.com> 1792508132 +0700	cherry-pick: fix(runtime): settle prepared frames before output
+3b701c196927d0ff1f350ab87caf52a92f10f185 2802775512f4e1ef7c00b478ff1af9992627ae74 Alexey Zhokhov <alexey@zhokhov.com> 1792508132 +0700	cherry-pick: fix(runtime): validate focus continuation receipts
+2802775512f4e1ef7c00b478ff1af9992627ae74 621ae56de19ba79ca96a830dfefbf8c0c1cf0962 Alexey Zhokhov <alexey@zhokhov.com> 1792508132 +0700	cherry-pick: fix(runtime): gate layer completion on focus restoration
+621ae56de19ba79ca96a830dfefbf8c0c1cf0962 7b59527fff979bdaf61689a5696e6f95b8671aa6 Alexey Zhokhov <alexey@zhokhov.com> 1792508132 +0700	cherry-pick: feat(fields): share contextual edit commands
+7b59527fff979bdaf61689a5696e6f95b8671aa6 8848371680d2a701bec358c69ecd6f0383f9b009 Alexey Zhokhov <alexey@zhokhov.com> 1792508133 +0700	cherry-pick: fix(fields): preserve drafts on exact focus continuation
+8848371680d2a701bec358c69ecd6f0383f9b009 b1ab60b4710183d376aa7751b46c58f0643d0f1a Alexey Zhokhov <alexey@zhokhov.com> 1792508133 +0700	cherry-pick: docs(fields): record continuation runtime blocker
+b1ab60b4710183d376aa7751b46c58f0643d0f1a 08097ad6f98edef9cffe4e1baf4ab25e2f637538 Alexey Zhokhov <alexey@zhokhov.com> 1792508133 +0700	cherry-pick: test(fields): use prepared focus continuation frames
+08097ad6f98edef9cffe4e1baf4ab25e2f637538 581d87d1f56652524eb8882d2c566d12ddcf1c1f Alexey Zhokhov <alexey@zhokhov.com> 1792508133 +0700	cherry-pick: fix(runtime): defer continuation receipts until focus settles
+581d87d1f56652524eb8882d2c566d12ddcf1c1f 3d9a57681a5c6e39a674251db61a6ef3a147ab1e Alexey Zhokhov <alexey@zhokhov.com> 1792508133 +0700	cherry-pick: perf(runtime): reuse prepared frame buffers
+3d9a57681a5c6e39a674251db61a6ef3a147ab1e a9edfa11b95513963488a712c2a6fe3ca66e9f13 Alexey Zhokhov <alexey@zhokhov.com> 1792508133 +0700	cherry-pick: docs: refresh picker runtime integration evidence
+a9edfa11b95513963488a712c2a6fe3ca66e9f13 54c02b8d2ff46a4d24972f12326fc90192fca4d3 Alexey Zhokhov <alexey@zhokhov.com> 1792508137 +0700	cherry-pick: fix(session): track cursor shape on prepared session
+54c02b8d2ff46a4d24972f12326fc90192fca4d3 b012ae710039d1f3a78c7821536a9fb1a6fc62e3 Alexey Zhokhov <alexey@zhokhov.com> 1792508137 +0700	cherry-pick: test(fields): align note muted color with baseline
+b012ae710039d1f3a78c7821536a9fb1a6fc62e3 02911a8dfe46b075e9a920b48998ce77a7a4cd41 Alexey Zhokhov <alexey@zhokhov.com> 1792508137 +0700	cherry-pick: docs(audit): clarify note baseline evidence
+02911a8dfe46b075e9a920b48998ce77a7a4cd41 36a7ee5829d3d1c43e2732a088221d824cb154aa Alexey Zhokhov <alexey@zhokhov.com> 1792508314 +0700	commit: docs: record integrated runtime field verification
+36a7ee5829d3d1c43e2732a088221d824cb154aa fa6a368b9b458966596ccac08befbe2de6bd5f6e Alexey Zhokhov <alexey@zhokhov.com> 1792508367 +0700	commit: docs: record exact-head runtime verification
+fa6a368b9b458966596ccac08befbe2de6bd5f6e ffc3b25efb4879a598e180d924daa5d37d721aab Alexey Zhokhov <alexey@zhokhov.com> 1792508388 +0700	commit: docs: record repeated runtime gate result

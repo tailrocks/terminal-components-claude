@@ -1,0 +1,70 @@
+{
+  "audit": "read-only hosted CI audit; no runs triggered, rerun, or canceled by auditor",
+  "observed_at": "2026-10-21T03:31Z (GitHub API timestamps UTC)",
+  "repository": "tailrocks/terminal-components-claude",
+  "pr": 38,
+  "branch": "parity/termrock-visual-baseline",
+  "remote_head": "491f9cfc8193718b284797d251db585cef81c022",
+  "source_blob_ids": {
+    ".github/workflows/ci.yml": "904c100a47d121dd9e9e02c1cc4c30478ed94480",
+    ".velnor/config.toml": "8fb2f2bfdcb8f5e76cfbd97267c47b8ae9d16acd"
+  },
+  "workflow_runs": [
+    {
+      "id": 39538109544,
+      "head_sha": "a7724e1fec319299406dc9c62259dfddd3d05b83",
+      "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/39538109544",
+      "created_at": "2026-10-21T03:21:25Z",
+      "updated_at": "2026-10-21T03:25:51Z",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": [
+        {"name":"Plan","id":119019497287,"url":"https://github.com/tailrocks/terminal-components-claude/actions/runs/39538109544/job/119019497287","status":"completed","conclusion":"cancelled","started_at":"2026-10-21T03:21:54Z","completed_at":"2026-10-21T03:25:43Z"},
+        {"name":"Actionlint","id":119019497542,"url":"https://github.com/tailrocks/terminal-components-claude/actions/runs/39538109544/job/119019497542","status":"completed","conclusion":"cancelled","started_at":"2026-10-21T03:21:53Z","completed_at":"2026-10-21T03:25:41Z"},
+        {"name":"Rust matrix examples","id":119020628958,"url":"https://github.com/tailrocks/terminal-components-claude/actions/runs/39538109544/job/119020628958","status":"completed","conclusion":"cancelled","steps_observed":0},
+        {"name":"Rust matrix termrock","id":119020628376,"url":"https://github.com/tailrocks/terminal-components-claude/actions/runs/39538109544/job/119020628376","status":"completed","conclusion":"cancelled","steps_observed":0},
+        {"name":"Required","id":119020628986,"url":"https://github.com/tailrocks/terminal-components-claude/actions/runs/39538109544/job/119020628986","status":"completed","conclusion":"failure","started_at":"2026-10-21T03:25:46Z","completed_at":"2026-10-21T03:25:50Z","log_evidence":"generated fail-closed env ... false; exit 1 after absent plan/output"}
+      ],
+      "interpretation": "Required failure is fail-closed downstream of canceled/missing plan and is not a Rust compile failure or proof of a planner defect. No Rust execution occurred."
+    },
+    {
+      "id": 39538432746,
+      "head_sha": "0af662eef433c7dde6c9c7685ac2b5256290ccc3",
+      "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/39538432746",
+      "created_at": "2026-10-21T03:24:53Z",
+      "updated_at": "2026-10-21T03:29:44Z",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": [
+        {"name":"Actionlint","id":119020661923,"url":"https://github.com/tailrocks/terminal-components-claude/actions/runs/39538432746/job/119020661923","status":"completed","conclusion":"cancelled","started_at":"2026-10-21T03:25:53Z","completed_at":"2026-10-21T03:29:42Z"},
+        {"name":"Plan","id":119020662273,"url":"https://github.com/tailrocks/terminal-components-claude/actions/runs/39538432746/job/119020662273","status":"completed","conclusion":"cancelled","started_at":"2026-10-21T03:25:53Z","completed_at":"2026-10-21T03:29:43Z","log_evidence":"checkout at 03:25:56Z downloaded/updated 95,193 files; at 03:29:41.044Z [error]The operation was canceled. Velnor publish step reports no plan artifact at /home/runner/work/_temp/velnor/r39538432746-a1 because operation had been canceled."},
+        {"name":"Rust matrix jobs","status":"completed","conclusion":"cancelled","completed_at":"2026-10-21T03:29:43Z","steps_observed":0}
+      ],
+      "interpretation": "Cancellation during checkout; no plan-generation step or Actionlint command reached. Missing plan artifact is consequence of interruption, not independent generated-file/planning failure."
+    },
+    {
+      "id": 39538840295,
+      "head_sha": "491f9cfc8193718b284797d251db585cef81c022",
+      "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/39538840295",
+      "created_at": "2026-10-21T03:29:20Z",
+      "status_at_observation": "in_progress",
+      "jobs_at_observation": [
+        {"name":"Actionlint","id":119021980607,"url":"https://github.com/tailrocks/terminal-components-claude/actions/runs/39538840295/job/119021980607","status":"in_progress","started_at":"2026-10-21T03:30:25Z","conclusion":null},
+        {"name":"Plan","id":119021980857,"url":"https://github.com/tailrocks/terminal-components-claude/actions/runs/39538840295/job/119021980857","status":"in_progress","started_at":"2026-10-21T03:30:25Z","conclusion":null}
+      ]
+    }
+  ],
+  "separate_check": {"name":"DCO","status":"completed","conclusion":"action_required","details_url":"https://github.com/cncf/dco2","observed_for_current_head":"491f9cfc8193718b284797d251db585cef81c022","interpretation":"Independent DCO requirement; not CI planner, generated-file, or Rust result."},
+  "workflow_source_facts": {
+    "generator_header":"Generated by Velnor Actions 0.1.32; edit .velnor/config.toml and regenerate.",
+    "pull_request_concurrency":"cancel-in-progress evaluates true for pull_request events; a newer PR run supersedes prior in-progress run.",
+    "plan_artifact":"publish step uses if-no-files-found:error, therefore cancellation before plan publication fails closed.",
+    "config":"max_parallel_jobs=2; crate_timeout_minutes=15; runner_label=ubuntu-26.04; policy=consumer-v1; generator_validation=bootstrap; test_runner=cargo_nextest."
+  },
+  "conclusion": "No actual Actionlint error, completed plan error, generated-file mismatch, or Rust failure established by these run records. 39538109544 and 39538432746 are cancelled/skipped evidence, not green. 39538840295 remained in progress and is not a pass. CI completion is currently unverified. Checkout took over 3m40s on the canceled run; repeated commits can starve runs under cancel-in-progress, but cause/optimization is not diagnosed here.",
+  "limits": [
+    "No reruns or workflow modifications performed.",
+    "The parent reported an official Velnor 0.1.32 preview matched 12 leaf entries at a772; this audit did not independently observe that preview artifact.",
+    "No successful full Plan/Actionlint/Rust matrix run inspected; CI must remain incomplete until a run finishes on the accepted head."
+  ]
+}

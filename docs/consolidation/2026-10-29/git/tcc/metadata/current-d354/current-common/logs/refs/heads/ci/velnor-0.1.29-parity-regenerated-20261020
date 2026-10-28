@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 90cd26402ffb421fd13db4418a8f9201c3a31d5e Alexey Zhokhov <alexey@zhokhov.com> 1792500306 +0700	branch: Created from 90cd26402ffb421fd13db4418a8f9201c3a31d5e
+90cd26402ffb421fd13db4418a8f9201c3a31d5e b78f3ed6246fb2d8a6c086fc60ed2ccef919a002 Alexey Zhokhov <alexey@zhokhov.com> 1792500610 +0700	commit: ci: regenerate parity workflows from full inputs
+b78f3ed6246fb2d8a6c086fc60ed2ccef919a002 f990b02017cb332836d678364e0c951d2dee1573 Alexey Zhokhov <alexey@zhokhov.com> 1792500733 +0700	commit: docs: clarify workflow source tips and proof

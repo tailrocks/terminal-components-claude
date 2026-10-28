@@ -1,0 +1,17 @@
+0000000000000000000000000000000000000000 a3ea90efc14181a22d06a95231a61ad4faee1aec Alexey Zhokhov <alexey@zhokhov.com> 1792517647 +0700	branch: Created from origin/parity/termrock-visual-baseline
+a3ea90efc14181a22d06a95231a61ad4faee1aec 29d50be85004200494b7cacd9dc9f563285cf1b6 Alexey Zhokhov <alexey@zhokhov.com> 1792518155 +0700	merge 29d50be85: Fast-forward
+29d50be85004200494b7cacd9dc9f563285cf1b6 9b4aae59b5c006e64b3791fa15804f6411633e4d Alexey Zhokhov <alexey@zhokhov.com> 1792518362 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+9b4aae59b5c006e64b3791fa15804f6411633e4d df30dc013aa6d78df6f9eb58fc67f3f3d61be37f Alexey Zhokhov <alexey@zhokhov.com> 1792519047 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+df30dc013aa6d78df6f9eb58fc67f3f3d61be37f c29d681160946dc9867cf91819ec8413c2631559 Alexey Zhokhov <alexey@zhokhov.com> 1792519260 +0700	commit: fix(grid): inherit row styles into cells
+c29d681160946dc9867cf91819ec8413c2631559 b9ce9135cb110853926d090025d2a03b817a17a1 Alexey Zhokhov <alexey@zhokhov.com> 1792519499 +0700	commit: fix(grid): preserve clear provenance and active holes
+b9ce9135cb110853926d090025d2a03b817a17a1 0a769539c7679adf561d61b3627eacbf9cd61847 Alexey Zhokhov <alexey@zhokhov.com> 1792519606 +0700	commit: fix(grid): respect recipe style precedence
+0a769539c7679adf561d61b3627eacbf9cd61847 eea8388312e25bfd0403214fd3eb8491d37eb714 Alexey Zhokhov <alexey@zhokhov.com> 1792519872 +0700	commit: test(grid): cover default clear with empty cells
+eea8388312e25bfd0403214fd3eb8491d37eb714 4f9cbb0df7f1b9bafff76801b25150e86c7216e9 Alexey Zhokhov <alexey@zhokhov.com> 1792520067 +0700	commit: fix(grid): preserve semantic row underline inheritance
+4f9cbb0df7f1b9bafff76801b25150e86c7216e9 51c1cd3b2633c64956e614f89bf37b4c1c713b82 Alexey Zhokhov <alexey@zhokhov.com> 1792520188 +0700	commit (merge): Merge latest PR 38 changes into Grid work
+51c1cd3b2633c64956e614f89bf37b4c1c713b82 23bdeedcba8cc9340f795dae1db92534e3a0bdae Alexey Zhokhov <alexey@zhokhov.com> 1792520263 +0700	commit: docs: record latest PR Grid parity attribution
+23bdeedcba8cc9340f795dae1db92534e3a0bdae c9d1f7579d6889e5dd3ea3a4facd0877fd907447 Alexey Zhokhov <alexey@zhokhov.com> 1792520296 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+c9d1f7579d6889e5dd3ea3a4facd0877fd907447 4b0cd81e15734cdb6381f63508dc2bbd75900c61 Alexey Zhokhov <alexey@zhokhov.com> 1792520351 +0700	commit: docs: supersede Grid test attribution on latest PR base
+4b0cd81e15734cdb6381f63508dc2bbd75900c61 dca416440f313f94abbadda8099f838911eba563 Alexey Zhokhov <alexey@zhokhov.com> 1792520386 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+dca416440f313f94abbadda8099f838911eba563 9e013c038fb45ed040ec3ef0a9bcf34ff4dec3e4 Alexey Zhokhov <alexey@zhokhov.com> 1792520440 +0700	commit: docs: supersede Grid attribution on latest remote base
+9e013c038fb45ed040ec3ef0a9bcf34ff4dec3e4 5902a59053e4af4601d880c8419cb180adc5f661 Alexey Zhokhov <alexey@zhokhov.com> 1792521686 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+5902a59053e4af4601d880c8419cb180adc5f661 adc6d0e3f668818f6f8321310452db6806c123cc Alexey Zhokhov <alexey@zhokhov.com> 1792522182 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward

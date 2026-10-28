@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 8f7c631dbaa5a9bfddb0ec347e92ce359ad92fc0 Alexey Zhokhov <alexey@zhokhov.com> 1792483082 +0700	branch: Created from origin/parity/termrock-visual-baseline
+8f7c631dbaa5a9bfddb0ec347e92ce359ad92fc0 e6b4fc6f6df0b74c5f86e9c8817576ab5d88110d Alexey Zhokhov <alexey@zhokhov.com> 1792484372 +0700	commit: test: add pinned frozen CLI parity runner

@@ -1,0 +1,35 @@
+0000000000000000000000000000000000000000 7450c7f484655ca3397a451a2944907f7d94408e Alexey Zhokhov <alexey@zhokhov.com> 1792913430 +0700
+7450c7f484655ca3397a451a2944907f7d94408e 9ace3b23a93b40aae7b1b514dea9c6ed5eafe9d4 Muse Code <muse@example.com> 1792913543 +0700	commit: feat(blocks): add tabs, status and section header row painters
+9ace3b23a93b40aae7b1b514dea9c6ed5eafe9d4 5ecf9241529c07e6c10d97f8f355e232e8dffd29 Muse Code <muse@example.com> 1792913869 +0700	commit: refactor(jackin-preview): collapse manager gate into overlay_open
+5ecf9241529c07e6c10d97f8f355e232e8dffd29 ecd5f642e25bdc7dba284a95c588cc72995151f1 Muse Code <muse@example.com> 1792914199 +0700	commit: fix(picker): default searchable cursor to fill, keep explicit override
+ecd5f642e25bdc7dba284a95c588cc72995151f1 c384d9d3860ac0d6c15c31917b9b8862b503719c Muse Code <muse@example.com> 1792914351 +0700	commit: fix(theme): fingerprint equal themes equally
+c384d9d3860ac0d6c15c31917b9b8862b503719c cf7c7dcb4cfcc890ca98ef6996f0d9bfb4e4e658 Muse Code <muse@example.com> 1792914405 +0700	commit: fix(shell): drop the expect calls from the router and the reach probe
+cf7c7dcb4cfcc890ca98ef6996f0d9bfb4e4e658 09bb84ed9b79d092a1fa020b08c2816c79d32ce3 Muse Code <muse@example.com> 1792914576 +0700	commit: fix(editors): advertise edit bindings on focused immediate-entry code editor
+09bb84ed9b79d092a1fa020b08c2816c79d32ce3 cf7c7dcb4cfcc890ca98ef6996f0d9bfb4e4e658 Alexey Zhokhov <alexey@zhokhov.com> 1792914617 +0700	reset: moving to cf7c7dcb4
+cf7c7dcb4cfcc890ca98ef6996f0d9bfb4e4e658 4c2ec1398e129b1f09ce1527c929b075225922b8 Muse Code <muse@example.com> 1792914680 +0700	commit: fix(runtime): saturate the callback serial instead of aborting
+4c2ec1398e129b1f09ce1527c929b075225922b8 78a0915176420f4068f2f1c43d4c4cecd3d84299 Alexey Zhokhov <alexey@zhokhov.com> 1792914927 +0700	rebase (start): checkout 78a09151
+78a0915176420f4068f2f1c43d4c4cecd3d84299 cf9ff034f61336051d161538df93f254bc7c9b8e Alexey Zhokhov <alexey@zhokhov.com> 1792914927 +0700	rebase (pick): feat(blocks): add tabs, status and section header row painters
+cf9ff034f61336051d161538df93f254bc7c9b8e bcaad55d5fa1662854525c47ead5e609e09539df Alexey Zhokhov <alexey@zhokhov.com> 1792914928 +0700	rebase (pick): refactor(jackin-preview): collapse manager gate into overlay_open
+bcaad55d5fa1662854525c47ead5e609e09539df 999381040cac0c3c1388ed0e46bcf9761061cdd3 Alexey Zhokhov <alexey@zhokhov.com> 1792914928 +0700	rebase (pick): fix(picker): default searchable cursor to fill, keep explicit override
+999381040cac0c3c1388ed0e46bcf9761061cdd3 a9506b22d3c5c71fa2e79930a8927bae1d30cfab Alexey Zhokhov <alexey@zhokhov.com> 1792914928 +0700	rebase (pick): fix(theme): fingerprint equal themes equally
+a9506b22d3c5c71fa2e79930a8927bae1d30cfab 86ef89abfa6dbb3d8aca519cb4f3fc271f2a9ab8 Alexey Zhokhov <alexey@zhokhov.com> 1792914928 +0700	rebase (pick): fix(shell): drop the expect calls from the router and the reach probe
+86ef89abfa6dbb3d8aca519cb4f3fc271f2a9ab8 398df7829bee5324f35786ffbfb9fe03e018f431 Alexey Zhokhov <alexey@zhokhov.com> 1792914928 +0700	rebase (pick): fix(runtime): saturate the callback serial instead of aborting
+398df7829bee5324f35786ffbfb9fe03e018f431 bcaad55d5fa1662854525c47ead5e609e09539df Alexey Zhokhov <alexey@zhokhov.com> 1792915378 +0700	rebase (start): checkout bcaad55d5
+bcaad55d5fa1662854525c47ead5e609e09539df 77bc0b13f957d6b8c0846355d4b8191225590a17 Alexey Zhokhov <alexey@zhokhov.com> 1792915378 +0700	rebase (pick): fix(shell): drop the expect calls from the router and the reach probe
+77bc0b13f957d6b8c0846355d4b8191225590a17 b41a27d7b5a9454c76a99f954abbefe90e440368 Alexey Zhokhov <alexey@zhokhov.com> 1792915378 +0700	rebase (pick): fix(runtime): saturate the callback serial instead of aborting
+b41a27d7b5a9454c76a99f954abbefe90e440368 dff611c25ed7e0e195217b47c9a315287153d1fb Alexey Zhokhov <alexey@zhokhov.com> 1792915711 +0700	rebase (start): checkout dff611c2
+dff611c25ed7e0e195217b47c9a315287153d1fb 7fbef7d23db01314d985d0e5ccb420c1889c6c28 Alexey Zhokhov <alexey@zhokhov.com> 1792915712 +0700	rebase (pick): feat(blocks): add tabs, status and section header row painters
+7fbef7d23db01314d985d0e5ccb420c1889c6c28 a34c302aa179677119a6c40d21777d462eaa1328 Alexey Zhokhov <alexey@zhokhov.com> 1792915712 +0700	rebase (pick): refactor(jackin-preview): collapse manager gate into overlay_open
+a34c302aa179677119a6c40d21777d462eaa1328 67c88bd165635b9cf3b6dfe133b25d5d4c438397 Alexey Zhokhov <alexey@zhokhov.com> 1792915712 +0700	rebase (pick): fix(shell): drop the expect calls from the router and the reach probe
+67c88bd165635b9cf3b6dfe133b25d5d4c438397 291747abf64bbdbe2bf427d844fe4a552a07c388 Alexey Zhokhov <alexey@zhokhov.com> 1792915712 +0700	rebase (pick): fix(runtime): saturate the callback serial instead of aborting
+291747abf64bbdbe2bf427d844fe4a552a07c388 019d89466ef622c5f588539cdb1ac737608c0d73 Alexey Zhokhov <alexey@zhokhov.com> 1792915921 +0700	commit: Revert unsigned consolidation ports (re-landing with DCO sign-off)
+019d89466ef622c5f588539cdb1ac737608c0d73 b29859ed671d2598bb6ac0ebe0650544491a0f41 Alexey Zhokhov <alexey@zhokhov.com> 1792915922 +0700	cherry-pick: feat(blocks): add tabs, status and section header row painters
+b29859ed671d2598bb6ac0ebe0650544491a0f41 f278b95abb153a63fa9d572464624d2818c9df6a Alexey Zhokhov <alexey@zhokhov.com> 1792915922 +0700	cherry-pick: refactor(jackin-preview): collapse manager gate into overlay_open
+f278b95abb153a63fa9d572464624d2818c9df6a c71941b4ef1352b6331555a8987579b378d0520e Alexey Zhokhov <alexey@zhokhov.com> 1792915922 +0700	cherry-pick: fix(shell): drop the expect calls from the router and the reach probe
+c71941b4ef1352b6331555a8987579b378d0520e 33d7f1d591230aef14327a1fba88106a4ccee049 Alexey Zhokhov <alexey@zhokhov.com> 1792915922 +0700	cherry-pick: fix(runtime): saturate the callback serial instead of aborting
+33d7f1d591230aef14327a1fba88106a4ccee049 291747abf64bbdbe2bf427d844fe4a552a07c388 Alexey Zhokhov <alexey@zhokhov.com> 1792915931 +0700	reset: moving to 291747abf
+291747abf64bbdbe2bf427d844fe4a552a07c388 2f159c7b653652066eeae12bda248f9afdf66bca Muse Code <muse@example.com> 1792915935 +0700	commit: Revert unsigned consolidation ports (re-landing with DCO sign-off)
+2f159c7b653652066eeae12bda248f9afdf66bca dfca2a0eb8895f1ce4defdb9d173e235bc75095d Muse Code <muse@example.com> 1792915935 +0700	cherry-pick: feat(blocks): add tabs, status and section header row painters
+dfca2a0eb8895f1ce4defdb9d173e235bc75095d f847449584fd051ddf0bd9a8057bada228ef6a42 Muse Code <muse@example.com> 1792915935 +0700	cherry-pick: refactor(jackin-preview): collapse manager gate into overlay_open
+f847449584fd051ddf0bd9a8057bada228ef6a42 6a79c280f9d489dda8c53648f3e060c0fac92fb9 Muse Code <muse@example.com> 1792915936 +0700	cherry-pick: fix(shell): drop the expect calls from the router and the reach probe
+6a79c280f9d489dda8c53648f3e060c0fac92fb9 026ac39f01fbf9c6b673cf982feb51f71e5dfcfc Muse Code <muse@example.com> 1792915936 +0700	cherry-pick: fix(runtime): saturate the callback serial instead of aborting

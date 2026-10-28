@@ -1,0 +1,52 @@
+{
+  "schema": "termrock-independent-review.v1",
+  "scope": "Independent read-only review of durable owned fresh-plan receipt correction at source commit b30b7cc77fc3d1de4c932a69c6c5b8d131f57f91, present in WIP merge 0eea64185fef495917ab52bbb094fbf3ce545bb5.",
+  "result": "hold",
+  "reviewed_commit": "b30b7cc77fc3d1de4c932a69c6c5b8d131f57f91",
+  "containing_merge": "0eea64185fef495917ab52bbb094fbf3ce545bb5",
+  "branch": "wip/owned-fresh-plan-lifecycle-20261021",
+  "worktree": "/private/tmp/owned-plan-independent-review-b30b7cc",
+  "worktree_clean": true,
+  "files": {
+    "tools/frozen_baseline.py": "800b7ca5abbf179e3410a7f1d71402e20ac46d8a6e102389754bd0bb939dd268",
+    "tools/test_frozen_baseline.py": "3674fe8fce4d10b87d40987ccc361a084c1ae7f6d0ec884dbac688b740c1c1a2",
+    "docs/audits/2026-10-21-owned-fresh-plan-create-verify.md": "097397bcc22aa58630efd898cd2274a94a3827d16c76f4716df896c38f41266b"
+  },
+  "verification": {
+    "command": "python3 -m unittest tools.test_frozen_baseline",
+    "result": "passed",
+    "tests": 130,
+    "skipped": 0,
+    "duration_seconds": 26.259,
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "distinct_source_checkout_and_test_outputs": true,
+    "extra_root_replacement_probe": {
+      "setup": "Published a valid synthetic plan, caller-pinned creation commitment, and durable pending receipt; renamed the original plan root and replaced its original pathname with a directory symlink to the moved original root.",
+      "command": "recover_fresh_plan_creation_anchor(root, cohort, commitment, pinned_commitment_sha256, pending_receipt_path=receipt, execution=execution)",
+      "observed": "returned status=creation-anchor-recovered, verified=false",
+      "expected_for_requested_replaced_root_fail_closed_contract": "reject"
+    }
+  },
+  "source_assessment": {
+    "prepare_live_owned_deadline_scope": "pass: corrected full owned boundary remains present; path resolution, checks, work, flushed output, and post-output cancellation/deadline checks share PrepareExecution; legacy command output is tested unchanged",
+    "durable_pending_receipt": "pass for the file-persistence boundary: exclusive immutable receipt file; file and parent directory fsync; receipt is read back and compared before plan publication; fsync errors, signal/deadline during receipt fsync, and preexisting collision fail before plan link",
+    "caller_pinned_commitment_and_recovery": "pass: caller-pinned commitment digest is required; recovery requires the external durable receipt, matches its schema and complete plan identity, verifies the commitment against the full immutable plan, and returns only a non-accepting creation anchor",
+    "actual_lifecycle": "not run; no operational plan, run key, capture, replay, ordinary check, or candidate comparison created or executed"
+  },
+  "findings": [
+    {
+      "severity": "P1",
+      "location": "tools/frozen_baseline.py:3739-3784",
+      "title": "Recovery accepts the same artifacts through a replaced plan-root pathname",
+      "evidence": "recover_fresh_plan_creation_anchor immediately resolves root, then authenticates only the commitment, receipt, and plan bytes and their embedded identifiers. Neither commitment nor receipt records an expected root path or root identity. Independent probe: publish the valid synthetic plan/commitment/receipt, rename the original root, replace its old pathname with a symlink to the moved original root, then call the recovery API with the original pathname. It succeeds with creation-anchor-recovered. Thus root-path replacement is not a fail-closed condition, despite the requested gate.",
+      "impact": "The recovery path cannot distinguish the originally published plan root from a subsequently replaced or aliased root path. Required replaced-root rejection remains unproven and is directly contradicted for the symlink replacement case.",
+      "recommendation": "Bind the intended root identity/path into the caller-pinned commitment and durable receipt, or define and implement an equivalent race-safe root identity contract; reject symlinked/replaced roots before recovery. Add subprocess/real-filesystem replacement tests for symlink and directory replacement. Preserve content verification and full verify-fresh-plan requirement."
+    }
+  ],
+  "scope_limits": [
+    "The prior stdout-only durability finding is addressed at the owned fresh-plan file-persistence boundary in this revision.",
+    "No claim that fresh-run initialization, run verification, advance, ordinal guards, ordinary phase, final runner ownership, or product acceptance is complete.",
+    "No Termrock application architecture or visual parity review was performed in this task."
+  ]
+}

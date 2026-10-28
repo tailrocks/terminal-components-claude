@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 849d26dad78477a7bb0e78a68d59794af4fca81f Alexey Zhokhov <alexey@zhokhov.com> 1792602952 +0700	branch: Created from origin/parity/termrock-visual-baseline
+849d26dad78477a7bb0e78a68d59794af4fca81f 972dc301916bc2c295d2f5d9a601ab892de3d83e Alexey Zhokhov <alexey@zhokhov.com> 1792620916 +0700	reset: moving to origin/parity/termrock-visual-baseline
+972dc301916bc2c295d2f5d9a601ab892de3d83e ef23c3303cba9f05e5bbd1a370a56128244ab79e Alexey Zhokhov <alexey@zhokhov.com> 1792621557 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+ef23c3303cba9f05e5bbd1a370a56128244ab79e c084597be3a69c5d0766443dd4ea7577169647fb Alexey Zhokhov <alexey@zhokhov.com> 1792629681 +0700	commit: fix(theme): restore the corpus-era Junie palette the component digests encode
+c084597be3a69c5d0766443dd4ea7577169647fb 671b2a1e6ba30270a2b63d79277aedb38f5349da Alexey Zhokhov <alexey@zhokhov.com> 1792633792 +0700	commit: fix(theme): keep the field-hover surface and the ANSI-16 status green
+671b2a1e6ba30270a2b63d79277aedb38f5349da 1d27eaac67d12868291e58fb980836781f6adc42 Alexey Zhokhov <alexey@zhokhov.com> 1792633854 +0700	commit: docs(theme): state the restored palette values in the source comments

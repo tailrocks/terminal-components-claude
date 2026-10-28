@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 801e6c94892703bde5309e3daa31f37c3a727910 Alexey Zhokhov <alexey@zhokhov.com> 1792507393 +0700	branch: Created from 801e6c94892703bde5309e3daa31f37c3a727910
+801e6c94892703bde5309e3daa31f37c3a727910 5ca3c4f205aed4719d6558f2bbe9829a6321bdae Alexey Zhokhov <alexey@zhokhov.com> 1792507528 +0700	commit: fix(session): track cursor shape on prepared session

@@ -1,0 +1,70 @@
+{
+  "TCC_baseline_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+  "archive_group": "source-preimages",
+  "created_utc": "2026-10-28T20:31:11Z",
+  "groups": [
+    "ODB-GROUP-003",
+    "ODB-GROUP-004",
+    "ODB-GROUP-005"
+  ],
+  "hooks_excluded": true,
+  "loose_object_aliases": 80,
+  "object_union_count": 42,
+  "object_union_sha256": "16e68a7ca266e10986165b099ca3e93a20933be75b56cd5addbefe65a3967ecc",
+  "raw_config_excluded": true,
+  "repositories": [
+    {
+      "HEAD_oid": "2a2349b121f13b3113902147aa332c4560439d21",
+      "branch": "refs/heads/main",
+      "config_excluded_sha256": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda",
+      "group_id": "ODB-GROUP-003",
+      "index_sha256": "2c35090aebab86997aa02d72f2a0bbe076f40f9f1d5ea94c1711be6d01d39b84",
+      "object_count": 19,
+      "reflog_manifest_sha256": "2138828b002dd2a53f9859dfa4098eb92d869a6c77631700f437be78c510614c",
+      "refmap_sha256": "8ed2e17512d0e485c6f527dda0824e77f1f063e9abf263be8400d18a363fe9eb",
+      "root": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-full-reconstruction",
+      "status_entry_count": 12,
+      "status_manifest_path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/status-raw/e5e088956f9a83c922a485e6dcc86b0124217fb1636f78717604837c67a3c3c8.porcelain-v2-z.raw",
+      "status_raw_sha256": "d44ecaee1bd68e156cb0fe19c98523a09c3d8f5502d98d4b4a42512064cde1af",
+      "tracked_diff_bytes": 15539,
+      "tracked_diff_sha256": "5f8d7c55cec766e797c43b2cc7f2d23416817d4145774f9f5b42bd8630cb10da"
+    },
+    {
+      "HEAD_oid": "8440ea1f7985f54c622f14167bc2adccaec33391",
+      "branch": "refs/heads/main",
+      "config_excluded_sha256": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda",
+      "group_id": "ODB-GROUP-004",
+      "index_sha256": "56e2ea6e93ca47c8e268fe2cbc72666dca31dc2fcf6b84c09199ea4c72fce5a9",
+      "object_count": 40,
+      "reflog_manifest_sha256": "2b411993c7f97e21bae6818a90ac6d171b10bcfaafc431d1d4e267ae34a53715",
+      "refmap_sha256": "b1c7f7a0c84ccf32923a08c3686140b99456816546b7a6ac10becac0722e1965",
+      "root": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-guard-scratch",
+      "status_entry_count": 2,
+      "status_manifest_path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/status-raw/4bf66ae19d97366858603bd12b1c16ad37012fea961af9c368e5b38fe910b0ec.porcelain-v2-z.raw",
+      "status_raw_sha256": "e553d2e21e3e104c8cf699a70ad91329b4859331939f0f751d16af25d0dfc2b0",
+      "tracked_diff_bytes": 4138,
+      "tracked_diff_sha256": "822f16c757e7200dadc2736f7f27921aeadbe022a65ebf0a88f703dbc4e90446"
+    },
+    {
+      "HEAD_oid": "c1f0442121c0310df22c78ca324d3e8c6f17c81e",
+      "branch": "refs/heads/main",
+      "config_excluded_sha256": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda",
+      "group_id": "ODB-GROUP-005",
+      "index_sha256": "588a7d75e9029023c162bafd591e06e2c3ad1d9432b18bcae790fff83cb2e185",
+      "object_count": 21,
+      "reflog_manifest_sha256": "c3e12044a3a0714d5ca653c528a663f851c695a1e2794d36161530ee44dab1c8",
+      "refmap_sha256": "6dc4e918958bec416560fa2e5d34b82a554fea518fe47a6a3e5335503d8fd22b",
+      "root": "/private/tmp/termrock-query-workbench-first-slice-reviewed-20261027-capture-delta-reconstruction",
+      "status_entry_count": 2,
+      "status_manifest_path": "/private/tmp/pr38-consolidation-inventory-20261029/git-store-groups-addendum-v1/status-raw/5f801c1823e85f4a075b088dde83a0f6b95c0d9ea470c62e5eea3a72fb710fec.porcelain-v2-z.raw",
+      "status_raw_sha256": "e553d2e21e3e104c8cf699a70ad91329b4859331939f0f751d16af25d0dfc2b0",
+      "tracked_diff_bytes": 4138,
+      "tracked_diff_sha256": "822f16c757e7200dadc2736f7f27921aeadbe022a65ebf0a88f703dbc4e90446"
+    }
+  ],
+  "source_mutation": "none",
+  "unique_TCC_missing_count": 24,
+  "unique_TCC_missing_sha256": "de697565fd857d14a2199577e63e3a8dc97f109a6820d88b66324846895de251",
+  "unique_compressed_files": 42,
+  "worktree_files": 36
+}

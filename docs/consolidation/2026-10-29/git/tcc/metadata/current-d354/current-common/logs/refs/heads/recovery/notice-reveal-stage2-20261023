@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 c599435b841d9e38752bb4abc359f5aa8fad3bf6 Alexey Zhokhov <alexey@zhokhov.com> 1792706221 +0700	branch: Created from origin/parity/termrock-visual-baseline
+c599435b841d9e38752bb4abc359f5aa8fad3bf6 0977f4e254b6691a439b228ce6885890afb224ef Alexey Zhokhov <alexey@zhokhov.com> 1792707720 +0700	commit: feat(overlays): add passive Notice hover reveal
+0977f4e254b6691a439b228ce6885890afb224ef 8143a6579f194a2e4eeb93b0a9ce0025f95d450c Alexey Zhokhov <alexey@zhokhov.com> 1792708116 +0700	rebase (finish): refs/heads/recovery/notice-reveal-stage2-20261023 onto 8de2bc5a41f02064d81c71d2f4a8bd5531ac125f
+8143a6579f194a2e4eeb93b0a9ce0025f95d450c e1e4bb9627a6c3f17ec98338c492e85be6951a7e Alexey Zhokhov <alexey@zhokhov.com> 1792708768 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+e1e4bb9627a6c3f17ec98338c492e85be6951a7e be3d16aa44e68b4eef67463228a3895f946dd9b3 Alexey Zhokhov <alexey@zhokhov.com> 1792718655 +0700	commit: feat(showcase): integrate Notice reveal lifecycle
+be3d16aa44e68b4eef67463228a3895f946dd9b3 a9ac6dd444e3e51a03cefa99cba34497a9bf8ca1 Alexey Zhokhov <alexey@zhokhov.com> 1792718895 +0700	rebase (finish): refs/heads/recovery/notice-reveal-stage2-20261023 onto 147e15abde584f6c4d63552f76cf2aa41dc6eaab
+a9ac6dd444e3e51a03cefa99cba34497a9bf8ca1 0e39300f5a0839b4c76f84fc7af13c12f9dbca37 Alexey Zhokhov <alexey@zhokhov.com> 1792722217 +0700	commit: feat(showcase-demos): add Empty and error page
+0e39300f5a0839b4c76f84fc7af13c12f9dbca37 002688c5d47afd4cce4850ae15649ba7f0204c77 Alexey Zhokhov <alexey@zhokhov.com> 1792723037 +0700	commit: fix(showcase-demos): restore canonical empty gallery
+002688c5d47afd4cce4850ae15649ba7f0204c77 62a17cc35eda0055a8fb93ffe5caebba5548c379 Alexey Zhokhov <alexey@zhokhov.com> 1792723489 +0700	commit: test(showcase-demos): restore offset empty page hit coverage
+62a17cc35eda0055a8fb93ffe5caebba5548c379 86380a1ec68b79c6a7603c5202c25a6cb854b1a1 Alexey Zhokhov <alexey@zhokhov.com> 1792723704 +0700	rebase (finish): refs/heads/recovery/notice-reveal-stage2-20261023 onto cec11bd9183df22250d3d5e12c16dfc8b7717bf1
+86380a1ec68b79c6a7603c5202c25a6cb854b1a1 29ceee4af1ea336d5a3b249c904089ea6b56ba50 Alexey Zhokhov <alexey@zhokhov.com> 1792724281 +0700	commit: feat(showcase-ui): route Empty and error placeholder

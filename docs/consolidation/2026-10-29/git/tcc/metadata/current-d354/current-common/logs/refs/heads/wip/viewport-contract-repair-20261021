@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 2f74af500e5ea906b024a1e01569d10022b64103 Alexey Zhokhov <alexey@zhokhov.com> 1792559465 +0700	branch: Created from origin/parity/termrock-visual-baseline
+2f74af500e5ea906b024a1e01569d10022b64103 e4eae58e1b105f51d8e2ed7f580885498397ff2a Alexey Zhokhov <alexey@zhokhov.com> 1792559778 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+e4eae58e1b105f51d8e2ed7f580885498397ff2a 7716ad775c57b3c3ff2cbdcf1aaa393f44330ee3 Alexey Zhokhov <alexey@zhokhov.com> 1792560058 +0700	merge origin/parity/termrock-visual-baseline: Fast-forward
+7716ad775c57b3c3ff2cbdcf1aaa393f44330ee3 795badb0adb2a9d118bb2cce6eb467b13e35be36 Alexey Zhokhov <alexey@zhokhov.com> 1792560150 +0700	commit: fix(viewport): restore stable text geometry
+795badb0adb2a9d118bb2cce6eb467b13e35be36 ef89a58c8b58f9410d7a953144dbc2d71e166900 Alexey Zhokhov <alexey@zhokhov.com> 1792560836 +0700	commit: fix(viewport): map clipped text with resolved layout
+ef89a58c8b58f9410d7a953144dbc2d71e166900 72b47055598317e0b0671e938b5bb8d066c35827 Alexey Zhokhov <alexey@zhokhov.com> 1792560869 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.
+72b47055598317e0b0671e938b5bb8d066c35827 648a06878bf92d50a7b4012a352fe9edd3477279 Alexey Zhokhov <alexey@zhokhov.com> 1792561943 +0700	commit: fix(viewport): preserve clipped caret and default frames
+648a06878bf92d50a7b4012a352fe9edd3477279 8a817200815d73fbc7ecc440c7e27011c5d52b10 Alexey Zhokhov <alexey@zhokhov.com> 1792562006 +0700	merge origin/parity/termrock-visual-baseline: Merge made by the 'ort' strategy.

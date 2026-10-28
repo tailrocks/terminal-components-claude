@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 8bb0ebb3085fdeff85d158bf0e1a519c959051b5 Alexey Zhokhov <alexey@zhokhov.com> 1792735759 +0700	branch: Created from origin/parity/termrock-visual-baseline
+8bb0ebb3085fdeff85d158bf0e1a519c959051b5 3d00a4bab5c95bae9ca546d0141f82149701e99a Alexey Zhokhov <alexey@zhokhov.com> 1792736332 +0700	commit: feat(showcase): show navigation count in Help
+3d00a4bab5c95bae9ca546d0141f82149701e99a b6d5d93ee67988d274af46e4fec2b95800fc067b Alexey Zhokhov <alexey@zhokhov.com> 1792736728 +0700	commit: fix(showcase): report only live help destination count
+b6d5d93ee67988d274af46e4fec2b95800fc067b 0b371f9be4271eea751652739d78b154f5eac782 Alexey Zhokhov <alexey@zhokhov.com> 1792737023 +0700	rebase (finish): refs/heads/task/help-catalog-count-20261023 onto dbc450bd8b13b6e1db1aa1796613834fff61f27a

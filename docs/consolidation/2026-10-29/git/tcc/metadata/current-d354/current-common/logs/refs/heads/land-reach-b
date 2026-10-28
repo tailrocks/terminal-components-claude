@@ -1,0 +1,14 @@
+0000000000000000000000000000000000000000 13a64608cd0ab62fc62c5b20679e7dc614ab0540 Alexey Zhokhov <alexey@zhokhov.com> 1792249200 +0700	branch: Created from reach-b-wip
+13a64608cd0ab62fc62c5b20679e7dc614ab0540 c02ea3467993d7876e06a0887cf3ef5294cb310d Alexey Zhokhov <alexey@zhokhov.com> 1792249243 +0700	rebase (finish): refs/heads/land-reach-b onto f55fd2274197c0a235e0885e3cc5827062b887e1
+c02ea3467993d7876e06a0887cf3ef5294cb310d 3f49fd33806c9e24af1488aa3e9f258edbf96e04 Alexey Zhokhov <alexey@zhokhov.com> 1792249330 +0700	commit: test(showcase): reach sweep uses is_multiple_of (clippy)
+3f49fd33806c9e24af1488aa3e9f258edbf96e04 f55fd2274197c0a235e0885e3cc5827062b887e1 Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	reset: moving to origin/design/interaction-polish
+f55fd2274197c0a235e0885e3cc5827062b887e1 15ee7d4dcb777c67ce3e27b979ce7fe366806b8e Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	cherry-pick: feat(measure): natural sizes for ListBox, MasterDetail and PaneTree
+15ee7d4dcb777c67ce3e27b979ce7fe366806b8e 311ff2ec0b9b3f23f0698404fe3adc5eb91470df Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	cherry-pick: feat(measure): natural size for TreeView
+311ff2ec0b9b3f23f0698404fe3adc5eb91470df b4184ca91bc35e651c6c1a45854718872c3bc2d1 Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	cherry-pick: test(showcase): reach gate sweeps inner scrollers both ways, in parts
+b4184ca91bc35e651c6c1a45854718872c3bc2d1 8d744a7df5fbfdd64a36173895b56dbad8612326 Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	cherry-pick: test(showcase): drop allowlist lines the inner sweep now reaches
+8d744a7df5fbfdd64a36173895b56dbad8612326 b8ae1cf93f7ee5ab492b4e534e9e50fe50b15cc4 Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	cherry-pick: feat(measure): natural sizes for Notice, Toggle and TextArea
+b8ae1cf93f7ee5ab492b4e534e9e50fe50b15cc4 c22e2e2b6b8ad7a2a13cd7855d0e959ad25d1f1c Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	cherry-pick: fix(scroll_view): follow the focused control's own gutter
+c22e2e2b6b8ad7a2a13cd7855d0e959ad25d1f1c 987f495f15196d79ba518a69c5dc36ffd8e0baaa Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	cherry-pick: feat(measure): natural size for CodeEditor
+987f495f15196d79ba518a69c5dc36ffd8e0baaa 44b1d5662532a746d01aeb8c80a02681d97172b9 Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	cherry-pick: fix(nav_list): rows that fit pass the wheel on to the container
+44b1d5662532a746d01aeb8c80a02681d97172b9 4bb95db47935f0c4573c850b5b542a17b6b6e64a Alexey Zhokhov <alexey@zhokhov.com> 1792249539 +0700	cherry-pick: test(showcase): reach sweep uses is_multiple_of (clippy)
+4bb95db47935f0c4573c850b5b542a17b6b6e64a 0fad384c0850dd842ccc1db748a9303c3bbd9e4a Alexey Zhokhov <alexey@zhokhov.com> 1792250016 +0700	commit: docs(reach): reach-b shared pieces landed; page commits R33-R54 stay open

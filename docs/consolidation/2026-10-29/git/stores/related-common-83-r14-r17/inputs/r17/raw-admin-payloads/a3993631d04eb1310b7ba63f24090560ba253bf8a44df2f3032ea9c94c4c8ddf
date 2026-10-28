@@ -1,0 +1,48 @@
+# pack-refs with: peeled fully-peeled sorted 
+54d30c0c34819e1ecbfbf460cee35468fbca16e4 refs/remotes/origin/agent/jackin-clean-manager-exit-20261027
+000467c5836e6b105e4c5072454ca242cb4ccf9b refs/remotes/origin/agent/shared-help-title-scope-20261027
+365d3539d6cf9ae4b6f88348d68b8208a9a02fda refs/remotes/origin/codex/suite-canonical-export-v1-20261027
+5b3dbd7ae799f325efbb4f4cc11b2f5518dec948 refs/remotes/origin/design/interaction-polish
+8a28d420a71f780f315979d7464015eb4e258aaa refs/remotes/origin/holla-clean-exit-live-20261027
+b9a6507e9894d32f0a2c10a819981e811e554b8e refs/remotes/origin/parity/termrock-visual-baseline
+f57a5803db0b3934bf514e3dac5cfd4f97315582 refs/remotes/origin/pr38/T01-api-index-fix
+7f6fa8e5e2643f6c9de0b0a6ec9752f800cbcfc7 refs/remotes/origin/pr38/T01-apps
+aa168c5e3d89759925aa4814111903d53c223850 refs/remotes/origin/pr38/T01-components
+2ef29058bcaa4e162ded927ee78273cd1e6f372c refs/remotes/origin/pr38/T01-evidence-custody-expand
+9178596b036846fcf52c88815d29de06f109db9b refs/remotes/origin/pr38/T01-final-api-joins
+b2183a222424a1ae4645e6bf8d3a0518c47fa725 refs/remotes/origin/pr38/T01-foundation
+71b857175ca709cc0483b1b528ef093ec18d071c refs/remotes/origin/pr38/T01-history
+668f9704ce18ee01dc4b47c5763ad82b2bde35cb refs/remotes/origin/pr38/T01-history-export-joins
+46ce5fde11b10ee38994a3779ed486eaeafc5a36 refs/remotes/origin/pr38/T01-integration
+68c9e09aa2f57ce0acad5fd40e6d0aca36f58d65 refs/remotes/origin/pr38/T01-projection-fix
+d200455b9cc90c28f1b29363ea3fa4011ee79a48 refs/remotes/origin/pr38/T01-route-source-fix
+4890b3d9ae40323b07f8d112d0fcf038e22059c3 refs/remotes/origin/pr38/T37-api-runtime
+66728b43068c1ca54deba2a9cbd4d9a9973af182 refs/remotes/origin/pr38/T37-api-values
+fb667ed7ce6d58d204e49ad0dd10a66b9a9bef0a refs/remotes/origin/pr38/T37-apps
+fae3cea7e6c4e93326bf6c0139f86daa12a7bd70 refs/remotes/origin/pr38/T37-audit-script-cleanup
+c234bc6f231c251dc515f84076934e0e4bf95abc refs/remotes/origin/pr38/T37-component-contracts
+cb1a928cb7863597ded56adbd33c77e45713f780 refs/remotes/origin/pr38/T37-components
+a94b93128ab71d2f1be43733a1b68d21792820ff refs/remotes/origin/pr38/T37-config-comment-cleanup
+ae32524b29baf638d8790ec0f7b320dfd05ee0f1 refs/remotes/origin/pr38/T37-crosswalk
+ddeceda0a3e03a6aa454b23c961e28cbb84871fb refs/remotes/origin/pr38/T37-crosswalk-refresh
+383ad59b44baf95232005551b4d70f136bef3fea refs/remotes/origin/pr38/T37-final-verification
+1dd1cf4d9ac1edfe79afabddd22104ca0c821d46 refs/remotes/origin/pr38/T37-format
+34cbad0123c13612f06cf18a882465e8f108d607 refs/remotes/origin/pr38/T37-foundations
+4ba8fd58f69a1d65546f77184a97997fa91a8d90 refs/remotes/origin/pr38/T37-history-proof
+cfe0587ad034d9f0fd18694934f071f6f50c7dc5 refs/remotes/origin/pr38/T37-metadata
+1023449d82844a03edf0993714fd786b51f7da08 refs/remotes/origin/pr38/T37-shared
+bf1b52a7fe9274593e2dfaf0332b367fb860dfef refs/remotes/origin/pr38/T37-tools
+03cdec864621a1929a0e3d8d6ba86c53470c912f refs/remotes/origin/pr38/holla-first-use-live
+0ebbf61d1c6b6b945b8d96ab69851166d99088be refs/remotes/origin/pr38/holla-help-live
+8f3e78e5695a4e66a200f4e632fa15dba360cc83 refs/remotes/origin/pr38/jackin-help-live
+cc9e629b60015752ddab0a2f1c1af7eefbf7ee12 refs/remotes/origin/pr38/live-first-20261027
+b1d96733d66e1fcd769d9c3dffe9cdf996509e5e refs/remotes/origin/pr38/showcase-chrome-live
+f6b379e85dafe79a9f76f69d4d4c2428687c5db8 refs/remotes/origin/pr38/showcase-first-live
+b93ef3d6679309a84ae502a425ea5bc6110d15f1 refs/remotes/origin/pr38/showcase-help-style-live
+d5a46d478e3764799d92d7dfb637f553dc602829 refs/remotes/origin/pr38/tablepro-first-live
+7d7003452b3ea116a40b18caeaf3530eeadebbaa refs/tags/checkpoint-2026-10-18
+^d9e569bf6fd33d90266db597c458442c729340ad
+2718a6b8127a522a3d351d0b4bdb7542fc8da542 refs/tags/visual-baseline
+^4169783ae883788186d161af09ba9c481bd84e5c
+d1044cce55112762e079d7685bd79bbc44be9ac1 refs/tags/visual-baseline-old
+^4a79c0a2d40fca46fc406b77157ce3b3f12ec16b

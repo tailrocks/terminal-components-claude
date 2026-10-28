@@ -1,0 +1,25 @@
+{
+  "alternates": "disabled",
+  "command": [
+    "git",
+    "-C",
+    "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+    "index-pack",
+    "--stdin",
+    "--strict"
+  ],
+  "cwd": "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+  "ended_at_utc": "2026-10-28T19:45:13.328285+00:00",
+  "exit_code": 128,
+  "expected_pack_sha256": "3524526d4accf5bb689fb2ab5b4896728802c25a59c7fc5864756239d9133c85",
+  "git_object_directory": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store/objects",
+  "idx_files": [],
+  "pack_files": [],
+  "started_at_utc": "2026-10-28T19:44:29.451758+00:00",
+  "stderr_bytes": 80,
+  "stderr_sha256": "897abd7b3cd3dbc1954c78e59d6ea5ea4b569f37b4a2d5eba30c91d772f78417",
+  "stdout_raw": "",
+  "streamed_pack_bytes": 4847685238,
+  "streamed_pack_sha256": "3524526d4accf5bb689fb2ab5b4896728802c25a59c7fc5864756239d9133c85",
+  "strict": true
+}

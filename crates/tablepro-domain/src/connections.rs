@@ -168,6 +168,14 @@ pub struct ConnectionDraft {
 }
 
 impl ConnectionDraft {
+    pub fn new() -> Self {
+        Self {
+            host: "localhost".into(),
+            port: default_port(0).into(),
+            ..Self::default()
+        }
+    }
+
     pub fn from_connection(connection: &Connection) -> Self {
         Self {
             name: connection.name.clone(),
@@ -204,17 +212,11 @@ impl ConnectionDraft {
     }
 
     pub fn validate_all(&self) -> Result<(), (Id, termrock::FieldError)> {
-        use field::{DATABASE, NAME, PORT};
+        use field::{NAME, PORT};
         if self.name.trim().is_empty() {
             return Err((
                 NAME,
                 termrock::FieldError::coded("Name is required", "required"),
-            ));
-        }
-        if self.engine == 0 && self.database.trim().is_empty() {
-            return Err((
-                DATABASE,
-                termrock::FieldError::coded("Database is required", "required"),
             ));
         }
         valid_port(&self.port).map_err(|e| (PORT, e))

@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 ce624ed2b378ee699d79898fbc2b808147252ffc Alexey Zhokhov <alexey@zhokhov.com> 1792548511 +0700	branch: Created from HEAD
+ce624ed2b378ee699d79898fbc2b808147252ffc 95626f9eaac50b6935997a0c848b3da913129ed5 Alexey Zhokhov <alexey@zhokhov.com> 1792548514 +0700	cherry-pick: fix(tablepro): start new connection drafts blank
+95626f9eaac50b6935997a0c848b3da913129ed5 c8f92ea0c0df2bc13a507e97b14ef6f65a90ea48 Alexey Zhokhov <alexey@zhokhov.com> 1792548836 +0700	commit: fix(tablepro): preserve typed connection name prefixes

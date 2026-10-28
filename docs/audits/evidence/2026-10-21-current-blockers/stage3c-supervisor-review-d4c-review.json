@@ -1,0 +1,78 @@
+{
+  "schema": "termrock.independent-stage3c-inclusive-supervisor-review.v1",
+  "reviewer": "/root/button_theme_contract_review",
+  "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-inclusive-ordinal8-supervisor-20261021.py",
+  "source_sha256": "d4cfa1fef8396fca7d6a11f34aa19c685a26c928a43d1aae71496fb2c65377ce",
+  "author_packet_sha256": "2fd7bf01ddd13c30fe0aaffb895175b16cd674cad515b7acfcca2b4318a83139",
+  "decision": "HOLD exactd4c; do not launch capture. Three precise required corrections; no plan/source/binary/reference changes requested.",
+  "findings": [
+    {
+      "priority": "P1",
+      "line": 194,
+      "problem": "Valid anchored plan is always rejected because creation_anchor_sha256 does not exist in actual sealed plan.",
+      "proof": "Read actual anchored file48ab... and source AST: top-level plan contains plan_sha256 (self seal), not creation_anchor_sha256. Current plan.get returnsNone. This occurs before exactenv/tool/key/prefix work.",
+      "fix": "Validate external full-file SHA against PLAN_ANCHOR and use existing self-sealed plan validator, without inventing a new required field or modifying the immutable plan. Add synthetic valid actual-schema plan test and tampered-anchor rejection test."
+    },
+    {
+      "priority": "P1",
+      "line": 178,
+      "problem": "Repeated require_budget minimum215 seconds allows only5 seconds for total supervisor imports+preflight. Genuine10\u201320s preflight cannot reach runner.",
+      "proof": "Exact extracted AST guard allows elapsed0/4/5seconds and rejects5.01/10/20. Previously measured prefix artifact check alone6.178seconds, before tool observation and707-file hash. Existing self-test only sleeps in dummyworker; it never exercises this guard.",
+      "fix": "Distinguish minimum cleanup/launch headroom from full RUNNER_SECONDS reservation. Keep CLI --timeout200 and all checks unchanged; permit meaningful completed preflight within inclusive220 with remaining-time supervision, understanding outer timer may preempt a slow runner. If a guaranteed complete200-second runner allocation is required,220total minus15reserve leaves only5seconds for preflight: split preflight into a separate bounded command or explicitly revisit that arithmetic. Add scaled synthetic10\u201320s preflight that finishes checks and reaches fast runner marker before inclusive bound; slow preflight still must prevent marker."
+    },
+    {
+      "priority": "P1",
+      "line": 107,
+      "problem": "Isolation failure branch signals observed pgid even though it just found worker group isolation invalid. This fails the stated only-owned-group rule.",
+      "proof": "Source if not worker_group_isolated immediately calls kill_group_owned(pgid,SIGKILL), where pgid came from os.getpgid rather than guaranteed child session leader proc.pid. No real foreign signal was executed by review.",
+      "fix": "On failed isolation/identity, signal only the known group created by start_new_session child proc.pid or direct owned child; never signal unexpected observed group. Add synthetic recorded-signal test for mismatching PGID with signals mocked and verify no foreign-group target."
+    }
+  ],
+  "positive_bounded_findings": [
+    "Earliest module-entry monotonic deadline covers parent imports and owned worker prechecks. Parent wait computes remaining minus15seconds cleanup reserve.",
+    "Official runner CLI still passes200seconds; sourceSHA/revision, full plan anchor, environment/tool fingerprints, full prior707-file bytes and HMAC/full-prefix artifact checks remain intended.",
+    "Real runner inherits isolated worker group; owned-group TERM/KILL/reap and direct process identity are recorded. Nested new-session descendants explicitly excluded rather than claimed covered.",
+    "Original partial attempt is read-only in intended preflight and never reused/renamed/credited; exactnextordinal8 preconditions remain.",
+    "No direct key bytes or ambient environment values printed. Official runner gets fresh-clean verified environment."
+  ],
+  "independent_synthetic_tests": {
+    "unchanged_selftest_exit": 0,
+    "slow_preflight_prevents_marker": true,
+    "slow_preflight_elapsed": 0.703,
+    "owned_samegroup_child_grandchild_TERM_and_reap": true,
+    "group_test_elapsed": 0.47,
+    "limitations": [
+      "Tests replace actual ps identity reader with synthetic identity callback.",
+      "Tests do not invoke real worker valid-plan/preflight path; therefore green selftests do not clear findings1or2.",
+      "No nested separate-session descendant test or fullcapture launch occurred."
+    ]
+  },
+  "evidence": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-inclusive-ordinal8-supervisor-20261021.py",
+      "sha256": "d4cfa1fef8396fca7d6a11f34aa19c685a26c928a43d1aae71496fb2c65377ce"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-inclusive-supervisor-AUTHOR-packet-20261021.json",
+      "sha256": "2fd7bf01ddd13c30fe0aaffb895175b16cd674cad515b7acfcca2b4318a83139"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3c-supervisor-review-d4c/source-probes.json",
+      "sha256": "399721358e05043ac265470d4f58994f93562cb5d6859354731f0b35ba7f1486"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3c-supervisor-review-d4c/synthetic-original.json",
+      "sha256": "c7d83f116353e5ade52cd6d0f32a74600278fb4b70a26755059d5284028f0c8d"
+    }
+  ],
+  "rereview_requirements": [
+    "Exact corrected supervisor/hash, synthetic real-schema guard probes, fast-runner after meaningful preflight, slow-preflight blocked marker, identity failure/mismatched PGID safe signal targets, actual ps identity happy path, owned child/grandchild cleanup.",
+    "Keep existing authenticated plan/key/prefix/707partial unchanged. No real capture until corrected exact wrapper independently cleared.",
+    "No output or progress claims can come from unreceipted old attempt. Resource quiet window remains appropriate after wrapper clearance."
+  ],
+  "remaining_limits": [
+    "Log hashing/event filesystem writes and stdout are synchronous; current guard/reserve design was only tested on small synthetic logs. Avoid claiming a real-time OS guarantee under arbitrary I/O stalls.",
+    "Nested session cleanup remains explicit separate limitation; outer killpg does not prove all possible descendant sessions terminated."
+  ],
+  "custody": "No source, plan, key, journal or attempt edits; no capture/retry; no helper agents. Only synthetic owned processes launched by existing --self-test. Temporary selftest files cleaned by its own TemporaryDirectory; no protected evidence cleanup."
+}

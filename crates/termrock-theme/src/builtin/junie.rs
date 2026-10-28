@@ -12,34 +12,51 @@ const BLACK: Color = Color::from_u32(0x00_00_00);
 const CHROME: Color = Color::from_u32(0x11_11_11);
 const CARD: Color = Color::from_u32(0x18_18_1b);
 const INPUT: Color = Color::from_u32(0x1e_1e_22);
-const INPUT_HOVER: Color = Color::from_u32(0x23_23_28);
+const INPUT_HOVER: Color = Color::from_u32(0x2f_2f_34);
 const OVERLAY: Color = Color::from_u32(0x27_27_2a);
 const POPOVER: Color = Color::from_u32(0x3f_3f_46);
 const HIGHLIGHT: Color = Color::from_u32(0x2f_5a_a8);
 const WHITE: Color = Color::from_u32(0xff_ff_ff);
 const WHITE_70: Color = Color::from_u32(0xb3_b3_b3);
 const WHITE_50: Color = Color::from_u32(0x80_80_80);
+const TEXT_MUTED: Color = Color::from_u32(0x8a_8a_8a);
+const TEXT_FAINT: Color = Color::from_u32(0x73_73_73);
 const WHITE_30: Color = Color::from_u32(0x4d_4d_4d);
+const BLUE_INFO: Color = Color::from_u32(0x79_b8_ff);
+const SYNTAX_STRING: Color = Color::from_u32(0x8b_d5_ca);
+const SYNTAX_NUMBER: Color = Color::from_u32(0xc6_a0_f6);
 const WHITE_15: Color = Color::from_u32(0x26_26_26);
 const GREEN: Color = Color::from_u32(0x48_e0_54);
+
+const SUCCESS_GREEN: Color = Color::from_u32(0x3f_b9_50);
 const GREEN_80: Color = Color::from_u32(0x3a_b3_43);
 const GREEN_60: Color = Color::from_u32(0x002b_8632);
 const GREEN_20: Color = Color::from_u32(0x0f_2e_13);
 const ON_GREEN: Color = Color::from_u32(0x19_19_1c);
-const RED: Color = Color::from_u32(0xe4_45_45);
+
+const RED: Color = Color::from_u32(0xf0_5d_5d);
+
+const DIAGNOSTIC_ERROR: Color = Color::from_u32(0xf0_5d_5d);
 const RED_20: Color = Color::from_u32(0x2e_0f_0f);
-const RED_SOFT: Color = Color::from_u32(0xd9_8a_8a);
+
+const RED_SOFT: Color = Color::from_u32(0xe8_a0_a0);
 const RED_45: Color = Color::from_u32(0x7a_2a_2a);
 const AMBER: Color = Color::from_u32(0xf5_9e_09);
 const AMBER_TINT: Color = Color::from_u32(0x2c_22_10);
 const PURPLE: Color = Color::from_u32(0x87_87_ff);
+
+const CHROME_RULE: Color = Color::from_u32(0x3a_3a_3a);
+
+const SCROLL_TRACK: Color = Color::from_u32(0x47_47_47);
+
+const SCROLL_THUMB: Color = Color::from_u32(0x80_80_80);
 
 pub(crate) const fn tokens() -> ColorTokens {
     ColorTokens {
         surfaces: [BLACK, CHROME, CARD, OVERLAY, POPOVER],
         field: INPUT,
         field_hover: INPUT_HOVER,
-        fg: [WHITE, WHITE_70, WHITE_50, WHITE_30, WHITE_15],
+        fg: [WHITE, WHITE_70, TEXT_MUTED, TEXT_FAINT, WHITE_15],
         on_accent: ON_GREEN,
         on_danger: WHITE,
         on_surface_inverse: BLACK,
@@ -64,19 +81,26 @@ pub(crate) const fn tokens() -> ColorTokens {
         danger_tint: RED_20,
         warning: AMBER,
         warning_tint: AMBER_TINT,
-        success: GREEN,
+        success: SUCCESS_GREEN,
         info: PURPLE,
         disabled_fg: WHITE_30,
         disabled_bg: OVERLAY,
         read_only_fg: WHITE_70,
+        status_bar_bg: CHROME,
+        status_bar_fg: WHITE,
+        status_accent: SUCCESS_GREEN,
+        chrome_rule: CHROME_RULE,
+        scroll_track: SCROLL_TRACK,
+        scroll_thumb: SCROLL_THUMB,
+        tag_ink: TEXT_MUTED,
 
         syntax: SyntaxTokens {
-            keyword: WHITE,
+            keyword: BLUE_INFO,
             ident: WHITE,
-            string: WHITE_70,
-            number: WHITE_70,
-            operator: WHITE_50,
-            punct: WHITE_50,
+            string: SYNTAX_STRING,
+            number: SYNTAX_NUMBER,
+            operator: TEXT_MUTED,
+            punct: TEXT_MUTED,
             comment: WHITE_30,
             plain: WHITE,
             type_name: WHITE,
@@ -87,7 +111,7 @@ pub(crate) const fn tokens() -> ColorTokens {
             match_bg: GREEN_20,
             match_current_bg: HIGHLIGHT,
             bracket_match: GREEN,
-            diagnostic_error: RED,
+            diagnostic_error: DIAGNOSTIC_ERROR,
             diagnostic_warning: AMBER,
             diagnostic_info: PURPLE,
         },
@@ -97,8 +121,8 @@ pub(crate) const fn tokens() -> ColorTokens {
             high: RED,
             track: WHITE_15,
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: WHITE_30,
-            unknown: WHITE_30,
+            stale: TEXT_FAINT,
+            unknown: TEXT_FAINT,
             series: [GREEN, AMBER, RED, PURPLE, WHITE_70, WHITE_50],
         },
     }
@@ -113,10 +137,10 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         "+", "[", "]", "•", "▾", "▴",
     ],
     scrollbar::Set {
-        track: "│",
+        track: "┆",
         thumb: "┃",
-        begin: "│",
-        end: "│",
+        begin: "┆",
+        end: "┆",
     },
     line::NORMAL,
     line::THICK,
@@ -173,6 +197,15 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
     use crate::{Part, StateFlags};
 
     let mut recipes = super::default_recipes();
+    let bar_title = recipes
+        .get_mut(Family::MENU)
+        .variant_mut(crate::Variant::custom("termrock.menu-bar-title"));
+    bar_title.entry(Part::TITLE).when(
+        StateFlags::HOVERED,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Custom(Color::from_u32(0x1c_1c_1f))),
+    );
     let row = &mut recipes.get_mut(Family::LIST).parts;
     let container = row.entry(Part::CONTAINER);
     container.states.clear();
@@ -219,7 +252,7 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
         },
     );
 
-    recipes.set_mono_rules(
+    recipes.set_builtin_mono_rules(
         Family::LIST,
         vec![(Part::CONTAINER, StateFlags::DISABLED, disabled)],
     );

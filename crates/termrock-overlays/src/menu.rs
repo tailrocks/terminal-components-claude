@@ -1,6 +1,7 @@
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::Color;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
@@ -10,7 +11,9 @@ use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::keymap::ChordCase;
 use crate::keymap::{Binding, BindingState, Bindings};
-use crate::layer::{Anchor, Dismiss, DismissReason, LayerEvent, LayerSize, LayerSpec};
+use crate::layer::{
+    Anchor, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerSize, LayerSpec, Side,
+};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
@@ -18,11 +21,22 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_feedback::keyhint::ChordText;
 
+const MENU_BAR_TITLE_VARIANT: Variant = Variant::custom("termrock.menu-bar-title");
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MenuBarHoverScope {
+    #[default]
+    Bar,
+    Title,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MenuItem<'a> {
     action: ActionKey,
     label: &'a str,
     chord: Option<Chord>,
+    hint: Option<&'a str>,
+    reason: Option<&'a str>,
     disabled: bool,
     danger: bool,
     separator_after: bool,
@@ -35,6 +49,8 @@ impl<'a> MenuItem<'a> {
             action,
             label,
             chord: None,
+            hint: None,
+            reason: None,
             disabled: false,
             danger: false,
             separator_after: false,
@@ -45,6 +61,19 @@ impl<'a> MenuItem<'a> {
     #[must_use]
     pub const fn chord(mut self, chord: Chord) -> Self {
         self.chord = Some(chord);
+        self
+    }
+
+    #[must_use]
+    pub const fn hint(mut self, hint: &'a str) -> Self {
+        self.hint = Some(hint);
+        self
+    }
+
+    #[must_use]
+    pub const fn reason(mut self, reason: &'a str) -> Self {
+        self.reason = Some(reason);
+        self.disabled = true;
         self
     }
 
@@ -84,6 +113,14 @@ impl<'a> MenuItem<'a> {
         self.chord
     }
 
+    pub const fn hint_ref(&self) -> Option<&'a str> {
+        self.hint
+    }
+
+    pub const fn reason_ref(&self) -> Option<&'a str> {
+        self.reason
+    }
+
     pub const fn is_disabled(&self) -> bool {
         self.disabled
     }
@@ -109,6 +146,11 @@ impl<'a> Menu<'a> {
 pub struct MenuState {
     cursor: usize,
     open: Option<usize>,
+    pointed: Option<usize>,
+    last_hovered: Option<PartRef>,
+    hover_suppressed: bool,
+    highlight_hidden: bool,
+    initialized: bool,
 }
 
 impl MenuState {
@@ -334,10 +376,18 @@ pub struct ContextMenu<'a> {
     id: Id,
     items: &'a [MenuItem<'a>],
     anchor: Anchor,
+    part_anchor: Option<(Id, PartRef, Side, CrossAlign)>,
     title: Option<&'a str>,
     ov: PartStyle<'a>,
     chord_case: ChordCase,
     bar_navigation: Option<(usize, usize)>,
+    retained_cursor: Option<Id>,
+
+    keep_underlay: bool,
+    separator_inset: u16,
+    skip_disabled: bool,
+    clear_on_leave: bool,
+    item_bindings: bool,
 }
 
 impl fmt::Debug for ContextMenu<'_> {
@@ -346,8 +396,13 @@ impl fmt::Debug for ContextMenu<'_> {
             .field("id", &self.id)
             .field("items", &self.items.len())
             .field("anchor", &self.anchor)
+            .field("part_anchor", &self.part_anchor)
             .field("title", &self.title)
             .field("bar_navigation", &self.bar_navigation)
+            .field("retained_cursor", &self.retained_cursor)
+            .field("skip_disabled", &self.skip_disabled)
+            .field("clear_on_leave", &self.clear_on_leave)
+            .field("item_bindings", &self.item_bindings)
             .finish_non_exhaustive()
     }
 }
@@ -362,6 +417,7 @@ impl<'a> ContextMenu<'a> {
         Part::KEY,
         Part::MARKER,
         Part::RULE,
+        Part::HELP,
     ];
 
     pub const fn new(id: Id, items: &'a [MenuItem<'a>], anchor: Anchor) -> Self {
@@ -369,15 +425,34 @@ impl<'a> ContextMenu<'a> {
             id,
             items,
             anchor,
+            part_anchor: None,
             title: None,
             ov: PartStyle::new(),
             chord_case: ChordCase::Preserve,
             bar_navigation: None,
+            retained_cursor: None,
+            keep_underlay: false,
+            separator_inset: 0,
+            skip_disabled: true,
+            clear_on_leave: false,
+            item_bindings: true,
         }
     }
 
     pub const fn at(id: Id, items: &'a [MenuItem<'a>], position: Position) -> Self {
         Self::new(id, items, Anchor::Point(position))
+    }
+
+    #[must_use]
+    pub const fn anchor_to_part(
+        mut self,
+        owner: Id,
+        part: PartRef,
+        side: Side,
+        align: CrossAlign,
+    ) -> Self {
+        self.part_anchor = Some((owner, part, side, align));
+        self
     }
 
     #[must_use]
@@ -387,8 +462,44 @@ impl<'a> ContextMenu<'a> {
     }
 
     #[must_use]
+    pub const fn keep_underlay(mut self) -> Self {
+        self.keep_underlay = true;
+        self
+    }
+
+    #[must_use]
+    pub const fn separator_inset(mut self, cells: u16) -> Self {
+        self.separator_inset = cells;
+        self
+    }
+
+    #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
         self.chord_case = case;
+        self
+    }
+
+    #[must_use]
+    pub const fn item_bindings(mut self, enabled: bool) -> Self {
+        self.item_bindings = enabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn skip_disabled(mut self, skip: bool) -> Self {
+        self.skip_disabled = skip;
+        self
+    }
+
+    #[must_use]
+    pub const fn clear_on_leave(mut self, clear: bool) -> Self {
+        self.clear_on_leave = clear;
+        self
+    }
+
+    #[must_use]
+    pub const fn retain_cursor(mut self, owner: Id) -> Self {
+        self.retained_cursor = Some(owner);
         self
     }
 
@@ -419,21 +530,51 @@ impl<'a> ContextMenu<'a> {
     }
 
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
-        LayerSpec::popover(self.id, self.anchor)
+        let anchor = self.resolve_anchor(cx).unwrap_or(self.anchor);
+        LayerSpec::popover(self.id, anchor)
             .dismiss(Dismiss::ALL)
             .initial_focus(self.id)
             .size(self.measured_size(cx))
     }
 
+    pub fn try_layer(&self, cx: &Cx<'_>) -> Option<LayerSpec> {
+        let anchor = self.resolve_anchor(cx)?;
+        Some(
+            LayerSpec::popover(self.id, anchor)
+                .dismiss(Dismiss::ALL)
+                .initial_focus(self.id)
+                .size(self.measured_size(cx)),
+        )
+    }
+
+    fn resolve_anchor(&self, cx: &Cx<'_>) -> Option<Anchor> {
+        let Some((owner, part, side, align)) = self.part_anchor else {
+            return Some(self.anchor);
+        };
+        FrameRead::area_of_part(cx, owner, part).map(|rect| Anchor::Rect { rect, side, align })
+    }
+
     fn natural_width(&self, effective: impl Fn(ActionKey, Option<Chord>) -> Option<Chord>) -> u16 {
         let title = self.title.map_or(0, width);
         let rows = self.items.iter().map(|item| {
-            let shortcut = effective(item.action, item.chord).map_or(0, |chord| {
-                width(ChordText::with_case(chord, self.chord_case).as_str()).saturating_add(2)
-            });
-            width(item.label)
-                .saturating_add(shortcut)
-                .saturating_add(u16::from(item.submenu.is_some()))
+            let label_width = width(item.label);
+            let row_width = if let Some(hint) = item.hint {
+                label_width.saturating_add(width(hint)).saturating_add(3)
+            } else {
+                let chord = if self.item_bindings {
+                    effective(item.action, item.chord)
+                } else {
+                    item.chord
+                };
+                chord.map_or(label_width, |chord| {
+                    label_width
+                        .saturating_add(width(
+                            ChordText::with_case(chord, self.chord_case).as_str(),
+                        ))
+                        .saturating_add(3)
+                })
+            };
+            row_width.saturating_add(u16::from(item.submenu.is_some()))
         });
         rows.max().unwrap_or(4).max(title).saturating_add(6).max(8)
     }
@@ -455,6 +596,81 @@ impl<'a> ContextMenu<'a> {
         self.items.get(index).is_some_and(|item| !item.disabled)
     }
 
+    fn initial_cursor(&self) -> usize {
+        self.first_enabled().unwrap_or(0)
+    }
+
+    fn navigation_cursor(&self, first: bool) -> Option<usize> {
+        if !self.skip_disabled {
+            (!self.items.is_empty()).then_some(if first {
+                0
+            } else {
+                self.items.len().saturating_sub(1)
+            })
+        } else if first {
+            self.first_enabled()
+        } else {
+            self.last_enabled()
+        }
+    }
+
+    fn observe_hover(&self, st: &mut MenuState, hovered: Option<PartRef>) {
+        if hovered == st.last_hovered {
+            return;
+        }
+        if self.clear_on_leave
+            && let Some(index) = st.last_hovered.and_then(Self::row_index)
+            && self.enabled_at(index)
+        {
+            st.highlight_hidden = true;
+        }
+        st.last_hovered = hovered;
+        st.hover_suppressed = false;
+        match hovered.and_then(Self::row_index) {
+            Some(index) if self.enabled_at(index) => {
+                st.pointed = None;
+                st.cursor = index;
+                st.highlight_hidden = false;
+            }
+            Some(index) => st.pointed = Some(index),
+            None => st.pointed = None,
+        }
+    }
+
+    fn row_index(part: PartRef) -> Option<usize> {
+        match part {
+            PartRef {
+                part: Part::ROW,
+                item: Some(ItemKey::Index(index)),
+            } => Some(index),
+            _ => None,
+        }
+    }
+
+    fn clear_pointer_state(&self, st: &mut MenuState) {
+        st.pointed = None;
+        st.last_hovered = None;
+        st.hover_suppressed = false;
+        st.highlight_hidden = false;
+    }
+
+    fn item_reason(&self, index: usize) -> Option<&'a str> {
+        let item = self.items.get(index)?;
+        item.disabled
+            .then_some(item.reason?)
+            .filter(|reason| !reason.is_empty())
+    }
+
+    fn status_reason(&self, st: &MenuState) -> Option<&'a str> {
+        st.pointed
+            .and_then(|index| self.item_reason(index))
+            .or_else(|| {
+                (!st.highlight_hidden)
+                    .then_some(st.cursor)
+                    .and_then(|index| self.item_reason(index))
+            })
+    }
+
     fn first_enabled(&self) -> Option<usize> {
         self.items.iter().position(|item| !item.disabled)
     }
@@ -474,7 +690,7 @@ impl<'a> ContextMenu<'a> {
                 .wrapping_add_signed(delta)
                 .checked_rem(len)
                 .unwrap_or_default();
-            if self.enabled_at(index) {
+            if !self.skip_disabled || self.enabled_at(index) {
                 let changed = st.cursor != index;
                 st.cursor = index;
                 return changed;
@@ -483,21 +699,29 @@ impl<'a> ContextMenu<'a> {
         false
     }
 
-    fn activate(&self, st: &mut MenuState) -> Option<MenuAction> {
-        let item = self.items.get(st.cursor).filter(|item| !item.disabled)?;
+    fn selection_at(&self, index: usize) -> Option<MenuSelection> {
+        let item = self.items.get(index).filter(|item| !item.disabled)?;
         Some(if item.submenu.is_some() {
-            MenuAction::Submenu(ItemKey::index(st.cursor))
+            (MenuAction::Submenu(ItemKey::index(index)), None)
         } else {
-            MenuAction::Chosen(item.action)
+            (MenuAction::Chosen(item.action), Some(index))
         })
     }
 
-    fn command(&self, st: &mut MenuState, command: MenuCmd) -> Response<MenuAction> {
+    fn activate(&self, st: &mut MenuState) -> Option<MenuSelection> {
+        self.selection_at(st.cursor)
+    }
+
+    fn command_with_selection(
+        &self,
+        st: &mut MenuState,
+        command: MenuCmd,
+    ) -> Response<MenuSelection> {
         match command {
-            MenuCmd::Prev => moved(self.step(st, -1)),
-            MenuCmd::Next => moved(self.step(st, 1)),
-            MenuCmd::First => set_cursor(st, self.first_enabled()),
-            MenuCmd::Last => set_cursor(st, self.last_enabled()),
+            MenuCmd::Prev => no_selection(moved(self.step(st, -1))),
+            MenuCmd::Next => no_selection(moved(self.step(st, 1))),
+            MenuCmd::First => no_selection(set_cursor(st, self.navigation_cursor(true))),
+            MenuCmd::Last => no_selection(set_cursor(st, self.navigation_cursor(false))),
             MenuCmd::Activate => self
                 .activate(st)
                 .map_or_else(Response::consumed, Response::action),
@@ -505,7 +729,7 @@ impl<'a> ContextMenu<'a> {
         }
     }
 
-    fn switch_menu(&self, delta: isize) -> Response<MenuAction> {
+    fn switch_menu(&self, delta: isize) -> Response<MenuSelection> {
         let Some((index, count)) = self.bar_navigation else {
             return Response::ignored();
         };
@@ -513,72 +737,156 @@ impl<'a> ContextMenu<'a> {
             .wrapping_add_signed(delta)
             .checked_rem(count)
             .unwrap_or_default();
-        Response::action(MenuAction::Opened(next))
+        Response::action((MenuAction::Opened(next), None))
     }
 
-    fn binding_response(&self, st: &mut MenuState, action: ActionKey) -> Response<MenuAction> {
+    fn binding_response(&self, st: &mut MenuState, action: ActionKey) -> Response<MenuSelection> {
         if self.bar_navigation.is_some()
             && let Some(command) = Binding::command(BAR_BINDINGS, action)
         {
             return match command {
                 MenuCmd::PrevMenu => self.switch_menu(-1),
                 MenuCmd::NextMenu => self.switch_menu(1),
-                command => self.command(st, command),
+                command => self.command_with_selection(st, command),
             };
         }
         Binding::command(CONTEXT_BINDINGS, action).map_or_else(
             || {
-                self.items
-                    .iter()
-                    .find(|item| !item.disabled && item.action == action)
-                    .map_or_else(Response::ignored, |item| {
-                        Response::action(MenuAction::Chosen(item.action))
-                    })
+                if self.item_bindings {
+                    self.items
+                        .iter()
+                        .enumerate()
+                        .find(|(_, item)| !item.disabled && item.action == action)
+                        .map_or_else(Response::ignored, |(index, item)| {
+                            Response::action((MenuAction::Chosen(item.action), Some(index)))
+                        })
+                } else {
+                    Response::ignored()
+                }
             },
-            |command| self.command(st, command),
+            |command| self.command_with_selection(st, command),
         )
     }
 
-    fn pointer(&self, st: &mut MenuState, index: usize, phase: Phase) -> Response<MenuAction> {
+    fn is_navigation_binding(&self, action: ActionKey) -> bool {
+        let command = if self.bar_navigation.is_some() {
+            Binding::command(BAR_BINDINGS, action)
+                .or_else(|| Binding::command(CONTEXT_BINDINGS, action))
+        } else {
+            Binding::command(CONTEXT_BINDINGS, action)
+        };
+        matches!(
+            command,
+            Some(MenuCmd::Prev | MenuCmd::Next | MenuCmd::First | MenuCmd::Last)
+        )
+    }
+
+    fn after_keyboard_navigation(&self, st: &mut MenuState, cx: &Cx<'_>) {
+        st.pointed = None;
+        st.last_hovered = FrameRead::hovered_part(cx, self.id);
+        st.hover_suppressed = true;
+        st.highlight_hidden = false;
+    }
+
+    fn pointer(&self, st: &mut MenuState, index: usize, phase: Phase) -> Response<MenuSelection> {
         if !self.enabled_at(index) {
+            if phase == Phase::Move {
+                st.pointed = Some(index);
+                st.last_hovered = Some(PartRef::item(Part::ROW, ItemKey::index(index)));
+                st.hover_suppressed = false;
+            }
             return Response::consumed();
         }
         match phase {
             Phase::Click | Phase::DoubleClick => {
                 st.cursor = index;
-                self.activate(st)
+                st.pointed = None;
+                st.highlight_hidden = false;
+                self.selection_at(index)
                     .map_or_else(Response::consumed, Response::action)
             }
-            Phase::Move if st.cursor != index => {
+            Phase::Move => {
+                st.last_hovered = Some(PartRef::item(Part::ROW, ItemKey::index(index)));
+                st.hover_suppressed = false;
+                st.pointed = None;
+                st.highlight_hidden = false;
+                if st.cursor == index {
+                    return Response::consumed();
+                }
                 st.cursor = index;
-                Response::changed()
+                no_selection(Response::changed())
             }
             _ => Response::consumed(),
         }
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
-        if !self.enabled_at(st.cursor)
+        self.update_with_selection(cx, st).0
+    }
+
+    pub fn update_with_selection(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut MenuState,
+    ) -> (Response<MenuAction>, Option<usize>) {
+        if !self.skip_disabled && !st.initialized {
+            st.cursor = self.initial_cursor();
+            st.initialized = true;
+        } else if self.skip_disabled
+            && !self.enabled_at(st.cursor)
             && let Some(first) = self.first_enabled()
         {
             st.cursor = first;
         }
+        self.observe_hover(st, FrameRead::hovered_part(cx, self.id));
         if cx.is_open(self.id) {
+            let Some(anchor) = self.resolve_anchor(cx) else {
+                cx.close_layer(self.id, None);
+                return (
+                    Response::action(MenuAction::Closed(DismissReason::Programmatic)),
+                    None,
+                );
+            };
             cx.resize_layer(self.id, self.measured_size(cx));
-            cx.reanchor_layer(self.id, self.anchor);
+            cx.reanchor_layer(self.id, anchor);
         }
         let mut acc = Acc::new();
         for intent in cx.intents(self.id) {
             let response = match intent {
                 Intent::Layer(LayerEvent::Dismissed(reason)) => {
-                    Response::action(MenuAction::Closed(reason))
+                    self.clear_pointer_state(st);
+                    st.initialized = false;
+                    Response::action((MenuAction::Closed(reason), None))
                 }
-                Intent::Layer(_) => Response::ignored().repaint(),
+                Intent::Layer(LayerEvent::Opened) => {
+                    if !self.skip_disabled {
+                        st.cursor = self.initial_cursor();
+                        st.initialized = true;
+                    }
+                    self.clear_pointer_state(st);
+                    Response::ignored().repaint()
+                }
+                Intent::Layer(LayerEvent::Closed(_)) => {
+                    self.clear_pointer_state(st);
+                    st.initialized = false;
+                    Response::ignored().repaint()
+                }
                 Intent::Cancel => {
                     cx.close_layer(self.id, None);
-                    Response::action(MenuAction::Closed(DismissReason::Esc))
+                    Response::action((MenuAction::Closed(DismissReason::Esc), None))
                 }
-                Intent::Binding(action) => self.binding_response(st, action),
+                Intent::Binding(action) => {
+                    if st.highlight_hidden && cx.activation_key().is_some() {
+                        Response::consumed()
+                    } else {
+                        let navigation = self.is_navigation_binding(action);
+                        let response = self.binding_response(st, action);
+                        if navigation {
+                            self.after_keyboard_navigation(st, cx);
+                        }
+                        response
+                    }
+                }
                 Intent::Pointer {
                     phase,
                     part:
@@ -591,16 +899,16 @@ impl<'a> ContextMenu<'a> {
                 Intent::Pointer { .. } => Response::consumed(),
                 _ => Response::ignored(),
             };
-            if let Some(action) = response.action_ref().copied() {
+            if let Some((action, selection)) = response.action_ref().copied() {
                 if let MenuAction::Chosen(key) = action {
                     cx.close_layer(self.id, Some(key));
                 }
-                acc.action(action);
+                acc.action((action, selection));
             } else {
                 acc.fold(&response.erase());
             }
         }
-        acc.finish(self.id)
+        finish_with_selection(acc, self.id)
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &MenuState) -> Rect {
@@ -618,16 +926,24 @@ impl<'a> ContextMenu<'a> {
                 Part::CONTAINER,
                 live,
             );
-            ui.fill(area, container.style);
-            let border = self.ov.style(
-                ui,
-                self.id,
-                Family::MENU,
-                Variant::DEFAULT,
-                Part::BORDER,
-                live,
-            );
-            let inner = ui.frame(area, border.style);
+            let container_bg = container.style.as_style().bg.unwrap_or(Color::Reset);
+            if self.keep_underlay {
+                ui.fill_keep_ink(area, container_bg);
+            } else {
+                ui.fill(area, container.style);
+            }
+            let border_style = self
+                .ov
+                .style(
+                    ui,
+                    self.id,
+                    Family::MENU,
+                    Variant::DEFAULT,
+                    Part::BORDER,
+                    live,
+                )
+                .style;
+            let inner = ui.frame(area, border_style);
             if let Some(slot) = self.ov.slot_for(Part::BORDER) {
                 slot(ui, area);
             }
@@ -643,22 +959,29 @@ impl<'a> ContextMenu<'a> {
                 live,
                 self.items
                     .iter()
-                    .filter(|item| !item.disabled)
+                    .filter(|item| self.item_bindings && !item.disabled)
                     .map(|item| (item.action, item.chord)),
             );
             ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
             let mut y = inner.y;
             if let Some(title) = self.title {
-                let row = first_row(Rect { y, ..inner });
-                let style = self.ov.style(
-                    ui,
-                    self.id,
-                    Family::MENU,
-                    Variant::DEFAULT,
-                    Part::TITLE,
-                    live,
-                );
-                paint_or_slot(ui, &self.ov, Part::TITLE, row, title, style.style);
+                let row = shift(first_row(Rect { y, ..inner }), 2);
+                let row = Rect {
+                    width: row.width.saturating_sub(1),
+                    ..row
+                };
+                let style = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::MENU,
+                        Variant::DEFAULT,
+                        Part::TITLE,
+                        live,
+                    )
+                    .style;
+                paint_or_slot(ui, &self.ov, Part::TITLE, row, title, style);
                 ui.register_decor(self.id, PartRef::of(Part::TITLE), row);
                 y = y.saturating_add(1);
             }
@@ -670,7 +993,7 @@ impl<'a> ContextMenu<'a> {
                 self.draw_row(ui, row, index, item, st, live);
                 y = y.saturating_add(1);
                 if item.separator_after && y < inner.bottom() {
-                    let rule = first_row(Rect { y, ..inner });
+                    let rule = self.separator_area(first_row(Rect { y, ..inner }));
                     let style = self.ov.style(
                         ui,
                         self.id,
@@ -679,18 +1002,26 @@ impl<'a> ContextMenu<'a> {
                         Part::RULE,
                         live,
                     );
-                    if let Some(slot) = self.ov.slot_for(Part::RULE) {
-                        slot(ui, rule);
-                    } else {
-                        for cell in rule.rows() {
-                            ui.glyph(cell, GlyphRole::RuleQuiet, style.style);
+                    if !rule.is_empty() {
+                        if let Some(slot) = self.ov.slot_for(Part::RULE) {
+                            slot(ui, rule);
+                        } else {
+                            for cell in rule.rows() {
+                                ui.glyph(cell, GlyphRole::RuleQuiet, style.style);
+                            }
                         }
                     }
                     ui.register_decor(self.id, PartRef::of(Part::RULE), rule);
                     y = y.saturating_add(1);
                 }
             }
+            if let Some(reason) = self.status_reason(st) {
+                self.draw_reason(ui, area, reason);
+            }
         });
+        if let Some(owner) = self.retained_cursor {
+            let _ = ui.retain_visible_owner_cursor(owner);
+        }
         area
     }
 
@@ -707,14 +1038,17 @@ impl<'a> ContextMenu<'a> {
             StateFlags::FOCUSED
                 | StateFlags::FOCUS_VISIBLE
                 | StateFlags::HOVERED
-                | StateFlags::PRESSED,
+                | StateFlags::PRESSED
+                | StateFlags::ACTIVE,
         );
-        if FrameRead::hovered_part(ui, self.id)
-            == Some(PartRef::item(Part::ROW, ItemKey::index(index)))
+        if !item.disabled
+            && !st.hover_suppressed
+            && FrameRead::hovered_part(ui, self.id)
+                == Some(PartRef::item(Part::ROW, ItemKey::index(index)))
         {
             derived |= StateFlags::HOVERED;
         }
-        if index == st.cursor {
+        if index == st.cursor && !st.highlight_hidden {
             derived |=
                 StateFlags::ACTIVE | parent & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
         }
@@ -723,7 +1057,7 @@ impl<'a> ContextMenu<'a> {
         }
         let mut flags = PartStyle::flags(StateFlags::empty(), derived);
         let pressed_row = pressed_target(ui, self.id, Part::ROW, index);
-        if pressed_row {
+        if pressed_row && !item.disabled {
             flags.insert(StateFlags::PRESSED);
         } else {
             flags.remove(StateFlags::PRESSED);
@@ -736,7 +1070,14 @@ impl<'a> ContextMenu<'a> {
         let style = self
             .ov
             .style(ui, self.id, Family::MENU, variant, Part::ROW, flags);
-        ui.fill(row, style.style);
+
+        let mut row_paint = style.style;
+        if row_paint.as_style().fg.is_none()
+            && let Some(fg) = ui.theme_ref().color.fg.first().copied()
+        {
+            row_paint = row_paint.fg(fg);
+        }
+        ui.fill(row, row_paint);
         let marker = Rect { width: 1, ..row };
         if item.submenu.is_some() {
             let marker_style =
@@ -753,42 +1094,107 @@ impl<'a> ContextMenu<'a> {
             }
         }
         let label = shift(row, 2);
-        let effective_chord = ui.effective_chord(self.id, item.action, item.chord);
-        let key_width = effective_chord.map_or(0, |chord| {
-            width(ChordText::with_case(chord, self.chord_case).as_str())
-        });
+        let effective_chord = if self.item_bindings {
+            ui.effective_chord(self.id, item.action, item.chord)
+        } else {
+            item.chord
+        };
+        let chord_text = effective_chord.map(|chord| ChordText::with_case(chord, self.chord_case));
+        let hint = item
+            .hint
+            .or_else(|| chord_text.as_ref().map(|text| text.as_str()));
+        let hint_width = hint.map_or(0, width);
+        let hint_admitted = hint.is_some() && admits_hint(item.label, hint_width, row.width);
+        let reserved_hint = if hint_admitted { hint_width } else { 0 };
         let label = Rect {
-            width: label.width.saturating_sub(key_width.saturating_add(2)),
+            width: if hint_admitted {
+                row.width.saturating_sub(reserved_hint.saturating_add(5))
+            } else {
+                row.width.saturating_sub(3)
+            },
             ..label
         };
         let label_style = self
             .ov
             .style(ui, self.id, Family::MENU, variant, Part::LABEL, flags);
+        let mut effective_label_style = label_style.over(row_paint);
+        let label_has_patch = self.ov.parts.iter().any(|(p, _)| *p == Part::LABEL);
+        if !label_has_patch && let Some(fg) = row_paint.as_style().fg {
+            effective_label_style = effective_label_style.fg(fg);
+        }
         paint_or_slot(
             ui,
             &self.ov,
             Part::LABEL,
             label,
             item.label,
-            label_style.style,
+            effective_label_style,
         );
-        if let Some(chord) = effective_chord {
-            let text = ChordText::with_case(chord, self.chord_case);
+        if hint_admitted && let Some(text) = hint {
             let key = Rect {
-                x: row.right().saturating_sub(key_width.saturating_add(1)),
-                width: key_width.min(row.width),
+                x: row.right().saturating_sub(reserved_hint.saturating_add(1)),
+                width: reserved_hint.min(row.width),
                 ..row
             };
             let key_style = self
                 .ov
                 .style(ui, self.id, Family::MENU, variant, Part::KEY, flags);
-            paint_or_slot(ui, &self.ov, Part::KEY, key, text.as_str(), key_style.style);
+            paint_or_slot(
+                ui,
+                &self.ov,
+                Part::KEY,
+                key,
+                text,
+                key_style.over(row_paint),
+            );
         }
         ui.register_part(
             self.id,
             PartRef::item(Part::ROW, ItemKey::index(index)),
             row,
         );
+    }
+
+    fn separator_area(&self, rule: Rect) -> Rect {
+        let inset = self.separator_inset.min(rule.width / 2);
+        Rect {
+            x: rule.x.saturating_add(inset),
+            width: rule.width.saturating_sub(inset.saturating_mul(2)),
+            ..rule
+        }
+    }
+
+    fn draw_reason(&self, ui: &mut Ui<'_>, area: Rect, reason: &str) {
+        let available = area.width.saturating_sub(4);
+        if available < 3 || reason.is_empty() {
+            return;
+        }
+        let reason = crate::text::truncate(reason, available.saturating_sub(2));
+        let padded = format!(" {reason} ");
+        let width = width(&padded).min(available);
+        if width == 0 {
+            return;
+        }
+        let row = Rect {
+            x: area.x.saturating_add(2),
+            y: area.y.saturating_add(area.height.saturating_sub(1)),
+            width,
+            height: 1,
+        };
+        let style = self.ov.style(
+            ui,
+            self.id,
+            Family::MENU,
+            Variant::DEFAULT,
+            Part::HELP,
+            StateFlags::empty(),
+        );
+        if let Some(slot) = self.ov.slot_for(Part::HELP) {
+            slot(ui, row);
+        } else {
+            ui.paint_str(row, &padded, style.style);
+        }
+        ui.register_decor(self.id, PartRef::of(Part::HELP), row);
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
@@ -813,6 +1219,7 @@ pub struct MenuBar<'a> {
     menus: &'a [Menu<'a>],
     ov: PartStyle<'a>,
     chord_case: ChordCase,
+    hover_scope: MenuBarHoverScope,
 }
 
 impl fmt::Debug for MenuBar<'_> {
@@ -820,6 +1227,7 @@ impl fmt::Debug for MenuBar<'_> {
         f.debug_struct("MenuBar")
             .field("id", &self.id)
             .field("menus", &self.menus.len())
+            .field("hover_scope", &self.hover_scope)
             .finish_non_exhaustive()
     }
 }
@@ -833,7 +1241,14 @@ impl<'a> MenuBar<'a> {
             menus,
             ov: PartStyle::new(),
             chord_case: ChordCase::Preserve,
+            hover_scope: MenuBarHoverScope::Bar,
         }
+    }
+
+    #[must_use]
+    pub const fn hover_scope(mut self, scope: MenuBarHoverScope) -> Self {
+        self.hover_scope = scope;
+        self
     }
 
     #[must_use]
@@ -881,10 +1296,17 @@ impl<'a> MenuBar<'a> {
             id: self.id,
             items: menu.items,
             anchor: self.anchor(cx, index),
+            part_anchor: None,
             title: None,
             ov: self.ov,
             chord_case: self.chord_case,
             bar_navigation: Some((index, self.menus.len())),
+            retained_cursor: None,
+            keep_underlay: false,
+            separator_inset: 0,
+            skip_disabled: true,
+            clear_on_leave: false,
+            item_bindings: true,
         })
     }
 
@@ -1011,6 +1433,9 @@ impl<'a> MenuBar<'a> {
         }
         let mut live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         live.remove(StateFlags::PRESSED);
+        if self.hover_scope == MenuBarHoverScope::Title {
+            live.remove(StateFlags::HOVERED);
+        }
         let container = self.ov.style(
             ui,
             self.id,
@@ -1053,14 +1478,59 @@ impl<'a> MenuBar<'a> {
             } else {
                 flags.remove(StateFlags::PRESSED);
             }
-            let style = self.ov.style(
-                ui,
-                self.id,
-                Family::MENU,
-                Variant::DEFAULT,
-                Part::TITLE,
-                flags,
-            );
+            let style = match self.hover_scope {
+                MenuBarHoverScope::Bar => self.ov.style(
+                    ui,
+                    self.id,
+                    Family::MENU,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    flags,
+                ),
+                MenuBarHoverScope::Title => {
+                    let mut defaults = StylePatch::default();
+                    if let Some(recipe) = ui
+                        .theme_ref()
+                        .recipes
+                        .get(Family::MENU)
+                        .and_then(|recipe| recipe.variant(MENU_BAR_TITLE_VARIANT))
+                        .and_then(|parts| parts.get(Part::TITLE))
+                    {
+                        defaults = recipe.apply(defaults, flags);
+                    }
+                    let variant = ui
+                        .theme_ref()
+                        .recipes
+                        .get(Family::MENU)
+                        .map_or(Variant::DEFAULT, |r| r.default_variant);
+                    let target_variant = if variant == Variant::DEFAULT {
+                        MENU_BAR_TITLE_VARIANT
+                    } else {
+                        Variant::DEFAULT
+                    };
+                    let local = self.ov.part_patch(Part::TITLE);
+                    let style = ui.style_defaults(
+                        Family::MENU,
+                        target_variant,
+                        Part::TITLE,
+                        flags,
+                        crate::theme::StyleDefaults::new(defaults),
+                        local.as_ref(),
+                    );
+                    self.ov.note(
+                        ui,
+                        self.id,
+                        Family::MENU,
+                        Variant::DEFAULT,
+                        Part::TITLE,
+                        style,
+                    );
+                    style
+                }
+            };
+            if self.hover_scope == MenuBarHoverScope::Title {
+                ui.fill(rect, style.style);
+            }
             let label = shift(rect, 1);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
                 slot(ui, label);
@@ -1094,10 +1564,17 @@ impl<'a> MenuBar<'a> {
                 id: self.id,
                 items: menu.items,
                 anchor: Anchor::Screen(crate::layer::ScreenAlign::UpperThird),
+                part_anchor: None,
                 title: None,
                 ov: self.ov,
                 chord_case: self.chord_case,
                 bar_navigation: Some((open, self.menus.len())),
+                retained_cursor: None,
+                keep_underlay: false,
+                separator_inset: 0,
+                skip_disabled: true,
+                clear_on_leave: false,
+                item_bindings: true,
             };
             let _ = ui.layer(self.id, |ui, layer| dropdown.draw(ui, layer, st));
         }
@@ -1139,6 +1616,25 @@ fn pressed_target(ui: &Ui<'_>, owner: Id, part: Part, index: usize) -> bool {
     FrameRead::pressed_part(ui, owner) == Some(PartRef::item(part, ItemKey::index(index)))
 }
 
+fn admits_hint(label: &str, hint_width: u16, row_width: u16) -> bool {
+    width(label).saturating_add(hint_width).saturating_add(5) <= row_width
+}
+
+type MenuSelection = (MenuAction, Option<usize>);
+
+fn no_selection(response: Response<MenuAction>) -> Response<MenuSelection> {
+    response.map_action(|action| (action, None))
+}
+
+fn finish_with_selection(acc: Acc<MenuSelection>, id: Id) -> (Response<MenuAction>, Option<usize>) {
+    let response = acc.finish(id);
+    let selection = match response.action_ref() {
+        Some((MenuAction::Chosen(_), Some(index))) => Some(*index),
+        _ => None,
+    };
+    (response.map_action(|(action, _)| action), selection)
+}
+
 fn moved(changed: bool) -> Response<MenuAction> {
     if changed {
         Response::changed()
@@ -1154,340 +1650,5 @@ fn set_cursor(st: &mut MenuState, index: Option<usize>) -> Response<MenuAction> 
             Response::changed()
         }
         _ => Response::consumed(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::Position;
-
-    use super::*;
-    use crate::event::{Input, Key, KeyModifiers};
-    use crate::keymap::KeyMap;
-    use crate::runtime::{App, Runtime};
-    use crate::theme::Theme;
-
-    const OPEN: ActionKey = ActionKey::custom("open");
-    const CLOSE: ActionKey = ActionKey::custom("close");
-    const MORE: ActionKey = ActionKey::custom("more");
-    const CHILD: [MenuItem<'static>; 1] = [MenuItem::new(OPEN, "Child")];
-    const ITEMS: [MenuItem<'static>; 4] = [
-        MenuItem::new(OPEN, "Open").chord(Chord::key(KeyCode::Char('o'))),
-        MenuItem::new(CLOSE, "Disabled")
-            .chord(Chord::key(KeyCode::Char('d')))
-            .disabled(true),
-        MenuItem::new(CLOSE, "Close").danger().separator(),
-        MenuItem::new(MORE, "More").submenu(&CHILD),
-    ];
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: KeyModifiers::NONE,
-        }
-    }
-
-    #[test]
-    fn keyboard_skips_disabled_and_wraps() {
-        let menu = ContextMenu::at(Id::root("menu.tests"), &ITEMS, Position::new(1, 1));
-        let mut state = MenuState::default();
-        assert!(menu.step(&mut state, 1));
-        assert_eq!(state.cursor(), 2);
-        assert!(menu.step(&mut state, 1));
-        assert_eq!(state.cursor(), 3);
-        assert!(menu.step(&mut state, 1));
-        assert_eq!(state.cursor(), 0);
-    }
-
-    #[test]
-    fn displayed_chord_is_the_handled_chord() {
-        let item = &ITEMS[0];
-        let chord = item.chord_ref().unwrap_or(Chord::key(KeyCode::Null));
-        assert!(chord.matches(&key(KeyCode::Char('o'))));
-        assert_eq!(ChordText::of(chord).as_str(), "o");
-        assert_eq!(item.action(), OPEN);
-    }
-
-    #[test]
-    fn mono_pressed_menu_title_keeps_both_reserved_pads() {
-        const ID: Id = Id::root("menu.tests.mono");
-        const MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
-        let area = Rect::new(0, 0, 12, 1);
-        let mut runtime = Runtime::new(
-            crate::runtime::stub::Stub::default(),
-            Theme::junie().downgrade(crate::ColorLevel::Mono),
-        );
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                ui.reference(
-                    Some(
-                        crate::ReferenceTarget::new(ID, crate::ReferenceState::PRESSED)
-                            .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
-                    ),
-                    |ui| MenuBar::new(ID, &MENUS).draw(ui, area, &MenuState::default()),
-                );
-            })
-            .commit_presented();
-
-        assert_eq!(
-            buffer
-                .cell(Position::new(1, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("["),
-            "the title's left bracket occupies its leading pad"
-        );
-        assert_eq!(
-            buffer
-                .cell(Position::new(2, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("F"),
-            "the title text starts inside the reserved pads"
-        );
-        assert_eq!(
-            buffer
-                .cell(Position::new(6, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("]"),
-            "the title's right bracket occupies its trailing pad"
-        );
-    }
-
-    #[test]
-    fn submenu_is_typed_and_does_not_emit_parent_action() {
-        let menu = ContextMenu::at(Id::root("menu.tests"), &ITEMS, Position::new(1, 1));
-        let mut state = MenuState {
-            cursor: 3,
-            open: None,
-        };
-        assert_eq!(
-            menu.activate(&mut state),
-            Some(MenuAction::Submenu(ItemKey::index(3)))
-        );
-    }
-
-    #[test]
-    fn move_changes_cursor_but_press_does_not() {
-        let menu = ContextMenu::at(Id::root("menu.tests"), &ITEMS, Position::new(1, 1));
-        let mut state = MenuState::default();
-        let press = menu.pointer(&mut state, 2, Phase::Press);
-        assert_eq!(state.cursor(), 0);
-        assert!(press.is_consumed());
-        let moved = menu.pointer(&mut state, 2, Phase::Move);
-        assert_eq!(state.cursor(), 2);
-        assert!(moved.is_consumed());
-    }
-
-    struct MenuApp {
-        state: MenuState,
-        chosen: Option<ActionKey>,
-        keymap: KeyMap,
-    }
-
-    const BAR_MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
-
-    struct MenuBarApp {
-        state: MenuState,
-    }
-
-    impl App for MenuBarApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            MenuBar::new(Id::root("menu.bar.runtime"), &BAR_MENUS)
-                .update(cx, &mut self.state)
-                .erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let _ = MenuBar::new(Id::root("menu.bar.runtime"), &BAR_MENUS).draw(
-                ui,
-                Rect::new(0, 0, 40, 10),
-                &self.state,
-            );
-        }
-    }
-
-    const SHRINKING_MENUS: [Menu<'static>; 2] =
-        [Menu::new("File", &ITEMS), Menu::new("Edit", &ITEMS)];
-
-    struct ShrinkingMenuBarApp {
-        state: MenuState,
-        shrink: bool,
-        closed: Option<DismissReason>,
-    }
-
-    impl App for ShrinkingMenuBarApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let menus = if self.shrink {
-                &SHRINKING_MENUS[..1]
-            } else {
-                &SHRINKING_MENUS[..]
-            };
-            let response =
-                MenuBar::new(Id::root("menu.bar.shrinking"), menus).update(cx, &mut self.state);
-            if let Some(MenuAction::Closed(reason)) = response.action_ref() {
-                self.closed = Some(*reason);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let menus = if self.shrink {
-                &SHRINKING_MENUS[..1]
-            } else {
-                &SHRINKING_MENUS[..]
-            };
-            let _ = MenuBar::new(Id::root("menu.bar.shrinking"), menus).draw(
-                ui,
-                Rect::new(0, 0, 40, 10),
-                &self.state,
-            );
-        }
-    }
-
-    impl App for MenuApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let response = ContextMenu::at(Id::root("menu.runtime"), &ITEMS, Position::new(0, 0))
-                .update(cx, &mut self.state);
-            if let Some(MenuAction::Chosen(action)) = response.action_ref() {
-                self.chosen = Some(*action);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            ContextMenu::at(Id::root("menu.runtime"), &ITEMS, Position::new(0, 0)).draw(
-                ui,
-                Rect::new(0, 0, 30, 9),
-                &self.state,
-            );
-        }
-
-        fn keymap(&self) -> &KeyMap {
-            &self.keymap
-        }
-    }
-
-    fn menu_runtime() -> (Runtime<MenuApp>, Buffer) {
-        let area = Rect::new(0, 0, 80, 24);
-        let mut buffer = Buffer::empty(area);
-        let mut runtime = Runtime::new(
-            MenuApp {
-                state: MenuState::default(),
-                chosen: None,
-                keymap: KeyMap::new(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        (runtime, buffer)
-    }
-
-    #[test]
-    fn menu_bar_closes_live_layer_and_reports_close_when_open_menu_shrinks() {
-        let area = Rect::new(0, 0, 40, 10);
-        let mut buffer = Buffer::empty(area);
-        let mut runtime = Runtime::new(
-            ShrinkingMenuBarApp {
-                state: MenuState::default(),
-                shrink: false,
-                closed: None,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Right)));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-
-        assert_eq!(runtime.app().state.open, Some(1));
-        assert!(runtime.is_open(Id::root("menu.bar.shrinking")));
-
-        runtime.app_mut().shrink = true;
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
-
-        assert_eq!(
-            runtime.app().closed,
-            Some(DismissReason::Programmatic),
-            "shrinking away the open menu must emit its lifecycle close"
-        );
-        assert_eq!(runtime.app().state.open, None);
-        assert!(!runtime.is_open(Id::root("menu.bar.shrinking")));
-    }
-
-    #[test]
-    fn open_menu_bar_registers_only_the_dropdown_control() {
-        let area = Rect::new(0, 0, 40, 10);
-        let mut buffer = Buffer::empty(area);
-        let mut runtime = Runtime::new(
-            MenuBarApp {
-                state: MenuState::default(),
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
-
-        assert_eq!(runtime.app().state.open, Some(0));
-        assert!(
-            !runtime.diagnostics().iter().any(|diagnostic| matches!(
-                diagnostic,
-                crate::diagnostics::Diagnostic::DuplicateId { id, .. }
-                    if *id == Id::root("menu.bar.runtime")
-            )),
-            "the strip and dropdown both registered as the owner control"
-        );
-    }
-
-    #[test]
-    fn dynamic_item_binding_routes_remaps_removes_and_paints_effective_chord() {
-        let owner = Id::root("menu.runtime");
-        let (mut runtime, mut buffer) = menu_runtime();
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('o'))));
-        assert_eq!(runtime.app().chosen, Some(OPEN));
-        runtime.app_mut().chosen = None;
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('d'))));
-        assert_eq!(runtime.app().chosen, None, "disabled item was published");
-
-        runtime
-            .app_mut()
-            .keymap
-            .remap_component(owner, OPEN, Chord::key(KeyCode::F(4)));
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('o'))));
-        assert_eq!(runtime.app().chosen, None, "old raw key activated the item");
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::F(4))));
-        assert_eq!(runtime.app().chosen, Some(OPEN));
-        runtime
-            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
-            .commit_presented();
-        let painted = buffer
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect::<String>();
-        assert!(painted.contains("F4"));
-        assert!(!painted.contains(" o"));
-
-        runtime.app_mut().chosen = None;
-        runtime.app_mut().keymap.remove_component(owner, OPEN);
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::F(4))));
-        assert_eq!(runtime.app().chosen, None);
-        runtime
-            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
-            .commit_presented();
-        let painted = buffer
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect::<String>();
-        assert!(!painted.contains("F4"));
     }
 }

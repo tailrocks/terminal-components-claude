@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 8f12ad218a1cd13b6127d946df7dc5cdf8d964cc Alexey Zhokhov <alexey@zhokhov.com> 1792156589 +0700	branch: Created from HEAD
+8f12ad218a1cd13b6127d946df7dc5cdf8d964cc 6eee1d6ec361864c94e0e66252fa2ed3c33d4b69 Alexey Zhokhov <alexey@zhokhov.com> 1792156657 +0700	commit: docs(audits): record the showcase coverage inventories
+6eee1d6ec361864c94e0e66252fa2ed3c33d4b69 bd927530b5f27466252b0bf53ad6914464e128c5 Alexey Zhokhov <alexey@zhokhov.com> 1792157138 +0700	commit: docs(architecture): showcase coverage track
+bd927530b5f27466252b0bf53ad6914464e128c5 f4952c1181cb599d1fec0ed67a23490a5a7b3686 Alexey Zhokhov <alexey@zhokhov.com> 1792157147 +0700	commit: docs(agents): showcase demonstrates every capability
+f4952c1181cb599d1fec0ed67a23490a5a7b3686 5fea4ac9bce0d8db09c9af16246abff6c4bc1089 Alexey Zhokhov <alexey@zhokhov.com> 1792157164 +0700	rebase (finish): refs/heads/showcase-plan onto b68b376bda8043667303c14794588a42e09fe30d

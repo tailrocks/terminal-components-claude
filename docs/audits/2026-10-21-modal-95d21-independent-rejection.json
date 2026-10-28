@@ -1,0 +1,80 @@
+{
+  "reviewed_commit": "95d21da73f0a826e31114cffd2c5b4131de6d0e2",
+  "implementation_commit": "64eb78c7bfbefbb7b0cd7b0c23405ce0fd56d2f3",
+  "reference_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "reviewer": "modal_backdrop_independent_review",
+  "decision": "Changes required; do not integrate this modal implementation as cleared.",
+  "findings": [
+    {
+      "id": "R1",
+      "priority": "P1",
+      "path": "crates/termrock-theme/src/lib.rs",
+      "lines": "224-230",
+      "title": "Reduced-color backdrop does not force the frozen muted foreground",
+      "evidence": "Frozen src/theme.rs 1301-1310 returns muted (primary only if muted equals background) plus DIM for every nonblank Ansi16/Mono cell. Candidate only adds DIM to the preexisting faint/ghost foreground. Independent real Harness paints an accent x on black with distinct custom faint and muted tokens: actual cyan Rgb(0,255,255), expected muted Rgb(150,150,150). Pure public API reproduces the same failure. This is visible modal-underlay output, not merely an internal style difference.",
+      "repair": "Evaluate the frozen nonblank reduced-color rule in the shared mapper before constructing the final style; choose muted or primary as specified. Preserve the existing backdrop_colors pair API output."
+    },
+    {
+      "id": "R2",
+      "priority": "P1",
+      "path": "crates/termrock-theme/src/lib.rs",
+      "lines": "225-227,298-300",
+      "title": "Collision fallback erases the DIM decision before backdrop_style checks it",
+      "evidence": "map_backdrop replaces a nonblank mapped foreground equal to the mapped background at lines298-300. backdrop_style then tests the replacement foreground for equality, so TrueColor/Ansi256 cannot observe the original collision. Independent TrueColor probe uses ghost==canvas and a low-contrast arbitrary foreground: correct muted ink but modifier NONE instead of frozen DIM. Native new test forces a different muted/background collision and does not cover this branch.",
+      "repair": "Keep the raw mapped foreground/collision information through style resolution. Apply the frozen collision/reduced-color branch before fallback, returning muted-or-primary plus DIM. Retain backdrop_colors legacy collision fallback separately without changing that public pair result."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/modal-backdrop-independent-95d21/Cargo.toml --all-targets --no-fail-fast",
+      "exit": 100,
+      "result": "4 tests run:1 passed,3 failed,0 skipped; pure reduced ink, pure collision DIM, and actual Harness reduced ink all fail. Existing pair API compiles and passes."
+    }
+  ],
+  "compatibility": {
+    "public_pair_api": "Existing signature remains usable and compiles in the external consumer. Source comparison of the old pair implementation with Some(fg)/Some(bg) in the new private mapper shows equivalent foreground/background mapping for concrete colors; no before/after exhaustive execution claimed.",
+    "new_api": "Theme::backdrop_style is additive. Style import does not remove existing exports.",
+    "ownership": "Pure Theme mapping and shared runtime delegation are appropriate; per-paint environment reads and hardcoded RGB branches are removed. No unsafe or concurrency changes found."
+  },
+  "coverage_gaps": [
+    "Do not claim the requested complete NO_COLOR absent/empty/present and force/explicit-theme subprocess matrix; not independently run because required mapping regressions already block acceptance.",
+    "Clipping, custom ASCII focus glyph, zero-size and full modifier combinations were source-inspected but not comprehensively independently executed.",
+    "The runtime clears non-ASCII focus glyph independent of foreground and replaces modifiers as the frozen ctx implementation specifies.",
+    "Existing Showcase DialogsPage uses real Dialog update/draw and runtime composite_layer invokes modal_backdrop for drawn dim layers; this demonstrates the behavior path. No catalog registration or explicit coverage allowance for the new public Theme::backdrop_style was found; the author audit correctly records this remaining follow-up.",
+    "No full workspace gates, four-application parity, hosted CI or reference approval claimed.",
+    "Known all73 theme failure is not waived or reapproved by this review."
+  ],
+  "worktree": {
+    "path": "/private/tmp/termrock-button-2b3e-review",
+    "head": "95d21da73f0a826e31114cffd2c5b4131de6d0e2",
+    "preexisting_changes": "1301 deleted tracked paths, all under crates/termrock-conformance/target/tuiscotti-*; left untouched. No product source edits.",
+    "artifacts": "External consumer sources, Cargo lock/build outputs and review evidence only. No author or active peer worktree used."
+  },
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-95d21/lib.rs",
+      "sha256": "10468c0dfb311041e38c2db977cb4dcb70ed61fd092188d067ce92d55cf7d87d"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-95d21/Cargo.toml",
+      "sha256": "60b90393178163713b71e2068c0cf7bb2d9aa0811ff2729b26180b658f85d720"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-95d21/modal-backdrop-independent-95d21-runtime.log",
+      "sha256": "27aedfc092d30aa905dd2219d7ce3e23f9b8a33aac5a5d7d1789c9ce47ff570c"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-95d21/modal-backdrop-independent-95d21.log",
+      "sha256": "0cbcb742f44544a56dfb2962fa090c218885fc4c8bb59a534bf9f12dad91a891"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-95d21/modal-backdrop-pair-before.txt",
+      "sha256": "0f1b9f896bbfa31699a1600258c8604b11b8a1118c5510e228f97a686f0ef2f9"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-95d21/modal-backdrop-pair-candidate.txt",
+      "sha256": "38b7ea51e0c1e39bb94a3bb3f28e70fbd5a05a675ba2972b16b624c64f361a89"
+    }
+  ],
+  "timestamp_utc": "2026-10-20T23:00:58.154640+00:00"
+}

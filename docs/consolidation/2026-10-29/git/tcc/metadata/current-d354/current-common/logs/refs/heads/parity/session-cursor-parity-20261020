@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 2de0d01255390d2a02b7775ee452268782802a38 Alexey Zhokhov <alexey@zhokhov.com> 1792496476 +0700	branch: Created from origin/parity/termrock-visual-baseline
+2de0d01255390d2a02b7775ee452268782802a38 c30fcb4f02ec2e14a3143a937d0d7229863d2c0d Alexey Zhokhov <alexey@zhokhov.com> 1792496760 +0700	commit: fix(session): preserve baseline hidden cursor shape
+c30fcb4f02ec2e14a3143a937d0d7229863d2c0d 22f15274d985fd38fe6b1f71edc7aedc058c76ce Alexey Zhokhov <alexey@zhokhov.com> 1792497182 +0700	rebase (finish): refs/heads/parity/session-cursor-parity-20261020 onto 0168ccc15246343e6a1f846a30bf7964991b439c
+22f15274d985fd38fe6b1f71edc7aedc058c76ce 464add3e6dee2dba15a005664289a747d696d071 Alexey Zhokhov <alexey@zhokhov.com> 1792497498 +0700	commit: fix(session): honor terminal caret capabilities
+464add3e6dee2dba15a005664289a747d696d071 f0360a467efa0b441317c9384e1fd3ad82600878 Alexey Zhokhov <alexey@zhokhov.com> 1792497521 +0700	rebase (finish): refs/heads/parity/session-cursor-parity-20261020 onto 78ccc2cb5737ea7934ca90dca880b5a688bf070f
+f0360a467efa0b441317c9384e1fd3ad82600878 94f937deb192d1678476b5b1d4c2e4511b75627e Alexey Zhokhov <alexey@zhokhov.com> 1792497549 +0700	commit (merge): merge: retain pushed session cursor fix

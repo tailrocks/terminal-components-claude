@@ -1,0 +1,51 @@
+0000000000000000000000000000000000000000 d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 Alexey Zhokhov <alexey@zhokhov.com> 1792260819 +0700
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 Alexey Zhokhov <alexey@zhokhov.com> 1792260837 +0700	reset: moving to HEAD
+d1122f69e6b9c2364aa6ede8174e7d35b8cfff39 2d4262375cdedaf21af117f2eec49c0aff09fd5a Alexey Zhokhov <alexey@zhokhov.com> 1792260878 +0700	checkout: moving from worktree-agent-ab7ed10be68472967 to origin/design/interaction-polish
+2d4262375cdedaf21af117f2eec49c0aff09fd5a 2d4262375cdedaf21af117f2eec49c0aff09fd5a Alexey Zhokhov <alexey@zhokhov.com> 1792260878 +0700	checkout: moving from 2d4262375cdedaf21af117f2eec49c0aff09fd5a to reach-r34-r44
+2d4262375cdedaf21af117f2eec49c0aff09fd5a 660ad77e892279497fdaaf0e7b991f4eb98a7169 Alexey Zhokhov <alexey@zhokhov.com> 1792263185 +0700	commit: feat(panel): a shortened meta reveals its full text on hover
+660ad77e892279497fdaaf0e7b991f4eb98a7169 821c2335ad624a9124fc29410014721b5b72973a Alexey Zhokhov <alexey@zhokhov.com> 1792263286 +0700	commit: feat(showcase): Scrolling Playground at its natural size (R34)
+821c2335ad624a9124fc29410014721b5b72973a 1b2c0dca28782972d0db4cd07d0a74e09711e435 Alexey Zhokhov <alexey@zhokhov.com> 1792263300 +0700	commit: test(visual): Scrolling re-approval (R34)
+1b2c0dca28782972d0db4cd07d0a74e09711e435 993aa80c575c7e4220ea27849d1358fb800bff49 Alexey Zhokhov <alexey@zhokhov.com> 1792263423 +0700	commit: feat(steps): StepRail measures itself; a cut label reveals on hover
+993aa80c575c7e4220ea27849d1358fb800bff49 8147961ea97c48e2dcee5fd888504edc1127e369 Alexey Zhokhov <alexey@zhokhov.com> 1792263705 +0700	commit: fix(scroll_view): content that only overflows sideways leaves the bar its row
+8147961ea97c48e2dcee5fd888504edc1127e369 7aab0440c2824379674d33c0a21f07f5b6c58b94 Alexey Zhokhov <alexey@zhokhov.com> 1792264035 +0700	commit: fixup! feat(panel): a shortened meta reveals its full text on hover
+7aab0440c2824379674d33c0a21f07f5b6c58b94 137fe1a63f0d2d1c0d99c9fc13ce2994816ebf34 Alexey Zhokhov <alexey@zhokhov.com> 1792264035 +0700	commit: fixup! feat(steps): StepRail measures itself; a cut label reveals on hover
+137fe1a63f0d2d1c0d99c9fc13ce2994816ebf34 7e2b2ae9e1ab2b109a902be861567b029faa2d48 Alexey Zhokhov <alexey@zhokhov.com> 1792264035 +0700	commit: fixup! feat(showcase): Scrolling Playground at its natural size (R34)
+7e2b2ae9e1ab2b109a902be861567b029faa2d48 d501619ec0d6311205e0fb869fefe9dcc138015c Alexey Zhokhov <alexey@zhokhov.com> 1792264035 +0700	commit: WIP
+d501619ec0d6311205e0fb869fefe9dcc138015c 5629775d9b70a119a7944c75925db9fe7f4302f0 Alexey Zhokhov <alexey@zhokhov.com> 1792264038 +0700	rebase (start): checkout origin/design/interaction-polish
+5629775d9b70a119a7944c75925db9fe7f4302f0 45178b3d9ebb4e1e8f199042e457d006ab7c2d16 Alexey Zhokhov <alexey@zhokhov.com> 1792264039 +0700	rebase (pick): feat(panel): a shortened meta reveals its full text on hover
+45178b3d9ebb4e1e8f199042e457d006ab7c2d16 5b73c5b4174db8406abe1c07c77221456119be7a Alexey Zhokhov <alexey@zhokhov.com> 1792264039 +0700	rebase (fixup): feat(panel): a shortened meta reveals its full text on hover
+5b73c5b4174db8406abe1c07c77221456119be7a e7ac8fcc85606c93f50934df6e5d8f73f71b0448 Alexey Zhokhov <alexey@zhokhov.com> 1792264039 +0700	rebase (pick): feat(showcase): Scrolling Playground at its natural size (R34)
+e7ac8fcc85606c93f50934df6e5d8f73f71b0448 0081e8df9d47b083b08c98580ffa1459d14aaf7e Alexey Zhokhov <alexey@zhokhov.com> 1792264039 +0700	rebase (fixup): feat(showcase): Scrolling Playground at its natural size (R34)
+0081e8df9d47b083b08c98580ffa1459d14aaf7e 4825f44ea7a23a5087c1be36bb604269457f06b1 Alexey Zhokhov <alexey@zhokhov.com> 1792264039 +0700	rebase (pick): test(visual): Scrolling re-approval (R34)
+4825f44ea7a23a5087c1be36bb604269457f06b1 836e53d225ec05f5b1f942dc5b4fffe6c46565c2 Alexey Zhokhov <alexey@zhokhov.com> 1792264066 +0700	rebase (continue): feat(steps): StepRail measures itself; a cut label reveals on hover
+836e53d225ec05f5b1f942dc5b4fffe6c46565c2 33072c20fa756966ed7ea4a45b544976550b7677 Alexey Zhokhov <alexey@zhokhov.com> 1792264066 +0700	rebase (fixup): feat(steps): StepRail measures itself; a cut label reveals on hover
+33072c20fa756966ed7ea4a45b544976550b7677 b4314e3f593280f81114ab45eeb894bf124f5e9d Alexey Zhokhov <alexey@zhokhov.com> 1792264066 +0700	rebase (pick): fix(scroll_view): content that only overflows sideways leaves the bar its row
+b4314e3f593280f81114ab45eeb894bf124f5e9d 6e887b46f9201575cbff015523bfc19788bf0a30 Alexey Zhokhov <alexey@zhokhov.com> 1792264072 +0700	rebase (continue): WIP
+6e887b46f9201575cbff015523bfc19788bf0a30 6e887b46f9201575cbff015523bfc19788bf0a30 Alexey Zhokhov <alexey@zhokhov.com> 1792264072 +0700	rebase (finish): returning to refs/heads/reach-r34-r44
+6e887b46f9201575cbff015523bfc19788bf0a30 b4314e3f593280f81114ab45eeb894bf124f5e9d Alexey Zhokhov <alexey@zhokhov.com> 1792264072 +0700	reset: moving to HEAD~1
+b4314e3f593280f81114ab45eeb894bf124f5e9d b4314e3f593280f81114ab45eeb894bf124f5e9d Alexey Zhokhov <alexey@zhokhov.com> 1792264072 +0700	reset: moving to HEAD
+b4314e3f593280f81114ab45eeb894bf124f5e9d 1ac32e2483fb6ec5f73d2c3346842216daf30c19 Alexey Zhokhov <alexey@zhokhov.com> 1792264100 +0700	commit: feat(showcase): Terminal Playground at its natural size (R40)
+1ac32e2483fb6ec5f73d2c3346842216daf30c19 f5b538137bc06624762a5901ecf0a16f63b931a9 Alexey Zhokhov <alexey@zhokhov.com> 1792264100 +0700	commit: WIP: TextUtilities, QueryWorkbench, Connections and Finder Playground measures (R41-R44)
+f5b538137bc06624762a5901ecf0a16f63b931a9 1ac32e2483fb6ec5f73d2c3346842216daf30c19 Alexey Zhokhov <alexey@zhokhov.com> 1792264107 +0700	reset: moving to HEAD~1
+1ac32e2483fb6ec5f73d2c3346842216daf30c19 dfbc12e86706f4d17e7a7697dd01196b2e1dd4ae Alexey Zhokhov <alexey@zhokhov.com> 1792264232 +0700	commit (amend): feat(showcase): Terminal Playground at its natural size (R40)
+dfbc12e86706f4d17e7a7697dd01196b2e1dd4ae b6768af357c84796f10f3c294d6972c3c81dcdc4 Alexey Zhokhov <alexey@zhokhov.com> 1792264597 +0700	commit: fixup! fix(scroll_view): content that only overflows sideways leaves the bar its row
+b6768af357c84796f10f3c294d6972c3c81dcdc4 20370174d0e01ba9885243ec29217b69690156ce Alexey Zhokhov <alexey@zhokhov.com> 1792264599 +0700	commit: fixup! feat(showcase): Terminal Playground at its natural size (R40)
+20370174d0e01ba9885243ec29217b69690156ce 58e49069bc29de5052603cbe553b4137e9e9f563 Alexey Zhokhov <alexey@zhokhov.com> 1792264682 +0700	commit: test(visual): Terminal re-approval (R40)
+58e49069bc29de5052603cbe553b4137e9e9f563 6f8a4b3af77c134092318b727cbecdf34fdc2c2a Alexey Zhokhov <alexey@zhokhov.com> 1792264689 +0700	rebase (start): checkout origin/design/interaction-polish
+6f8a4b3af77c134092318b727cbecdf34fdc2c2a ea19da64dbcabd24da1654a2b5b83310ae1ef594 Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (pick): feat(panel): a shortened meta reveals its full text on hover
+ea19da64dbcabd24da1654a2b5b83310ae1ef594 6e5b0ee19d1e5887a5a352ba28c19c081fdde9a7 Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (pick): feat(showcase): Scrolling Playground at its natural size (R34)
+6e5b0ee19d1e5887a5a352ba28c19c081fdde9a7 ecff3c6e241f3fac0276fb7be48d7f9726fd2f47 Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (pick): test(visual): Scrolling re-approval (R34)
+ecff3c6e241f3fac0276fb7be48d7f9726fd2f47 32468b4774f173eea6376a53ebfac9cf63e8fa9a Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (pick): feat(steps): StepRail measures itself; a cut label reveals on hover
+32468b4774f173eea6376a53ebfac9cf63e8fa9a a354518b182f2336518d6942c1afc615c84da45e Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (pick): fix(scroll_view): content that only overflows sideways leaves the bar its row
+a354518b182f2336518d6942c1afc615c84da45e 10bd2b934f6dafe952d0bcf7c2885b707b8363cd Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (fixup): fix(scroll_view): content that only overflows sideways leaves the bar its row
+10bd2b934f6dafe952d0bcf7c2885b707b8363cd e93424ed31cf9e0f85c268e976c75ec1864ce962 Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (pick): feat(showcase): Terminal Playground at its natural size (R40)
+e93424ed31cf9e0f85c268e976c75ec1864ce962 04d4968ab0400c9afd6734a9274e42722a8b68d1 Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (fixup): feat(showcase): Terminal Playground at its natural size (R40)
+04d4968ab0400c9afd6734a9274e42722a8b68d1 3f31391d99300397c0e9697ca80bb4c85e068cfb Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (pick): test(visual): Terminal re-approval (R40)
+3f31391d99300397c0e9697ca80bb4c85e068cfb 3f31391d99300397c0e9697ca80bb4c85e068cfb Alexey Zhokhov <alexey@zhokhov.com> 1792264690 +0700	rebase (finish): returning to refs/heads/reach-r34-r44
+3f31391d99300397c0e9697ca80bb4c85e068cfb 73d1d69f0e7a1bc82fc915ae3cf433dd091a874d Alexey Zhokhov <alexey@zhokhov.com> 1792264702 +0700	commit: amend! feat(steps): StepRail measures itself; a cut label reveals on hover
+73d1d69f0e7a1bc82fc915ae3cf433dd091a874d 32468b4774f173eea6376a53ebfac9cf63e8fa9a Alexey Zhokhov <alexey@zhokhov.com> 1792264702 +0700	rebase (start): checkout origin/design/interaction-polish
+32468b4774f173eea6376a53ebfac9cf63e8fa9a 482e92cb32a54aa92aa49c22e0da899032c9743f Alexey Zhokhov <alexey@zhokhov.com> 1792264702 +0700	rebase (fixup): feat(steps): StepRail min width keeps every meta; a cut label reveals
+482e92cb32a54aa92aa49c22e0da899032c9743f 03cd7f28baa66d0a22d73ebe400e06f08f744d86 Alexey Zhokhov <alexey@zhokhov.com> 1792264702 +0700	rebase (pick): fix(scroll_view): content that only overflows sideways leaves the bar its row
+03cd7f28baa66d0a22d73ebe400e06f08f744d86 ce14426b18a0509d4ed4e559282a2ee1179fef82 Alexey Zhokhov <alexey@zhokhov.com> 1792264702 +0700	rebase (pick): feat(showcase): Terminal Playground at its natural size (R40)
+ce14426b18a0509d4ed4e559282a2ee1179fef82 267a8d08575765f4e77a732eaa87aeec27986719 Alexey Zhokhov <alexey@zhokhov.com> 1792264702 +0700	rebase (pick): test(visual): Terminal re-approval (R40)
+267a8d08575765f4e77a732eaa87aeec27986719 267a8d08575765f4e77a732eaa87aeec27986719 Alexey Zhokhov <alexey@zhokhov.com> 1792264702 +0700	rebase (finish): returning to refs/heads/reach-r34-r44

@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 7bf62651d22124b1c468dd8dbdda491d9f3700ba Alexey Zhokhov <alexey@zhokhov.com> 1792134646 +0700	branch: Created from origin/design/interaction-polish
+7bf62651d22124b1c468dd8dbdda491d9f3700ba 45deca8b4bf490be55e28c479f604acae184d5ca Alexey Zhokhov <alexey@zhokhov.com> 1792135424 +0700	commit: test(perf): measure table scrolling and plan the performance work
+45deca8b4bf490be55e28c479f604acae184d5ca a2282b01bd601859ce005033f0893d3b890df092 Alexey Zhokhov <alexey@zhokhov.com> 1792135428 +0700	rebase (finish): refs/heads/perf-work onto 0957f37f9384987fb98ea8d29564a6ef61c54cde
+a2282b01bd601859ce005033f0893d3b890df092 34f37b2d383515183e76cf7c0e8b3bb666cad1b4 Alexey Zhokhov <alexey@zhokhov.com> 1792135780 +0700	commit: wip
+34f37b2d383515183e76cf7c0e8b3bb666cad1b4 44c46c15b84c6459aa76ea949cfd8f606c8540e0 Alexey Zhokhov <alexey@zhokhov.com> 1792135781 +0700	rebase (finish): refs/heads/perf-work onto 9a1672acc9658e0f52b4279c91d0765233a2bde3
+44c46c15b84c6459aa76ea949cfd8f606c8540e0 39a19b4a9a0217430a8577caa63691ff515fda31 Alexey Zhokhov <alexey@zhokhov.com> 1792135862 +0700	commit (amend): perf(runtime): coalesce wheel, hover and key-repeat bursts into one frame
+39a19b4a9a0217430a8577caa63691ff515fda31 70620622e7935285df01395bc6c7ca14920de548 Alexey Zhokhov <alexey@zhokhov.com> 1792136164 +0700	commit: wip2
+70620622e7935285df01395bc6c7ca14920de548 80d3a8d36b0398989038bc69cbe1dafd6282bfa6 Alexey Zhokhov <alexey@zhokhov.com> 1792136322 +0700	commit (amend): perf(grid): bound per-cell text work by the cell width, not the value
+80d3a8d36b0398989038bc69cbe1dafd6282bfa6 9c119f0fe7d694b80ebf8c35099f0d3d56975cb2 Alexey Zhokhov <alexey@zhokhov.com> 1792136326 +0700	rebase (finish): refs/heads/perf-work onto 355227030302000c2e3a9a54bf639363c3cbad9e
+9c119f0fe7d694b80ebf8c35099f0d3d56975cb2 3dcff98faf38942523008780208e511bdea0eb9b Alexey Zhokhov <alexey@zhokhov.com> 1792136374 +0700	rebase (finish): refs/heads/perf-work onto 57bd83decf024335fc35183b5eaaec437926ad05
+3dcff98faf38942523008780208e511bdea0eb9b 8bfe8e081731cf9c9d41f32508c74d975863556e Alexey Zhokhov <alexey@zhokhov.com> 1792136656 +0700	commit: perf(runtime): fold window-resize bursts; record before/after numbers
+8bfe8e081731cf9c9d41f32508c74d975863556e 9a17b2e0508eda9943f9303b7c14a607c7fdf0d6 Alexey Zhokhov <alexey@zhokhov.com> 1792136660 +0700	rebase (finish): refs/heads/perf-work onto bab5bf66bfd1ea5432b64823b2632bb4efa23ac8

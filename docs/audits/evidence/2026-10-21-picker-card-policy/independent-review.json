@@ -1,0 +1,333 @@
+{
+  "reviewer": "/root/tree_adapter_independent_review",
+  "commit": "6cd63d2270b85dac30c63018070e00ed80510925",
+  "decision": "CLEAR bounded zero-footer correction under explicitly documented zero-disables-hints contract",
+  "blocking_findings": [],
+  "contract_decision": {
+    "prior_hold": "PICKER-LAYOUT-R1 expressly allowed reserving a visible footer OR documenting zero as disabling hints and avoiding its paint. This change implements the latter.",
+    "current": "PickerLayout::footer_rows(0) reserves no footer and does not paint configured hints; positive rows preserve hint painting. The string remains available if policy changes.",
+    "unchanged_old_probe": "Preserved byte-for-byte and remains RED: it insists a zero-row footer must display the hint. This is an incompatible old proposed interpretation, not a passing check and not silently weakened.",
+    "not_baseline_approval": "The new opt-in layout contract is separate from frozen product output. No stored reference was approved or changed."
+  },
+  "tests": {
+    "unchanged_public_suite": {
+      "pass": 4,
+      "fail": 1,
+      "skip": 0,
+      "red": "zero_footer_allocation_does_not_erase_explicit_hint",
+      "positive_control": "footer_rows(1) remains visible before the zero-footer assertion"
+    },
+    "independent_documented_policy": {
+      "before_ed5": "FAIL at count1 TrueColor: hint is painted into unused result row",
+      "candidate": "PASS 0/1/5/100 rows × TrueColor/Ansi256/Ansi16/Mono, each with footer1 positive control",
+      "probe_source_identical_before_after": true,
+      "one_registered_test_with_16_subcases": true,
+      "filtered_other_tests": 4
+    },
+    "native_overlays_all_targets": {
+      "pass": 161,
+      "fail": 0,
+      "skip": 0
+    },
+    "strict_clippy": "PASS -p termrock-overlays --all-targets --no-deps -- -D warnings",
+    "fmt": "PASS --all --check",
+    "default_compatibility": {
+      "prior_packet_sha256": "6ef8cec86bdc69759a35365d3c21c18397027744aa0fe39667bafaf27421ab20",
+      "before_dump_sha256": "532d84a2cb4e3aca7456d9f22d8e38fdf238531a7de7c148f7c4b7e3c4070df7",
+      "candidate_dump_sha256": "532d84a2cb4e3aca7456d9f22d8e38fdf238531a7de7c148f7c4b7e3c4070df7",
+      "default_equal": true,
+      "bytes": 2433256,
+      "cases": 32,
+      "checkpoints": 128,
+      "source_commit": "6cd63d2270b85dac30c63018070e00ed80510925",
+      "source_paths": [
+        {
+          "path": "crates/termrock-overlays/src/picker.rs",
+          "git_bytes_equal": true,
+          "sha256": "4c1904412214a6574fd69e192e0bc96e80e378552133550e19f290a39e3e2595"
+        },
+        {
+          "path": "crates/termrock-overlays/tests/picker_layout.rs",
+          "git_bytes_equal": true,
+          "sha256": "05f4576d382e7ae8f3f1f8290ea0baa21750679ad74bfe9aabd79687434e380e"
+        },
+        {
+          "path": "Cargo.toml",
+          "git_bytes_equal": true,
+          "sha256": "193a03b13a248aa022fcaa2c72c4b8bbddeb5169523360ec3d7e57b555e78074"
+        },
+        {
+          "path": "Cargo.lock",
+          "git_bytes_equal": true,
+          "sha256": "b0c5412c430bb522fea7a865823c11493d89da4b8aeb3816e43ba54f0008b68a"
+        }
+      ]
+    }
+  },
+  "nonblocking_test_recommendation": {
+    "path": "crates/termrock-overlays/tests/picker_layout.rs:164",
+    "finding": "Authored regression uses100 rows; old implementation could erase its hint through list painting, making absence alone insufficient to catch the defect. Independent count1 probe supplies RED→GREEN evidence.",
+    "recommendation": "Add the one-item short-list case (and preferably0/5 as data-driven cases) to the shipped regression so CI catches erroneous hint painting into unused result rows."
+  },
+  "source_review": [
+    "Production change is one guard on hint painting; measurement/list allocation already honor explicit footer_rows(0).",
+    "Legacy/default layouts retain the exact previous show_hint condition; no default behavior change found in sampled full-cell/state comparison.",
+    "Footer1 positive policy and existing resize/current-layout hit behavior remain passing.",
+    "card() method documentation now states alignment remains Picker::align; no new input/render runtime or app/test identity selectors.",
+    "No changes to expected artifacts, application screens, domain code or reference revisions."
+  ],
+  "source_copy": "/private/tmp/picker-6cd63d2-independent-source-20261021",
+  "source_tracked_diff_exit": 0,
+  "unique_targets": [
+    "/private/tmp/picker-6cd63d2-independent-owned-target-20261021",
+    "/private/tmp/picker-6cd63d2-independent-before-owned-target-20261021"
+  ],
+  "toolchain": "Rust1.99.1; Nextest0.9.148",
+  "binary_receipts": [
+    {
+      "path": "/private/tmp/picker-6cd63d2-independent-owned-target-20261021/debug/deps/picker_independent_public_review-c6f5bc1cad788a97",
+      "sha256": "b326be69af8a5f10799e503ae7f0595c1ebb158ce9f539a6bf017bc770d3ebbd"
+    },
+    {
+      "path": "/private/tmp/picker-6cd63d2-independent-owned-target-20261021/debug/deps/picker_layout-b542a9683e2c17b0",
+      "sha256": "134a1205e4d70d248dbdc26fdad6ecd677a2480774f7afaf9540c4ca6431efc9"
+    },
+    {
+      "path": "/private/tmp/picker-6cd63d2-independent-owned-target-20261021/debug/deps/zero_policy-83d824ed0de25dc6",
+      "sha256": "da30af22c82f63b6ec2ebf2e98aae55f45e14c4b1d94fa6729946fe6f2c5db15"
+    },
+    {
+      "path": "/private/tmp/picker-6cd63d2-independent-before-owned-target-20261021/debug/deps/zero_policy-9f1cd4f8c0133ad1",
+      "sha256": "aa4416a0615a0f7671631446d7fc728187a9dfdbf9c82e8dd94521eccdbdbb92"
+    }
+  ],
+  "receipts": {
+    "native-complete-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-overlays",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-6cd63d2-independent-source-20261021",
+      "target": "/private/tmp/picker-6cd63d2-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 56.55273900000611
+    },
+    "fmt-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "cwd": "/private/tmp/picker-6cd63d2-independent-source-20261021",
+      "target": "/private/tmp/picker-6cd63d2-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 2.0010543749667704
+    },
+    "documented-policy-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "zero_policy",
+        "-E",
+        "test(documented_zero_footer)"
+      ],
+      "cwd": "/private/tmp/picker-6cd63d2-independent-consumer-20261021",
+      "target": "/private/tmp/picker-6cd63d2-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 2.4237511249957606
+    },
+    "native-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-overlays",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-6cd63d2-independent-source-20261021",
+      "target": "/private/tmp/picker-6cd63d2-independent-owned-target-20261021",
+      "exit": 102,
+      "timeout": false,
+      "seconds": 0.11783979198662564
+    },
+    "public-unchanged-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-6cd63d2-independent-consumer-20261021",
+      "target": "/private/tmp/picker-6cd63d2-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 67.02425508300075
+    },
+    "documented-policy-before-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "zero_policy",
+        "-E",
+        "test(documented_zero_footer)"
+      ],
+      "cwd": "/private/tmp/picker-6cd63d2-independent-before-consumer-20261021",
+      "target": "/private/tmp/picker-6cd63d2-independent-before-owned-target-20261021",
+      "before_source": "ed5bda4 exact source bytes retained by previous reviewer; picker SHA verified",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 15.179239667020738
+    },
+    "strict-clippy-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-overlays",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/private/tmp/picker-6cd63d2-independent-source-20261021",
+      "target": "/private/tmp/picker-6cd63d2-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 7.883548874990083
+    }
+  },
+  "setup_failures_preserved": [
+    "Initial full isolated checkout exceeded45second setup timeout; only task-owned stale index lock removed and own sparse checkout completed. Original checkout untouched.",
+    "Initial native run failed metadata because sparse tools/refactor-proof was missing; not counted green. tools/tests were checked out at exact commit, then successful complete native run repeated."
+  ],
+  "scope_limits": [
+    "No full frozen CLI/Tuiscotti paired inventory or four-app acceptance",
+    "No application adoption or architecture clearance beyond Picker correction",
+    "No cursor shape/terminal modes/cleanup proof from these public Harness checks",
+    "No source edits, original checkout mutations, helpers, shared build targets, push locks, commits or pushes"
+  ],
+  "prior_review_sha256": "6ef8cec86bdc69759a35365d3c21c18397027744aa0fe39667bafaf27421ab20",
+  "artifacts": [
+    {
+      "path": "consumer/Cargo.lock",
+      "sha256": "7e3bdca403d2d7644a6357bba850507043df308d29d456929ec1dbbc64871254"
+    },
+    {
+      "path": "consumer/Cargo.toml",
+      "sha256": "9290c5ddb14d1de42e52c52f806c53b102a43b01fc383c3416bfc711d35de4bc"
+    },
+    {
+      "path": "consumer/src/card_edges.rs",
+      "sha256": "0b59a0e95b29b44a57871d55433388b6d84a2d05ccb131d319a3e7bcc7781e9b"
+    },
+    {
+      "path": "consumer/src/lib.rs",
+      "sha256": "4881f47f0be5367fc9a1d441c369916578fde9a218b169bf4ab11832619ce257"
+    },
+    {
+      "path": "consumer/tests/zero_policy.rs",
+      "sha256": "068e1bb09aff786473d46f47750fd1b940e09729d6c2e537aebfba2340fe3369"
+    },
+    {
+      "path": "default-after.rle",
+      "sha256": "532d84a2cb4e3aca7456d9f22d8e38fdf238531a7de7c148f7c4b7e3c4070df7"
+    },
+    {
+      "path": "documented-policy-before-receipt.json",
+      "sha256": "3984ae2efd603a4c644d129c97e8d1641050eb97c3a59bd3174589d4384e7322"
+    },
+    {
+      "path": "documented-policy-before.log",
+      "sha256": "9bcc0b7065a52f87d2ae357c2fce08c8bb072c64859f770dd452f42d236820f3"
+    },
+    {
+      "path": "documented-policy-receipt.json",
+      "sha256": "5f972dea10a13988809e0f40243300941310ca598919b1d811772b6ce9eb792e"
+    },
+    {
+      "path": "documented-policy.log",
+      "sha256": "97eac74ed4c50efbaf59c82170751987ce29c410f6357da3f254627f70ab7be2"
+    },
+    {
+      "path": "fmt-receipt.json",
+      "sha256": "eecf21ae8bdae0406246fe23a096a56014326d5b3e6e12fe9594494ed582bf5c"
+    },
+    {
+      "path": "fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native-complete-receipt.json",
+      "sha256": "4185a4c3faa0ff30f7353ed72c18d6ad07ca255853423809f3891dbcdf46acd9"
+    },
+    {
+      "path": "native-complete.log",
+      "sha256": "f169e8e39140a0ee9dedcf51b04295df26e88cffba08e0ac18aa035ab15772f8"
+    },
+    {
+      "path": "native-receipt.json",
+      "sha256": "a0c59082bbff8163adc68b71714b96a6561d47d3d64b16f9480f33e46be4e44b"
+    },
+    {
+      "path": "native.log",
+      "sha256": "8b4323f3db0bf95b338291840781a04707c7f8136321885061e607ba0106c193"
+    },
+    {
+      "path": "provenance-and-default-comparison.json",
+      "sha256": "ea68ec036d990d63ec18cfb6f150b817d3219d1d3cfe1037b79ce9f6f0b3922d"
+    },
+    {
+      "path": "public-unchanged-receipt.json",
+      "sha256": "caea5c4bbf9163b618980cfb0aaf0da5adb97ade145af260d0372b457ff730de"
+    },
+    {
+      "path": "public-unchanged.log",
+      "sha256": "ce875cda7844f927034f8f9c63534228752e580929350050385a5d157eab7086"
+    },
+    {
+      "path": "reviewed.patch",
+      "sha256": "ad17166672ff06520c3a69172cebb83a27e6c7cf0757d675ed53f0549649f689"
+    },
+    {
+      "path": "source-parent.json",
+      "sha256": "20c76e415036ee4c5352e0554cb1e788d64236176c35314de83b8b456e456ef9"
+    },
+    {
+      "path": "strict-clippy-receipt.json",
+      "sha256": "7e394d12bf7b176dc31ba511c85d89fe451503008bc970c9116e3ed11c481284"
+    },
+    {
+      "path": "strict-clippy.log",
+      "sha256": "f1b9cd103759aed69ffdadd117dd33298ba8538df853b8c388f4a58570226aa5"
+    }
+  ]
+}

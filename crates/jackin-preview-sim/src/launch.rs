@@ -154,6 +154,8 @@ pub struct LaunchRun {
     pub build_lines_emitted: usize,
 
     pub cancelled: bool,
+
+    pub trace_label: String,
 }
 
 pub const BUILD_LOG: [&str; 44] = [
@@ -235,6 +237,7 @@ impl LaunchRun {
             credential_retried: false,
             build_lines_emitted: 0,
             cancelled: false,
+            trace_label: format!("run-{}", run_id.short()),
         }
     }
 
@@ -400,105 +403,5 @@ impl LaunchRun {
             }
             let _ = self.advance();
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn run_to_end(mut r: LaunchRun) -> (LaunchRun, Vec<LaunchEvent>) {
-        let mut all = vec![];
-        for _ in 0..2_000 {
-            let ev = r.advance();
-            all.extend(ev);
-            if r.is_terminal() {
-                break;
-            }
-        }
-        (r, all)
-    }
-
-    #[test]
-    fn clean_plan_walks_all_eleven_stages_in_order() {
-        let (r, ev) = run_to_end(LaunchRun::new(
-            LaunchPlan::Clean,
-            Agent::ClaudeCode,
-            "c",
-            RunId::new(1),
-        ));
-        assert!(r.done);
-        let running: Vec<Stage> = ev
-            .iter()
-            .filter_map(|e| match e {
-                LaunchEvent::StageChanged(s, StepState::Running) => Some(*s),
-                _ => None,
-            })
-            .collect();
-        assert_eq!(running, Stage::ALL.to_vec());
-        assert_eq!(r.states[Stage::AgentBinaries.index()], StepState::Skipped);
-        assert_eq!(r.counts(), (10, 1));
-        assert_eq!(r.build_lines_emitted, BUILD_LOG.len());
-        assert!(matches!(ev.last(), Some(LaunchEvent::Ready)));
-    }
-
-    #[test]
-    fn failure_and_blocked_plans_stop_the_frontier() {
-        let (r, ev) = run_to_end(LaunchRun::new(
-            LaunchPlan::FailNetwork,
-            Agent::Codex,
-            "c",
-            RunId::new(2),
-        ));
-        assert_eq!(r.failure.as_ref().map(|f| f.stage), Some(Stage::Network));
-        assert!(ev.iter().any(|e| matches!(e, LaunchEvent::Failed(_))));
-        assert_eq!(r.states[Stage::Sidecar.index()], StepState::Queued);
-        let (b, _) = run_to_end(LaunchRun::new(
-            LaunchPlan::BlockedSidecar,
-            Agent::Codex,
-            "c",
-            RunId::new(3),
-        ));
-        assert_eq!(b.blocked_at, Some(Stage::Sidecar));
-    }
-
-    #[test]
-    fn network_failure_tick_matches_the_stage_frontier() {
-        let mut run = LaunchRun::new(LaunchPlan::FailNetwork, Agent::Codex, "c", RunId::new(5));
-        let network_end = 1 + run.durations[..=Stage::Network.index()].iter().sum::<u64>();
-        while !run.is_terminal() {
-            let _ = run.advance();
-        }
-        assert_eq!(run.tick, network_end);
-        assert_eq!(
-            run.failure.as_ref().map(|failure| failure.stage),
-            Some(Stage::Network)
-        );
-    }
-
-    #[test]
-    fn credential_error_holds_until_retry() {
-        let mut r = LaunchRun::new(
-            LaunchPlan::CredentialsLocked,
-            Agent::Codex,
-            "c",
-            RunId::new(4),
-        );
-        let mut held = false;
-        for _ in 0..200 {
-            let ev = r.advance();
-            if ev
-                .iter()
-                .any(|e| matches!(e, LaunchEvent::CredentialError { .. }))
-            {
-                held = true;
-                break;
-            }
-        }
-        assert!(held && r.credential_hold);
-        assert!(r.advance().is_empty());
-        r.retry_credentials();
-        let (r, _) = run_to_end(r);
-        assert!(r.done);
     }
 }

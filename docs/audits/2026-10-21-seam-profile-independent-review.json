@@ -1,0 +1,76 @@
+{
+  "reviewed_head": "b26f548722fbb1d5f036d978a1519cfb0fa833ad",
+  "selective_commits": [
+    "9bd668c40d9861f2b4bcac7c282545fba5e8b60d",
+    "f61c76a35d6dee4ed88f90fbd075a3c03e7147d1",
+    "bd4f0411fd890d18c39454f652233179fd62133f",
+    "b26f548722fbb1d5f036d978a1519cfb0fa833ad"
+  ],
+  "status": "source_and_focused_contract_clear_combined_integration_pending",
+  "frozen_proof": {
+    "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "paths": [
+      "src/theme.rs793 TrueColor seam77/128/accent",
+      "src/theme.rs979 ANSI256239/245/78",
+      "src/theme.rs1049 ANSI16DarkGray/Gray/LightGreen",
+      "src/theme.rs1111 MonoDarkGray/Gray/White",
+      "src/theme.rs1471\u20131480 directladderstep binding, onlythumbmodifiers",
+      "src/widgets/splitter.rs345 actualfg==ladderassertions"
+    ]
+  },
+  "fixed_independent_findings": [
+    "iter_mut cacheinvalidation and divergentcloneprofile identity (9bd red0/2,f61 green2/2)",
+    "Mono authoredprofile convertedtwice (f61 knownreference mismatch)",
+    "ActualUi cachedbinding droppedprovenance (bd4 realAppfinalcell red0/1,b26 green1/1)",
+    "Explicit same-value custom override incorrectly receivedprofileauthorship (bd4 red1/3,b26 green3/3)"
+  ],
+  "verification": [
+    {
+      "log": "/tmp/seam-native-independent-b26.log",
+      "result": "546pass,3pre-existingignoredfixtures,0fail across theme/controls/runtime alltargets"
+    },
+    {
+      "log": "/tmp/seam-ui-probes-b26.log",
+      "result": "1pass0skip realApp/Harness cachedUifinalcell"
+    },
+    {
+      "log": "/tmp/seam-cache-probes-b26.log",
+      "result": "3pass0skip publiccache/customoverride consumers"
+    }
+  ],
+  "architecture": "Privateprofilemask carriedwithcachedpatch; explicit/localpatchpresence suppressesauthorship; exhaustiveColorTokens/Role publicshapeunchanged; customsemanticchannels/pressedprecedence retained. Generic downgrade unchanged.",
+  "excluded": "Do not merge author branch ancestry: Gridfade replacement remains blocked. Onlyfourlistedcommits are cleared.",
+  "limits": "Independent source/library contract review, not applicationparity acceptance; finalselectivecombinedsource and rebasedgates stillrequired.",
+  "selective_integration": {
+    "source_head": "bcba4d6c8578dc83185fba615e0eab7d39b6b1e7",
+    "target_base": "9f19616d417c1323f1fa7a3413612116f0f41de0",
+    "cherry_picks": [
+      "dfff9d5e6",
+      "93bfd4788",
+      "3003c2ce6",
+      "bcba4d6c8578dc83185fba615e0eab7d39b6b1e7"
+    ],
+    "source_equivalence": "Theme source lib/recipe/resolve identical to clearedb26; runtime retains existingcompositionexports+cursorclipguard; currentSplit implementation unchanged except new58line render tests. Gridfade source absent; only appsemanticseam replacement.",
+    "retained_probe_results": [
+      {
+        "log": "/tmp/seam-selective-ui-bcba.log",
+        "result": "1pass0skip cachedactualUiMono finalcell"
+      },
+      {
+        "log": "/tmp/seam-selective-cache-bcba.log",
+        "result": "3pass0skip cachemutation/clones/customsamevalueoverride"
+      },
+      {
+        "log": "/tmp/seam-selective-split-width-bcba.log",
+        "result": "1pass0skip currentSplitBlock horizontalwrap declaredMIN4/allhitregions"
+      },
+      {
+        "log": "/tmp/seam-selective-split-render-bcba.log",
+        "result": "2pass70filterexcluded; actualSplitPane restcells allfourprofiles and explicitsamevaluecustom genericconversion"
+      }
+    ],
+    "audit": "Pure7dpaletteattribution retained, latestseamprovenance supersedes failedintermediateMonoapproaches; no Gridfade section restored.",
+    "pending": "Parentfullnative gate/finaldocscommit/normalpush/remoteverification separate; applicationparity notaccepted.",
+    "status": "bounded_source_and_component_clear"
+  }
+}

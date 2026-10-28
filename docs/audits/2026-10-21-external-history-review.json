@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "reviewed_commit": "5902a59053e4af4601d880c8419cb180adc5f661",
+  "comparison_base": "9e013c038",
+  "frozen_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "read_only_worktree": "/private/tmp/termrock-external-tablepro-5902-review",
+  "observed_remote_after_fetch": "adc6d0e3f668818f6f8321310452db6806c123cc",
+  "remote_observation_limit": "The source findings apply exactly to5902, not subsequent remote commits.",
+  "scope": "Read-only source/flow/library-boundary audit; no Rust checks, CLI comparisons or parity pass claimed.",
+  "findings": [
+    {
+      "id": "EXT5902-01",
+      "priority": "P1",
+      "introduced_in_5902": true,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "lines": [
+        3009,
+        3037,
+        9058,
+        9307
+      ],
+      "problem": "The deleted ANSI stamp is replaced with private application widget painting and post-Panel correction painting. Search, list, split seam, detail editor and buttons are drawn with manual geometry and fixed RGB values. The outer draw repaints a literal y plus29 padding cells after Panel.draw.",
+      "baseline_evidence": [
+        "src/bin/tablepro/tabs.rs:2387\u20132440 constructs ListBox, readonly CodeEditor, TextInput, Buttons, Split and ScrollView.",
+        "src/bin/tablepro/tabs.rs:2523\u20132610 measures search width, resolves a resizable split, draws the live list, and derives selected detail."
+      ],
+      "owner": "Shared Termrock search/master-detail composition, List, CodeEditor, Buttons and semantic theme rules; application supplies SQL/history/connection view data and domain actions.",
+      "regression": "Actual buffer and real CLI checks at119/120/121columns,39/40/41rows, narrow/large views and every supported color level; no afterpaint paths or app-owned widget geometry."
+    },
+    {
+      "id": "EXT5902-02",
+      "priority": "P1",
+      "introduced_in_5902": "Unconditional focus is new; absent history update mechanics predate this commit.",
+      "path": "crates/tablepro-ui/src/app.rs",
+      "lines": [
+        2265,
+        9059,
+        9084,
+        9091,
+        9275,
+        9304,
+        11510,
+        11511
+      ],
+      "problem": "History content advertises search, scope/status and Open/Run/Copy actions, but active History update remains an empty branch. Only one whole-body HISTORY_LIST focus region is registered, and every History update forces focus back to it. No real search, list navigation, detail editor, seam or button controls handle the visible affordances.",
+      "baseline_evidence": [
+        "src/bin/tablepro/workbench.rs:893\u2013983 routes / search, c scope, s status, Enter open, r rerun, y copy and List/CodeEditor/Button input.",
+        "src/bin/tablepro/workbench.rs:1007\u20131065 and1238\u20131276 handle shared scrolling, seam and pointer actions."
+      ],
+      "owner": "Termrock component states/update methods and a shared block using the same resolved IDs/layout; application maps typed chosen/open/run/copy actions.",
+      "regression": "CtrlY,Down,/ edit,scope/status toggles,detail scroll,Enter/r/y,pointer button press/release andTab/ShiftTab; assert focus is not stolen, selectedSQL changes and the domain action executes."
+    },
+    {
+      "id": "EXT5902-03",
+      "priority": "P1",
+      "introduced_in_5902": true,
+      "path": "crates/tablepro-domain/src/model.rs",
+      "lines": [
+        126,
+        280
+      ],
+      "problem": "Seeded history is altered to match the new painter rather than the frozen domain data. A newline is inserted into the subscriptions SQL, payments/revenue/paid-order queries and results differ, older Development entries disappear, and four synthetic now/version/database/clock queries are added. These values affect search, scope, selected query, rerun results and history ordering, not only presentation.",
+      "baseline_evidence": [
+        "src/bin/tablepro/model.rs:196\u2013374 contains the exact15 frozen seeds and reverse/push ordering.",
+        "Frozen subscriptions SQL is one line; its display wrapping is renderer-owned. Frozen paid-order SQL is a seven-line customer join with50 rows and95minutes, not the new one-line paid filter with40 rows and60minutes."
+      ],
+      "owner": "Application-owned domain data must retain exact frozen seed values and stable keys; shared text/editor layout owns wrapping.",
+      "regression": "Compare all seeded records and connection-scoped order against frozen data; select each and assert the exact SQL/detail/functional result. Include alternate connections and newly executed queries."
+    },
+    {
+      "id": "EXT5902-04",
+      "priority": "P1",
+      "introduced_in_5902": false,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "lines": [
+        200,
+        10810,
+        10817,
+        10822,
+        10843,
+        10871,
+        11661
+      ],
+      "problem": "Completion remains selected by exactSQL SELECT * FROM ord and exact120x40 viewport, then manually repaints editor cells, cursor, footer and popup after normal component/layer drawing. The popup uses fixed coordinates and always highlights its first row.",
+      "attribution": "Painter existed at647bdeb0a; current exact-size guard is attributed by git blame to1dbf3b2ca. This is present in5902 but not introduced by5902.",
+      "owner": "The real CompletingCodeEditor and shared completion overlay/selection/cursor rules, with application-owned SQL CompletionProvider. Do not duplicate the independently reviewed67c80 editor/runtime implementation.",
+      "regression": "Different prefixes, cursor positions and multilineSQL; move selection,accept/dismiss,resize adjacent sizes,repeat open/close and overlays above completion; compare full frames/cursor and editedSQL."
+    },
+    {
+      "id": "EXT5902-05",
+      "priority": "P1",
+      "introduced_in_5902": false,
+      "path": "crates/tablepro-ui/src/app.rs",
+      "lines": [
+        3236,
+        3242,
+        3252,
+        11531,
+        11547
+      ],
+      "problem": "Existing query fallback registers keyboard-editor mechanics after a TextInput draw and then privately repaints idle/draft SQL. Existing focus policies also depend on exact120x40 and a specific empty filter value. These remain incompatible with the active-rendered-component ownership gate.",
+      "owner": "Live shared CodeEditor/CompletingCodeEditor, Grid and shared focus/layout rules; domain SQL/filter values remain application-owned.",
+      "regression": "Assert every focused/cursor-owning ID corresponds to the active component actually drawn; run resize before input and changed labels/data without exact-size focus changes."
+    },
+    {
+      "id": "EXT5902-06",
+      "priority": "P2",
+      "introduced_in_5902": "Existing flow gap, now exposed by live history rendering.",
+      "path": "crates/tablepro-ui/src/workbench.rs",
+      "lines": [
+        221,
+        226
+      ],
+      "problem": "open_history always inserts a new HistoryTab; the frozen flow reactivates and refreshes an existing history tab. Repeated CtrlY must not create duplicate history tabs.",
+      "baseline_evidence": [
+        "src/bin/tablepro/workbench.rs:488\u2013505 finds existing History tab, refreshes it for the current connection, and focuses it."
+      ],
+      "owner": "Application tab routes/domain actions; generic tabs keep stable identity and component state.",
+      "regression": "Open history repeatedly,execute another query,switchconnections and reopen; assert one history tab, refreshed entries and preserved valid selection."
+    }
+  ],
+  "retain": [
+    "Deletion of production historical_history_tab module and its test/TTY/accent/viewport replay selector.",
+    "Live iteration over HistoryEntry data and deriving selected detail from the selected entry, as a direction for a shared implementation.",
+    "History routing/title/footer labels and stable IDs where they match frozen semantics; retain domain ownership outside Termrock."
+  ],
+  "replace_or_correct": [
+    "Private history rendering and post-Panel corrections must be replaced with real shared components, not moved or renamed.",
+    "Restore exact frozen history data, functional controls and singleton history flow.",
+    "Remove inherited completion fixture/viewport paint paths in the real editor adoption series."
+  ],
+  "important_precision": "The new history painter is not guarded by an exact120x40 selector. It paints every HistoryTab using fixed geometry and caps. It consumes live entry data, so it is not itself an ANSI-frame replay; its defects are private widget painting, missing behavior, data changes, hardcoded styles/layout and correction painting.",
+  "test_gap": "The new ctrl_y_shows_the_approved_history_cell test atapp.rs12065 checks one Search cell plus cursor at120x40; it cannot demonstrate navigation, filtering, actions, scrolling, responsive layout or library ownership.",
+  "source_files": {
+    "crates/tablepro-domain/src/model.rs": "c9c9cdd39e2129e24ee96ad16531c23b54908f8e",
+    "crates/tablepro-ui/src/app.rs": "e18bbb9f75e0134ceedfbde774db2fc243dc484a",
+    "crates/tablepro-domain/src/tabs.rs": "806e8a93e1156e5615b9b24fa7298738d29222f1",
+    "crates/tablepro-ui/src/workbench.rs": "72e263e437c8fdc1bd94fca5f59d9520128b5f7e"
+  }
+}

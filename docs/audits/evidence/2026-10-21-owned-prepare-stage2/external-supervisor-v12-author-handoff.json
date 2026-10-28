@@ -1,0 +1,87 @@
+{
+  "admission_mismatch_diagnosis": {
+    "fixed_admission_unchanged": true,
+    "independent_review_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v11-stage2-admission-mismatch-independent-diagnosis-20261021.json",
+    "independent_review_sha256": "d11094914e68c89f80013b077bc11582c458c743d6fc4ca93b9ec00663d7c003",
+    "refusal": "V11 exited 2 before prepare-live: RuntimeError stage-one independent evidence does not match admission.",
+    "root_cause": "Wrapper predicate expected schema termrock.stage3d.stage1-operational-result.independent-evidence.v1, but immutable hash-pinned evidence declares termrock.stage3d.stage1-result.independent-evidence.v1. All other checked source/snapshot hashes and boolean fields match.",
+    "root_invocation_refusal_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage2-v11-parent-refusal-20261021.json",
+    "root_invocation_refusal_sha256": "9d4954a2fc1a4e7377789dfad2e163aeb2a6c1eb62dcb41893bd4efbf15094f0"
+  },
+  "date": "2026-10-21",
+  "evidence": {
+    "independent_diagnosis": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v11-stage2-admission-mismatch-independent-diagnosis-20261021.json",
+      "sha256": "d11094914e68c89f80013b077bc11582c458c743d6fc4ca93b9ec00663d7c003"
+    },
+    "stage1_admission": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage1-result-independent-review-20261021.json",
+      "sha256": "ae23cdeb2a7cf4b1e7db63b975d919a5fa6668700e9245362f4053c00d623ce0"
+    },
+    "stage1_evidence": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage1-result-independent-evidence-20261021.json",
+      "sha256": "c0410c096b9d44aa61af3e3373a9251a9efecd10cbf6392629b7f50929e77dea"
+    },
+    "stage1_provenance": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/provenance.json",
+      "sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098"
+    },
+    "v11_invocation_refusal": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage2-v11-parent-refusal-20261021.json",
+      "sha256": "9d4954a2fc1a4e7377789dfad2e163aeb2a6c1eb62dcb41893bd4efbf15094f0"
+    },
+    "v11_review": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v11-stage2-independent-review-20261021.json",
+      "sha256": "438a9994031d9e6f9736a250c6cb2d8c7979924534d37a7f4ea72fca385502ff"
+    },
+    "v11_source": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v11-stage2-20261021.py",
+      "sha256": "a28fe81fc0214c230f3ec147ee546f4a57c3c9bb12d0f963cea7e5fa938765d3"
+    },
+    "v11_tests": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v11-stage2-20261021.py",
+      "sha256": "997540d8783f83fc5fc3f960832829e70586448d31c431a2a0b694e91877be1d"
+    },
+    "v12_final_tests": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v12-stage2-synthetic-tests-final-20261021.log",
+      "sha256": "f7858dd2d7e231b4922aa3dadc43f511f4c96c29690ff39d5768c2c38dd1c95f"
+    },
+    "v12_source": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v12-stage2-20261021.py",
+      "sha256": "12a3dd78de61bd38a95dfe3b44ed43804380aa8df039b89168f666c7a231e5f9"
+    },
+    "v12_tests": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v12-stage2-20261021.py",
+      "sha256": "36e5b2f9b09ea8072dcb1ce53e1c86e50f19088a4084962f7947fdae9b1ed458"
+    }
+  },
+  "next_step": "Root to obtain fresh independent review of exact V12 source/test/log. Do not authorize an actual stage-two operation until that review clears.",
+  "pins": {
+    "canonical_stage2_commit": "4e04be07a15377f902316633e859c41a9ba50d58",
+    "canonical_stage2_source_sha256": "e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80",
+    "stage1_admission_sha256": "ae23cdeb2a7cf4b1e7db63b975d919a5fa6668700e9245362f4053c00d623ce0",
+    "stage1_evidence_sha256": "c0410c096b9d44aa61af3e3373a9251a9efecd10cbf6392629b7f50929e77dea",
+    "stage1_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+    "v7_source_sha256": "30bb46c94af9590712d176e9e958978980d06969afe47ded23012d4a76dcd000"
+  },
+  "schema": "termrock.stage3d.supervisor.v12.stage2.author-handoff.v1",
+  "scope_limits": [
+    "No actual preflight or prepare-live operation executed by V12.",
+    "No key bytes read; function-level admission validation only stats configured absent-key path as part of existing predicate.",
+    "No plan creation, capture, replay, application launch, or baseline modification.",
+    "No V11 refusal or fixed stage-one admission/evidence artifact modified.",
+    "No Git repository changes or pushes."
+  ],
+  "status": "schema-mapping correction and read-only regression complete; independent V12 review pending; V12 operation not run",
+  "v12_changes": [
+    "Only source predicate schema changed to the exact schema in the pinned evidence bytes; all other source pins, bytes, and predicates retained.",
+    "Synthetic admission fixture now uses the actual schema instead of reproducing the wrapper typo.",
+    "Added test hashes and reads the immutable actual evidence file, asserts exact schema, then directly calls validate_admitted_stage1 on the admitted root and checks root inventory unchanged and stage-two outputs absent. No full preflight or stage operation."
+  ],
+  "validation": {
+    "command": "python3 -B test_fresh_plan_stage3d_atomic_supervisor_v12-stage2-20261021.py",
+    "log_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v12-stage2-synthetic-tests-final-20261021.log",
+    "log_sha256": "f7858dd2d7e231b4922aa3dadc43f511f4c96c29690ff39d5768c2c38dd1c95f",
+    "result": "30 passed, 0 failed, 0 skipped, 47.040 seconds"
+  }
+}

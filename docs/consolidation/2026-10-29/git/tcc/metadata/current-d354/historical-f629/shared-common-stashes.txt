@@ -1,0 +1,22 @@
+a95a8fe8d265f3fda0b52115e1230eae537ba5e0 stash@{0} On wip/w4-jackin-settings: verify-preexisting
+4bad003d7c88bfb46373f0148d2fbbe588e923e7 stash@{1} On (no branch): probe-wip
+080ea9d7f1d37b25471f0a1ba048e518272143f4 stash@{2} WIP on subagent-TablePro-Perf-Auditor-self-3c3f9512: e39205fdb5 fix(showcase): keep the navigation hit region inside the sidebar inset
+d182de6e7baf60cf6b4320a4936c604fde6c129a stash@{3} WIP on (no branch): c3e2816db0 fix(theme): restore tablepro SQL ink and foreign-key ellipsis
+d3593923262973cc70d5d9e1ac5b9f2b0d8105c2 stash@{4} On parity/termrock-visual-baseline: local-wip
+abf9a03bb0ccdb1046e784e24e83fb5958b2c56b stash@{5} WIP on wip/component-digest-drift-20261021: 849d26dad7 fix(theme,overlays): restore frozen SQL syntax ink and menu title identity
+87d6b90d095367bced6e54b0c8a5142d65d3886d stash@{6} On parity/termrock-visual-baseline: uncommitted showcase and tablepro
+585ed5c0906318d4aa58bb94979bebf7b6508325 stash@{7} On parity/termrock-visual-baseline: preserve-dirty-parity-20261021
+be93ba8112ec46e6de74dbc70551260ddc472ecf stash@{8} On wip/showcase-dialog-kinds-restoration-20261021: app-dialog-kinds-wip
+5a2a4ba3287ab593be63cbae1fec25698366b7ff stash@{9} WIP on parity/termrock-visual-baseline: 97c9265c9 refactor(jackin): replace canned launch picker views with live Picker component
+90d227ffe725e543e6ed68405c1d5308cc8c10f3 stash@{10} On parity/termrock-visual-baseline: wip-foreign-jackin-session-chrome-20261021
+6edf5051d533e69023d5f3d735e80c5c56bbcf29 stash@{11} WIP on (no branch): 3bb1d1586 Merge remote-tracking branch 'origin/parity/termrock-visual-baseline' into parity/pr38-palette-final-20261020
+4ff3bec7db1f0598069847e6bab4e0050be7308a stash@{12} On parity/termrock-visual-baseline: wip-other-crates-before-push
+d442bae4ced061033836dbf85e68c8ff5db2d9f2 stash@{13} On parity/termrock-visual-baseline: wip-foreign-during-dialog-check-20261021
+87bfced95f563a39fe3688c5981e9c4786707819 stash@{14} On parity/termrock-visual-baseline: wip-capability-palettes-not-ours-20261021
+1e8a55c50a16fd94dddad9a214e583fb1fab6add stash@{15} On parity/termrock-visual-baseline: wip-unrelated-recipe-and-target-deletions-20261021e
+441e32044f0430cb2a61c5047a9f7a390da2f809 stash@{16} On parity/grid-cell-inset-20261021: TablePro Grid WIP before current PR38 sync
+60a8e39300c729412e4234d2214c50b1402c0f6e stash@{17} On fix/palette-grid-contract-20261021: task worktree generated artifact deletion state
+05371287bdfc8f83bd7c06eaca7d74063b6707ca stash@{18} On parity/termrock-visual-baseline: wip-query-results-paint-partial-not-landed
+bd52f06bffef436704fe037d0d0f6643a3623f4c stash@{19} On parity/termrock-visual-baseline: wip-terminal-100-cell-plate-not-landed
+d9ce68e191875fd85af9aabc30a997abacc15e67 stash@{20} On parity/termrock-visual-baseline: wip-commit-dialog-stamp-not-landed
+d00889202e3a7cbd23c409256fa136e071249058 stash@{21} On parity/shared-components-20261020: termrock-reviewed-text-section-20261020

@@ -31,7 +31,7 @@ impl CellDecor<'_> {
     pub fn flags(&self) -> StateFlags {
         let mut f = StateFlags::empty();
         if self.error.is_some() {
-            f |= StateFlags::ERROR;
+            f |= StateFlags::ERROR | StateFlags::INVALID;
         }
         if self.dirty {
             f |= StateFlags::DIRTY;

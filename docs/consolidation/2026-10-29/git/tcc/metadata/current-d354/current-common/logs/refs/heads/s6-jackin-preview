@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 13cea0a2c4e87e140e90af084dfdc231c260598f Alexey Zhokhov <alexey@zhokhov.com> 1792182818 +0700	branch: Created from 13cea0a2c
+13cea0a2c4e87e140e90af084dfdc231c260598f 652efae1fc4eb2c618c2c8ee24bccc2095870484 Alexey Zhokhov <alexey@zhokhov.com> 1792183226 +0700	commit: WIP
+652efae1fc4eb2c618c2c8ee24bccc2095870484 6e5780e27bb3be38de803d4015a8027374c8c0df Alexey Zhokhov <alexey@zhokhov.com> 1792183329 +0700	commit (amend): feat(jackin): route the pointer through PointerRouter
+6e5780e27bb3be38de803d4015a8027374c8c0df da81a83e3ebc679959f24c5d04f2e82a11ed3c13 Alexey Zhokhov <alexey@zhokhov.com> 1792183697 +0700	commit: WIP2
+da81a83e3ebc679959f24c5d04f2e82a11ed3c13 6e5780e27bb3be38de803d4015a8027374c8c0df Alexey Zhokhov <alexey@zhokhov.com> 1792183706 +0700	reset: moving to HEAD~1
+6e5780e27bb3be38de803d4015a8027374c8c0df 32a01e1b86ff672d1f2c807fc05a79ac0e30fefc Alexey Zhokhov <alexey@zhokhov.com> 1792183713 +0700	commit: refactor(jackin): host screens take one pointer entry
+32a01e1b86ff672d1f2c807fc05a79ac0e30fefc b08f1c384fbc4b9e7244b3c5537d88c6cea9bcde Alexey Zhokhov <alexey@zhokhov.com> 1792183714 +0700	commit: WIP3
+b08f1c384fbc4b9e7244b3c5537d88c6cea9bcde 32a01e1b86ff672d1f2c807fc05a79ac0e30fefc Alexey Zhokhov <alexey@zhokhov.com> 1792183728 +0700	reset: moving to HEAD~1
+32a01e1b86ff672d1f2c807fc05a79ac0e30fefc b9a885dbb2dfc56574963806676229e63a9be037 Alexey Zhokhov <alexey@zhokhov.com> 1792183751 +0700	commit: feat(jackin): tab strips, menu bar and fields route through MouseTarget
+b9a885dbb2dfc56574963806676229e63a9be037 26c9c8f2a609a710f5656341c91067161b8d4871 Alexey Zhokhov <alexey@zhokhov.com> 1792183927 +0700	commit: refactor(jackin): app layers override Layer::pointer; one Screen entry
+26c9c8f2a609a710f5656341c91067161b8d4871 7eca4b61d1ee513f6ff63ee0fba1162fc61fd168 Alexey Zhokhov <alexey@zhokhov.com> 1792184075 +0700	commit: WIP4
+7eca4b61d1ee513f6ff63ee0fba1162fc61fd168 072b4eca83c1f6ad06bbb294be8585b0ddb5cec9 Alexey Zhokhov <alexey@zhokhov.com> 1792184099 +0700	commit (amend): test(jackin): lock the host menu's press-open through MouseTarget

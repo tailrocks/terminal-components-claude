@@ -1,0 +1,244 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T11:00:09.582567+00:00",
+  "reviewer": "/root/semantic_row_corrected_review",
+  "reviewed_commit": "32628b360f6015fe4ef49c805c0e45e8264a874d",
+  "prior_review_commit": "a13dc166c0ad15d554dce8fc76c94eeeffd0ea0e",
+  "before_revision": "7789d10db849f0a2cf37e3e9579d4c8b5cee179e",
+  "decision": "CLEAR_BOUNDED_API_RUNTIME_CORRECTION",
+  "findings": [],
+  "dispositions": [
+    {
+      "id": "ITEMROW-R1",
+      "status": "FIXED",
+      "evidence": "Tree::row retains its original contextual Fn(&T, &mut RowUi) bound; row_adapter is additive for reusable RowFn types. Unannotated unchanged downstream closure source SHA68e7af58a3022fc805c9f0ac434f82886d2be8d4560cf6e346746705ea575363 passed before7789, failed a13 with E0282, now passes326. No closure annotations or assertion changes."
+    },
+    {
+      "id": "ITEMROW-R2",
+      "status": "FIXED",
+      "evidence": "RowUi::meta_with_gap checks subtraction for gap plus required content cell before admitting metadata. Original independent maximum-width/maximum-gap assertion failed a13, passes326 without modification. Gap1 forwarding preserves ordinary default rows."
+    }
+  ],
+  "checks": [
+    {
+      "name": "closure-corrected",
+      "command": [
+        "cargo",
+        "+1.99.1",
+        "nextest",
+        "run",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/itemrow-closure-corrected-consumer-20261021",
+      "target": "/private/tmp/itemrow-closure-corrected-target-20261021",
+      "exit": 0,
+      "seconds": 10.865
+    },
+    {
+      "name": "semantic-corrected",
+      "command": [
+        "cargo",
+        "+1.99.1",
+        "nextest",
+        "run",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/itemrow-semantic-corrected-consumer-20261021",
+      "target": "/private/tmp/itemrow-semantic-corrected-target-20261021",
+      "exit": 0,
+      "seconds": 14.945
+    },
+    {
+      "name": "native-corrected",
+      "command": [
+        "cargo",
+        "+1.99.1",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/itemrow-32628b-review-20261021",
+      "target": "/private/tmp/itemrow-native-corrected-target-20261021",
+      "exit": 100,
+      "seconds": 27.469
+    },
+    {
+      "name": "default-corrected",
+      "command": [
+        "cargo",
+        "+1.99.1",
+        "nextest",
+        "run",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/itemrow-default-corrected-consumer-20261021",
+      "target": "/private/tmp/itemrow-default-corrected-target-20261021",
+      "exit": 0,
+      "seconds": 4.082
+    },
+    {
+      "name": "clippy-corrected",
+      "command": [
+        "cargo",
+        "+1.99.1",
+        "clippy",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/private/tmp/itemrow-32628b-review-20261021",
+      "target": "/private/tmp/itemrow-native-corrected-target-20261021",
+      "exit": 0,
+      "seconds": 10.939
+    },
+    {
+      "name": "example-clippy-corrected",
+      "command": [
+        "cargo",
+        "+1.99.1",
+        "clippy",
+        "-p",
+        "termrock",
+        "--example",
+        "semantic_item_row_consumer",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/private/tmp/itemrow-32628b-review-20261021",
+      "target": "/private/tmp/itemrow-native-corrected-target-20261021",
+      "exit": 0,
+      "seconds": 3.829
+    },
+    {
+      "name": "fmt-corrected",
+      "command": [
+        "cargo",
+        "+1.99.1",
+        "fmt",
+        "--check"
+      ],
+      "cwd": "/private/tmp/itemrow-32628b-review-20261021",
+      "target": "/private/tmp/itemrow-native-corrected-target-20261021",
+      "exit": 0,
+      "seconds": 3.015
+    },
+    {
+      "name": "state-parts-corrected",
+      "command": [
+        "cargo",
+        "+1.99.1",
+        "nextest",
+        "run",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/itemrow-semantic-corrected-consumer-20261021",
+      "target": "/private/tmp/itemrow-semantic-corrected-target-20261021",
+      "exit": 0,
+      "seconds": 1.696
+    },
+    {
+      "name": "before-inherited-rechecked",
+      "command": [
+        "cargo",
+        "+1.99.1",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-navigation",
+        "--all-targets",
+        "--no-fail-fast",
+        "-E",
+        "test(constructor_defaults_match_the_pre_policy_full_cell_fixture) | test(owner_part_styles_win_over_painter_defaults_in_columns_mode)"
+      ],
+      "cwd": "/private/tmp/itemrow-7789d10-before-review-20261021",
+      "target": "/private/tmp/itemrow-before-inherited-target-20261021",
+      "exit": 100,
+      "seconds": 0.713
+    }
+  ],
+  "results": {
+    "legacy_closure": "1 passed, 0 skipped",
+    "original_semantic_assertions": "3 passed, 0 skipped",
+    "semantic_with_additional_state_probe": "4 passed, 0 skipped",
+    "native": "634 run:632 passed,2 inherited failed,3 old ignored",
+    "default": "1 passed;72 complete-cell and ROW-bounds checkpoints unchanged",
+    "strict_clippy": "navigation/runtime all targets passed with -D warnings",
+    "default_feature_facade_example": "clippy semantic_item_row_consumer passed with -D warnings",
+    "format": "workspace fmt --check passed",
+    "exact_before_failure_recheck": "The same two columns tests fail at7789;226 filtered. Not credited as a pass."
+  },
+  "inherited_failures": [
+    "constructor_defaults_match_the_pre_policy_full_cell_fixture",
+    "owner_part_styles_win_over_painter_defaults_in_columns_mode"
+  ],
+  "fixture_integrity": {
+    "distinct_revision_targets": true,
+    "legacy_closure_byte_identical": true,
+    "semantic_assertions_unchanged": true,
+    "semantic_mechanical_api_migration": "Only Tree construction changes .row(SemanticItemRow::new()) to .row_adapter(...), as required by the corrected additive API. FilterList calls and all assertions unchanged.",
+    "default_change": "Only output artifact destination changed; full bytes equal to prefeature output.",
+    "default_sha256": "cd279efac150d3363f02dfe35e12cac5642579f3141cc955b914e09212ccd858",
+    "default_bytes": 3403794,
+    "default_checkpoints": 72,
+    "source_worktree_clean": true
+  },
+  "implementation_review": {
+    "scope": "Reviewed semantic ItemRow family, additive Tree adapter, checked RowUi metadata budget and compiled public facade example. No application implementation, expected-data restoration or unrelated incoming ancestry approval.",
+    "correctness": "Metadata cannot consume the required last label cell through integer saturation. Zero/narrow/maximum regions tested. No new actionable ownership, error propagation, unsafe or concurrency finding in this bounded change.",
+    "state_parts": "Independent public Runtime/RowUi consumer exercises six active/inactive/focused/selected/disabled flag combinations across four color profiles. Owner LABEL italic patch survives, metadata remains visible, adapter paints no extra focus gutter. This is a component-author state contract, not a modal application test.",
+    "reuse": "Owned String-backed different-domain records drive real public Tree and FilterList with stable keys, keyboard selection, reorder, empty data, Unicode middle truncation, clipping and ROW hit bounds. Containers retain interaction ownership.",
+    "api": "Existing closure signature preserved. New semantic adapter intentionally uses the additive row_adapter entry point. No existing ItemRow default source change or complete-cell regression in sampled four-profile Tree/FilterList contexts."
+  },
+  "limits": [
+    "Native inherited columns failures and three ignored Runtime tests remain unresolved; suite is not globally green.",
+    "No Manager migration, four-application gate, frozen real-CLI Tuiscotti paired run, hosted CI, performance claim or full architecture acceptance.",
+    "No expected data, snapshots, tag, baseline source, reference branch or pin changed by reviewer.",
+    "No product edits, commits, pushes or helpers. Every owned command bounded to205seconds plus12seconds termination/reap reserve.",
+    "This exact326 clearance does not admit unrelated merge ancestry or a later moving WIP tip."
+  ],
+  "artifacts": {
+    "before-inherited-rechecked.log": "6f4ddfd0507d7314d4e8f1c751068861fbf30acf17ed8afe47a3dc04ed3d0d02",
+    "clippy-corrected.log": "1b0ad80665f919fa96a88cb2f10f94857a9555fb133ab9fae2d7aa61b0c1b5fc",
+    "closure-Cargo.toml": "46d3980331911262fc523ef34a5cd66d6f8183e24b2ce59a211642d37e322729",
+    "closure-consumer.rs": "68e7af58a3022fc805c9f0ac434f82886d2be8d4560cf6e346746705ea575363",
+    "closure-corrected.log": "5877190890475f3b206564fbf885c85c9a5180f8396104735a872cd194680ecd",
+    "commands.jsonl": "df4f30cdffdca6c6052ae1919ee27ec3906672df708bb1682937c3c6de6f50b8",
+    "default-Cargo.toml": "dbf8c5042fafe711f0f7bbd0593cc7843d704a85639d34ef06326d3e6e874e55",
+    "default-consumer.rs": "18f8f41d344b8c05c35a2bbd6fb982000cfd19ebb54ca75e60003be1ca58eda7",
+    "default-corrected-cells.txt": "cd279efac150d3363f02dfe35e12cac5642579f3141cc955b914e09212ccd858",
+    "default-corrected.log": "f14405b63b14c9d9d95f94e77972e655e14cf304e4cce97c10d78f18f6464435",
+    "example-clippy-corrected.log": "6c28751fbf9ca4f7a18a00c1b52ffa83632d9748ab6cd49a4020162dd4eba562",
+    "fmt-corrected.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-corrected.log": "5a550755b58686699a775a09317697605907ab4235d9f6fc2aad06f5ef2363e0",
+    "prior-closure-after-src__lib.rs": "68e7af58a3022fc805c9f0ac434f82886d2be8d4560cf6e346746705ea575363",
+    "prior-closure-after.log": "229d539198892f57507316b520acdec8336fe2e9a424ddc1d5c6f8324927096f",
+    "prior-closure-before-src__lib.rs": "68e7af58a3022fc805c9f0ac434f82886d2be8d4560cf6e346746705ea575363",
+    "prior-closure-before.log": "f43816ae49dd7fa6718a2857c5a5dcc13517b40f3b184d4a82e3c2c18a2b1637",
+    "prior-default-before-cells.txt": "cd279efac150d3363f02dfe35e12cac5642579f3141cc955b914e09212ccd858",
+    "prior-default-before-src__lib.rs": "9b60e0b2163dbe3ab5834a0b7d57a5442fb959c071d01ec2653b75f74e355ddf",
+    "prior-default-before.log": "b7222e55c8304f088422283ed7830d732984e9106d5ad1a2f6855c0dbbeab53b",
+    "prior-review.json": "905dbce9cbd8b652a3239c1c9da4f50816594f679be99f9f58da26b3a7bf9e18",
+    "prior-semantic-external-final.log": "1851a9f15b14c70a595b658c9f2b7be1a4db019c27843d78d97c2bc9e33b5e84",
+    "prior-semantic-src__lib.rs": "625aa139c682c4cc160d0180b069603ea998b0b489334e0e26c0d3f8d648e877",
+    "semantic-Cargo.toml": "d0fc7409df4ef43afb2dc43da40ff5a3dec018ace960aae91d085a03b200ec16",
+    "semantic-consumer.rs": "c5b278ec1beec30cb72678bd0e49c700e87344f5f1107e83993c44df6ddd1beb",
+    "semantic-corrected.log": "c5f5b0070eaa73b7896677a0366cb437acac8267f1a7e6ac1968b016c741074a",
+    "state-parts-consumer.rs": "f2e78a3140d987a4fdb526c541abc2d56f771c5d3782d7a4d6f2d2cf8845d747",
+    "state-parts-corrected.log": "2bb0b74858966429f15eeccedf2d7ca7097c2165c138ad4a681c5e1c118be127"
+  }
+}

@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 454b7bff11679fb062c51d489df6850c3ee4dcac Alexey Zhokhov <alexey@zhokhov.com> 1792246312 +0700	branch: Created from HEAD
+454b7bff11679fb062c51d489df6850c3ee4dcac 0f946f08f49de515dc39c82829a80b464328c9c7 Alexey Zhokhov <alexey@zhokhov.com> 1792247199 +0700	commit: fix(props): fact sheets and detail cards scroll instead of dropping rows (R-apps-6)
+0f946f08f49de515dc39c82829a80b464328c9c7 aec4b2f164007597adab4c92c16ac5588b819657 Alexey Zhokhov <alexey@zhokhov.com> 1792247417 +0700	commit: test(reach): re-triage the allow lines still tagged R-apps-1
+aec4b2f164007597adab4c92c16ac5588b819657 6b5214d4c3efad478ced2b0542e0a5e217ed7f38 Alexey Zhokhov <alexey@zhokhov.com> 1792247672 +0700	commit: test(visual): holla fact sheets that scroll re-approved for R-apps-6
+6b5214d4c3efad478ced2b0542e0a5e217ed7f38 539358b92066691ca84a659a88ec9fea6e0fe125 Alexey Zhokhov <alexey@zhokhov.com> 1792247674 +0700	commit: test(visual): jackin settings Agents that scrolls re-approved for R-apps-6
+539358b92066691ca84a659a88ec9fea6e0fe125 64a892567a46f09c181c13b57fe880fafcdd0ff1 Alexey Zhokhov <alexey@zhokhov.com> 1792247675 +0700	commit: test(visual): tablepro detail cards that scroll re-approved for R-apps-6
+64a892567a46f09c181c13b57fe880fafcdd0ff1 988b79b5536679b79111e30e5afe406b852ac474 Alexey Zhokhov <alexey@zhokhov.com> 1792247701 +0700	commit: docs(responsive): R-apps-6 fact sheets scroll, R-apps-1 lines re-triaged
+988b79b5536679b79111e30e5afe406b852ac474 4c418a6a51fb5d2ab0fbdd04d076d6dd6792a891 Alexey Zhokhov <alexey@zhokhov.com> 1792247722 +0700	rebase (finish): refs/heads/rapps-6b-2 onto eec3e2354203ba2f9738e823867969aee777121e
+4c418a6a51fb5d2ab0fbdd04d076d6dd6792a891 fd37a02c90383ba9ec2d039f259d987434c1f90d Alexey Zhokhov <alexey@zhokhov.com> 1792248218 +0700	commit: fix(holla): the plan's consequence line stays off the narrow details drawer (R-apps-2)
+fd37a02c90383ba9ec2d039f259d987434c1f90d 9fac11757fd65f2ae155f19824b56d08af72eb80 Alexey Zhokhov <alexey@zhokhov.com> 1792248417 +0700	commit: test(visual): holla plan details drawer re-approved for R-apps-2
+9fac11757fd65f2ae155f19824b56d08af72eb80 138e7afcd4d979613c6b5a24b011f93d01bb2910 Alexey Zhokhov <alexey@zhokhov.com> 1792248417 +0700	commit: docs(responsive): R-apps-2 holla plan drawer fixed; the rest recorded
+138e7afcd4d979613c6b5a24b011f93d01bb2910 f55fd2274197c0a235e0885e3cc5827062b887e1 Alexey Zhokhov <alexey@zhokhov.com> 1792248784 +0700	rebase (finish): refs/heads/rapps-6b-2 onto e27f23d289c0a352d4ee02fb3a9b4b1a9f8b6339

@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 1e022b3a5cfd37c42843768f0200ba313530833f Alexey Zhokhov <alexey@zhokhov.com> 1792150001 +0700	branch: Created from HEAD
+1e022b3a5cfd37c42843768f0200ba313530833f 5d74e43bf231836e31655f7cf0138071cfee7e55 Alexey Zhokhov <alexey@zhokhov.com> 1792151764 +0700	commit: fix(xtask): accept copies only actuals of the current run
+5d74e43bf231836e31655f7cf0138071cfee7e55 72bd09e233cc9834b9200e493003c90ba1c44158 Alexey Zhokhov <alexey@zhokhov.com> 1792151801 +0700	commit: test(visual): bring the 15 stale scenario roots up to the current app
+72bd09e233cc9834b9200e493003c90ba1c44158 5b3927c49ac96c85b622df4fd72b927b0110eee9 Alexey Zhokhov <alexey@zhokhov.com> 1792151807 +0700	rebase (finish): refs/heads/harness3 onto 31eaf284a00957690f304f5691ceb57a01df0094
+5b3927c49ac96c85b622df4fd72b927b0110eee9 62c9ee0bb62dc10bef0ce8861c6b9d4fb58947ad Alexey Zhokhov <alexey@zhokhov.com> 1792152141 +0700	rebase (finish): refs/heads/harness3 onto 9f9cf503722518103584189051f47ffbc95478d0
+62c9ee0bb62dc10bef0ce8861c6b9d4fb58947ad bbcc5c77cc604deb81b180518dd7e38aad05470b Alexey Zhokhov <alexey@zhokhov.com> 1792152177 +0700	rebase (finish): refs/heads/harness3 onto ed5147275456e01b5b469b5eca0bad6a63ace97d
+bbcc5c77cc604deb81b180518dd7e38aad05470b 52d776131e817bc8de68e885342096fc60b6a7db Alexey Zhokhov <alexey@zhokhov.com> 1792152757 +0700	commit: test(visual): re-approve showcase chips for the +N overflow button
+52d776131e817bc8de68e885342096fc60b6a7db 733f31b91d53f84cdfe4629da83f973e23ab3cee Alexey Zhokhov <alexey@zhokhov.com> 1792152765 +0700	rebase (finish): refs/heads/harness3 onto 476a89f235cb1415eb7e203b7281749d9cb3af88
+733f31b91d53f84cdfe4629da83f973e23ab3cee dd9e5996f23c1e35c472fe0c3a7d4c46c5b111bf Alexey Zhokhov <alexey@zhokhov.com> 1792153447 +0700	commit: test(visual): cover the quit guards that replaced jackin's quit_confirm
+dd9e5996f23c1e35c472fe0c3a7d4c46c5b111bf ab6631d90db142dc0b620ffb3bbafffaa4639be2 Alexey Zhokhov <alexey@zhokhov.com> 1792153482 +0700	rebase (finish): refs/heads/harness3 onto a3e367e8f5f13cfd07992e00cef62f9687e5fc51

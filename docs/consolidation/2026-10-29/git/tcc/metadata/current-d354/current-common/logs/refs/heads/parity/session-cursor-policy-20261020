@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 09df933dc31f8c92528e57ae6810c0377c83cfb6 Alexey Zhokhov <alexey@zhokhov.com> 1792506480 +0700	branch: Created from origin/parity/termrock-visual-baseline
+09df933dc31f8c92528e57ae6810c0377c83cfb6 17ad7f673e28d18bfb199b56ad7d835cd93ac55d Alexey Zhokhov <alexey@zhokhov.com> 1792506641 +0700	commit: fix(session): restore terminal cursor capability policy
+17ad7f673e28d18bfb199b56ad7d835cd93ac55d 5b6a2312199c4b59c6d21a190d83f4e2069529cf Alexey Zhokhov <alexey@zhokhov.com> 1792506971 +0700	commit: fix(session): track cursor shape before flushing

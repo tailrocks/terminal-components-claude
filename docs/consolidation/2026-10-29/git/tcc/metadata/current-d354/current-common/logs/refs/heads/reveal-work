@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 18d6d1bfacdb4605cdeaf4fa73ae66f1934b556b Alexey Zhokhov <alexey@zhokhov.com> 1792128987 +0700	branch: Created from origin/design/interaction-polish
+18d6d1bfacdb4605cdeaf4fa73ae66f1934b556b 7b050ede1323b6e0a911c25aa53c142f64904bde Alexey Zhokhov <alexey@zhokhov.com> 1792129437 +0700	commit: feat(reveal): show the full text of a cut value on hover or →
+7b050ede1323b6e0a911c25aa53c142f64904bde c38ece3865aac77be776c592db1b26ef405b9185 Alexey Zhokhov <alexey@zhokhov.com> 1792129441 +0700	rebase (finish): refs/heads/reveal-work onto 934985f8d4dcea9dc39aad3cb0da519bf60e8f6a
+c38ece3865aac77be776c592db1b26ef405b9185 a1ac3a87d0416fc6e6b7e8669ca6b369faf9ce36 Alexey Zhokhov <alexey@zhokhov.com> 1792129661 +0700	commit: feat(reveal): wire list labels, table cells and picker rows
+a1ac3a87d0416fc6e6b7e8669ca6b369faf9ce36 73babc537b18f63c4a5f7b836d24908e1dbb2b46 Alexey Zhokhov <alexey@zhokhov.com> 1792129677 +0700	rebase (finish): refs/heads/reveal-work onto e97f56b7ac41952e5b49112ace9380a0d9cb224f
+73babc537b18f63c4a5f7b836d24908e1dbb2b46 4f78a46d6b8172793243af6cace708e6d6251dd4 Alexey Zhokhov <alexey@zhokhov.com> 1792129754 +0700	rebase (finish): refs/heads/reveal-work onto b4ec756dc48d2d9b746f0b6c2c4911047c29b52b
+4f78a46d6b8172793243af6cace708e6d6251dd4 5ed98beee0da3cfa90b5c0fa613c65d3ec5b329f Alexey Zhokhov <alexey@zhokhov.com> 1792129840 +0700	rebase (finish): refs/heads/reveal-work onto 1d9055e8bc97f16414e48c819d44f1ee62df930e
+5ed98beee0da3cfa90b5c0fa613c65d3ec5b329f 91bb1ba785aa75c7eeec0f3db313655ebcca281c Alexey Zhokhov <alexey@zhokhov.com> 1792130094 +0700	commit: feat(reveal): menu items and status bar segments reveal cut text
+91bb1ba785aa75c7eeec0f3db313655ebcca281c 4d8a8ceaac7eda6b53c676fb4eeb66d6b37362b9 Alexey Zhokhov <alexey@zhokhov.com> 1792130098 +0700	rebase (finish): refs/heads/reveal-work onto d286ebbe1782184c2a9d484653a573ab564f694d
+4d8a8ceaac7eda6b53c676fb4eeb66d6b37362b9 dad1eba205a5e98a59340242cfa317330fd00e3d Alexey Zhokhov <alexey@zhokhov.com> 1792130341 +0700	commit: feat(reveal): select values and options, data grid cells
+dad1eba205a5e98a59340242cfa317330fd00e3d 2f874907478c40506793f18590ded87628f189c7 Alexey Zhokhov <alexey@zhokhov.com> 1792130345 +0700	rebase (finish): refs/heads/reveal-work onto e95590552cc8f60bae4b6c0008dd1ae6104f8a7f

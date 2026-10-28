@@ -1,0 +1,13 @@
+amend! feat(steps): StepRail measures itself; a cut label reveals on hover
+
+feat(steps): StepRail min width keeps every meta; a cut label reveals
+
+`StepRail: Measure` gains `min_width`: the narrowest the rail keeps
+every step's state word or duration (`shown_meta`), letting labels cut.
+A cut label now goes through `reveal::fit`: it reveals its full text on
+hover, and on the peek line for the focused step, instead of a plain
+truncate. Tests: every label and meta whole at the measured width,
+every meta at the min width; a cut label's hover shows it whole (fails
+with the plain truncate).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

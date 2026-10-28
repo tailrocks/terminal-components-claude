@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 7fb00b61e8dc615aa41509f612199bf945d05fbc Alexey Zhokhov <alexey@zhokhov.com> 1792566484 +0700	branch: Created from origin/parity/termrock-visual-baseline
+7fb00b61e8dc615aa41509f612199bf945d05fbc fe75ad491b10cd4440e2e5bde98ae3a8811082bc Alexey Zhokhov <alexey@zhokhov.com> 1792567714 +0700	commit: holla: keep task-sources chrome on the frozen 80-column frame only
+fe75ad491b10cd4440e2e5bde98ae3a8811082bc 343b2c86274f18146e752f4ac08a73c68acaa9cb Alexey Zhokhov <alexey@zhokhov.com> 1792567731 +0700	commit (amend): holla: replace frozen parity plates with shared band views and tag frames
+343b2c86274f18146e752f4ac08a73c68acaa9cb 5b1b3bf9b41e402d184ef1a5cdeab8fb365011c8 Alexey Zhokhov <alexey@zhokhov.com> 1792567849 +0700	rebase (finish): refs/heads/holla-plates-view onto 2bcac6e2347f85ef56430ccf4ec84a11bcc71684
+5b1b3bf9b41e402d184ef1a5cdeab8fb365011c8 2fe06bcab494d17a19884b19e5de7a3400e4b27a Alexey Zhokhov <alexey@zhokhov.com> 1792568064 +0700	commit: docs: record holla plate removal, supersession, and preserved reference quirks
+2fe06bcab494d17a19884b19e5de7a3400e4b27a f01361f266fe61bf5b09e63786ead5c75b143440 Alexey Zhokhov <alexey@zhokhov.com> 1792570693 +0700	commit: docs: record 15 no-reference holla families as pre-tag frozen-oracle drift
+f01361f266fe61bf5b09e63786ead5c75b143440 f2cd6b897b3ac3a14b48d7d8d28d3f07b732c2d5 Alexey Zhokhov <alexey@zhokhov.com> 1792571592 +0700	rebase (finish): refs/heads/holla-plates-view onto d4b6021f2af51b2ff2ba5c3b9724b8fc5d283d74
+f2cd6b897b3ac3a14b48d7d8d28d3f07b732c2d5 541bb0da05d6bf17f28d663cc61e0fdaaef8d3ee Alexey Zhokhov <alexey@zhokhov.com> 1792571694 +0700	rebase (finish): refs/heads/holla-plates-view onto 36afb41f1e2d43ec51ddf84a740ce44ca293d88f

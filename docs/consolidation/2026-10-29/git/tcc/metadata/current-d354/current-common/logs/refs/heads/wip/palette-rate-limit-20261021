@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 986332c65158d4539bbbb69ae782e802125aa45f Alexey Zhokhov <alexey@zhokhov.com> 1792564914 +0700	branch: Created from HEAD
+986332c65158d4539bbbb69ae782e802125aa45f 73fc468fc76043d27103dbe96d4375c9c09c76a6 Alexey Zhokhov <alexey@zhokhov.com> 1792564914 +0700	commit: wip: protect in-flight palette work after rate-limit stop
+73fc468fc76043d27103dbe96d4375c9c09c76a6 7a8f16d316ddb825270085ff9abb3225bdd9e151 Alexey Zhokhov <alexey@zhokhov.com> 1792566025 +0700	rebase (finish): refs/heads/wip/palette-rate-limit-20261021 onto 7fb00b61e8dc615aa41509f612199bf945d05fbc
+7a8f16d316ddb825270085ff9abb3225bdd9e151 7b77d7ccb4a58ee3b015f903c3f878e003c0ebbb Alexey Zhokhov <alexey@zhokhov.com> 1792566211 +0700	commit: fix(theme): pin junie reduced-tier ladder to the frozen corpus
+7b77d7ccb4a58ee3b015f903c3f878e003c0ebbb e94ff0389c8553922bf9c238317dc66b68b637ba Alexey Zhokhov <alexey@zhokhov.com> 1792566914 +0700	commit: docs: record the junie palette frozen-ladder audit
+e94ff0389c8553922bf9c238317dc66b68b637ba 6653d950d5c782e04e7e01be1568da8491929b3f Alexey Zhokhov <alexey@zhokhov.com> 1792567132 +0700	rebase (finish): refs/heads/wip/palette-rate-limit-20261021 onto 9240dd0e48ac00ebbde99b979973e4b8e61f0da2
+6653d950d5c782e04e7e01be1568da8491929b3f 4a0f8da7f37e61ae1898d315e2f04bc2d0269646 Alexey Zhokhov <alexey@zhokhov.com> 1792567327 +0700	rebase (finish): refs/heads/wip/palette-rate-limit-20261021 onto c5eb22a73a39c102859c311c04b41c3adb7d946f

@@ -19,6 +19,8 @@ use crate::ui::{Cx, FrameRead, Ui};
 use ratatui_core::layout::Rect;
 use termrock_collections::collection::{Reconcile, Reconciliation};
 use termrock_runtime::rowui::CellUi;
+use termrock_runtime::rowui::RowUi;
+use termrock_theme::CursorStyle;
 
 #[derive(Clone, Copy)]
 pub enum PropsValue<'a> {
@@ -255,6 +257,19 @@ pub struct PropsState {
     core: termrock_collections::collection::CollectionCore,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum PropsPresentation {
+    #[default]
+    Columns,
+    Sheet,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct PropsGeometry {
+    label_width: u16,
+    value_width: u16,
+}
+
 impl PropsState {
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
@@ -289,6 +304,7 @@ impl Reconcile for PropsState {
 
 pub struct PropsList<'a> {
     id: Id,
+    presentation: PropsPresentation,
     variant: Variant,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -299,6 +315,7 @@ impl fmt::Debug for PropsList<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("PropsList")
             .field("id", &self.id)
+            .field("presentation", &self.presentation)
             .field("variant", &self.variant)
             .field("patch", &self.patch.is_some())
             .field("parts", &self.parts.len())
@@ -312,6 +329,7 @@ impl<'a> PropsList<'a> {
         Part::META,
         Part::LABEL,
         Part::ROW,
+        Part::GUTTER,
         Part::TRACK,
         Part::THUMB,
     ];
@@ -319,11 +337,18 @@ impl<'a> PropsList<'a> {
     pub const fn new(id: Id) -> Self {
         PropsList {
             id,
+            presentation: PropsPresentation::Columns,
             variant: Variant::DEFAULT,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
         }
+    }
+
+    #[must_use]
+    pub const fn sheet(mut self) -> Self {
+        self.presentation = PropsPresentation::Sheet;
+        self
     }
 
     #[must_use]
@@ -355,7 +380,8 @@ impl<'a> PropsList<'a> {
     fn scrollbar(&self) -> super::ScrollRegion<'a> {
         let mut scrollbar = super::ScrollRegion::new(self.id)
             .inherit_family(Family::PROPS)
-            .patch_part(self.parts);
+            .patch_part(self.parts)
+            .preserve_underlay(self.presentation == PropsPresentation::Sheet);
         if let Some(patch) = self.patch {
             scrollbar = scrollbar.patch(patch);
         }
@@ -365,6 +391,27 @@ impl<'a> PropsList<'a> {
             scrollbar = scrollbar.slot(Part::THUMB, painter);
         }
         scrollbar
+    }
+
+    fn style_defaults(
+        &self,
+        ui: &mut Ui<'_>,
+        part: Part,
+        flags: StateFlags,
+        defaults: StyleDefaults<'_>,
+    ) -> PaintStyle {
+        let local = self.ov.part_patch(part);
+        let resolved = ui.style_defaults(
+            Family::PROPS,
+            self.variant,
+            part,
+            flags,
+            defaults,
+            local.as_ref(),
+        );
+        self.ov
+            .note(ui, self.id, Family::PROPS, self.variant, part, resolved);
+        resolved.style
     }
 
     fn label_width(rows: &[PropsRow<'_>]) -> u16 {
@@ -384,6 +431,17 @@ impl<'a> PropsList<'a> {
         }
     }
 
+    fn sheet_row_height(row: &PropsRow<'_>, value_width: u16, active_key: Option<ItemKey>) -> u16 {
+        if row.wrap && active_key == Some(row.key) {
+            match row.value {
+                PropsValue::Text(value) => wrapped_rows(value, value_width),
+                PropsValue::Secret(_) => 1,
+            }
+        } else {
+            1
+        }
+    }
+
     fn content_len(rows: &[PropsRow<'_>], width: u16) -> usize {
         let value_width = Self::value_width(rows, width);
         rows.iter()
@@ -391,19 +449,104 @@ impl<'a> PropsList<'a> {
             .sum()
     }
 
-    fn visual_start(rows: &[PropsRow<'_>], index: usize, width: u16) -> usize {
-        let value_width = Self::value_width(rows, width);
+    fn sheet_geometry(rows: &[PropsRow<'_>], width: u16) -> PropsGeometry {
+        let label_area = width.saturating_sub(2);
+        let full_label_column = Self::label_width(rows).saturating_add(2);
+        let label_column = if rows.is_empty() {
+            0
+        } else if label_area.saturating_sub(full_label_column) >= 12 {
+            full_label_column
+        } else {
+            let cap = u32::from(label_area).saturating_mul(40) / 100;
+            let cap = cap.min(u32::from(u16::MAX)) as u16;
+            rows.iter()
+                .map(|row| width_of(row.label).saturating_add(2))
+                .filter(|candidate| *candidate <= cap)
+                .max()
+                .unwrap_or(cap.max(1))
+        }
+        .max(if rows.is_empty() { 0 } else { 3 });
+        let label_width = label_column.saturating_sub(2);
+        let value_width = width
+            .saturating_sub(2)
+            .saturating_sub(label_width)
+            .saturating_sub(2)
+            .saturating_sub(1);
+        PropsGeometry {
+            label_width,
+            value_width,
+        }
+    }
+
+    fn sheet_value_width(
+        geometry: PropsGeometry,
+        row: &PropsRow<'_>,
+        active_key: Option<ItemKey>,
+    ) -> u16 {
+        geometry
+            .value_width
+            .saturating_sub(if active_key == Some(row.key) && row.can_copy() {
+                8
+            } else {
+                0
+            })
+    }
+
+    fn resolved_content_len(
+        rows: &[PropsRow<'_>],
+        area: Rect,
+        cursor: Option<ItemKey>,
+        focused: bool,
+        presentation: PropsPresentation,
+    ) -> usize {
+        if presentation == PropsPresentation::Columns {
+            return Self::content_len(rows, area.width.saturating_sub(1));
+        }
+        let active_key = focused.then_some(cursor).flatten();
+        let geometry = Self::sheet_geometry(rows, area.width);
+        let full = rows
+            .iter()
+            .map(|row| {
+                usize::from(Self::sheet_row_height(
+                    row,
+                    Self::sheet_value_width(geometry, row, active_key),
+                    active_key,
+                ))
+            })
+            .sum::<usize>();
+        if full <= usize::from(area.height) || area.width == 0 {
+            return full;
+        }
+        let geometry = Self::sheet_geometry(rows, area.width.saturating_sub(1));
         rows.iter()
-            .take(index)
-            .map(|row| usize::from(Self::row_height(row, value_width)))
+            .map(|row| {
+                usize::from(Self::sheet_row_height(
+                    row,
+                    Self::sheet_value_width(geometry, row, active_key),
+                    active_key,
+                ))
+            })
             .sum()
     }
 
-    fn row_at_visual(rows: &[PropsRow<'_>], visual: usize, width: u16) -> Option<(usize, usize)> {
-        let value_width = Self::value_width(rows, width);
+    fn row_at_visual_width(
+        rows: &[PropsRow<'_>],
+        visual: usize,
+        geometry: PropsGeometry,
+        active_key: Option<ItemKey>,
+        presentation: PropsPresentation,
+    ) -> Option<(usize, usize)> {
         let mut start = 0usize;
         for (index, row) in rows.iter().enumerate() {
-            let end = start.saturating_add(usize::from(Self::row_height(row, value_width)));
+            let height = match presentation {
+                PropsPresentation::Columns => Self::row_height(row, geometry.value_width),
+                PropsPresentation::Sheet => Self::sheet_row_height(
+                    row,
+                    Self::sheet_value_width(geometry, row, active_key),
+                    active_key,
+                ),
+            };
+            let end = start.saturating_add(usize::from(height));
             if visual < end {
                 return Some((index, start));
             }
@@ -413,12 +556,42 @@ impl<'a> PropsList<'a> {
     }
 
     fn reveal(&self, cx: &Cx<'_>, st: &mut PropsState, rows: &[PropsRow<'_>], index: usize) {
-        let width = cx
-            .area(self.id)
-            .map_or(1, |area| area.width.saturating_sub(1));
+        let area = cx.area(self.id).unwrap_or_default();
+        let focused = cx.state(self.id).contains(StateFlags::FOCUSED);
+        let total = Self::resolved_content_len(rows, area, st.cursor(), focused, self.presentation);
+        let width = if total > usize::from(area.height) {
+            area.width.saturating_sub(1)
+        } else {
+            area.width
+        };
+        let geometry = match self.presentation {
+            PropsPresentation::Columns => PropsGeometry {
+                label_width: 0,
+                value_width: Self::value_width(rows, width),
+            },
+            PropsPresentation::Sheet => Self::sheet_geometry(rows, width),
+        };
+        let active_key = match self.presentation {
+            PropsPresentation::Columns => None,
+            PropsPresentation::Sheet if focused => st.cursor(),
+            PropsPresentation::Sheet => None,
+        };
+        let row_start = rows
+            .iter()
+            .take(index)
+            .map(|row| match self.presentation {
+                PropsPresentation::Columns => Self::row_height(row, geometry.value_width),
+                PropsPresentation::Sheet => Self::sheet_row_height(
+                    row,
+                    Self::sheet_value_width(geometry, row, active_key),
+                    active_key,
+                ),
+            })
+            .map(usize::from)
+            .sum();
         st.core
             .scroll_mut()
-            .ensure_visible_on_next_layout(Self::visual_start(rows, index, width));
+            .ensure_visible_on_next_layout(row_start);
     }
 
     fn move_cursor(
@@ -465,21 +638,41 @@ impl<'a> PropsList<'a> {
         st: &mut PropsState,
         rows: &[PropsRow<'_>],
     ) -> Response<PropsAction> {
+        let cursor_before = st.core.cursor();
+        let index_before = st.core.cursor_index();
         let _ = st.core.reconcile_with(
             rows.len(),
             |index| rows.get(index).map_or(ItemKey::index(index), |row| row.key),
             |_| true,
         );
+
+        if let Some(key) = cursor_before
+            && let Some(index) = rows.iter().position(|row| row.key == key)
+            && index != index_before
+        {
+            st.core.set_cursor(index, key);
+        } else if cursor_before.is_some_and(|key| !rows.iter().any(|row| row.key == key)) {
+            st.core.invalidate();
+            let _ = st.core.reconcile_with(
+                rows.len(),
+                |index| rows.get(index).map_or(ItemKey::index(index), |row| row.key),
+                |_| true,
+            );
+        }
         if st.core.cursor().is_none()
             && let Some(row) = rows.first()
         {
             st.core.set_cursor(0, row.key);
         }
 
-        let width = cx
-            .area(self.id)
-            .map_or(1, |area| area.width.saturating_sub(1));
-        let content_len = Self::content_len(rows, width);
+        let area = cx.area(self.id).unwrap_or_default();
+        let content_len = Self::resolved_content_len(
+            rows,
+            area,
+            st.cursor(),
+            cx.state(self.id).contains(StateFlags::FOCUSED),
+            self.presentation,
+        );
         let mut acc = Acc::<PropsAction>::new();
         let scroll = self
             .scrollbar()
@@ -539,13 +732,41 @@ impl<'a> PropsList<'a> {
                         acc.consumed();
                         continue;
                     };
-                    let width = area.width.saturating_sub(1);
-                    let content_len = Self::content_len(rows, width);
+                    let content_len = Self::resolved_content_len(
+                        rows,
+                        area,
+                        st.cursor(),
+                        cx.state(self.id).contains(StateFlags::FOCUSED),
+                        self.presentation,
+                    );
                     let view = super::ScrollRegion::view(st.core.scroll(), area, content_len);
                     let visual = view
                         .offset()
                         .saturating_add(usize::from(pos.y.saturating_sub(area.y)));
-                    let Some((index, _)) = Self::row_at_visual(rows, visual, width) else {
+                    let content_width = if content_len > usize::from(area.height) {
+                        area.width.saturating_sub(1)
+                    } else {
+                        area.width
+                    };
+                    let active_key = cx
+                        .state(self.id)
+                        .contains(StateFlags::FOCUSED)
+                        .then_some(st.cursor())
+                        .flatten();
+                    let geometry = match self.presentation {
+                        PropsPresentation::Columns => PropsGeometry {
+                            label_width: 0,
+                            value_width: Self::value_width(rows, content_width),
+                        },
+                        PropsPresentation::Sheet => Self::sheet_geometry(rows, content_width),
+                    };
+                    let Some((index, _)) = Self::row_at_visual_width(
+                        rows,
+                        visual,
+                        geometry,
+                        active_key,
+                        self.presentation,
+                    ) else {
                         acc.consumed();
                         continue;
                     };
@@ -586,10 +807,10 @@ impl<'a> PropsList<'a> {
         st: &PropsState,
         rows: &[PropsRow<'_>],
     ) -> Rect {
-        if area.is_empty() {
+        if area.is_empty() || (self.presentation == PropsPresentation::Sheet && rows.is_empty()) {
             return area;
         }
-        if !ui.is_inert() {
+        if !ui.is_inert() && !(self.presentation == PropsPresentation::Sheet && rows.is_empty()) {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
         let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
@@ -597,21 +818,47 @@ impl<'a> PropsList<'a> {
             ui.publish_bindings(self.id, live, &PROPS_BINDINGS);
         }
 
-        let total = Self::content_len(rows, area.width.saturating_sub(1));
+        let total = Self::resolved_content_len(
+            rows,
+            area,
+            st.cursor(),
+            ui.state(self.id).contains(StateFlags::FOCUSED),
+            self.presentation,
+        );
         let content = self.scrollbar().draw(ui, area, st.core.scroll(), total);
         if content.is_empty() {
             return area;
         }
         let view = super::ScrollRegion::view(st.core.scroll(), content, total);
-        let value_width = Self::value_width(rows, content.width);
-        let label_width = Self::label_width(rows).min(content.width);
+        let cursor = st.cursor();
+        let focused_cursor = ui
+            .state(self.id)
+            .contains(StateFlags::FOCUSED)
+            .then_some(cursor)
+            .flatten();
+        let geometry = match self.presentation {
+            PropsPresentation::Columns => PropsGeometry {
+                label_width: Self::label_width(rows).min(content.width),
+                value_width: Self::value_width(rows, content.width),
+            },
+            PropsPresentation::Sheet => Self::sheet_geometry(rows, content.width),
+        };
+        let label_width = geometry.label_width;
         let hover = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
-        let cursor = st.cursor();
         let mut visual = 0usize;
 
         for row in rows {
-            let height = Self::row_height(row, value_width);
+            let value_width = match self.presentation {
+                PropsPresentation::Columns => geometry.value_width,
+                PropsPresentation::Sheet => Self::sheet_value_width(geometry, row, focused_cursor),
+            };
+            let height = match self.presentation {
+                PropsPresentation::Columns => Self::row_height(row, value_width),
+                PropsPresentation::Sheet => {
+                    Self::sheet_row_height(row, value_width, focused_cursor)
+                }
+            };
             let start = visual;
             let end = start.saturating_add(usize::from(height));
             visual = end;
@@ -649,46 +896,133 @@ impl<'a> PropsList<'a> {
                 flags |= StateFlags::PRESSED;
             }
             let visible_area = row_area.intersection(content);
-            let container = self.ov.style(
-                ui,
-                self.id,
+            let container_part = self.ov.part_patch(Part::CONTAINER);
+            let container_defaults = ui.style_defaults_with_explicit(
                 Family::PROPS,
                 self.variant,
                 Part::CONTAINER,
                 flags,
+                StyleDefaults::new(StylePatch::new().clear_fg()),
+                container_part.as_ref(),
             );
-            ui.fill(visible_area, container.style);
+            let container_has_explicit_fg = container_defaults.explicit.fg.speaks();
+            if self.presentation == PropsPresentation::Sheet {
+                {
+                    let mut row_ui = RowUi::new_with_author_style_and_container_patch(
+                        ui,
+                        self.id,
+                        Family::PROPS,
+                        self.variant,
+                        flags,
+                        row.key,
+                        visible_area,
+                        self.ov,
+                        if container_has_explicit_fg {
+                            StylePatch::new()
+                        } else {
+                            StylePatch::new().clear_fg()
+                        },
+                    )
+                    .with_cursor_style(CursorStyle::Bar)
+                    .with_author_parts(Self::PARTS);
+                    row_ui.gutter();
+                    row_ui.leading_part(Part::CELL, 1, 0, |_| {});
+                }
+            } else {
+                let container = self.ov.style(
+                    ui,
+                    self.id,
+                    Family::PROPS,
+                    self.variant,
+                    Part::CONTAINER,
+                    flags,
+                );
+                ui.fill(visible_area, container.style);
+            }
 
             let label = self
                 .ov
                 .style(ui, self.id, Family::PROPS, self.variant, Part::META, flags);
+            let label_origin =
+                content
+                    .x
+                    .saturating_add(if self.presentation == PropsPresentation::Sheet {
+                        2
+                    } else {
+                        0
+                    });
             let label_area = Rect {
-                x: content.x,
+                x: label_origin,
                 y,
-                width: label_width,
+                width: match self.presentation {
+                    PropsPresentation::Columns => label_width,
+                    PropsPresentation::Sheet => label_width,
+                },
                 height: 1,
             };
-            ui.paint_str(label_area, row.label, label.style);
+            let label_style = if self.presentation == PropsPresentation::Sheet {
+                let defaults = StylePatch::new()
+                    .set_fg(Role::Fg(termrock_theme::FgStep::Muted))
+                    .remove(ratatui_core::style::Modifier::BOLD);
+                self.style_defaults(ui, Part::META, flags, StyleDefaults::new(defaults))
+            } else {
+                label.style
+            };
+            ui.paint_str(
+                label_area.intersection(visible_area),
+                row.label,
+                label_style,
+            );
 
             let value_area = Rect {
-                x: content.x.saturating_add(label_width).saturating_add(2),
+                x: label_origin.saturating_add(label_width).saturating_add(2),
                 y,
                 width: value_width,
                 height,
             };
-            let value = self
-                .ov
-                .style(ui, self.id, Family::PROPS, self.variant, Part::LABEL, flags);
-            paint_value(ui, value_area, row, value.style);
-            if matches!(value.glyph, Slot::Set(GlyphRole::PressLeft)) {
+            let value_defaults = row
+                .tone
+                .map_or_else(StylePatch::new, |tone| StylePatch::new().set_fg(tone));
+            let authored_value =
+                self.ov
+                    .style(ui, self.id, Family::PROPS, self.variant, Part::LABEL, flags);
+            let value_style =
+                self.style_defaults(ui, Part::LABEL, flags, StyleDefaults::new(value_defaults));
+            ui.with_area(visible_area, |ui| {
+                paint_value(ui, value_area, row, value_style, None);
+            });
+            if self.presentation == PropsPresentation::Sheet
+                && flags.contains(StateFlags::FOCUSED)
+                && row.can_copy()
+            {
+                let hint_style = self.style_defaults(
+                    ui,
+                    Part::META,
+                    flags,
+                    StyleDefaults::new(
+                        StylePatch::new()
+                            .set_fg(Role::Fg(termrock_theme::FgStep::Faint))
+                            .remove(ratatui_core::style::Modifier::BOLD),
+                    ),
+                );
+                let hint_x = row_area.right().saturating_sub(7).max(visible_area.x);
+                let hint = Rect {
+                    x: hint_x,
+                    y,
+                    width: row_area.right().saturating_sub(hint_x).min(6),
+                    height: 1,
+                };
+                ui.paint_str(hint.intersection(visible_area), "y copy", hint_style);
+            }
+            if matches!(authored_value.glyph, Slot::Set(GlyphRole::PressLeft)) {
                 paint_pressed_bracket(
                     ui,
-                    cell_at(row_area, content.x.saturating_add(label_width)),
+                    cell_at(row_area, label_origin.saturating_add(label_width)),
                     cell_at(
                         row_area,
-                        content.x.saturating_add(label_width).saturating_add(1),
+                        label_origin.saturating_add(label_width).saturating_add(1),
                     ),
-                    value.style,
+                    value_style,
                 );
             }
 
@@ -705,6 +1039,81 @@ impl<'a> PropsList<'a> {
             preferred: (32, c.max.1),
         }
         .fit(c)
+    }
+
+    pub fn measure_rows(
+        &self,
+        ui: &Ui<'_>,
+        c: Constraints,
+        state: &PropsState,
+        rows: &[PropsRow<'_>],
+    ) -> Size {
+        if self.presentation != PropsPresentation::Sheet {
+            return self.measure(ui, c);
+        }
+        if rows.is_empty() || c.max.0 == 0 {
+            return Size::exact(0, 0).fit(c);
+        }
+        let focused = ui.state(self.id).contains(StateFlags::FOCUSED);
+        let hint = focused
+            && state
+                .cursor()
+                .and_then(|key| rows.iter().find(|row| row.key == key))
+                .is_some_and(PropsRow::can_copy);
+        let natural_label = Self::label_width(rows);
+        let natural_value = rows
+            .iter()
+            .map(|row| match row.value {
+                PropsValue::Text(value) => width(value),
+                PropsValue::Secret(secret) => {
+                    let policy = SecretPolicy::default();
+                    let glyph_width = width(ui.design().glyphs.get(policy.mask));
+                    (secret.len().min(usize::from(u16::MAX)) as u16).saturating_mul(glyph_width)
+                }
+            })
+            .max()
+            .unwrap_or(0);
+        let natural_width = 2u16
+            .saturating_add(natural_label.saturating_add(2).max(3))
+            .saturating_add(2)
+            .saturating_add(natural_value)
+            .saturating_add(if hint { 8 } else { 0 })
+            .saturating_add(1);
+        let chosen_width = if c.tight_w {
+            c.max.0
+        } else {
+            natural_width.min(c.max.0)
+        };
+        let active_key = focused.then_some(state.cursor()).flatten();
+        let mut geometry = Self::sheet_geometry(rows, chosen_width);
+        let mut height = rows
+            .iter()
+            .map(|row| {
+                usize::from(Self::sheet_row_height(
+                    row,
+                    Self::sheet_value_width(geometry, row, active_key),
+                    active_key,
+                ))
+            })
+            .sum::<usize>();
+        let chosen_width = if height > usize::from(c.max.1) && chosen_width > 0 {
+            let narrower = chosen_width.saturating_sub(1);
+            geometry = Self::sheet_geometry(rows, narrower);
+            height = rows
+                .iter()
+                .map(|row| {
+                    usize::from(Self::sheet_row_height(
+                        row,
+                        Self::sheet_value_width(geometry, row, active_key),
+                        active_key,
+                    ))
+                })
+                .sum::<usize>();
+            narrower
+        } else {
+            chosen_width
+        };
+        Size::exact(chosen_width, height.min(usize::from(u16::MAX)) as u16).fit(c)
     }
 }
 
@@ -788,7 +1197,13 @@ fn wrapped_rows(s: &str, width: u16) -> u16 {
     rows
 }
 
-fn paint_value(ui: &mut Ui<'_>, area: Rect, row: &PropsRow<'_>, style: PaintStyle) {
+fn paint_value(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    row: &PropsRow<'_>,
+    style: PaintStyle,
+    tone: Option<Role>,
+) {
     match row.value {
         PropsValue::Text(value) if row.wrap => {
             let mut x = area.x;
@@ -799,17 +1214,17 @@ fn paint_value(ui: &mut Ui<'_>, area: Rect, row: &PropsRow<'_>, style: PaintStyl
                     y = y.saturating_add(1);
                     x = area.x;
                 }
-                WrapPiece::Text(text) => paint_piece(ui, area, &mut x, y, text, style, row.tone),
-                WrapPiece::Space => paint_piece(ui, area, &mut x, y, " ", style, row.tone),
+                WrapPiece::Text(text) => paint_piece(ui, area, &mut x, y, text, style, tone),
+                WrapPiece::Space => paint_piece(ui, area, &mut x, y, " ", style, tone),
             });
         }
         PropsValue::Text(value) => {
             let mut x = area.x;
-            paint_piece(ui, area, &mut x, area.y, value, style, row.tone);
+            paint_piece(ui, area, &mut x, area.y, value, style, tone);
         }
         PropsValue::Secret(secret) => {
             let mut cell = CellUi::new(ui.reborrow(), Rect { height: 1, ..area }, style);
-            if let Some(tone) = row.tone {
+            if let Some(tone) = tone {
                 cell.tone(tone);
             }
             secret.write_mask(&mut cell, secret.len(), SecretPolicy::default());
@@ -1036,6 +1451,7 @@ impl<'a> Props<'a> {
                 },
                 &resolved_row,
                 value_style,
+                None,
             );
             painted = painted.saturating_add(height);
         }
@@ -1090,334 +1506,6 @@ impl<'a> Props<'a> {
                 let height = PropsList::content_len(rows, chosen).min(usize::from(u16::MAX)) as u16;
                 Size::exact(chosen, height).fit(c)
             }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use core::cell::Cell;
-
-    use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::{Position, Rect};
-
-    use super::*;
-    use crate::event::MouseKind;
-    use crate::runtime::stub::{Stub, key, mouse};
-    use crate::runtime::{App, Runtime};
-    use crate::secret::Secret;
-    use crate::theme::{GlyphRole, Theme};
-    use crate::{ReferenceState, ReferenceTarget};
-
-    const ID: Id = Id::root("props.tests");
-    const AREA: Rect = Rect::new(0, 0, 40, 4);
-    const FIRST_KEY: ItemKey = ItemKey::num(11);
-    const SECOND_KEY: ItemKey = ItemKey::num(22);
-
-    #[test]
-    fn rows_preserve_keyed_borrowed_semantic_metadata() {
-        let value = String::from("ready");
-        let row = PropsRow::new(FIRST_KEY, "Status", value.as_str())
-            .role(Role::Success)
-            .wrap()
-            .copyable();
-
-        assert_eq!(row.key, FIRST_KEY);
-        assert_eq!(row.label, "Status");
-        assert_eq!(row.value.text(), Some("ready"));
-        assert!(
-            row.value
-                .text()
-                .is_some_and(|text| core::ptr::eq(text.as_ptr(), value.as_ptr()))
-        );
-        assert_eq!(row.tone, Some(Role::Success));
-        assert!(row.wrap);
-        assert!(row.copyable);
-        assert!(row.can_copy());
-    }
-
-    fn painted_text(buffer: &Buffer, area: Rect) -> String {
-        let mut text = String::new();
-        for y in area.y..area.bottom() {
-            for x in area.x..area.right() {
-                if let Some(cell) = buffer.cell(Position::new(x, y)) {
-                    text.push_str(cell.symbol());
-                }
-            }
-        }
-        text
-    }
-
-    #[test]
-    fn secret_rows_are_masked_redacted_and_non_copyable() {
-        let secret = Secret::new(String::from("hunter2"));
-        let row = PropsRow::secret(SECOND_KEY, "Token", &secret).copyable();
-        assert!(!row.copyable);
-        assert!(!row.can_copy());
-        assert!(!format!("{row:?}").contains("hunter2"));
-
-        let rows = [row];
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(AREA);
-        let state = PropsState::default();
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                PropsList::new(ID).draw(ui, area, &state, &rows);
-            })
-            .commit_presented();
-
-        let text = painted_text(&buffer, AREA);
-        assert!(!text.contains("hunter2"));
-        assert!(text.contains(Theme::junie().design.glyphs.get(GlyphRole::SecretMask)));
-    }
-
-    #[derive(Default)]
-    struct ActionApp {
-        state: PropsState,
-        actions: Vec<PropsAction>,
-    }
-
-    const ACTION_ROWS: [PropsRow<'static>; 2] = [
-        PropsRow::new(FIRST_KEY, "Name", "alice").copyable(),
-        PropsRow::new(SECOND_KEY, "Mode", "safe"),
-    ];
-
-    impl App for ActionApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let response = PropsList::new(ID).update(cx, &mut self.state, &ACTION_ROWS);
-            if let Some(action) = response.action_ref() {
-                self.actions.push(*action);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            PropsList::new(ID).draw(ui, AREA, &self.state, &ACTION_ROWS);
-        }
-    }
-
-    #[test]
-    fn copy_is_keyed_and_reached_by_keyboard_and_mouse_runtime_intents() {
-        let mut runtime = Runtime::new(ActionApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
-        assert_eq!(runtime.app().actions, [PropsAction::Copy(FIRST_KEY)]);
-
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Down));
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
-        assert_eq!(
-            runtime.app().actions,
-            [PropsAction::Copy(FIRST_KEY)],
-            "a non-copyable row must consume copy without emitting an action"
-        );
-
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        let row = runtime
-            .area_of_part(ID, PartRef::item(Part::ROW, FIRST_KEY))
-            .expect("the keyed row must register a mouse hit region");
-        let x = row.x.saturating_add(row.width / 2);
-        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, row.y));
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, row.y));
-
-        assert_eq!(
-            runtime.app().actions,
-            [PropsAction::Copy(FIRST_KEY), PropsAction::Copy(FIRST_KEY)]
-        );
-    }
-
-    #[test]
-    fn reconcile_tracks_a_stable_key_across_reorder() {
-        let keys = [FIRST_KEY, SECOND_KEY];
-        let mut state = PropsState::default();
-        state.set_cursor(0, FIRST_KEY);
-        assert_eq!(
-            state.reconcile(keys.len(), |index| keys[index]),
-            Reconciliation::Unchanged
-        );
-
-        let reordered = [SECOND_KEY, FIRST_KEY];
-        assert_eq!(
-            state.reconcile(reordered.len(), |index| reordered[index]),
-            Reconciliation::Unchanged
-        );
-        assert_eq!(state.cursor(), Some(FIRST_KEY));
-        assert_eq!(state.cursor_index(), 1);
-    }
-
-    #[derive(Default)]
-    struct ReorderApp {
-        state: PropsState,
-        reordered: bool,
-        copied: Option<ItemKey>,
-    }
-
-    const REORDER_ROWS: [PropsRow<'static>; 4] = [
-        PropsRow::new(ItemKey::num(1), "One", "1").copyable(),
-        PropsRow::new(ItemKey::num(2), "Two", "2").copyable(),
-        PropsRow::new(ItemKey::num(3), "Three", "3").copyable(),
-        PropsRow::new(ItemKey::num(4), "Four", "4").copyable(),
-    ];
-    const SAME_ENDS_REORDERED: [PropsRow<'static>; 4] = [
-        REORDER_ROWS[0],
-        REORDER_ROWS[2],
-        REORDER_ROWS[1],
-        REORDER_ROWS[3],
-    ];
-
-    impl ReorderApp {
-        fn rows(&self) -> &'static [PropsRow<'static>] {
-            if self.reordered {
-                &SAME_ENDS_REORDERED
-            } else {
-                &REORDER_ROWS
-            }
-        }
-    }
-
-    impl App for ReorderApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let rows = self.rows();
-            let response = PropsList::new(ID).update(cx, &mut self.state, rows);
-            if let Some(PropsAction::Copy(key)) = response.action_ref() {
-                self.copied = Some(*key);
-            }
-            response.erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            PropsList::new(ID).draw(ui, AREA, &self.state, self.rows());
-        }
-    }
-
-    #[test]
-    fn copy_resolves_the_cursor_by_key_after_same_length_reorder() {
-        let mut runtime = Runtime::new(ReorderApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Down));
-        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(2)));
-
-        runtime.app_mut().reordered = true;
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
-        assert_eq!(runtime.app().copied, Some(ItemKey::num(2)));
-    }
-
-    #[test]
-    fn only_the_cursor_row_receives_focus_flags() {
-        let theme = Theme::junie().define_family(Family::PROPS, |recipe| {
-            recipe.part(Part::LABEL).when(
-                StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE,
-                StylePatch::new().set_bg(Role::Danger),
-            );
-        });
-        let rows = [
-            PropsRow::new(FIRST_KEY, "First", "plain"),
-            PropsRow::new(SECOND_KEY, "Second", "cursor"),
-        ];
-        let mut state = PropsState::default();
-        state.set_cursor(1, SECOND_KEY);
-        let mut runtime = Runtime::new(Stub::default(), theme.clone());
-        let mut buffer = Buffer::empty(AREA);
-        runtime
-            .draw_scene(AREA, &mut buffer, |ui, area| {
-                ui.reference(
-                    Some(ReferenceTarget::new(
-                        ID,
-                        ReferenceState::FOCUSED | ReferenceState::FOCUS_VISIBLE,
-                    )),
-                    |ui| {
-                        PropsList::new(ID).draw(ui, area, &state, &rows);
-                    },
-                );
-            })
-            .commit_presented();
-
-        let value_x = 8;
-        assert_ne!(
-            buffer.cell(Position::new(value_x, 0)).map(|cell| cell.bg),
-            Some(theme.color.danger)
-        );
-        assert_eq!(
-            buffer.cell(Position::new(value_x, 1)).map(|cell| cell.bg),
-            Some(theme.color.danger)
-        );
-    }
-
-    #[test]
-    fn mono_pressed_brackets_the_existing_column_gap() {
-        let rows = [PropsRow::new(FIRST_KEY, "Name", "value")];
-        let render = |target| {
-            let mut state = PropsState::default();
-            state.set_cursor(0, FIRST_KEY);
-            let theme = Theme::junie().downgrade(crate::ColorLevel::Mono);
-            let mut runtime = Runtime::new(Stub::default(), theme);
-            let mut buffer = Buffer::empty(AREA);
-            runtime
-                .draw_scene(AREA, &mut buffer, |ui, area| {
-                    ui.reference(Some(target), |ui| {
-                        PropsList::new(ID).draw(ui, area, &state, &rows);
-                    });
-                })
-                .commit_presented();
-            buffer
-        };
-
-        let focused = render(ReferenceTarget::new(ID, ReferenceState::FOCUSED));
-        let pressed = render(
-            ReferenceTarget::new(ID, ReferenceState::PRESSED)
-                .part(PartRef::item(Part::ROW, FIRST_KEY)),
-        );
-        let left = Theme::junie().design.glyphs.get(GlyphRole::PressLeft);
-        let right = Theme::junie().design.glyphs.get(GlyphRole::PressRight);
-
-        assert_eq!(
-            focused
-                .cell(Position::new(4, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(" ")
-        );
-        assert_eq!(
-            focused
-                .cell(Position::new(5, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(" ")
-        );
-        assert_eq!(
-            pressed
-                .cell(Position::new(4, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(left)
-        );
-        assert_eq!(
-            pressed
-                .cell(Position::new(5, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some(right)
-        );
-    }
-
-    #[test]
-    fn track_and_thumb_slots_are_forwarded_independently() {
-        let rows = [PropsRow::new(FIRST_KEY, "Name", "value"); 12];
-        for part in [Part::TRACK, Part::THUMB] {
-            let called = Cell::new(false);
-            let painter = |_: &mut Ui<'_>, _: Rect| called.set(true);
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(AREA);
-            let state = PropsState::default();
-            runtime
-                .draw_scene(AREA, &mut buffer, |ui, area| {
-                    PropsList::new(ID)
-                        .slot(part, &painter)
-                        .draw(ui, area, &state, &rows);
-                })
-                .commit_presented();
-            assert!(called.get(), "{part:?} slot was not forwarded");
         }
     }
 }

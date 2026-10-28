@@ -1,0 +1,180 @@
+{
+  "reviewed_commit": "ee879b2fc97ca1cf37b5ce010f218c72beed17c6",
+  "parent_reference_commit": "fff270fd0d2edcb0b06486fbcde07c88ee4feabe",
+  "reviewer": "editor_contract_independent_review",
+  "source_copy": "/private/tmp/termrock-fresh-plan-d2e2-review",
+  "verdict": "changes_requested",
+  "acceptance_complete": false,
+  "findings": [
+    {
+      "id": "FRESH-RUN-CUSTODY-BOUNDARY",
+      "priority": "P2",
+      "paths": [
+        "tools/frozen_baseline.py:2724",
+        "tools/frozen_baseline.py:2827",
+        "tools/frozen_baseline.py:2871"
+      ],
+      "problem": "The external-key custody boundary is incomplete. Parent directories are created with default permissions and never required to be0700. Creation and verification also protect only the current worktree path, not the repository actual Git common directory.",
+      "proof": [
+        "Direct foundation probe under umask022 creates external custody directory0755 with leaf0600 and successfully verifies it.",
+        "Actual current-ee public CLI init/verify passes with correctly external0700custody. Changing only that custody directory to0755 still permits public fresh-run-verify to return verified=true. Directory restored0700 afterward.",
+        "A real temporary Git repository plus linked worktree accepts creation and verification of a key inside its actual .git common directory. Only fixture plan/source validation was mocked for this isolated path-boundary test; no real repository secret was created."
+      ],
+      "repair": "Require an owned stable0700 custody directory, reject unsafe symlink/ancestor substitutions with stable directory-relative access, and protect the actual Git metadata/common-directory paths in addition to worktree/source/binary/artifact paths. Recheck custody on verification. Preserve untrusted existing files on failure.",
+      "severity_scope": "Required custody policy is not enforced. No key disclosure or successful app/capture forgery was observed."
+    },
+    {
+      "id": "FRESH-RUN-JOURNAL-UNBOUND-PLAN",
+      "priority": "P2",
+      "path": "tools/frozen_baseline.py:2942",
+      "problem": "The journal validator trusts caller-supplied planned_steps without authenticating them against the manifest inventory/verified immutable plan. Empty receipts plus empty planned_steps returns complete=true; a signed receipt for an arbitrary case absent from the bound inventory completes a caller-supplied one-step plan.",
+      "proof": "adversarial-foundation.json records both accepted results, using an isolated fixture manifest/key. The manifest inventory digest is present but unused by validate_fresh_run_journal.",
+      "repair": "Derive/validate the canonical nonempty planned phase/chunk/case sequence from the verified immutable plan and bind it to manifest plan/inventory hashes. Reject empty planned inventory and omitted/extra/reordered steps. An empty receipt prefix for a genuine nonempty plan must remain incomplete.",
+      "scope": "This is a pure-validator foundation defect. No public CLI accepts signed outcomes or advances phases in this increment; product_acceptance remainsfalse."
+    }
+  ],
+  "verification": {
+    "python_tests": {
+      "passed": 65,
+      "failed": 0,
+      "command": "python3 tools/test_frozen_baseline.py"
+    },
+    "py_compile": "passed",
+    "git_diff_check": "passed; source checkout clean",
+    "direct_guards": {
+      "replace_rejected": "refusing to replace immutable fresh run metadata: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/tmpt11vf35w/manifest.json",
+      "manifest_leaf_symlink_rejected": "fixture must be an unaliased regular file",
+      "manifest_hardlink_rejected": "fixture must be an unaliased regular file",
+      "manifest_read_mutation_rejected": "fixture changed during read",
+      "key_leaf_symlink_rejected": "fresh run key must be a private 0600 regular file",
+      "key_hardlink_rejected": "fresh run key must be a private 0600 regular file",
+      "key_world_readable_rejected": "fresh run key must be a private 0600 regular file",
+      "competing_publication_rejected": "refusing to replace immutable fresh run metadata: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/tmpt11vf35w/race.json",
+      "competing_publisher_preserved": true,
+      "temporary_publication_files_removed": true
+    },
+    "authenticated_receipt_negatives": {
+      "tamper": "fresh run receipt authentication failed",
+      "stale-run": "fresh run receipt is stale or bound to different source, binary, environment, or plan",
+      "zero-checkpoints": "visual receipt must have nonzero checkpoints and cannot claim ordinary checks",
+      "skip": "fresh run journal cannot trust failed, skipped, or unfinished work",
+      "duplicate": "fresh run receipt order or planned chunk differs"
+    },
+    "public_outcome_injection_rejected": {
+      "fresh-run-init": {
+        "exit": 2,
+        "injection_rejected": true
+      },
+      "fresh-run-verify": {
+        "exit": 2,
+        "injection_rejected": true
+      }
+    },
+    "actual_current_revision_positive": {
+      "mocked": false,
+      "prepare_live_exit": 0,
+      "fresh_plan_exit": 0,
+      "fresh_run_init_exit": 0,
+      "fresh_run_verify_exit": 0,
+      "root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-root",
+      "fresh_frozen_source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+      "live_source_sha256": "74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430",
+      "source_reuse": "Read-only existing fixed frozen extraction reused after full current source/snapshot validation; live source freshly copied and patched by current official prepare-live. Existing target copied with CoW; existing source/plan/binaries not modified.",
+      "visual_cases": 29069,
+      "ordinary_checks": 20,
+      "plan_creation_anchor": "470fd1be42e99c976bd0d187ecec3351c8a8e380aad73ad9d4afec86da9c73c0",
+      "plan_self_sha256": "c10ac62a7d42ae679e794f41e40b2578c62892b7f5220f192392eacac0ff4275",
+      "manifest_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-root/fresh-runs/4e0b8efdd0c12264e38dc862ac3cfc37/run-manifest.json",
+      "manifest_sha256": "358d2382379678b178d8960aebdd474fd914e12a768287197517f333e0e82bf8",
+      "manifest_mode": "0o400",
+      "run_directory_mode": "0o700",
+      "key_mode": "0o600",
+      "custody_mode_restored": "0o700",
+      "key_bytes_logged_or_serialized": false,
+      "source_tools_environment_cohort_binary_revalidation": "Both public init and verify invoke full current verify_fresh_plan, including real complete nextest inventory. Metadata was verified after initialization under the same exact allowlisted environment.",
+      "privileges": {
+        "status": "prepared-metadata-only",
+        "executed": false,
+        "candidate_comparison_eligible": false,
+        "checkpoint_reference_approval": "none",
+        "product_acceptance": false
+      }
+    },
+    "old_plan_fail_closed": "The committed previous step2c plan binds older runner bytes; current-ee init correctly rejects it, preserves its exact bytes and creates no key. A new current-ee plan was created separately for the real positive."
+  },
+  "threat_model_limits": [
+    "A readable key belongs to the same-UID operator trust domain. HMAC protects against tampering without that private key; this does not isolate against a malicious same-UID key holder or claim hermetic host execution.",
+    "CLI exposes PREPARED metadata init/verify only. No phase advancement, journal writer, arbitrary outcome signer, execution, capture, replay, finalization or reference approval was reviewed or performed.",
+    "Stage3B must separately establish stable execution locking, signed real-process launch/close receipts, complete ordered nonzero checkpoints, immutable expected artifacts and pre/post execution identity revalidation.",
+    "All four applications and full product/library acceptance remain incomplete."
+  ],
+  "source_edits": false,
+  "helpers_spawned": false,
+  "applications_launched": false,
+  "evidence": {
+    "adversarial-foundation.py": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/adversarial-foundation.py",
+      "sha256": "ceffa98d1586b54825004eca4547f36267cf87d4bd67314d4d8de7021d08a99b"
+    },
+    "adversarial-foundation.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/adversarial-foundation.json",
+      "sha256": "0e71d0de6c7d0ee3e652666527a5e0310c0f52b7cd1361c8823dcc1d1ba69fbd"
+    },
+    "git-common-custody.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/git-common-custody.json",
+      "sha256": "213318fc7c5ff1dd16a68c5d2959f3b0706db17821a4c9ff9941d5ab4087cc23"
+    },
+    "direct-race-guards.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/direct-race-guards.json",
+      "sha256": "b5602e0401360f5b752cd9d83654a63513ad8d0fac5739b5ebbad2f6a66f6a4d"
+    },
+    "cli-negative-injection.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/cli-negative-injection.json",
+      "sha256": "cf2b6755617955eea6494012b9467e1a45a66c92a867e7a65acd81ca2f429fcd"
+    },
+    "actual-runtime-recipe.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-runtime-recipe.json",
+      "sha256": "b75cde1c4e4c7a2627aa452e79bdf202765a6ec2d0d75bd583f71455a85f29fa"
+    },
+    "actual-prepare-live.log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-prepare-live.log",
+      "sha256": "0932f4596710322482578d3f4e55e3fdab8b2167468c720bfcca0f9d51f32402"
+    },
+    "actual-fresh-plan.log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-fresh-plan.log",
+      "sha256": "429c2899f31fe93c7b6d88c76a68806052c50dfe090fdbaffb0cab1e962d0f3c"
+    },
+    "actual-init.log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-init.log",
+      "sha256": "8342407112baff884185137297ab84a92a110537aedcfb74946b69f900356376"
+    },
+    "actual-verify.log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-verify.log",
+      "sha256": "854bb8da5311bb9df9ed980082f389375cb333645793dfde8696bdd9a0caec67"
+    },
+    "actual-verify-nonprivate-custody.log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-verify-nonprivate-custody.log",
+      "sha256": "854bb8da5311bb9df9ed980082f389375cb333645793dfde8696bdd9a0caec67"
+    },
+    "actual-metadata-results.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-metadata-results.json",
+      "sha256": "64f75a25c2b3d153320d4daf5624fde22fac196f9d488f230baef89885ce2846"
+    },
+    "actual-old-plan-init.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-old-plan-init.json",
+      "sha256": "e84d9c14653b3b1c4d81510f8a738cd2d0820897989f8549a6825fb95fb8aa3e"
+    },
+    "actual-old-plan-init.log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-ee879-independent-review/actual-old-plan-init.log",
+      "sha256": "7330136947e1146df1672c6202538dd522ff990afb4911750d2f5929a7ebf098"
+    },
+    "termrock-stage3a-ee879-python.log": {
+      "path": "/private/tmp/termrock-stage3a-ee879-python.log",
+      "sha256": "62808cd17c2b2529c519bf04bfa21bcd2a6d32f996f539eec23305b783a9979c"
+    },
+    "termrock-stage3a-ee879-pycompile.log": {
+      "path": "/private/tmp/termrock-stage3a-ee879-pycompile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

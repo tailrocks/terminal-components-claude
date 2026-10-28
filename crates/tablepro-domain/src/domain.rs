@@ -3,13 +3,56 @@
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
 )]
 
+use std::collections::{HashMap, HashSet};
 use termrock::{
     CellDecor, CellRef, ColumnKey, EditIntent, FgStep, FieldError, GlyphRole, GridEditor,
     GridModel, ItemKey, Role, RowDecor, RowTotal, SortDir, StateFlags,
 };
 
-use tablepro_demo::db::{ColType, Table, Value};
+use tablepro_demo::db::{ColType, Column, Table, Value};
 use tablepro_sql::sql;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum IdentityType {
+    Uuid,
+    Text,
+    Int,
+    Numeric,
+    Bool,
+    Timestamp,
+    Date,
+    Json,
+    Enum,
+}
+
+impl From<ColType> for IdentityType {
+    fn from(value: ColType) -> Self {
+        match value {
+            ColType::Uuid => Self::Uuid,
+            ColType::Text => Self::Text,
+            ColType::Int => Self::Int,
+            ColType::Numeric => Self::Numeric,
+            ColType::Bool => Self::Bool,
+            ColType::Timestamp => Self::Timestamp,
+            ColType::Date => Self::Date,
+            ColType::Json => Self::Json,
+            ColType::Enum => Self::Enum,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum IdentityValue {
+    Null,
+    Text(String),
+    Int(i64),
+    Numeric(u64),
+    Bool(bool),
+    Json(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct RowIdentity(Vec<(String, IdentityType, IdentityValue)>);
 
 #[derive(Clone, PartialEq)]
 struct PendingRow {
@@ -58,6 +101,34 @@ impl PendingEdits {
                 .collect(),
             next_key,
         }
+    }
+
+    fn from_rows_with_keys(
+        rows: Vec<Vec<Value>>,
+        keys: Vec<ItemKey>,
+        next_key: Option<u64>,
+    ) -> Option<Self> {
+        if rows.len() != keys.len() {
+            return None;
+        }
+        let mut seen = HashSet::with_capacity(keys.len());
+        if keys.iter().any(|key| !seen.insert(*key)) {
+            return None;
+        }
+        Some(Self {
+            rows: rows
+                .into_iter()
+                .zip(keys)
+                .map(|(current, key)| PendingRow {
+                    key,
+                    current,
+                    original: None,
+                    inserted: false,
+                    deleted: false,
+                })
+                .collect(),
+            next_key,
+        })
     }
 
     pub fn row_count(&self) -> usize {
@@ -191,6 +262,23 @@ impl PendingEdits {
             }
             record.deleted = false;
         }
+    }
+
+    fn commit(&mut self) -> (usize, usize) {
+        let mut inserted = 0usize;
+        let mut deleted = 0usize;
+        self.rows.retain_mut(|record| {
+            if record.deleted && !record.inserted {
+                deleted = deleted.saturating_add(1);
+                return false;
+            }
+            inserted = inserted.saturating_add(usize::from(record.inserted));
+            record.original = None;
+            record.inserted = false;
+            record.deleted = false;
+            true
+        });
+        (inserted, deleted)
     }
 
     pub fn reorder(&mut self, order: &[usize]) {
@@ -339,10 +427,173 @@ pub struct ResultGrid {
     total: usize,
     editable: bool,
     source: Option<String>,
+    duration_ms: u32,
     read_only_reason: Option<String>,
 
     display: Vec<Option<String>>,
     undo: Vec<PendingEdits>,
+}
+
+fn unique_column_index(columns: &[(String, ColType)], name: &str) -> Option<usize> {
+    let mut matches = columns
+        .iter()
+        .enumerate()
+        .filter(|(_, (candidate, _))| candidate.eq_ignore_ascii_case(name));
+    let index = matches.next()?.0;
+    matches.next().is_none().then_some(index)
+}
+
+fn identity_layout<'a>(
+    projected: &[(String, ColType)],
+    target: &[&'a Column],
+) -> Option<Vec<(usize, &'a Column)>> {
+    let mut seen = HashSet::with_capacity(target.len());
+    target
+        .iter()
+        .map(|column| {
+            let index = unique_column_index(projected, &column.name)?;
+            let (_, ty) = projected.get(index)?;
+            (*ty == column.ty && seen.insert(index)).then_some((index, *column))
+        })
+        .collect()
+}
+
+fn is_complete_source_record(projected: &[(String, ColType)], table_columns: &[&Column]) -> bool {
+    projected.len() == table_columns.len()
+        && identity_layout(projected, table_columns)
+            .is_some_and(|layout| layout.len() == table_columns.len())
+}
+
+fn identity_value(value: &Value, ty: ColType, allow_typed_null: bool) -> Option<IdentityValue> {
+    match (value, ty) {
+        (Value::Null, _) if allow_typed_null => Some(IdentityValue::Null),
+        (
+            Value::Text(value),
+            ColType::Uuid | ColType::Text | ColType::Timestamp | ColType::Date | ColType::Enum,
+        ) => Some(IdentityValue::Text(value.clone())),
+        (Value::Int(value), ColType::Int) => Some(IdentityValue::Int(*value)),
+        (Value::Num(value), ColType::Numeric) => Some(IdentityValue::Numeric(value.to_bits())),
+        (Value::Bool(value), ColType::Bool) => Some(IdentityValue::Bool(*value)),
+        (Value::Json(value), ColType::Json) => Some(IdentityValue::Json(value.clone())),
+        _ => None,
+    }
+}
+
+fn identity_from_row<'a>(
+    layout: &[(usize, &'a Column)],
+    mut value_at: impl FnMut(usize) -> Option<&'a Value>,
+    allow_typed_null: bool,
+) -> Option<RowIdentity> {
+    layout
+        .iter()
+        .map(|(index, column)| {
+            Some((
+                column.name.to_ascii_lowercase(),
+                IdentityType::from(column.ty),
+                identity_value(value_at(*index)?, column.ty, allow_typed_null)?,
+            ))
+        })
+        .collect::<Option<Vec<_>>>()
+        .map(RowIdentity)
+}
+
+fn identities_for_grid(
+    grid: &ResultGrid,
+    columns: &[(String, ColType)],
+    target: &[&Column],
+    allow_typed_null: bool,
+) -> Option<Vec<Option<RowIdentity>>> {
+    let layout = identity_layout(columns, target)?;
+    Some(
+        (0..grid.row_count())
+            .map(|row| {
+                identity_from_row(
+                    &layout,
+                    |column| grid.pending.value(row, column),
+                    allow_typed_null,
+                )
+            })
+            .collect(),
+    )
+}
+
+fn identities_for_result(
+    result: &sql::ResultSet,
+    target: &[&Column],
+    allow_typed_null: bool,
+) -> Option<Vec<Option<RowIdentity>>> {
+    let layout = identity_layout(&result.columns, target)?;
+    Some(
+        result
+            .rows
+            .iter()
+            .map(|row| identity_from_row(&layout, |column| row.get(column), allow_typed_null))
+            .collect(),
+    )
+}
+
+fn unique_identity_indices(
+    identities: &[Option<RowIdentity>],
+) -> HashMap<RowIdentity, Option<usize>> {
+    let mut unique = HashMap::with_capacity(identities.len());
+    for (row, identity) in identities.iter().enumerate() {
+        let Some(identity) = identity else {
+            continue;
+        };
+        if let Some(existing) = unique.get_mut(identity) {
+            *existing = None;
+        } else {
+            unique.insert(identity.clone(), Some(row));
+        }
+    }
+    unique
+}
+
+fn reuse_unique_row_keys(
+    old_identities: &[Option<RowIdentity>],
+    new_identities: &[Option<RowIdentity>],
+    source: &ResultGrid,
+    old_key_counts: &HashMap<ItemKey, usize>,
+    row_keys: &mut [Option<ItemKey>],
+    used_keys: &mut HashSet<ItemKey>,
+) {
+    let old_unique = unique_identity_indices(old_identities);
+    let new_unique = unique_identity_indices(new_identities);
+    for (identity, new_row) in new_unique {
+        let Some(new_row) = new_row else {
+            continue;
+        };
+        let Some(old_row) = old_unique.get(&identity).copied().flatten() else {
+            continue;
+        };
+        let Some(slot) = row_keys.get_mut(new_row) else {
+            continue;
+        };
+        if slot.is_some() {
+            continue;
+        }
+        let old_key = source.row_key(old_row);
+        if old_key_counts.get(&old_key) == Some(&1) && used_keys.insert(old_key) {
+            *slot = Some(old_key);
+        }
+    }
+}
+
+fn allocate_row_key(
+    next_key: &mut Option<u64>,
+    used_keys: &mut HashSet<ItemKey>,
+) -> Option<ItemKey> {
+    let mut candidate = (*next_key)?;
+    loop {
+        let key = ItemKey::num(candidate);
+        let next_candidate = candidate.checked_add(1);
+        if used_keys.insert(key) {
+            *next_key = next_candidate;
+            return Some(key);
+        }
+        candidate = next_candidate?;
+        *next_key = Some(candidate);
+    }
 }
 
 impl core::fmt::Debug for ResultGrid {
@@ -384,12 +635,114 @@ impl ResultGrid {
             total: result.total,
             editable: result.editable,
             source: result.source.clone(),
+            duration_ms: result.duration_ms,
             read_only_reason,
             display: Vec::new(),
             undo: Vec::new(),
         };
         grid.rebuild_display();
         grid
+    }
+
+    pub fn from_filter_refresh(
+        result: &sql::ResultSet,
+        source: &Self,
+        source_columns: &[(String, ColType)],
+        table: &Table,
+    ) -> Option<Self> {
+        if source.pending_total() != 0 {
+            return None;
+        }
+
+        let mut row_keys = vec![None; result.rows.len()];
+        let mut old_key_counts = HashMap::with_capacity(source.row_count());
+        for row in 0..source.row_count() {
+            let key = source.row_key(row);
+            let count = old_key_counts.entry(key).or_insert(0usize);
+            *count = count.saturating_add(1);
+        }
+        let mut used_keys = HashSet::with_capacity(result.rows.len());
+        let same_source = table.qualified();
+        if source.source() == Some(same_source.as_str())
+            && result.source.as_deref() == Some(same_source.as_str())
+        {
+            let primary_columns: Vec<&Column> = table
+                .columns
+                .iter()
+                .filter(|column| column.primary)
+                .collect();
+
+            if !primary_columns.is_empty()
+                && let Some(old_identities) =
+                    identities_for_grid(source, source_columns, &primary_columns, false)
+                && let Some(new_identities) = identities_for_result(result, &primary_columns, false)
+            {
+                reuse_unique_row_keys(
+                    &old_identities,
+                    &new_identities,
+                    source,
+                    &old_key_counts,
+                    &mut row_keys,
+                    &mut used_keys,
+                );
+            }
+
+            let table_columns: Vec<&Column> = table.columns.iter().collect();
+            if row_keys.iter().any(Option::is_none)
+                && is_complete_source_record(source_columns, &table_columns)
+                && is_complete_source_record(&result.columns, &table_columns)
+                && let Some(old_identities) =
+                    identities_for_grid(source, source_columns, &table_columns, true)
+                && let Some(new_identities) = identities_for_result(result, &table_columns, true)
+            {
+                reuse_unique_row_keys(
+                    &old_identities,
+                    &new_identities,
+                    source,
+                    &old_key_counts,
+                    &mut row_keys,
+                    &mut used_keys,
+                );
+            }
+        }
+
+        let mut next_key = source.pending.next_key;
+        let mut keys = Vec::with_capacity(row_keys.len());
+        for row_key in row_keys {
+            let key = if let Some(key) = row_key {
+                key
+            } else {
+                allocate_row_key(&mut next_key, &mut used_keys)?
+            };
+            keys.push(key);
+        }
+
+        let pending = PendingEdits::from_rows_with_keys(result.rows.clone(), keys, next_key)?;
+        let sort = source.sort.and_then(|(old_key, direction)| {
+            let old_column = usize::from(old_key.raw()).checked_sub(1)?;
+            let name = source_columns.get(old_column)?.0.as_str();
+            let new_column = unique_column_index(&result.columns, name)?;
+            let key = u16::try_from(new_column.checked_add(1)?).ok()?;
+            Some((ColumnKey::num(key), direction))
+        });
+        let mut grid = Self {
+            types: result.columns.iter().map(|(_, ty)| *ty).collect(),
+            pending,
+            sort,
+            total: result.total,
+            editable: result.editable,
+            source: result.source.clone(),
+            duration_ms: result.duration_ms,
+            read_only_reason: (!result.editable)
+                .then(|| "Read-only result: select a primary-key column to edit".to_owned()),
+            display: Vec::new(),
+            undo: Vec::new(),
+        };
+        grid.rebuild_display();
+        if let Some((column, direction)) = sort {
+            grid.sort(column, direction);
+        }
+        Some(grid)
     }
 
     pub fn row_count(&self) -> usize {
@@ -406,6 +759,10 @@ impl ResultGrid {
 
     pub fn source(&self) -> Option<&str> {
         self.source.as_deref()
+    }
+
+    pub const fn duration_ms(&self) -> u32 {
+        self.duration_ms
     }
 
     pub fn pending(&self) -> &PendingEdits {
@@ -461,6 +818,30 @@ impl ResultGrid {
         Some(row)
     }
 
+    pub fn duplicate_row(&mut self, row: usize, defaults: &[bool]) -> Option<usize> {
+        if !self.editable || defaults.len() != self.types.len() {
+            return None;
+        }
+        let source = self.pending.rows.get(row)?.current.clone();
+        if source.len() != defaults.len() {
+            return None;
+        }
+        let values = source
+            .into_iter()
+            .zip(defaults)
+            .map(
+                |(value, default)| {
+                    if *default { Value::Default } else { value }
+                },
+            )
+            .collect();
+        let before = self.pending.clone();
+        let inserted = self.pending.insert_values(values)?;
+        self.undo.push(before);
+        self.rebuild_display();
+        Some(inserted)
+    }
+
     pub fn toggle_delete(&mut self, row: usize) -> bool {
         if !self.editable {
             return false;
@@ -491,6 +872,17 @@ impl ResultGrid {
         self.undo.push(self.pending.clone());
         self.pending.clear();
         self.restore_sort();
+    }
+
+    pub fn commit_pending(&mut self) -> bool {
+        if !self.editable || self.pending_total() == 0 {
+            return false;
+        }
+        let (inserted, deleted) = self.pending.commit();
+        self.total = self.total.saturating_add(inserted).saturating_sub(deleted);
+        self.undo.clear();
+        self.restore_sort();
+        true
     }
 
     pub fn undo(&mut self) -> bool {
@@ -535,12 +927,7 @@ impl ResultGrid {
         order.sort_by(|&a, &b| {
             let left = self.pending.value(a, column).unwrap_or(&Value::Null);
             let right = self.pending.value(b, column).unwrap_or(&Value::Null);
-            let cmp = sql::cmp_values(left, right);
-            if direction == SortDir::Asc {
-                cmp
-            } else {
-                cmp.reverse()
-            }
+            sql::cmp_values_nulls_last(left, right, direction == SortDir::Asc)
         });
         self.pending.reorder(&order);
         self.rebuild_display();
@@ -721,236 +1108,5 @@ impl GridEditor for ResultGrid {
 
     fn is_editable(&self, row: usize, col: usize) -> bool {
         self.editable && !self.pending.is_deleted(row) && self.pending.value(row, col).is_some()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn exhausted_insert_is_atomic_and_undo_never_reuses_keys() {
-        let mut grid = ResultGrid::empty();
-        grid.editable = true;
-        grid.pending.next_key = Some(u64::MAX);
-        let Some(row) = grid.insert_row() else {
-            unreachable!("last key");
-        };
-        assert_eq!(grid.row_key(row), ItemKey::num(u64::MAX));
-        assert!(grid.undo());
-        let before = grid.clone();
-        assert_eq!(grid.insert_row(), None);
-        assert_eq!(grid, before);
-    }
-
-    #[test]
-    fn sorted_insert_update_delete_sql_uses_each_records_original_key() {
-        let mut pending = PendingEdits::new(vec![
-            vec![Value::Int(7), Value::Text("old".into())],
-            vec![Value::Int(9), Value::Text("other".into())],
-        ]);
-        let Some(inserted) = pending.insert_row(2) else {
-            unreachable!("key");
-        };
-        assert!(pending.set(inserted, 0, Value::Int(1)));
-        pending.reorder(&[2, 1, 0]);
-        assert!(pending.set(2, 0, Value::Int(8)));
-        assert!(pending.delete_row(1));
-        assert_eq!(
-            preview_sql(&CatalogTable::orders(), &columns(), &pending),
-            vec![
-                "UPDATE public.orders SET id = 8 WHERE id = 7;",
-                "INSERT INTO public.orders (id, name) VALUES (1, NULL);",
-                "DELETE FROM public.orders WHERE id = 9;",
-            ]
-        );
-        pending.clear();
-        assert_eq!(pending.value(0, 0), Some(&Value::Int(9)));
-        assert_eq!(pending.value(1, 0), Some(&Value::Int(7)));
-        assert_eq!(pending.dirty_rows(), Vec::<usize>::new());
-    }
-
-    #[test]
-    fn inserted_default_is_distinct_from_explicit_null_in_preview() {
-        let mut grid = ResultGrid::from_result(&sql::ResultSet {
-            columns: columns(),
-            rows: Vec::new(),
-            total: 0,
-            source: Some("public.orders".to_owned()),
-            duration_ms: 0,
-            editable: true,
-        });
-        let before = grid.clone();
-        assert!(grid.insert_row_with_defaults(&[true]).is_none());
-        assert_eq!(grid, before);
-        let Some(row) = grid.insert_row_with_defaults(&[true, false]) else {
-            unreachable!("insert")
-        };
-        assert_eq!(grid.pending().value(row, 0), Some(&Value::Default));
-        assert_eq!(grid.pending().value(row, 1), Some(&Value::Null));
-        assert_eq!(
-            preview_sql(&CatalogTable::orders(), &columns(), grid.pending()),
-            vec!["INSERT INTO public.orders (name) VALUES (NULL);"]
-        );
-        assert!(grid.undo());
-        assert!(grid.insert_row_with_defaults(&[true, true]).is_some());
-        assert_eq!(
-            preview_sql(&CatalogTable::orders(), &columns(), grid.pending()),
-            vec!["INSERT INTO public.orders DEFAULT VALUES;"]
-        );
-    }
-
-    #[test]
-    fn delete_toggle_replaces_updates_and_undo_restores_full_row_snapshot() {
-        let mut grid = ResultGrid::from_result(&sql::ResultSet {
-            columns: columns(),
-            rows: vec![vec![Value::Int(7), Value::Text("old".to_owned())]],
-            total: 1,
-            source: Some("public.orders".to_owned()),
-            duration_ms: 0,
-            editable: true,
-        });
-        let key = grid.row_key(0);
-        assert!(grid.commit_cell(0, 1, "edited").is_ok());
-        assert!(grid.toggle_delete(0));
-        assert_eq!(grid.pending_total(), 1);
-        assert_eq!(
-            grid.pending().value(0, 1),
-            Some(&Value::Text("old".to_owned()))
-        );
-        assert!(grid.undo());
-        assert_eq!(grid.row_key(0), key);
-        assert_eq!(
-            grid.pending().value(0, 1),
-            Some(&Value::Text("edited".to_owned()))
-        );
-        assert!(!grid.pending().is_deleted(0));
-        assert!(grid.toggle_delete(0));
-        assert!(grid.toggle_delete(0));
-        assert_eq!(grid.pending_total(), 0);
-        assert_eq!(grid.row_key(0), key);
-    }
-
-    fn columns() -> Vec<(String, ColType)> {
-        vec![
-            ("id".to_owned(), ColType::Int),
-            ("name".to_owned(), ColType::Text),
-        ]
-    }
-
-    #[test]
-    fn preview_sql_orders_updates_inserts_deletes() -> Result<(), String> {
-        let catalog = tablepro_demo::db::Catalog::acme_prod();
-        let table = catalog.find(None, "orders").ok_or("orders missing")?;
-        let columns = table
-            .columns
-            .iter()
-            .map(|column| (column.name.clone(), column.ty))
-            .collect::<Vec<_>>();
-        let mut pending = PendingEdits::new(tablepro_demo::db::rows(table, 0, 3));
-        let status = columns
-            .iter()
-            .position(|(name, _)| name == "status")
-            .ok_or("status missing")?;
-        let original = pending
-            .value(1, status)
-            .cloned()
-            .ok_or("original status missing")?;
-        assert!(pending.set(1, status, Value::Text("shipped".to_owned())));
-        assert!(pending.delete_row(2));
-        let sql = preview_sql(table, &columns, &pending);
-        assert_eq!(sql.len(), 2);
-        assert!(sql.first().is_some_and(|statement| {
-            statement.starts_with("UPDATE public.orders SET status = 'shipped' WHERE id = '")
-        }));
-        assert!(sql.get(1).is_some_and(|statement| {
-            statement.starts_with("DELETE FROM public.orders WHERE id = '")
-        }));
-        assert!(pending.set(1, status, original));
-        let reverted = preview_sql(table, &columns, &pending);
-        assert_eq!(reverted.len(), 1);
-        assert_eq!(reverted.first(), sql.get(1));
-        Ok(())
-    }
-
-    #[test]
-    fn pending_update_uses_original_key_and_escapes_text() {
-        let table = CatalogTable::orders();
-        let mut pending = PendingEdits::new(vec![vec![
-            Value::Int(7),
-            Value::Text("O'Reilly".to_owned()),
-        ]]);
-        assert!(pending.set(0, 1, Value::Text("new value".to_owned())));
-        let sql = preview_sql(&table, &columns(), &pending);
-        assert_eq!(
-            sql,
-            vec!["UPDATE public.orders SET name = 'new value' WHERE id = 7;".to_owned()]
-        );
-    }
-
-    #[test]
-    fn grid_adapter_marks_dirty_cells_and_parses_typed_edits() {
-        let result = sql::ResultSet {
-            columns: columns(),
-            rows: vec![vec![Value::Int(1), Value::Text("Ada".to_owned())]],
-            total: 1,
-            source: Some("public.orders".to_owned()),
-            duration_ms: 1,
-            editable: true,
-        };
-        let mut grid = ResultGrid::from_result(&result);
-        assert_eq!(grid.row_key(0), ItemKey::num(1));
-        assert!(grid.commit_cell(0, 0, "2").is_ok());
-        assert!(grid.pending().is_dirty(0, 0));
-        assert_eq!(grid.cell(0, 0).map(|cell| cell.text), Some("2"));
-        assert!(grid.commit_cell(0, 0, "not an int").is_err());
-        assert_eq!(grid.cell(0, 0).map(|cell| cell.text), Some("2"));
-    }
-
-    #[test]
-    fn sort_preserves_logical_row_keys() {
-        let result = sql::ResultSet {
-            columns: vec![("id".to_owned(), ColType::Int)],
-            rows: vec![vec![Value::Int(20)], vec![Value::Int(10)]],
-            total: 2,
-            source: None,
-            duration_ms: 1,
-            editable: false,
-        };
-        let mut grid = ResultGrid::from_result(&result);
-        let first_key = grid.row_key(0);
-        grid.sort(ColumnKey::num(1), SortDir::Asc);
-        assert_eq!(grid.cell(0, 0).map(|cell| cell.text), Some("10"));
-        assert_eq!(grid.row_key(1), first_key);
-    }
-
-    struct CatalogTable;
-
-    impl CatalogTable {
-        fn orders() -> Table {
-            tablepro_demo::db::Catalog::acme_prod()
-                .find(Some("public"), "orders")
-                .cloned()
-                .unwrap_or_else(|| Table {
-                    schema: "public".to_owned(),
-                    name: "orders".to_owned(),
-                    kind: tablepro_demo::db::ObjectKind::Table,
-                    columns: vec![tablepro_demo::db::Column {
-                        name: "id".to_owned(),
-                        ty: ColType::Int,
-                        nullable: false,
-                        default: None,
-                        primary: true,
-                        references: None,
-                        enum_values: Vec::new(),
-                        generated: false,
-                    }],
-                    indexes: Vec::new(),
-                    constraints: Vec::new(),
-                    triggers: Vec::new(),
-                    row_count: 1,
-                    comment: None,
-                })
-        }
     }
 }

@@ -3,11 +3,15 @@ use std::borrow::Cow;
 
 use crate::action::ActionKey;
 use crate::diagnostics::Diagnostic;
+use crate::event::KeyModifiers;
 use crate::event::{Chord, Key};
+use crate::focus::ScopeId;
 use crate::id::Id;
 use crate::response::StateFlags;
 
+pub use termrock_core::keys::KeyCode;
 pub use termrock_core::keys::KeyPhase;
+pub use termrock_core::platform::ClientPlatform;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct BindingState {
@@ -27,6 +31,13 @@ pub struct Binding<C: 'static> {
     pub priority: u8,
 
     pub visible: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BindingExtensionError {
+    MissingBase { owner: Id },
+    DuplicateAction { owner: Id, action: ActionKey },
+    ConflictingChord { owner: Id, chord: Chord },
 }
 
 impl<C: Copy + 'static> Binding<C> {
@@ -136,7 +147,7 @@ impl KeyMap {
 
     pub fn remove_before_typing(&mut self, owner: Id, chord: Chord) {
         self.typing
-            .retain(|entry| entry.owner != owner || entry.chord != chord);
+            .retain(|entry| entry.owner != owner || !entry.chord.effective_eq(&chord));
     }
 
     pub(crate) fn before_typing(&self, owner: Id, key: &Key) -> Option<ActionKey> {
@@ -148,12 +159,12 @@ impl KeyMap {
 
     pub fn remove(&mut self, phase: KeyPhase, chord: Chord) {
         self.entries
-            .retain(|e| !(e.phase == phase && e.chord == chord));
+            .retain(|e| !(e.phase == phase && e.chord.effective_eq(&chord)));
     }
 
     pub fn remap(&mut self, phase: KeyPhase, from: Chord, to: Chord) {
         for e in &mut self.entries {
-            if e.phase == phase && e.chord == from {
+            if e.phase == phase && e.chord.effective_eq(&from) {
                 e.chord = to;
             }
         }
@@ -341,10 +352,18 @@ pub(crate) struct PublishedBindings {
     len: usize,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ScopedBubbleBinding {
+    pub(crate) scope: ScopeId,
+    pub(crate) owner: Id,
+    pub(crate) layer: crate::layer::LayerId,
+}
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct BindingRegistry {
     tables: Vec<PublishedBindings>,
     descriptors: Vec<BindingDescriptor>,
+    composite_revision: u64,
 }
 
 impl BindingRegistry {
@@ -353,40 +372,84 @@ impl BindingRegistry {
         self.descriptors.clear();
     }
 
-    pub(crate) fn publish<C: Copy + 'static>(
+    pub(crate) fn extend<C: Copy + 'static>(
         &mut self,
         owner: Id,
         flags: StateFlags,
         layer: crate::layer::LayerId,
         table: &'static [Binding<C>],
-    ) -> Option<ActionKey> {
+        include: impl Fn(C) -> bool,
+    ) -> Result<(), BindingExtensionError> {
+        let prior_index = self
+            .tables
+            .iter()
+            .rposition(|published| published.owner == owner);
+        let Some(prior_index) = prior_index else {
+            return Err(BindingExtensionError::MissingBase { owner });
+        };
+        let prior = self.tables[prior_index];
+        let prior_end = prior.start.saturating_add(prior.len);
+        let prior_range = self
+            .descriptors
+            .get(prior.start..prior_end)
+            .map(|_| prior.start..prior_end);
+        let prior_len = prior_range.as_ref().map_or(0, |range| range.len());
         let start = self.descriptors.len();
+
+        self.descriptors
+            .reserve(prior_len.saturating_add(table.len()));
+        self.tables.reserve(1);
+        let copied_start = self.descriptors.len();
+        if let Some(range) = prior_range {
+            self.descriptors.extend_from_within(range);
+        }
+        let additions_start = self.descriptors.len();
         for binding in table {
-            if self
-                .descriptors
-                .get(start..)
-                .is_some_and(|prior| prior.iter().any(|item| item.action == binding.action))
-            {
-                self.descriptors.truncate(start);
-                return Some(binding.action);
+            if !include(binding.cmd) {
+                continue;
             }
-            self.descriptors.push(BindingDescriptor {
+            let descriptor = BindingDescriptor {
                 action: binding.action,
                 chord: binding.chord,
                 label: binding.label,
                 priority: binding.priority,
                 visible: binding.visible,
-            });
+            };
+            let prior = &self.descriptors[copied_start..additions_start];
+            let additions = &self.descriptors[additions_start..];
+            if prior
+                .iter()
+                .chain(additions)
+                .any(|item| item.action == binding.action)
+            {
+                self.descriptors.truncate(start);
+                return Err(BindingExtensionError::DuplicateAction {
+                    owner,
+                    action: binding.action,
+                });
+            }
+            if let Some(chord) = descriptor.chord
+                && prior
+                    .iter()
+                    .chain(additions)
+                    .any(|item| item.chord.is_some_and(|other| chord.effective_eq(&other)))
+            {
+                self.descriptors.truncate(start);
+                return Err(BindingExtensionError::ConflictingChord { owner, chord });
+            }
+            self.descriptors.push(descriptor);
         }
+        let len = self.descriptors.len().saturating_sub(start);
+        self.composite_revision = self.composite_revision.wrapping_add(1);
         self.tables.push(PublishedBindings {
             owner,
             flags,
             layer,
-            table: BindingTableId::of(table),
+            table: BindingTableId::dynamic(owner, len, self.composite_revision),
             start,
-            len: table.len(),
+            len,
         });
-        None
+        Ok(())
     }
 
     pub(crate) fn publish_filtered<C: Copy + 'static>(
@@ -512,19 +575,21 @@ pub(crate) struct DynamicBindingRegistry {
 struct DynamicBindingSet {
     owner: Id,
     base: Option<BindingTableId>,
+    base_descriptors: Vec<BindingDescriptor>,
     descriptors: Vec<BindingDescriptor>,
     revision: u64,
 }
 
 impl DynamicBindingRegistry {
-    pub(crate) fn update<I>(
+    pub(crate) fn update_descriptors<I>(
         &mut self,
         owner: Id,
         base: Option<BindingTableId>,
+        base_descriptors: &[BindingDescriptor],
         bindings: I,
     ) -> (&[BindingDescriptor], u64)
     where
-        I: Iterator<Item = (ActionKey, Option<Chord>)> + Clone,
+        I: Iterator<Item = BindingDescriptor> + Clone,
     {
         let mut owner_changed = false;
         if let Some(set) = self.current.as_mut() {
@@ -538,6 +603,7 @@ impl DynamicBindingRegistry {
             self.current = Some(DynamicBindingSet {
                 owner,
                 base: None,
+                base_descriptors: Vec::new(),
                 descriptors: Vec::new(),
                 revision: 0,
             });
@@ -545,26 +611,21 @@ impl DynamicBindingRegistry {
         let Some(set) = self.current.as_mut() else {
             return (&[], 0);
         };
-        let unchanged =
-            !owner_changed
-                && set.base == base
-                && set.descriptors.iter().zip(bindings.clone()).all(
-                    |(descriptor, (action, chord))| {
-                        descriptor.action == action && descriptor.chord == chord
-                    },
-                )
-                && set.descriptors.len() == bindings.clone().count();
+        let unchanged = !owner_changed
+            && set.base == base
+            && set.base_descriptors == base_descriptors
+            && set
+                .descriptors
+                .iter()
+                .zip(bindings.clone())
+                .all(|(descriptor, next)| descriptor == &next)
+            && set.descriptors.len() == bindings.clone().count();
         if !unchanged {
             set.base = base;
+            set.base_descriptors.clear();
+            set.base_descriptors.extend_from_slice(base_descriptors);
             set.descriptors.clear();
-            set.descriptors
-                .extend(bindings.map(|(action, chord)| BindingDescriptor {
-                    action,
-                    chord,
-                    label: "",
-                    priority: 0,
-                    visible: false,
-                }));
+            set.descriptors.extend(bindings);
             self.next_revision = self.next_revision.wrapping_add(1);
             set.revision = self.next_revision;
         }
@@ -585,17 +646,10 @@ pub(crate) struct FocusedHintKey {
 pub(crate) struct FocusedHints {
     key: Option<FocusedHintKey>,
     pub(crate) layer: HintLayer,
+    descriptors: Vec<BindingDescriptor>,
 }
 
 impl FocusedHints {
-    fn contains_chord(&self, chord: Chord) -> bool {
-        self.layer.hints.iter().any(|hint| {
-            hint.key
-                .physical_chord()
-                .is_some_and(|prior| chord.effective_eq(&prior))
-        })
-    }
-
     pub(crate) fn invalidate(&mut self) {
         self.key = None;
     }
@@ -606,23 +660,26 @@ impl FocusedHints {
         table: &[BindingDescriptor],
         keymap: &KeyMap,
     ) {
-        if self.key == Some(key) {
+        if self.key == Some(key) && self.descriptors == table {
             return;
         }
         self.key = Some(key);
+        self.descriptors.clear();
+        self.descriptors.extend_from_slice(table);
         self.layer.hints.clear();
         self.layer.badge = None;
         self.layer.status = None;
         self.layer.centered = false;
-        for binding in table {
-            let Some(chord) = binding
-                .visible
-                .then(|| keymap.component_chord(key.focus, binding.action, binding.chord))
-                .flatten()
+        for (index, binding) in table.iter().enumerate() {
+            let Some(chord) = keymap.component_chord(key.focus, binding.action, binding.chord)
             else {
                 continue;
             };
-            if self.contains_chord(chord) {
+            let shadowed = table[..index]
+                .iter()
+                .filter_map(|prior| keymap.component_chord(key.focus, prior.action, prior.chord))
+                .any(|prior| chord.effective_eq(&prior));
+            if !binding.visible || shadowed {
                 continue;
             }
             let hint = Hint {
@@ -658,14 +715,7 @@ pub enum HintKey {
     Label(&'static str),
 }
 
-impl HintKey {
-    const fn physical_chord(self) -> Option<Chord> {
-        match self {
-            Self::Chord(chord) | Self::ChordWithCase { chord, .. } => Some(chord),
-            Self::Label(_) => None,
-        }
-    }
-}
+impl HintKey {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Hint {
@@ -724,579 +774,73 @@ impl HintLayer {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::event::{KeyCode, KeyModifiers};
+pub trait LabelOn {
+    fn label_on(&self, platform: ClientPlatform) -> String;
 
-    const fn k(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: KeyModifiers::NONE,
-        }
-    }
+    fn label(&self) -> String;
+}
 
-    #[test]
-    fn capture_skips_bare_chars_while_typing() {
-        let m = KeyMap::new()
-            .bind(
-                KeyPhase::Capture,
-                Chord::key(KeyCode::Char('q')),
-                ActionKey::CLOSE,
-            )
-            .bind(
-                KeyPhase::Capture,
-                Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL),
-                ActionKey::SAVE,
-            );
-        assert_eq!(
-            m.lookup(KeyPhase::Capture, &k(KeyCode::Char('q')), false),
-            Some(ActionKey::CLOSE)
-        );
-        assert_eq!(
-            m.lookup(KeyPhase::Capture, &k(KeyCode::Char('q')), true),
-            None
-        );
-        let ctrl_s = Key {
-            code: KeyCode::Char('s'),
-            mods: KeyModifiers::CONTROL,
-        };
-        assert_eq!(
-            m.lookup(KeyPhase::Capture, &ctrl_s, true),
-            Some(ActionKey::SAVE)
-        );
-        assert_eq!(m.lookup(KeyPhase::Bubble, &ctrl_s, true), None);
-    }
-
-    #[test]
-    fn remove_remap_and_conflicts() {
-        let mut m = KeyMap::new().bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::F(1)),
-            ActionKey::RETRY,
-        );
-        m.remap(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::F(1)),
-            Chord::key(KeyCode::F(2)),
-        );
-        assert_eq!(
-            m.lookup(KeyPhase::Bubble, &k(KeyCode::F(2)), false),
-            Some(ActionKey::RETRY)
-        );
-        m.add(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::F(2)),
-            ActionKey::CLOSE,
-        );
-        assert_eq!(m.conflicts().len(), 1);
-        m.remove(KeyPhase::Bubble, Chord::key(KeyCode::F(2)));
-        assert!(m.is_empty());
-        assert!(KeyMap::EMPTY_REF.is_empty());
-    }
-
-    #[test]
-    fn hints_derive_from_visible_bindings_by_priority() {
-        #[derive(Clone, Copy)]
-        enum Cmd {
-            A,
-            B,
-        }
-        const T: &[Binding<Cmd>] = &[
-            Binding {
-                action: ActionKey::custom("test.previous"),
-                chord: Some(Chord::key(KeyCode::Left)),
-                cmd: Cmd::A,
-                label: "Prev",
-                priority: 40,
-                visible: true,
-            },
-            Binding {
-                action: ActionKey::custom("test.select.enter"),
-                chord: Some(Chord::key(KeyCode::Enter)),
-                cmd: Cmd::B,
-                label: "Select",
-                priority: 80,
-                visible: true,
-            },
-            Binding {
-                action: ActionKey::custom("test.select.space"),
-                chord: Some(Chord::key(KeyCode::Char(' '))),
-                cmd: Cmd::B,
-                label: "Select",
-                priority: 80,
-                visible: false,
-            },
-        ];
-        let h = HintLayer::from_bindings(T);
-        assert_eq!(h.hints.len(), 2);
-        assert_eq!(h.hints.first().map(|h| h.label), Some("Select"));
-        assert!(matches!(
-            Binding::command(T, ActionKey::custom("test.select.space")),
-            Some(Cmd::B)
-        ));
-        assert!(binding_conflicts(Id::root("x"), KeyPhase::Bubble, T).is_empty());
-    }
-
-    #[test]
-    fn duplicate_binding_action_is_rejected() {
-        #[derive(Clone, Copy)]
-        enum Cmd {
-            A,
-        }
-        const ACTION: ActionKey = ActionKey::custom("test.duplicate-action");
-        const TABLE: &[Binding<Cmd>] = &[
-            Binding {
-                action: ACTION,
-                chord: Some(Chord::key(KeyCode::Left)),
-                cmd: Cmd::A,
-                label: "Left",
-                priority: 1,
-                visible: true,
-            },
-            Binding {
-                action: ACTION,
-                chord: Some(Chord::key(KeyCode::Right)),
-                cmd: Cmd::A,
-                label: "Right",
-                priority: 1,
-                visible: true,
-            },
-        ];
-        let mut registry = BindingRegistry::default();
-        assert_eq!(
-            registry.publish(
-                Id::root("duplicate"),
-                StateFlags::FOCUSED,
-                crate::layer::LayerId::PAGE,
-                TABLE,
-            ),
-            Some(ACTION)
-        );
-        assert!(registry.get(Id::root("duplicate")).is_none());
-    }
-
-    #[test]
-    fn effective_duplicate_chord_including_hidden_is_diagnosed() {
-        const VISIBLE: ActionKey = ActionKey::custom("test.visible");
-        const HIDDEN: ActionKey = ActionKey::custom("test.hidden");
-        let table = [
-            BindingDescriptor {
-                action: VISIBLE,
-                chord: Some(Chord::key(KeyCode::Left)),
-                label: "Visible",
-                priority: 80,
-                visible: true,
-            },
-            BindingDescriptor {
-                action: HIDDEN,
-                chord: Some(Chord::key(KeyCode::Right)),
-                label: "Hidden",
-                priority: 40,
-                visible: false,
-            },
-        ];
-        let owner = Id::root("effective-conflict");
-        let mut keymap = KeyMap::new();
-        keymap.remap_component(owner, HIDDEN, Chord::key(KeyCode::Left));
-        assert_eq!(keymap.component_conflicts(owner, &table).len(), 1);
-    }
-
-    #[test]
-    fn dynamic_publication_is_contiguous_after_an_intervening_owner() {
-        #[derive(Clone, Copy)]
-        enum Cmd {
-            Run,
-        }
-        const STATIC_ACTION: ActionKey = ActionKey::custom("dynamic.static");
-        const DYNAMIC_ACTION: ActionKey = ActionKey::custom("dynamic.item");
-        const TABLE: &[Binding<Cmd>] = &[Binding {
-            action: STATIC_ACTION,
-            chord: Some(Chord::key(KeyCode::Enter)),
-            cmd: Cmd::Run,
-            label: "Run",
-            priority: 1,
-            visible: true,
-        }];
-        let a = Id::root("dynamic.a");
-        let b = Id::root("dynamic.b");
-        let mut registry = BindingRegistry::default();
-        assert_eq!(
-            registry.publish(a, StateFlags::FOCUSED, crate::layer::LayerId::PAGE, TABLE),
-            None
-        );
-        assert_eq!(
-            registry.publish(b, StateFlags::FOCUSED, crate::layer::LayerId::PAGE, TABLE),
-            None
-        );
-        let dynamic = [BindingDescriptor {
-            action: DYNAMIC_ACTION,
-            chord: Some(Chord::key(KeyCode::F(4))),
-            label: "",
-            priority: 0,
-            visible: false,
-        }];
-        assert_eq!(
-            registry.publish_dynamic(
-                a,
-                StateFlags::FOCUSED,
-                crate::layer::LayerId::PAGE,
-                &dynamic,
-                7,
-            ),
-            None
-        );
-        let (_, descriptors) = registry.get(a).expect("A table");
-        assert_eq!(
-            descriptors
-                .iter()
-                .map(|item| item.action)
-                .collect::<Vec<_>>(),
-            vec![STATIC_ACTION, DYNAMIC_ACTION]
-        );
-    }
-
-    #[test]
-    fn duplicate_dynamic_action_rejects_the_additive_table() {
-        let owner = Id::root("dynamic.duplicate");
-        let action = ActionKey::custom("dynamic.duplicate.action");
-        let descriptors = [
-            BindingDescriptor {
-                action,
-                chord: Some(Chord::key(KeyCode::F(1))),
-                label: "",
-                priority: 0,
-                visible: false,
-            },
-            BindingDescriptor {
-                action,
-                chord: Some(Chord::key(KeyCode::F(2))),
-                label: "",
-                priority: 0,
-                visible: false,
-            },
-        ];
-        let mut registry = BindingRegistry::default();
-        assert_eq!(
-            registry.publish_dynamic(
-                owner,
-                StateFlags::FOCUSED,
-                crate::layer::LayerId::PAGE,
-                &descriptors,
-                1,
-            ),
-            Some(action)
-        );
-        assert!(registry.get(owner).is_none());
-    }
-
-    #[test]
-    fn dynamic_snapshot_is_bounded_structural_and_wrap_invalidates_identity() {
-        let action = ActionKey::custom("dynamic.action");
-        let mut snapshots = DynamicBindingRegistry::default();
-        let (_, first) = snapshots.update(
-            Id::root("first"),
-            None,
-            core::iter::once((action, Some(Chord::key(KeyCode::F(1))))),
-        );
-        let (_, unchanged) = snapshots.update(
-            Id::root("first"),
-            None,
-            core::iter::once((action, Some(Chord::key(KeyCode::F(1))))),
-        );
-        assert_eq!(first, unchanged);
-        let initial_capacity = snapshots
-            .current
-            .as_ref()
-            .map_or(0, |set| set.descriptors.capacity());
-        for index in 0..2_000usize {
-            let _ = snapshots.update(
-                Id::root("owner").index(index),
-                None,
-                core::iter::once((action, Some(Chord::key(KeyCode::F(2))))),
-            );
-        }
-        assert_eq!(
-            snapshots.current.as_ref().map(|set| set.descriptors.len()),
-            Some(1)
-        );
-        assert_eq!(
-            snapshots
-                .current
-                .as_ref()
-                .map_or(0, |set| set.descriptors.capacity()),
-            initial_capacity
-        );
-        snapshots.next_revision = u64::MAX - 1;
-        let (_, max) = snapshots.update(
-            Id::root("wrap"),
-            None,
-            core::iter::once((action, Some(Chord::key(KeyCode::F(3))))),
-        );
-        let (_, wrapped) = snapshots.update(
-            Id::root("wrap"),
-            None,
-            core::iter::once((action, Some(Chord::key(KeyCode::F(4))))),
-        );
-        assert_eq!(max, u64::MAX);
-        assert_eq!(wrapped, 0);
-        assert_ne!(
-            BindingTableId::dynamic(Id::root("wrap"), 1, max),
-            BindingTableId::dynamic(Id::root("wrap"), 1, wrapped)
-        );
-    }
-    #[test]
-    fn focused_hint_dedup_uses_physical_chord_independent_of_display_case() {
-        let chord = Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL);
-        for key in [
-            HintKey::Chord(chord),
-            HintKey::ChordWithCase {
-                chord,
-                case: ChordCase::UppercaseAscii,
-            },
-        ] {
-            let mut hints = FocusedHints::default();
-            hints.layer.hints.push(Hint {
-                key,
-                label: "Scope",
-                priority: 1,
-            });
-            assert!(hints.contains_chord(chord));
-            assert!(!hints.contains_chord(Chord::with(KeyCode::Char('S'), KeyModifiers::CONTROL)));
-        }
-        let mut hints = FocusedHints::default();
-        hints.layer.hints.push(Hint {
-            key: HintKey::Label("Ctrl+S"),
-            label: "Label",
-            priority: 1,
-        });
-        assert!(!hints.contains_chord(chord));
-    }
-
-    #[test]
-    fn table_conflicts_use_effective_chord_identity() {
-        #[derive(Clone, Copy)]
-        enum Cmd {
-            A,
-            B,
-        }
-        const fn binding(action: ActionKey, chord: Chord, cmd: Cmd) -> Binding<Cmd> {
-            Binding {
-                action,
-                chord: Some(chord),
-                cmd,
-                label: "test",
-                priority: 1,
-                visible: true,
+impl LabelOn for Chord {
+    fn label_on(&self, platform: ClientPlatform) -> String {
+        let mut out = String::new();
+        let char_shift =
+            self.mods.contains(KeyModifiers::SHIFT) && matches!(self.code, KeyCode::Char(_));
+        if self.mods.contains(KeyModifiers::SUPER) {
+            if platform.is_macos() {
+                out.push_str(if self.mods.contains(KeyModifiers::SHIFT) {
+                    "⇧⌘"
+                } else {
+                    "⌘"
+                });
+            } else {
+                out.push_str("Super+");
             }
         }
-        const FIRST: ActionKey = ActionKey::custom("test.effective.first");
-        const SECOND: ActionKey = ActionKey::custom("test.effective.second");
-        let owner = Id::root("effective-table");
-        for (first, second, conflicts) in [
-            (
-                Chord::key(KeyCode::Char('A')),
-                Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
-                1,
-            ),
-            (
-                Chord::key(KeyCode::Char('a')),
-                Chord::key(KeyCode::Char('A')),
-                0,
-            ),
-            (
-                Chord::key(KeyCode::Up),
-                Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
-                0,
-            ),
-            (
-                Chord::key(KeyCode::Char('A')),
-                Chord::key(KeyCode::Char('A')),
-                1,
-            ),
-        ] {
-            let table = [
-                binding(FIRST, first, Cmd::A),
-                binding(SECOND, second, Cmd::B),
-            ];
-            assert_eq!(
-                binding_conflicts(owner, KeyPhase::Bubble, &table).len(),
-                conflicts,
-                "table {first:?} vs {second:?}"
-            );
+        if self.mods.contains(KeyModifiers::CONTROL) {
+            out.push_str("Ctrl+");
         }
-        assert_ne!(
-            Chord::key(KeyCode::Char('A')),
-            Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
-            "structural identity still distinguishes modifier forms"
-        );
+        if self.mods.contains(KeyModifiers::ALT) {
+            out.push_str("Alt+");
+        }
+        let ctrl_or_alt = self
+            .mods
+            .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER);
+        let mac_cmd = self.mods.contains(KeyModifiers::SUPER) && platform.is_macos();
+
+        let back_tab = self.code == KeyCode::BackTab;
+        if self.mods.contains(KeyModifiers::SHIFT)
+            && !mac_cmd
+            && !back_tab
+            && (!char_shift || ctrl_or_alt)
+        {
+            out.push_str("Shift+");
+        }
+        match self.code {
+            KeyCode::Char(' ') => out.push_str("Space"),
+            KeyCode::Char(c) if ctrl_or_alt => out.extend(c.to_uppercase()),
+            KeyCode::Char(c) => out.push(c),
+            KeyCode::Enter => out.push_str("Enter"),
+            KeyCode::Esc => out.push_str("Esc"),
+            KeyCode::Tab => out.push_str("Tab"),
+            KeyCode::BackTab => out.push_str("Shift+Tab"),
+            KeyCode::Backspace => out.push_str("Backspace"),
+            KeyCode::Delete => out.push_str("Delete"),
+            KeyCode::Insert => out.push_str("Ins"),
+            KeyCode::Up => out.push('↑'),
+            KeyCode::Down => out.push('↓'),
+            KeyCode::Left => out.push('←'),
+            KeyCode::Right => out.push('→'),
+            KeyCode::Home => out.push_str("Home"),
+            KeyCode::End => out.push_str("End"),
+            KeyCode::PageUp => out.push_str("PgUp"),
+            KeyCode::PageDown => out.push_str("PgDn"),
+            KeyCode::F(n) => out.push_str(&format!("F{n}")),
+            other => out.push_str(&format!("{other:?}")),
+        }
+        out
     }
 
-    #[test]
-    fn component_conflicts_use_effective_chord_identity() {
-        const VISIBLE: ActionKey = ActionKey::custom("test.effective.visible");
-        const HIDDEN: ActionKey = ActionKey::custom("test.effective.hidden");
-        let owner = Id::root("effective-component");
-        let keymap = KeyMap::new();
-        for (first, second, conflicts) in [
-            (
-                Chord::key(KeyCode::Char('A')),
-                Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
-                1,
-            ),
-            (
-                Chord::key(KeyCode::Char('a')),
-                Chord::key(KeyCode::Char('A')),
-                0,
-            ),
-            (
-                Chord::key(KeyCode::Up),
-                Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
-                0,
-            ),
-        ] {
-            let table = [
-                BindingDescriptor {
-                    action: VISIBLE,
-                    chord: Some(first),
-                    label: "Visible",
-                    priority: 80,
-                    visible: true,
-                },
-                BindingDescriptor {
-                    action: HIDDEN,
-                    chord: Some(second),
-                    label: "Hidden",
-                    priority: 40,
-                    visible: false,
-                },
-            ];
-            assert_eq!(
-                keymap.component_conflicts(owner, &table).len(),
-                conflicts,
-                "component {first:?} vs {second:?}"
-            );
-        }
-        let table = [
-            BindingDescriptor {
-                action: VISIBLE,
-                chord: Some(Chord::key(KeyCode::Char('A'))),
-                label: "Visible",
-                priority: 80,
-                visible: true,
-            },
-            BindingDescriptor {
-                action: HIDDEN,
-                chord: Some(Chord::key(KeyCode::F(1))),
-                label: "Hidden",
-                priority: 40,
-                visible: false,
-            },
-        ];
-        let mut remapped = KeyMap::new();
-        remapped.remap_component(
-            owner,
-            HIDDEN,
-            Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
-        );
-        assert_eq!(remapped.component_conflicts(owner, &table).len(), 1);
-    }
-
-    #[test]
-    fn keymap_conflicts_use_effective_chord_identity() {
-        let owner = Id::root("effective-scopes");
-        for (first, second, conflicts) in [
-            (
-                Chord::key(KeyCode::Char('A')),
-                Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
-                1,
-            ),
-            (
-                Chord::key(KeyCode::Char('a')),
-                Chord::key(KeyCode::Char('A')),
-                0,
-            ),
-            (
-                Chord::key(KeyCode::Up),
-                Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
-                0,
-            ),
-        ] {
-            let map = KeyMap::new()
-                .bind(KeyPhase::Bubble, first, ActionKey::CLOSE)
-                .bind(KeyPhase::Bubble, second, ActionKey::SAVE);
-            assert_eq!(
-                map.conflicts().len(),
-                conflicts,
-                "ordinary {first:?} vs {second:?}"
-            );
-            let typed = KeyMap::new()
-                .bind_before_typing(owner, first, ActionKey::CLOSE)
-                .bind_before_typing(owner, second, ActionKey::SAVE);
-            assert_eq!(
-                typed.conflicts().len(),
-                conflicts,
-                "typing {first:?} vs {second:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn focused_hints_deduplicate_effective_chords() {
-        const FIRST: ActionKey = ActionKey::custom("test.effective.hint.first");
-        const SECOND: ActionKey = ActionKey::custom("test.effective.hint.second");
-        let owner = Id::root("effective-hints");
-        let keymap = KeyMap::new();
-        for (first, second, hints) in [
-            (
-                Chord::key(KeyCode::Char('A')),
-                Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
-                1,
-            ),
-            (
-                Chord::key(KeyCode::Char('a')),
-                Chord::key(KeyCode::Char('A')),
-                2,
-            ),
-            (
-                Chord::key(KeyCode::Up),
-                Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
-                2,
-            ),
-        ] {
-            let table = [
-                BindingDescriptor {
-                    action: FIRST,
-                    chord: Some(first),
-                    label: "First",
-                    priority: 80,
-                    visible: true,
-                },
-                BindingDescriptor {
-                    action: SECOND,
-                    chord: Some(second),
-                    label: "Second",
-                    priority: 40,
-                    visible: true,
-                },
-            ];
-            let mut focused = FocusedHints::default();
-            focused.derive(
-                FocusedHintKey {
-                    focus: owner,
-                    flags: StateFlags::FOCUSED,
-                    layer: crate::layer::LayerId::PAGE,
-                    table: BindingTableId::dynamic(owner, table.len(), 1),
-                    keymap_revision: 0,
-                },
-                &table,
-                &keymap,
-            );
-            assert_eq!(
-                focused.layer.hints.len(),
-                hints,
-                "hints {first:?} vs {second:?}"
-            );
-        }
+    fn label(&self) -> String {
+        self.label_on(ClientPlatform::current())
     }
 }

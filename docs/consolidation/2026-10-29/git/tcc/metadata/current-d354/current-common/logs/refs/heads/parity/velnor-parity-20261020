@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 1a947a251ab9b045610b47729bf481419b9fca8d Alexey Zhokhov <alexey@zhokhov.com> 1792498942 +0700	branch: Created from HEAD
+1a947a251ab9b045610b47729bf481419b9fca8d e7961cee0f377530e0aa5f35fcca63b5cfc76de5 Alexey Zhokhov <alexey@zhokhov.com> 1792499193 +0700	commit: ci: upgrade parity workflows to velnor 0.1.29

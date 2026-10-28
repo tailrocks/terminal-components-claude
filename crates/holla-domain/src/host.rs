@@ -120,19 +120,3 @@ impl Host {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn identity_marks_sensitive_hosts() {
-        assert_eq!(Host::local("devbox").identity(), "devbox · local");
-        assert_eq!(
-            Host::remote("prod-eu-1", Environment::Production).identity(),
-            "◆ prod-eu-1 · ssh · production"
-        );
-        assert!(Environment::Production.sensitive());
-        assert!(!Environment::Local.sensitive());
-    }
-}

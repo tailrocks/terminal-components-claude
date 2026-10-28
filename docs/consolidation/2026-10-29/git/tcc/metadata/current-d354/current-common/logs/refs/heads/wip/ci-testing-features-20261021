@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 df30dc013aa6d78df6f9eb58fc67f3f3d61be37f Alexey Zhokhov <alexey@zhokhov.com> 1792519141 +0700	branch: Created from df30dc013aa6d78df6f9eb58fc67f3f3d61be37f
+df30dc013aa6d78df6f9eb58fc67f3f3d61be37f 205358973755acf1ad41cdb3d6fe8a5179cfa72f Alexey Zhokhov <alexey@zhokhov.com> 1792519500 +0700	commit: ci: add Velnor testing feature configuration
+205358973755acf1ad41cdb3d6fe8a5179cfa72f 2795d4ec279dc642aad1a4125d2bb0363fbea1ff Alexey Zhokhov <alexey@zhokhov.com> 1792519577 +0700	commit: docs: enumerate Velnor testing feature fallbacks
+2795d4ec279dc642aad1a4125d2bb0363fbea1ff 3e2622b82d408e03e8cd8a20d815f12e9d78b1b8 Alexey Zhokhov <alexey@zhokhov.com> 1792519607 +0700	rebase (finish): refs/heads/wip/ci-testing-features-20261021 onto 9c1e2dc77f0e60c7bada6c463656302ce491ebb1
+3e2622b82d408e03e8cd8a20d815f12e9d78b1b8 9576b24e96f383590b9b621bfe43ff0154577acd Alexey Zhokhov <alexey@zhokhov.com> 1792519670 +0700	commit: docs: record CI feature verification head
+9576b24e96f383590b9b621bfe43ff0154577acd 25f5792666cefcb1d51d56fcb973fd06a15b8741 Alexey Zhokhov <alexey@zhokhov.com> 1792519879 +0700	commit: docs: preserve CI planning evidence

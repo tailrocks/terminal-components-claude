@@ -1,0 +1,10 @@
+0000000000000000000000000000000000000000 655ed223f674e9fc0f2825d9ecb9a6029013c9c5 Alexey Zhokhov <alexey@zhokhov.com> 1792138807 +0700	branch: Created from HEAD
+655ed223f674e9fc0f2825d9ecb9a6029013c9c5 f03e91bb442230c0b112e2283aa54b5f46934c02 Alexey Zhokhov <alexey@zhokhov.com> 1792138849 +0700	rebase (finish): refs/heads/ctx-tablepro onto f03e91bb442230c0b112e2283aa54b5f46934c02
+f03e91bb442230c0b112e2283aa54b5f46934c02 08289b81030c2b6108de450ab2af0bec9047c723 Alexey Zhokhov <alexey@zhokhov.com> 1792139177 +0700	commit: fix(tablepro): a right-click outside an open popup closes it
+08289b81030c2b6108de450ab2af0bec9047c723 7f3b2042b9bb9a3d21d0277a98e65b50315a47b5 Alexey Zhokhov <alexey@zhokhov.com> 1792139185 +0700	rebase (finish): refs/heads/ctx-tablepro onto 0d785adad03d6ae2ee45a75b8cc4d9839a7cf3e1
+7f3b2042b9bb9a3d21d0277a98e65b50315a47b5 68d59f9779204561ed012e19d35b22f0309a67fe Alexey Zhokhov <alexey@zhokhov.com> 1792139246 +0700	rebase (finish): refs/heads/ctx-tablepro onto b3d00bdb7f03728c69f279c60b044db2ee5518b0
+68d59f9779204561ed012e19d35b22f0309a67fe 67e9ef2588a3d0708a94d8a2eb850cbc4b4fe667 Alexey Zhokhov <alexey@zhokhov.com> 1792139309 +0700	rebase (finish): refs/heads/ctx-tablepro onto 0e8d0450bd427e9dc960d8c56550b9e1fba5f67a
+67e9ef2588a3d0708a94d8a2eb850cbc4b4fe667 f675426c33b10d4f3242b4e4adb08e57e32a69ce Alexey Zhokhov <alexey@zhokhov.com> 1792139521 +0700	commit: feat(tablepro): context menus on the grid, the tab strip and the explorer
+f675426c33b10d4f3242b4e4adb08e57e32a69ce 83cf1452fecebd5199f6cb8de9b84333826026f9 Alexey Zhokhov <alexey@zhokhov.com> 1792139525 +0700	rebase (finish): refs/heads/ctx-tablepro onto 70e9a16e7918e417067cf3f6ca5ee0c0a4404a35
+83cf1452fecebd5199f6cb8de9b84333826026f9 a8b0ba3a65e1a77c06ee867e525b955286f82fdd Alexey Zhokhov <alexey@zhokhov.com> 1792139591 +0700	rebase (finish): refs/heads/ctx-tablepro onto 200e688ade47ec24e2546901f5946467fbb8c606
+a8b0ba3a65e1a77c06ee867e525b955286f82fdd 80a5ebfc0c3bcab4e82ae3797f50eb447543f569 Alexey Zhokhov <alexey@zhokhov.com> 1792139650 +0700	rebase (finish): refs/heads/ctx-tablepro onto d9305df4015acb55e9999d17e9363faad8753b4b

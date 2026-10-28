@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 44d0ef0fd92a2883e4cf91da192191865a691b73 Alexey Zhokhov <alexey@zhokhov.com> 1792234314 +0700	branch: Created from HEAD
+44d0ef0fd92a2883e4cf91da192191865a691b73 18dfe630ebe8caf5f5f46138b295c26510af8a96 Alexey Zhokhov <alexey@zhokhov.com> 1792236131 +0700	commit: feat(keyboard): Alt chords hinted only where the terminal delivers them (A29)
+18dfe630ebe8caf5f5f46138b295c26510af8a96 7d9f1f43728ee1387398f1906d8df568e72db7d9 Alexey Zhokhov <alexey@zhokhov.com> 1792236160 +0700	commit: docs(a29): Alt (Option) chord decisions; A29 done
+7d9f1f43728ee1387398f1906d8df568e72db7d9 215c7b9f7cc631258aeb91967ba6b4cead369623 Alexey Zhokhov <alexey@zhokhov.com> 1792236169 +0700	rebase (finish): refs/heads/a29-alt-hints onto 6abad6305e3169db15c1a1b1a8be9be97b7934ef
+215c7b9f7cc631258aeb91967ba6b4cead369623 bf931e64a3325be0229c78875b9546271defa53c Alexey Zhokhov <alexey@zhokhov.com> 1792236747 +0700	commit: test(visual): tablepro help reference re-approved for A29 (Shift+F5, Shift+F7)
+bf931e64a3325be0229c78875b9546271defa53c cd82a3df57e273c9d264c15af840f4368535c2dc Alexey Zhokhov <alexey@zhokhov.com> 1792236753 +0700	commit (amend): test(visual): tablepro help reference re-approved for A29 (Shift+F5, Shift+F7)
+cd82a3df57e273c9d264c15af840f4368535c2dc 0e1a1377a6dda56d3e4467c55e073d1ba3bdc3e3 Alexey Zhokhov <alexey@zhokhov.com> 1792236766 +0700	commit: docs(a29): what the captures show (the capture terminal speaks the kitty protocol)
+0e1a1377a6dda56d3e4467c55e073d1ba3bdc3e3 8996bcc6bd4a126d17025ededb70e9d640cf2dbc Alexey Zhokhov <alexey@zhokhov.com> 1792236790 +0700	rebase (finish): refs/heads/a29-alt-hints onto 74bb268ba94c3d42f0aa64567644905e6c7f6939

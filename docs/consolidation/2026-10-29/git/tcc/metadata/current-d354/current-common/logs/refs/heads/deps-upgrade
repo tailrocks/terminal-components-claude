@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 c77e7cde56dabc03437a1beeff6c3588a17bda40 Alexey Zhokhov <alexey@zhokhov.com> 1792154502 +0700	branch: Created from HEAD
+c77e7cde56dabc03437a1beeff6c3588a17bda40 ef0c59ecc4bf5a34be4f2242001ec058603686a7 Alexey Zhokhov <alexey@zhokhov.com> 1792154704 +0700	commit: build(toolchain): move local Rust to 1.99.1, latest stable
+ef0c59ecc4bf5a34be4f2242001ec058603686a7 4e67231840310840230d9994e1b4fa14e1e0b137 Alexey Zhokhov <alexey@zhokhov.com> 1792155114 +0700	rebase (finish): refs/heads/deps-upgrade onto 8c03f15b5f8de11bc561383d503f9df958222e9d
+4e67231840310840230d9994e1b4fa14e1e0b137 3524aee4779bd9fe2821793f14e5a07be924b59e Alexey Zhokhov <alexey@zhokhov.com> 1792155154 +0700	commit: build(deps): bump dev-dependency sha2 0.10 -> 0.11
+3524aee4779bd9fe2821793f14e5a07be924b59e 576e6b11ac1cd3b5c9b4983a83f8044d58d07ed4 Alexey Zhokhov <alexey@zhokhov.com> 1792155212 +0700	commit: build(deps): cargo update transitive dependencies
+576e6b11ac1cd3b5c9b4983a83f8044d58d07ed4 05a5e5b5ddbc1c651af14c6a3e791bc0fe6fc6ec Alexey Zhokhov <alexey@zhokhov.com> 1792155252 +0700	commit: docs(deps): record dependency versions, blockers and the upgrade rule
+05a5e5b5ddbc1c651af14c6a3e791bc0fe6fc6ec d5a3e17ea8fd9565d94dcb2553b23055ea2c0ebe Alexey Zhokhov <alexey@zhokhov.com> 1792155272 +0700	rebase (finish): refs/heads/deps-upgrade onto bc3a9cfa91cbf20324a6077e2690cb43f51772a6
+d5a3e17ea8fd9565d94dcb2553b23055ea2c0ebe 2a40ca947abb445666542c861d9642c03e52f900 Alexey Zhokhov <alexey@zhokhov.com> 1792155609 +0700	rebase (finish): refs/heads/deps-upgrade onto 9e9d5b248f0fd5eb87aced8e9cb61a466fb4b51f
+2a40ca947abb445666542c861d9642c03e52f900 2d035f7934786ac7f5c2021fa42b965a0dc240e2 Alexey Zhokhov <alexey@zhokhov.com> 1792155941 +0700	rebase (finish): refs/heads/deps-upgrade onto a6343ba8ee5ee0cfa0e802e1746e5c55ffaf9663
+2d035f7934786ac7f5c2021fa42b965a0dc240e2 114709bd6181aba6a638975042913f6a3a631dc9 Alexey Zhokhov <alexey@zhokhov.com> 1792156274 +0700	rebase (finish): refs/heads/deps-upgrade onto 441bb1ec69f6703598eee178a863011c053dfeb1
+114709bd6181aba6a638975042913f6a3a631dc9 af8ae490f482ff651ba8e76a8e136f276ce66773 Alexey Zhokhov <alexey@zhokhov.com> 1792156591 +0700	rebase (finish): refs/heads/deps-upgrade onto 8f12ad218a1cd13b6127d946df7dc5cdf8d964cc
+af8ae490f482ff651ba8e76a8e136f276ce66773 53ad18e78f7fcad4bd417e7fc1fabed8327ef214 Alexey Zhokhov <alexey@zhokhov.com> 1792156992 +0700	rebase (finish): refs/heads/deps-upgrade onto e1325c04f5ffaa99af981155c3be0f9155892761
+53ad18e78f7fcad4bd417e7fc1fabed8327ef214 a312f64be20b966370b056506303202e8c4e18c3 Alexey Zhokhov <alexey@zhokhov.com> 1792157355 +0700	rebase (finish): refs/heads/deps-upgrade onto 5fea4ac9bce0d8db09c9af16246abff6c4bc1089

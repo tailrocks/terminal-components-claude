@@ -1,0 +1,441 @@
+{
+  "kind": "read-only-source-audit",
+  "task": "Showcase EditorPage replay and shared component contract",
+  "created_utc": "2026-10-21",
+  "scope": "Source-only. No product files edited. No candidates or expected frames generated. No tests run.",
+  "source_revisions": {
+    "pr38_remote_branch": {
+      "commit": "4f40bb294da89bbfcb2a6716c88a3158427aa0b2",
+      "tree": "f7b432ee7452abf0911b5e30f7dbc1f5cbbe28c2",
+      "verified_by": "git ls-remote origin refs/heads/parity/termrock-visual-baseline"
+    },
+    "visual_baseline_source": {
+      "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542"
+    },
+    "design_reference": {
+      "commit": "f4867e9b5f8a08a3bb61ce80d644198a29f51984"
+    },
+    "baseline_design_editor_blobs": {
+      "src/bin/showcase/pages/editor.rs": "ddbc5c4fb388ca5385f6c939765f6fc2444e9a7b",
+      "src/bin/showcase/pages/celleditors.rs": "4447b2c46527ae04afdd4430190cd46923d66c39",
+      "comparison": "Both files byte-identical between frozen baseline and fixed design commit; git diff --quiet returned 0."
+    },
+    "candidate_blobs": {
+      "crates/showcase-demos/src/pages/editor.rs": "6bb3bbe73b9d7b9db95c2dddd3037fd7d686a00c",
+      "crates/showcase-demos/src/pages/editor_baseline.inc.rs": "b5dc90c058d4bd0e21040e66a96954665c62c41f",
+      "crates/termrock-editors/src/code.rs": "1556414cd7fe61cf7e2f1996c88dcce6f7d6206e",
+      "crates/termrock/src/composition.rs": "5acecd1fb705403f38e755b42e32aaa174be10e3",
+      "crates/termrock-e2e/build.rs": "10cf8e055489fdf6c0aef66c247875b053658ccd"
+    }
+  },
+  "production_replay_finding": {
+    "severity": "acceptance-blocking architecture defect",
+    "path": "crates/showcase-demos/src/pages/editor.rs",
+    "evidence": [
+      {
+        "lines": "241-244",
+        "fact": "EditorPage::draw calls paint_baseline(ui, area), then returns before the real component composition whenever it matches."
+      },
+      {
+        "lines": "434-462",
+        "fact": "paint_baseline walks stored Run rows and calls Ui::paint_str directly for every cell run."
+      },
+      {
+        "lines": "465-478",
+        "fact": "baseline_rows chooses BASELINE_72, BASELINE_80, BASELINE, or BASELINE_160 from exact area widths 51, 59, 94, or 134 and a minimum-height check."
+      },
+      {
+        "lines": "481-485",
+        "fact": "Run constructors plus include!(\"editor_baseline.inc.rs\") load the fixed tables into this production page."
+      },
+      {
+        "lines": "283-315",
+        "fact": "The fallback live State Props contain fixed cursor (ln 1, col 1), Runs 0, Last run —, and diagnostics 0/1; these do not derive the displayed values from editor cursor/run/diagnostic state."
+      },
+      {
+        "lines": "344-403",
+        "fact": "After shared CodeEditor::draw, the page paints its own focus gutter, marker, and fixed row-position text over component output."
+      }
+    ],
+    "reachability": [
+      {
+        "path": "crates/showcase-ui/Cargo.toml",
+        "lines": "11-15",
+        "fact": "showcase-ui has a normal dependency on showcase-demos and termrock."
+      },
+      {
+        "path": "crates/showcase-ui/src/app.rs",
+        "lines": "13-20,729",
+        "fact": "The application imports EditorPage and constructs it for PageId::Editor."
+      },
+      {
+        "path": "crates/showcase-demos/Cargo.toml",
+        "lines": "8-11",
+        "fact": "showcase-demos is a normal library with termrock and Ratatui dependencies, not a test-only target."
+      }
+    ],
+    "interpretation": "Production Showcase can emit a stored reference-shaped frame through a test viewport-size branch. This is real source reachability, not a search-only suspicion. The static include and overpaint must be replaced by live component composition."
+  },
+  "frozen_contract": {
+    "source": "src/bin/showcase/pages/editor.rs and src/bin/showcase/app_tests_code.rs at 4169783ae883788186d161af09ba9c481bd84e5c; exact same editor-page files at design commit f4867e9b5f8a08a3bb61ce80d644198a29f51984.",
+    "screens_and_layout": [
+      {
+        "path": "src/bin/showcase/pages/editor.rs",
+        "lines": "585-612,646-652",
+        "fact": "Editor page has Playground, Options, and States sections; States contains a live CodeEditor StateGrid with Tones, Plain, Warning and rest/focused/editing/disabled/busy/error/empty/overflow examples."
+      },
+      {
+        "path": "src/bin/showcase/pages/editor.rs",
+        "lines": "485-581,634-652",
+        "fact": "Measured layout keeps an editor area, Find and Run block controls, State Props, Diagnostics panel, and completion overlay; narrow layouts stack panes."
+      },
+      {
+        "path": "src/bin/showcase/options.rs",
+        "lines": "1624-1685",
+        "fact": "The editor Options section exposes read-only/edit-entry/tab-leaves/Esc-reverts, field/text/command/navigation key policies, indentation, highlighter, segmenter, document, horizontal scrolling, scrollbar gap/track click, and completion presentation options."
+      }
+    ],
+    "document_and_visual_data": [
+      {
+        "path": "src/bin/showcase/pages/editor.rs",
+        "lines": "36-62",
+        "fact": "Frozen document includes Client::builder().timeout(10).gzip(true).build().unwrap() and a Rust test block."
+      },
+      {
+        "path": "src/bin/showcase/pages/editor.rs",
+        "lines": "416-479",
+        "fact": "State Props report actual line/column, block, run count/time, diagnostic count, completion count, and find match status; layout responds to measured right-pane need."
+      }
+    ],
+    "input_and_state_transitions": [
+      {
+        "path": "src/bin/showcase/pages/editor.rs",
+        "lines": "336-414",
+        "fact": "Completion ranks candidates from text before cursor; accepting replaces the word; Find focuses the editor; Ctrl+R runs the current block for 10 ticks and produces data-derived diagnostics/status."
+      },
+      {
+        "path": "src/bin/showcase/pages/editor.rs",
+        "lines": "659-787",
+        "fact": "Keyboard, paste, button click, editor click, popup acceptance, outside-click dismissal, and focus changes are distinct routed paths."
+      },
+      {
+        "path": "src/bin/showcase/app_tests_code.rs",
+        "lines": "33-188",
+        "fact": "Real page/widget tests cover read-only, Tab policy, Esc revert, custom keymap, Vim navigation, highlighter/segmenter, empty document, completion result/placement/rows, Find button and run lifecycle, and state grid."
+      }
+    ]
+  },
+  "current_shared_contract": {
+    "termrock_editors": [
+      {
+        "path": "crates/termrock-editors/src/code.rs",
+        "lines": "521-667",
+        "fact": "CodeEditorState owns document, editing state, vertical/horizontal scroll internals, find query/matches, diagnostics, running range, text/cursor offset, selection, completion splice, cursor jump, and edit generation."
+      },
+      {
+        "path": "crates/termrock-editors/src/code.rs",
+        "lines": "757-915",
+        "fact": "CodeEditor has public builder support for highlighter, segmenter, placeholder, indent, TabBehavior, read-only, disabled, edit-entry, style patches and slots; default indent is 2 and default TabBehavior is Indent."
+      },
+      {
+        "path": "crates/termrock-editors/src/code.rs",
+        "lines": "941-1119,1292-1365,1637-1649",
+        "fact": "Component owns block lookup, visual cursor-cell bounds, input/update, scroll preparation, measured size, rendering, hit registration, focusability and cursor rendering."
+      },
+      {
+        "path": "crates/termrock-editors/src/code.rs",
+        "lines": "112-164",
+        "fact": "CodeAction is Changed/CursorMoved/Committed/Leave. CodeCmd includes editing, movement, find, block navigation and focus; no Run command/action in this enum."
+      },
+      {
+        "path": "crates/termrock-editors/src/completion.rs",
+        "lines": "19-100,245-377",
+        "fact": "Reusable completion provider/value/batch and CompletingCodeEditor typed state/update/draw APIs exist."
+      },
+      {
+        "path": "crates/termrock/src/composition.rs",
+        "lines": "74-197,332-402",
+        "fact": "Reusable composition adapters exist for Button, CodeEditor, CompletingCodeEditor, PropsList and row/column/wrap groups; shared resolver can measure/draw those components."
+      }
+    ],
+    "existing_test_evidence": [
+      {
+        "path": "crates/termrock-editors/tests/completing_code_editor.rs",
+        "fact": "Component-level real-runtime tests cover completion trigger/accept, Escape ordering, remap, outside click/focus loss, popup ownership and interaction."
+      },
+      {
+        "path": "crates/termrock-editors/tests/code_editor_fill_height.rs",
+        "fact": "Component-level tests cover row-limit defaults, fill-height, measured/drawn/focus/hit bounds, and narrow/zero regions."
+      },
+      {
+        "path": "crates/showcase-demos/src/pages/editor.rs",
+        "lines": "2918-2965",
+        "fact": "Current page tests cover syntax classification and validate the stored baseline table dimensions; they do not drive current EditorPage interaction flows."
+      }
+    ]
+  },
+  "contract_gaps_and_source_mismatches": [
+    {
+      "id": "E1",
+      "finding": "Stored viewport bypass hides actual page and input-state differences at four exact content widths.",
+      "evidence": "Production replay finding above."
+    },
+    {
+      "id": "E2",
+      "finding": "Current live sample omits gzip(true), present in both frozen and design source.",
+      "evidence": [
+        {
+          "path": "crates/showcase-demos/src/pages/editor.rs",
+          "lines": "40-42"
+        },
+        {
+          "path": "src/bin/showcase/pages/editor.rs",
+          "lines": "54-56",
+          "revision": "baseline and design"
+        }
+      ]
+    },
+    {
+      "id": "E3",
+      "finding": "Current editor builder unconditionally sets TabBehavior::Leave; frozen default option is tab_leaves off, which leaves the component default Indent. Current component indent default is 2, frozen page builds editor with indent 4 unless option overrides.",
+      "evidence": [
+        {
+          "path": "crates/showcase-demos/src/pages/editor.rs",
+          "lines": "158-164"
+        },
+        {
+          "path": "crates/termrock-editors/src/code.rs",
+          "lines": "806-820,869-878"
+        },
+        {
+          "path": "src/bin/showcase/pages/editor.rs",
+          "lines": "247-290",
+          "revision": "baseline and design"
+        }
+      ]
+    },
+    {
+      "id": "E4",
+      "finding": "Current page constructs only a 12-row editor and does not set fill_height, while the shared component exposes fill-height measurement; frozen composition gives the editor pane 26 rows of page height and sizes against the measured side pane.",
+      "evidence": [
+        {
+          "path": "crates/showcase-demos/src/pages/editor.rs",
+          "lines": "158-164,241-269"
+        },
+        {
+          "path": "crates/termrock-editors/src/code.rs",
+          "lines": "823-831,1292-1300,1637-1649"
+        },
+        {
+          "path": "src/bin/showcase/pages/editor.rs",
+          "lines": "500-527,614-643",
+          "revision": "baseline and design"
+        }
+      ]
+    },
+    {
+      "id": "E5",
+      "finding": "Current EditorPage does not compose or handle Run button/action/tick/diagnostic lifecycle. It advertises Ctrl+R in hints, but CodeAction/CodeCmd have no run event and Page implementation does not override command. Candidate State Props hard-code run/cursor/diagnostic values.",
+      "evidence": [
+        {
+          "path": "crates/showcase-demos/src/pages/editor.rs",
+          "lines": "215-317,320-340"
+        },
+        {
+          "path": "crates/termrock-editors/src/code.rs",
+          "lines": "112-164"
+        },
+        {
+          "path": "src/bin/showcase/pages/editor.rs",
+          "lines": "375-414,620-783",
+          "revision": "baseline and design"
+        }
+      ]
+    },
+    {
+      "id": "E6",
+      "finding": "Current page's completion items are three fixed keywords; frozen demo uses ranked candidates including functions/types/macros, replaces the preceding word and varies presentation options. The library already supplies typed provider/batch/completion APIs, so migrate semantic candidate data and use the shared completion component rather than static reference rows.",
+      "evidence": [
+        {
+          "path": "crates/showcase-demos/src/pages/editor.rs",
+          "lines": "16-20,220-234"
+        },
+        {
+          "path": "src/bin/showcase/pages/editor.rs",
+          "lines": "72-95,326-373",
+          "revision": "baseline and design"
+        },
+        {
+          "path": "crates/termrock-editors/src/completion.rs",
+          "lines": "19-100,245-377"
+        }
+      ]
+    },
+    {
+      "id": "E7",
+      "finding": "Find key handling belongs to CodeEditor, but the frozen Find button routes a user action into opening the same editor-owned find state. CodeCmd::Find exists but dispatch is internal; no public typed request to open Find from a sibling Button is evidenced. Add that narrow shared adapter/API, then let Button emit activation and CodeEditor own focus/query/cursor.",
+      "evidence": [
+        {
+          "path": "crates/termrock-editors/src/code.rs",
+          "lines": "112-164,995-1028,1264-1285"
+        },
+        {
+          "path": "src/bin/showcase/pages/editor.rs",
+          "lines": "385-389,659-783",
+          "revision": "baseline and design"
+        }
+      ]
+    },
+    {
+      "id": "E8",
+      "finding": "Frozen Options and States views are absent from the current page implementation. Shared Tabs and stateful CodeEditor/Props adapters exist, but the current page does not use them. Several baseline CodeEditor settings (Esc revert, per-editor command/navigation/text keymaps, horizontal/scrollbar policies) lack corresponding CodeEditor builder fields in the inspected public API; preserve only after demonstrating consumer-backed options.",
+      "evidence": [
+        {
+          "path": "crates/showcase-demos/src/pages/editor.rs",
+          "lines": "191-342"
+        },
+        {
+          "path": "crates/termrock/src/composition.rs",
+          "lines": "199-239,332-402"
+        },
+        {
+          "path": "crates/termrock-editors/src/code.rs",
+          "lines": "757-915"
+        },
+        {
+          "path": "src/bin/showcase/options.rs",
+          "lines": "1624-1685",
+          "revision": "baseline and design"
+        }
+      ]
+    },
+    {
+      "id": "E9",
+      "finding": "Current classifier maps true/false through KEYWORDS; frozen classifier has a separate LITERALS role. Termrock SyntaxRole has Constant, so use language-role mapping that preserves the separate semantic token/style. No source evidence says frame parity is already attained.",
+      "evidence": [
+        {
+          "path": "crates/showcase-demos/src/pages/editor.rs",
+          "lines": "50-54,56-132"
+        },
+        {
+          "path": "src/bin/showcase/pages/editor.rs",
+          "lines": "64-70,97-169",
+          "revision": "baseline and design"
+        },
+        {
+          "path": "crates/termrock-theme/src/role.rs",
+          "lines": "62-83"
+        }
+      ]
+    },
+    {
+      "id": "E10",
+      "finding": "Composition provides code editor and PropsList leaves but no Panel adapter was found; Panel currently requires the app page to call draw with manually allocated Rect. Add the shared panel leaf/slot or another public composition contract before replacing the raw split/paint layout; keep geometry in shared resolver.",
+      "evidence": [
+        {
+          "path": "crates/termrock/src/composition.rs",
+          "lines": "74-197,332-402"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/editor.rs",
+          "lines": "241-317"
+        }
+      ]
+    }
+  ],
+  "minimal_staged_replacement_owner": [
+    {
+      "stage": 1,
+      "owner": "termrock-editors::CodeEditor + showcase-demos EditorPage semantic data",
+      "work": "Rebuild the actual page before removing the bypass. Keep CodeEditorState the sole owner of text/edit/find/scroll/selection/cursor/diagnostics. Supply the frozen sample, language highlighter/segmenter and live completion records as data. Set baseline component defaults explicitly: indent 4, TabBehavior::Indent, measured fill-height. Do not clone or paint code cells."
+    },
+    {
+      "stage": 2,
+      "owner": "shared CodeEditor/Button/Panel/composition APIs",
+      "work": "Add a public typed open-find request path from Button activation into CodeEditor-owned find state; add any required panel/composition leaf and semantic cursor-position accessor. Preserve Run as a Showcase demo-domain action: shared Button emits activation, demo model owns countdown/run result, CodeEditor accepts running range/diagnostics through public state API."
+    },
+    {
+      "stage": 3,
+      "owner": "Termrock shared composition plus showcase option/demo data",
+      "work": "Compose editor, state, diagnostics, Find/Run controls and Playground/Options/States tabs from public measured leaves and slots. Add only baseline-required configuration adapters (Esc behavior, key policies, scroll policies) to the CodeEditor contract and exercise them through Showcase. Move no private painter, geometry or replay table into a library crate."
+    },
+    {
+      "stage": 4,
+      "owner": "real app/page regression evidence",
+      "work": "For each state and input path from frozen app_tests_code.rs, add current real-page tests that inspect action, focus/cursor, component state, hit bounds and rendered cells. Only then remove paint_baseline, Run tables, include file, and repaint helper together. Compare the real binary against the pinned baseline/tuiscotti harness; no source-only packet grants visual approval."
+    }
+  ],
+  "build_resource_audit": {
+    "root_workspace": {
+      "path": "Cargo.toml",
+      "lines": "1-60",
+      "fact": "Root workspace members contain termrock crates and four application crates, but not crates/termrock-e2e."
+    },
+    "isolated_test_tool": {
+      "path": "crates/termrock-e2e/Cargo.toml",
+      "lines": "1-29",
+      "fact": "termrock-e2e defines a nested workspace, expected-generation binary, build-dependency sha2, tuiscotti and schema/test dependencies; no application manifest depends on it."
+    },
+    "only_build_script_found": {
+      "path": "crates/termrock-e2e/build.rs",
+      "lines": "1-55",
+      "fact": "Build script recursively hashes its own package suite files, skips target/.git, rejects symlinks, and exports a digest env var. It does not synthesize a UI or enter app runtime dependencies."
+    },
+    "include_paths": [
+      {
+        "path": "crates/showcase-demos/src/pages/editor.rs:485",
+        "fact": "Production include! loads replay table; covered above."
+      },
+      {
+        "path": "crates/termrock-e2e/src/lib.rs:18-56",
+        "fact": "Embedded case registry, obligations, profile and schemas are test-harness metadata in the nested tool workspace."
+      },
+      {
+        "path": "crates/termrock-conformance/tests",
+        "fact": "include_str! inputs occur under test targets for ownership/cursor/required-case records."
+      },
+      {
+        "path": "crates/showcase-ui/tests",
+        "fact": "include_str!/env! uses are test fixtures, visual harness and performance data."
+      },
+      {
+        "path": "crates/tablepro-ui/tests",
+        "fact": "include_str! inputs occur in test targets; visual/performance test resources do not ship via normal dependencies."
+      },
+      {
+        "path": "crates/jackin-preview-app/tests",
+        "fact": "visual/performance include/env paths are test targets."
+      },
+      {
+        "path": "crates/holla-ui/tests",
+        "fact": "visual/performance includes are test targets."
+      }
+    ],
+    "app_facade_edges": [
+      {
+        "path": "crates/showcase-ui/Cargo.toml:11-15",
+        "fact": "UI depends on Termrock and Showcase demo/data crates."
+      },
+      {
+        "path": "crates/tablepro-ui/Cargo.toml:8-16",
+        "fact": "TablePro UI depends on TablePro domain/demo/SQL plus Termrock; no source edge to another app found in the inspected manifests."
+      },
+      {
+        "path": "crates/jackin-preview-app/Cargo.toml:8-16",
+        "fact": "Jackin app depends on its domain/sim/presentation/host/capsule crates plus Termrock."
+      },
+      {
+        "path": "crates/holla-ui/Cargo.toml:8-18",
+        "fact": "Holla UI depends on its domain/catalog/plan/sim crates plus Termrock."
+      }
+    ],
+    "limit": "Manifest and static-include reachability inspection only; not a proof of complete library architecture."
+  },
+  "review_limits": [
+    "No build/test command run.",
+    "No baseline capture or expected file produced.",
+    "No source edits, commits, pushes, branch mutation, or reviewer claim.",
+    "Does not repeat other application plate/RUNS audits."
+  ]
+}

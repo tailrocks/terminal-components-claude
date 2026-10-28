@@ -1,0 +1,2 @@
+0000000000000000000000000000000000000000 f02d43e299278db7980a2cc2bf0a303868aa24cc Alexey Zhokhov <alexey@zhokhov.com> 1792489731 +0700	branch: Created from origin/parity/termrock-visual-baseline
+f02d43e299278db7980a2cc2bf0a303868aa24cc f58da2694d8ebd85193930af89a291507d8a1f3b Alexey Zhokhov <alexey@zhokhov.com> 1792490031 +0700	commit: fix: restore picker title baseline style

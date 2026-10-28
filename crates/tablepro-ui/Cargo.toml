@@ -12,8 +12,9 @@ tablepro-domain.workspace = true
 tablepro-sql.workspace = true
 termrock.workspace = true
 
-[dev-dependencies]
-termrock-test-support.workspace = true
-
 [lints]
 workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

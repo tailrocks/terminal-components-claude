@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 78bd45b9c42b883dc1667c32a304e7e77de7880b Alexey Zhokhov <alexey@zhokhov.com> 1792165847 +0700	branch: Created from HEAD
+78bd45b9c42b883dc1667c32a304e7e77de7880b ba9125087a33c7f3981a493d071d60e9138c1792 Alexey Zhokhov <alexey@zhokhov.com> 1792166687 +0700	commit: wip
+ba9125087a33c7f3981a493d071d60e9138c1792 78bd45b9c42b883dc1667c32a304e7e77de7880b Alexey Zhokhov <alexey@zhokhov.com> 1792166706 +0700	reset: moving to HEAD~1
+78bd45b9c42b883dc1667c32a304e7e77de7880b d0e42a30bae8dbf40c35ce12a1cdb5cfa3d5f270 Alexey Zhokhov <alexey@zhokhov.com> 1792166735 +0700	commit: refactor(tablepro): the modal stack is ShellLayers (S5)
+d0e42a30bae8dbf40c35ce12a1cdb5cfa3d5f270 5d7422edb07b76ca75ba4041484a26aea3083305 Alexey Zhokhov <alexey@zhokhov.com> 1792166761 +0700	rebase (finish): refs/heads/plan-s5-tablepro onto 86491237c47ff061b6cec6fd9205780375cc2e86
+5d7422edb07b76ca75ba4041484a26aea3083305 742a84ff1c18df79a33a7c9dd23938c6832c4fd5 Alexey Zhokhov <alexey@zhokhov.com> 1792166857 +0700	commit: test(overlay-sites): a LayerTag opens an overlay on an app's ShellLayers

@@ -1,0 +1,113 @@
+{
+  "reviewed_commit": "5cd181530ba61781cf6a2c69d97895a9b0741275",
+  "source_copy": "/private/tmp/termrock-grid-26e4-independent",
+  "bounded_verdict": "No new blocker found in additive CellUi padding compatibility repair or frozen general raw ANSI256 quantization. Bounded API repair cleared; overall theme/application acceptance remains incomplete.",
+  "acceptance_complete": false,
+  "repaired_prior_finding": {
+    "prior_commit": "c6c2ae7d9fe996dc17e6dedd3623c27dd2cdfc76",
+    "prior_P2": "CellUi constructor unconditionally adopted captured underlay instead of explicit caller style.",
+    "current": "Constructor initializes reset_style from the supplied PaintStyle. Additive padding_style stores an explicitly supplied canonical style. Grid opts in only for ordinary active non-action callback cells using ui.surface_style().patch(row_style). No buffer-role guessing or hidden calibration.",
+    "unchanged_explicit_Danger_and_Reset_probes": "both pass",
+    "semantic_provenance": "D8 move_cell retains source semantic roles, then applies explicit reset-channel overrides. Independent semantic dimming probe and fitting callback matrix pass."
+  },
+  "verification": {
+    "unchanged_public_probes": {
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0
+    },
+    "frozen_raw_rgb": {
+      "cases": 16777216,
+      "passed": true,
+      "method": "A separate nextest test invokes public downgrade_color for every RGB triplet and compares it with the verbatim nearest_256 function extracted from fixed source4169783. Fixed designf486 function independently extracted and byte-identical.",
+      "reference_function_sha256_stripped": "055e147cd036ba942a185c1426004c3cb0e2750e0bf9dc7622634ff6ceca0eb3",
+      "no_selected_RGB_exceptions": true,
+      "test_source": "/private/tmp/termrock-grid-26e4-probes/tests/frozen_quantizer_exhaustive.rs"
+    },
+    "callback_fitting_matrix": {
+      "passed": true,
+      "paired_configurations": 648,
+      "coverage": "Four color profiles, left/center/right alignment, zero/narrow region empty content, fitting numeric/wide/combining content, post-render dimming, authored row channels, default CELL / explicit Set / explicit Clear and modifiers.",
+      "test_source": "/private/tmp/termrock-grid-26e4-probes/tests/callback_fitting_matrix.rs"
+    },
+    "native": {
+      "command": "cargo nextest run --locked -p termrock-grid -p termrock-theme -p termrock-fields -p termrock-runtime --all-targets --no-fail-fast",
+      "passed": 693,
+      "failed": 1,
+      "skipped": 3,
+      "known_failure": "termrock-theme::capability_palettes::all_73_junie_slots_match_reference_capability_output",
+      "disposition": "Preserved failure; no fixture blessing or full theme parity clearance."
+    },
+    "strict_clippy": "Same four packages --all-targets -- -D warnings passed",
+    "format": "Scoped rustfmt --check passed; git diff --check passed; source checkout clean"
+  },
+  "remaining_findings": [
+    {
+      "id": "GRID-CALLBACK-OVERFLOW-CONTRACT",
+      "priority": "P2",
+      "paths": [
+        "crates/termrock-grid/src/grid.rs:1581",
+        "crates/termrock-runtime/src/rowui.rs:662"
+      ],
+      "problem": "Grid builtin paint_aligned elides overflowing content with an ellipsis, but an identity cell callback using CellUi::text only clips. Thus narrow Unicode/long data can differ even when callback returns the original value.",
+      "actual_probe": "TrueColor, left alignment, Grid width5, value\u4e16\u754c: builtin cell(4,1) is ellipsis, callback cell(4,1) is blank.",
+      "test_source": "/private/tmp/termrock-grid-26e4-probes/tests/callback_contract_matrix.rs",
+      "attribution": "Both relevant function bodies byte-identical between prior c6 and this candidate. Pre-existing consumer/author text-policy gap, not introduced by padding_style. Record for a separately scoped shared clipping contract; do not silently change default CellUi text semantics.",
+      "attribution_evidence": {
+        "crates/termrock-grid/src/grid.rs": {
+          "overflow_behavior_unchanged_since_c6": true,
+          "function_sha256": "6a8ab4396170a02462d8722dbdab5c26f87059fa7b59cd3b170b7f14f7c3d16d"
+        },
+        "crates/termrock-runtime/src/rowui.rs": {
+          "overflow_behavior_unchanged_since_c6": true,
+          "function_sha256": "1e059f97cd745650b6c4fb3ac11f5bb89b79323c11ff986891d84781cde54746"
+        }
+      }
+    },
+    {
+      "id": "SEMANTIC-CAPABILITY-REFERENCE",
+      "priority": "P2",
+      "path": "crates/termrock-theme/tests/capability_palettes.rs:67",
+      "problem": "Existing all_73 semantic-role comparison still fails. For example production accent_pressed/focus_ring238 vs fixture71, tint233 vs fixture22; exact frozen apply_256 authored values require separate mapping diagnosis.",
+      "disposition": "No change to semantic fixture or production palette approved by this review. Raw quantizer equivalence does not establish semantic role parity."
+    }
+  ],
+  "excluded": [
+    "LegacyMono exact raw-color pair and menu_row behavior from unrelated merged commits is preserved but not approved.",
+    "No application PTY flows, full paired captures, latest parent integration, or full four-application acceptance.",
+    "showcase, jackin-preview, tablepro and holla remain incomplete against the overall product/library gates."
+  ],
+  "logs": {
+    "unchanged_public_11": {
+      "path": "/private/tmp/termrock-grid-5cd1-public-probes.log",
+      "sha256": "dfdc01d3d99959183c6597f08ccd0fe6a7844b3b072daa31c6b59fff30ffe92f"
+    },
+    "exhaustive_rgb": {
+      "path": "/private/tmp/termrock-grid-5cd1-exhaustive-quantizer.log",
+      "sha256": "2f01f98d7494409dd1217676eeb2001ce6b37471732ba6ad6fa417294c5f0fb9"
+    },
+    "native": {
+      "path": "/private/tmp/termrock-grid-5cd1-native.log",
+      "sha256": "74fb27a03e6d5eaff37d997906fb604b5ef6ccb986d99e09e060126eb293d27e"
+    },
+    "clippy": {
+      "path": "/private/tmp/termrock-grid-5cd1-clippy.log",
+      "sha256": "a536a0741018887ae2ca25cadd7914229b967784dfa3c57a5da0056997a26f66"
+    },
+    "format": {
+      "path": "/private/tmp/termrock-grid-5cd1-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "callback_fitting_matrix": {
+      "path": "/private/tmp/termrock-grid-5cd1-callback-fitting-matrix.log",
+      "sha256": "a5a3fcc025a5091f78733a567f1efcde2982f240075c13495913551c25e2b194"
+    },
+    "callback_full_matrix_existing_overflow_gap": {
+      "path": "/private/tmp/termrock-grid-5cd1-callback-matrix.log",
+      "sha256": "985185f27b504121051e7a17e9d59669ab7eacde9f176c02fc9f4654daf96e71"
+    }
+  },
+  "source_or_expected_edits": false,
+  "application_launches": false,
+  "helpers_spawned": false
+}

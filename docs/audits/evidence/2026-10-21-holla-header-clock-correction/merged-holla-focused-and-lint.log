@@ -1,0 +1,63 @@
+['cargo', 'nextest', 'run', '--locked', '-p', 'holla-ui', '--lib', '-E', 'test(section_headers_use_nav_list_text_policy_across_widths_and_color_levels) | test(home_header_text_policy_survives_menu_open_close_and_focus_restoration)']
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling termrock-runtime v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-runtime)
+   Compiling termrock-controls v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-controls)
+   Compiling termrock-shell v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-shell)
+   Compiling termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-viewport)
+   Compiling termrock-fields v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-fields)
+   Compiling termrock-feedback v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-feedback)
+   Compiling termrock-terminal v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-terminal)
+   Compiling termrock-navigation v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-navigation)
+   Compiling termrock-session v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-session)
+   Compiling termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+   Compiling termrock-grid v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-grid)
+   Compiling termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-editors)
+   Compiling termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+   Compiling termrock v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock)
+   Compiling termrock-test-support v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-test-support)
+   Compiling holla-ui v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/holla-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.48s
+────────────
+ Nextest run ID cb017f27-e110-417a-9472-93c4c1ae55e0 with nextest profile: default
+    Starting 2 tests across 1 binary (139 tests skipped)
+        PASS [   0.165s] (1/2) holla-ui screens::home::tests::home_header_text_policy_survives_menu_open_close_and_focus_restoration
+        PASS [   0.217s] (2/2) holla-ui screens::home::tests::section_headers_use_nav_list_text_policy_across_widths_and_color_levels
+────────────
+     Summary [   0.218s] 2 tests run: 2 passed, 139 skipped
+['cargo', 'clippy', '--locked', '-p', 'holla-ui', '--all-targets', '--no-deps', '--', '-D', 'warnings']
+    Checking utf8parse v0.2.2
+    Checking is_terminal_polyfill v1.70.2
+    Checking anstyle-query v1.1.5
+    Checking termrock-runtime v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-runtime)
+    Checking holla-domain v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/holla-domain)
+    Checking anstyle-parse v1.0.0
+    Checking colorchoice v1.0.5
+    Checking anstyle v1.0.14
+    Checking clap_lex v1.1.1
+    Checking strsim v0.11.1
+    Checking anstream v1.0.0
+    Checking holla-catalog v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/holla-catalog)
+    Checking holla-plan v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/holla-plan)
+   Compiling clap_derive v4.6.7
+    Checking clap_builder v4.6.7
+    Checking holla-sim v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/holla-sim)
+    Checking clap v4.6.7
+    Checking termrock-controls v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-controls)
+    Checking termrock-shell v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-shell)
+    Checking termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-viewport)
+    Checking termrock-feedback v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-feedback)
+    Checking termrock-fields v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-fields)
+    Checking termrock-terminal v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-terminal)
+    Checking termrock-navigation v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-navigation)
+    Checking termrock-session v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-session)
+    Checking termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+    Checking termrock-grid v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-grid)
+    Checking termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-editors)
+    Checking termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+    Checking termrock v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock)
+    Checking termrock-test-support v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-test-support)
+    Checking holla-ui v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/holla-ui)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.83s
+['cargo', 'fmt', '--check']

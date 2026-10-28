@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 c46766dfa27dedb719846bb841b02554780c6214 Alexey Zhokhov <alexey@zhokhov.com> 1792238177 +0700	branch: Created from HEAD
+c46766dfa27dedb719846bb841b02554780c6214 345a3dec4c85e021182a3d055824a136ee550237 Alexey Zhokhov <alexey@zhokhov.com> 1792238214 +0700	commit (cherry-pick): feat(ui): the standard Edit context menu on every text widget (M3)
+345a3dec4c85e021182a3d055824a136ee550237 a44258bb64927945f2fefd9392b54e3887200c29 Alexey Zhokhov <alexey@zhokhov.com> 1792238215 +0700	cherry-pick: feat(widgets): default context menus from the key map for DataGrid and ChipBar (M22)
+a44258bb64927945f2fefd9392b54e3887200c29 adf119a494e46e219e4df927fad2dfff5e4d8b80 Alexey Zhokhov <alexey@zhokhov.com> 1792238223 +0700	cherry-pick: docs(audits): mouse #3 and #22 fixed by the Edit menu and key-map context items (S13, WIP)
+adf119a494e46e219e4df927fad2dfff5e4d8b80 a44258bb64927945f2fefd9392b54e3887200c29 Alexey Zhokhov <alexey@zhokhov.com> 1792238242 +0700	reset: moving to HEAD~1
+a44258bb64927945f2fefd9392b54e3887200c29 854f22c125695fd43986cfc80267c5ee2fb93967 Alexey Zhokhov <alexey@zhokhov.com> 1792238570 +0700	commit: feat(tree): default context menu items from TreeCmd's key map (M22)
+854f22c125695fd43986cfc80267c5ee2fb93967 c6436890f6bdd17e8f7b008662d271aa78936eea Alexey Zhokhov <alexey@zhokhov.com> 1792238612 +0700	commit: docs: S13 done; the Edit menu part outcome, mouse #3 and #22 fixed
+c6436890f6bdd17e8f7b008662d271aa78936eea b70750b0dae6dc553567683dd2ce0e407935e8d7 Alexey Zhokhov <alexey@zhokhov.com> 1792238661 +0700	rebase (finish): refs/heads/plan-s13-edit2 onto c46766dfa27dedb719846bb841b02554780c6214
+b70750b0dae6dc553567683dd2ce0e407935e8d7 d67f78dce6a50b78826a09dc8778d9c389b52881 Alexey Zhokhov <alexey@zhokhov.com> 1792239088 +0700	rebase (finish): refs/heads/plan-s13-edit2 onto 38e6b9d0e3ff3868f2a5fd7d951f60bd0e25718c

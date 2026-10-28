@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 62378ec97ee58821ddf2d7663e1da07d48258c0c Alexey Zhokhov <alexey@zhokhov.com> 1792650710 +0700	branch: Created from origin/parity/termrock-visual-baseline
+62378ec97ee58821ddf2d7663e1da07d48258c0c 404c2356b228b62041b7ea69d90b4a9c8a2a4597 termrock-library-agent <agent@local> 1792652481 +0700	commit: feat(core): add INACTIVE_LAYER and INVALID first-class states
+404c2356b228b62041b7ea69d90b4a9c8a2a4597 045801f3f4fce84c4880085cf40ee783e0ae06bf Alexey Zhokhov <alexey@zhokhov.com> 1792652489 +0700	rebase (finish): refs/heads/wip/termrock-library-gaps-20261022 onto 45b8a8020663df109d71d84f39f553836d1a0b82

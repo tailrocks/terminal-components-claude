@@ -1,0 +1,95 @@
+{
+  "source": "f0760158e",
+  "status": "read_only_plan_not_implemented",
+  "generator": {
+    "approved_pin": "0.1.29",
+    "binary": "/Users/donbeave/.local/share/mise/installs/github-tailrocks-velnor-new/0.1.29/velnor-actions",
+    "warning": "PATH selected0.1.12; invokeapprovedversionexplicitly",
+    "schema_proof": "Approvedbinary config migrate --to2 read-only output hasRustconfigurations, no doctestper-taskdisable key"
+  },
+  "omitted_test_binaries": {
+    "ex01_button": [
+      "ex01_disabled_save_without_input_paints_label"
+    ],
+    "ex02_text_input": [
+      "ex02_idle_name_without_input_paints_value"
+    ],
+    "slots": [
+      "public_picker_slot_draws_facade_component_with_domain_data"
+    ],
+    "split_block_consumer": [
+      "split_block_is_a_public_data_driven_consumer_and_uses_live_split_geometry",
+      "measured_split_minimum_preserves_children_at_the_current_ratio",
+      "measured_split_uses_allocated_width_for_wrapping_groups",
+      "over_depth_group_measure_rejects_before_recursive_conversion"
+    ]
+  },
+  "generated_manifest_evidence": {
+    "path": ".github/velnor/task-execution-manifest-v1.json",
+    "task_prefix": "stack/rust/crates/termrock",
+    "build": "cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock/Cargo.toml --package termrock",
+    "run": "cargo nextest run --profile ci --locked --offline --manifest-path crates/termrock/Cargo.toml --package termrock --no-tests fail",
+    "clippy": "cargo clippy --locked --offline --manifest-path crates/termrock/Cargo.toml --package termrock --all-targets -- -D warnings",
+    "gap": "Noneenablestesting; required-featurebinaries absent before execution. composition_consumer test isungatedandnotomitted."
+  },
+  "smallest_feature_configuration": {
+    "file": ".velnor/config.toml",
+    "change": "Keepdefaultconfiguration; add[[stacks.rust.configurations]] name=testing features=[default,testing] target=host. Validateapprovedgenerator featureintersection/fallbackperpackage and taskargv, then regenerate. No handeditingmanagedoutputs.",
+    "verification": [
+      "cargo nextest list --locked -p termrock --features testing --all-targets: requireallfourbinaries and7tests",
+      "cargo nextest run --locked -p termrock --features testing --all-targets --no-tests fail",
+      "cargo clippy --locked -p termrock --features testing --all-targets -- -D warnings",
+      "approvedvelnor-actions plan; approvedvelnor-actions generate --output-dir taskownedpreview; inspecttaskmanifestfeatureargv beforeactualgenerate; generatoridempotence/actionlint/zizmorgates"
+    ]
+  },
+  "executable_consumer": {
+    "existing": "crates/termrock/examples/composition_consumer.rs compilespublicAPIandrendersheadless frame; generatednextestbuilddoesnotbuildexamples andclippyonlycompilesit. Noexecutionobligation.",
+    "proposed": "Smallstandalone tools/public-termrock-consumer Cargo workspace, dependencies publicTermrock+terminalframeworkonly, noappsource/import/assets; binary and nextesttests call same contractrunner. DifferentdomainTabSummary/data and actualRuntime inputs exercise composition,PickerSlot,SplitBlock,Unicode/resize. Generator autodiscovery creates executable test obligation without customshelltask.",
+    "commands": [
+      "cargo nextest run --manifest-path tools/public-termrock-consumer/Cargo.toml --locked --all-targets --no-tests fail",
+      "cargo run --manifest-path tools/public-termrock-consumer/Cargo.toml --locked --bin public-termrock-consumer"
+    ],
+    "limits": "Do not call compiledonlyexample executionproof. Tests mustassert actualcomponentcells/focus/actions andnonzeroexpectedinventory."
+  },
+  "capability_gate": {
+    "gap": "Currentrefactoredsource lacks migratedsrc/catalog.rs andShowcasecoveragegate.",
+    "proposed": "Library-ownedtypedcapabilitydeclarations inexistingfacade; separateShowcasecoverage metadata/test maps actualdemonstratedroutes and exactdeferredIDswithreason/fixedreference. Addnextestgate forunclassified/unknown/duplicateIDs, executablecontractconsumerlinks, no source-stringsearchassoleproof. Keepbaselinescreensunchanged; externalconsumercoverageisnotlabeledasShowcaseddemonstration.",
+    "limits": "Initialmigrationmustnotdeclarealllibrarycoveragecompletewhiledeferredcapabilitiesremain."
+  },
+  "doctest_policy_conflict": {
+    "evidence": "Generatedmanifesthas cargo test --doc foralllibraries despiteprojectnextestonlyrule. Approvedschemahasno disablekindsetting.",
+    "decision": "No configuration-only compliant fix available. Recordupstreamgeneratorcapabilityblocker orreviewmanifestmigration([lib]doctest=false) onlyafterenumeratingandportingeveryexistingdoctest tocompiledexamples/nextest. Retaincargo doc --no-deps withRUSTDOCFLAGS-Dwarnings. Neverhandeditgeneratedoutput orpretendmissingdoctests green."
+  },
+  "ownership_stages": [
+    {
+      "owner": "CIworker",
+      "files": [
+        ".velnor/config.toml",
+        "generated.githubmanagedoutputs"
+      ],
+      "scope": "Featureconfiguration/approvedgeneration/taskmanifestgates only; do notclaimdocsconflictresolved."
+    },
+    {
+      "owner": "externalconsumerworker",
+      "files": [
+        "tools/public-termrock-consumer/**"
+      ],
+      "scope": "Independentpublicconsumerandsharedbinary/testcontractrunner; noapplicationdependencies."
+    },
+    {
+      "owner": "capabilitygateworker",
+      "files": [
+        "crates/termrock/src/catalog.rs",
+        "crates/termrock/src/lib.rs",
+        "crates/showcase-ui/tests/capability_coverage.rs",
+        "docs/audits/capabilitycoverage inventory"
+      ],
+      "scope": "Typeddeclarations+honestcoverage/deferredrecord; baselineShowcaseUIunchanged."
+    },
+    {
+      "owner": "independentreviewer",
+      "scope": "Verifyexactgeneratedargv/inventoryanddeliberatedefectfailure; source/dependencyauditexternalconsumer; reviewcoverageclaims."
+    }
+  ],
+  "references_unchanged": "Frozenbaseline/tag and Tuiscottipin unchanged. No editsmade."
+}

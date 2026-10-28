@@ -1,0 +1,56 @@
+{
+  "revision": "1f3d525ed3a90c739ac3dbb7c61896d0b0b109c5",
+  "decision": "Changes requested: behavioral findings resolved, but duplicated theme rule resolution remains.",
+  "acceptance_complete": false,
+  "resolved": [
+    "Completion popovers now opt out of restoring opener focus, preserving a deliberate NEXT focus transfer and the committed nonediting state. The regression again requires NEXT and !is_editing.",
+    "Unselected Unicode matched labels and explicit bold override probes pass.",
+    "Completion Escape, acceptance, outside-pointer dismissal, close/reopen, editor traversal, find routing, and read-only entry pass the independent external real-runtime workflows. Generic modal/runtime behavior remains covered by the native runtime and overlay suites."
+  ],
+  "finding": {
+    "severity": "P2",
+    "path": "crates/termrock-runtime/src/rowui.rs:389",
+    "problem": "label_recipe_adds_bold manually repeats family/default-variant/label-base merging and state-rule inspection outside the canonical theme resolver, then label_matched conditionally removes a resolved modifier. This gives rendering a second owner of style precedence and violates the single shared rule-resolution contract.",
+    "fix": "Use canonical defaults and authoritative provenance only. The new style_defaults_with_explicit call already supplies remove(BOLD) as a fallback below authored rules and patches; first remove the manual walker and conditional stripping, retaining the Unicode and explicit-bold regression checks. If further provenance is needed, retain it at canonical resolution rather than reconstructing recipe semantics in RowUi."
+  },
+  "verification": {
+    "native": {
+      "command": "cargo nextest run --locked -p termrock-runtime -p termrock-editors -p termrock-overlays -p termrock-navigation --all-targets --no-fail-fast",
+      "run": 695,
+      "passed": 694,
+      "failed": 1,
+      "ignored_driver_fixtures": 3,
+      "existing_failure": "constructor_defaults_match_the_pre_policy_full_cell_fixture, actual17020103994864682368 expected12184706452759668872, identical to independently tested6375 base.",
+      "log": "/private/tmp/termrock-editor-1f3d-native.log",
+      "log_sha256": "d900ddbf0236ff5d65dd14679256587d34b77082d7f4bb73e6b31fe3ff59c781"
+    },
+    "external_original_workflows": {
+      "run": 19,
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "log": "/private/tmp/termrock-editor-1f3d-probes.log",
+      "log_sha256": "b9c84849877fe9fb6d104bbeae5c99a730062a4fe0eedae564c82f66045cf42f"
+    },
+    "external_extended": {
+      "run": 20,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "additional_case": "Empty-match labels retain the same focused-fill foreground/background as ordinary RowUi labels.",
+      "log": "/private/tmp/termrock-editor-1f3d-probes-extended.log",
+      "log_sha256": "aa369ce879fad25d5a9bd772016295e103449ac0b0004d64b46cc06d5c876afb"
+    },
+    "clippy": {
+      "command": "cargo clippy --locked -p termrock-runtime -p termrock-editors -p termrock-overlays -p termrock-navigation --all-targets -- -D warnings",
+      "passed": true,
+      "log": "/private/tmp/termrock-editor-1f3d-clippy.log",
+      "log_sha256": "b14908a9316e7b3b6057d97d22b50a547f0c1a3ad4722c1cd6c07246a1d6d026"
+    },
+    "formatting": "Scoped rustfmt check and git diff --check passed; source worktree is clean."
+  },
+  "limits": [
+    "No source or expected-artifact edits.",
+    "No full TablePro or frozen real-CLI parity claim; application acceptance remains separate."
+  ]
+}

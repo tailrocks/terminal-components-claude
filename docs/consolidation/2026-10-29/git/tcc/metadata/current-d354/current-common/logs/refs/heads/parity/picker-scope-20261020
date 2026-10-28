@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 501b91b087e12d69e420e816758042e0e91ed627 Alexey Zhokhov <alexey@zhokhov.com> 1792486905 +0700	branch: Created from HEAD
+501b91b087e12d69e420e816758042e0e91ed627 84a76ea65a1cc656e9b6216710ac9367d9c67ca1 Alexey Zhokhov <alexey@zhokhov.com> 1792487087 +0700	commit: feat(overlays): add picker scope caption
+84a76ea65a1cc656e9b6216710ac9367d9c67ca1 cbf7d88a7c528d018e2c4837e22331b072d42b8a Alexey Zhokhov <alexey@zhokhov.com> 1792487442 +0700	commit: test(overlays): assert picker caption cells
+cbf7d88a7c528d018e2c4837e22331b072d42b8a 3854a862ad3fdaa4d9a3a876e3679cea73e917a2 Alexey Zhokhov <alexey@zhokhov.com> 1792487561 +0700	commit: test(overlays): cover picker caption width boundary

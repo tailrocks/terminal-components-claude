@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 d90527663f0368e3f0f3f5d916aabd5114b313d5 Alexey Zhokhov <alexey@zhokhov.com> 1792750686 +0700	branch: Created from origin/parity/termrock-visual-baseline
+d90527663f0368e3f0f3f5d916aabd5114b313d5 b817b2b645d585f0383840951844060e0890be58 Alexey Zhokhov <alexey@zhokhov.com> 1792752009 +0700	commit: feat(navigation): configure Tabs New and Close keys
+b817b2b645d585f0383840951844060e0890be58 9201e4c9135380b2867b72c81fae9bd620f32e18 Alexey Zhokhov <alexey@zhokhov.com> 1792752523 +0700	commit: test(navigation): cover Close-only Tabs plan mismatches

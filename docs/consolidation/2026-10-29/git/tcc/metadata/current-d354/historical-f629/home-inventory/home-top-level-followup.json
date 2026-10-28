@@ -1,0 +1,11 @@
+{
+  "captured_at_utc": "2026-10-28T18:44:23.342057+00:00",
+  "method": "os.walk with symlink traversal disabled and dependency/build/cache directories pruned",
+  "path": "/Users/donbeave/termrock-review-20261021-1536",
+  "recursive_git_markers_found": 0,
+  "root_cargo_toml": false,
+  "root_git_marker": false,
+  "schema_version": 1,
+  "supersedes": "inventory.json limitation stating this home top-level match was not recursively scanned; follow-up found no .git markers.",
+  "walk_errors": 0
+}

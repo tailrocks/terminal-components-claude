@@ -7,7 +7,6 @@ license.workspace = true
 
 [features]
 default = ["crossterm"]
-testing = ["termrock-core/testing", "termrock-theme/testing"]
 crossterm = ["dep:ratatui-crossterm"]
 
 [dependencies]
@@ -23,9 +22,5 @@ ratatui.workspace = true
 ratatui-core.workspace = true
 ratatui-crossterm = { workspace = true, optional = true }
 
-[dev-dependencies]
-termrock.workspace = true
-termrock-test-support.workspace = true
-termrock-viewport.workspace = true
-termrock-controls.workspace = true
-termrock-session.workspace = true
+[lib]
+doctest = false

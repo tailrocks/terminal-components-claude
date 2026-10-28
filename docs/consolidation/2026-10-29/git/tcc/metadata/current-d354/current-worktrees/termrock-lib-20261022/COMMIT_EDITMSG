@@ -1,0 +1,11 @@
+feat(core): add INACTIVE_LAYER and INVALID first-class states
+
+StateFlags widens to u32 and gains two flags:
+- INACTIVE_LAYER: the owning layer is not the active layer. The runtime
+  reports it through Ui::context_state() and Ui::is_inactive_layer(), and
+  declare_state() travels it with the component's own state.
+- INVALID: the value in hand cannot be used, distinct from the ERROR
+  severity. CellDecor::flags() reports both for a cell carrying an error.
+
+The palette is untouched: no theme rule keys on either flag, so painting is
+unchanged. The component digest gate is byte-identical (0 deltas).

@@ -1,22 +1,273 @@
+use std::cell::Cell;
 use std::time::Duration;
 
+use termrock::controls::ButtonFocusVisibility;
 use termrock::{
-    Button, Constraints, Cx, Family, FrameRead, Id, Moment, Panel, PanelKind, Part, PartRef, Rect,
-    ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, layout,
+    BusyMarkerPolicy, Button, Constraints, Cx, Focusability, FrameRead, Id, Intent, ItemKey,
+    KeyCode, Moment, Panel, PanelKind, Part, PartRef, Rect, ReferenceState, ReferenceTarget,
+    Response, RowAlign, ScopeId, ScrollRegion, ScrollState, Select, SelectState, StateFlags,
+    Status, Tabs, TabsState, Ui, Variant, author::VerticalWindow, layout,
 };
 
-use super::{Page, PageStatus, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, frame_with_body_rows};
 
 const BUTTONS: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons");
 const PLAYGROUND_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.playground");
 const MATRIX: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.matrix");
 const MATRIX_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.matrix.panel");
+const PAGE_TABS: Id = termrock::Id::root("showcase_ui::pages::buttons.page_tabs");
+
+fn page_tabs_active_flags(
+    ui: &Ui<'_>,
+    layout: &termrock::navigation::tabs::TabLayout,
+) -> Option<StateFlags> {
+    let active = layout.active_key()?;
+    if !layout.rows().iter().any(|row| row.key == active) {
+        return None;
+    }
+    let live = ui.state(PAGE_TABS);
+    let hovered = ui.hovered_part(PAGE_TABS);
+    let pressed = ui.pressed_part(PAGE_TABS);
+    let part = PartRef::item(Part::TAB, active);
+    let mut flags = StateFlags::ACTIVE;
+
+    if layout.cursor_key() == Some(active) {
+        flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+        if pressed.is_none() {
+            flags |= live & StateFlags::PRESSED;
+        }
+    }
+    if hovered == Some(part) {
+        flags |= StateFlags::HOVERED;
+    }
+    if pressed == Some(part) {
+        flags |= StateFlags::PRESSED;
+    }
+
+    Some(flags)
+}
+
+fn page_tabs_style_snapshot(
+    ui: &Ui<'_>,
+    part: Part,
+    flags: StateFlags,
+) -> (termrock::Resolved, termrock::StylePatch) {
+    ui.style_defaults_with_fallback_ownership(
+        termrock::Family::TABS,
+        Variant::DEFAULT,
+        part,
+        flags,
+        termrock::theme::StyleDefaults::default(),
+        None,
+    )
+}
+
+fn page_tabs_owned_style_unchanged(
+    before: termrock::Resolved,
+    ownership: termrock::StylePatch,
+    after: termrock::Resolved,
+) -> bool {
+    let before_style = before.style.as_style();
+    let after_style = after.style.as_style();
+    (!ownership.fg.speaks() || before_style.fg == after_style.fg)
+        && (!ownership.bg.speaks() || before_style.bg == after_style.bg)
+        && ((ownership.add.is_empty() && ownership.remove.is_empty())
+            || (before_style.add_modifier == after_style.add_modifier
+                && before_style.sub_modifier == after_style.sub_modifier))
+        && (!ownership.underline.speaks()
+            || (before_style.underline_color == after_style.underline_color
+                && before.style.underline_role() == after.style.underline_role()
+                && before.style.underline_cleared() == after.style.underline_cleared()))
+        && (!ownership.glyph.speaks() || before.glyph == after.glyph)
+        && (!ownership.size.speaks() || before.size == after.size)
+        && (!ownership.align.speaks() || before.align == after.align)
+}
+
+fn page_tabs_snapshot_unchanged(
+    before: (termrock::Resolved, termrock::StylePatch),
+    after: (termrock::Resolved, termrock::StylePatch),
+) -> bool {
+    before.1 == after.1 && page_tabs_owned_style_unchanged(before.0, before.1, after.0)
+}
+
+fn page_tabs_fallback(ownership: termrock::StylePatch, plate: bool) -> termrock::StylePatch {
+    let mut patch = termrock::StylePatch::new();
+    if !ownership.fg.speaks() {
+        patch = patch.set_fg(termrock::Role::Fg(termrock::FgStep::Primary));
+    }
+    if plate && !ownership.bg.speaks() {
+        patch = patch.set_bg(termrock::Role::Surface(termrock::Surface::Overlay));
+    }
+    if ownership.add.is_empty() && ownership.remove.is_empty() {
+        patch = patch.add(termrock::Modifier::BOLD);
+    }
+    patch
+}
+
+fn insert_page_tabs_fallback(
+    recipe: &mut termrock::theme::Recipe,
+    part: Part,
+    patch: termrock::StylePatch,
+) {
+    if patch.is_empty() {
+        return;
+    }
+    let rules = &mut recipe.parts.entry(part).states;
+    let active = termrock::theme::StateRule {
+        when: StateFlags::ACTIVE,
+        patch,
+    };
+    let insertion = rules
+        .iter()
+        .position(|rule| rule.specificity() >= active.specificity())
+        .unwrap_or(rules.len());
+    rules.insert(insertion, active);
+}
+
+fn theme_with_page_tabs_fallbacks(
+    incoming: &termrock::Theme,
+    tab: termrock::StylePatch,
+    label: termrock::StylePatch,
+) -> termrock::Theme {
+    let mut theme = incoming.clone();
+    if tab.is_empty() && label.is_empty() {
+        return theme;
+    }
+    if theme.recipes.get(termrock::Family::TABS).is_none() {
+        let neutral_tabs = (*theme.recipes.get_or_neutral(termrock::Family::TABS)).clone();
+        *theme.recipes.get_mut(termrock::Family::TABS) = neutral_tabs;
+    }
+    let tabs = theme.recipes.get_mut(termrock::Family::TABS);
+    insert_page_tabs_fallback(tabs, Part::TAB, tab);
+    insert_page_tabs_fallback(tabs, Part::LABEL, label);
+    theme
+}
+
+fn page_tabs_theme(
+    ui: &mut Ui<'_>,
+    layout: &termrock::navigation::tabs::TabLayout,
+) -> Option<termrock::Theme> {
+    // This page uses default, non-passive Ready Tabs. Keep this predicate aligned with its
+    // Tabs::new(PAGE_TABS) configuration and the native per-item flag derivation.
+    let flags = page_tabs_active_flags(ui, layout)?;
+
+    // Query the incoming theme and overlays before changing a cloned recipe. Empty component
+    // defaults and no instance patch match this page's Tabs style path.
+    let tab_before = page_tabs_style_snapshot(ui, Part::TAB, flags);
+    let label_before = page_tabs_style_snapshot(ui, Part::LABEL, flags);
+    let tab_ownership = tab_before.1;
+    let label_ownership = label_before.1;
+    let tab_fallback = page_tabs_fallback(tab_ownership, true);
+    let label_fallback = page_tabs_fallback(label_ownership, false);
+    if tab_fallback.is_empty() && label_fallback.is_empty() {
+        return None;
+    }
+
+    let provisional =
+        theme_with_page_tabs_fallbacks(ui.theme_ref(), tab_fallback, label_fallback);
+
+    // A fallback can change eligibility for a previously inactive profile. If the effective
+    // ownership query changes in either part, omit that part's fallback instead of changing
+    // that profile's behavior. Re-query through the scoped public theme seam before drawing.
+    let (tab_after, label_after) = ui.with_theme(&provisional, |ui| {
+        (
+            page_tabs_style_snapshot(ui, Part::TAB, flags),
+            page_tabs_style_snapshot(ui, Part::LABEL, flags),
+        )
+    });
+    if page_tabs_snapshot_unchanged(tab_before, tab_after)
+        && page_tabs_snapshot_unchanged(label_before, label_after)
+    {
+        return Some(provisional);
+    }
+    let tab_fallback = if page_tabs_snapshot_unchanged(tab_before, tab_after) {
+        tab_fallback
+    } else {
+        termrock::StylePatch::new()
+    };
+    let label_fallback = if page_tabs_snapshot_unchanged(label_before, label_after) {
+        label_fallback
+    } else {
+        termrock::StylePatch::new()
+    };
+    if tab_fallback.is_empty() && label_fallback.is_empty() {
+        return None;
+    }
+
+    Some(theme_with_page_tabs_fallbacks(
+        ui.theme_ref(),
+        tab_fallback,
+        label_fallback,
+    ))
+}
+
+const OPTIONS_SCROLL: Id = termrock::Id::root("showcase_ui::pages::buttons.options_scroll");
+const STATES_SCROLL: Id = termrock::Id::root("showcase_ui::pages::buttons.states_scroll");
+const FOCUS_VISIBILITY: Id = termrock::Id::root("showcase_ui::pages::buttons.focus_visibility");
+const ACTION_FOCUS: Id = termrock::Id::root("showcase_ui::pages::buttons.action_focus");
+const ROW_ALIGNMENT: Id = termrock::Id::root("showcase_ui::pages::buttons.row_alignment");
+const ROW_GAP: Id = termrock::Id::root("showcase_ui::pages::buttons.row_gap");
+const STATE_BUTTONS: Id = termrock::Id::root("showcase_ui::pages::buttons.states.button");
+
+const PAGE_SECTIONS: &[&str] = &["Playground", "Options", "States"];
+const PAGE_BODY_START_ROW: u16 = 5;
+const FOCUS_VISIBILITY_ITEMS: &[&str] = &["Always", "Keyboard only"];
+const ACTION_FOCUS_ITEMS: &[&str] = &["In Tab order", "Pointer only"];
+const ROW_ALIGNMENT_ITEMS: &[&str] = &["Start", "End"];
+const ROW_GAP_ITEMS: &[&str] = &["Theme", "1", "4"];
+const OPTION_IDS: [Id; 4] = [FOCUS_VISIBILITY, ACTION_FOCUS, ROW_ALIGNMENT, ROW_GAP];
+const OPTION_LABELS: [&str; 4] = [
+    "Focus ring",
+    "Action buttons in Tab order",
+    "Row alignment",
+    "Row gap",
+];
+const OPTION_ROWS: usize = OPTION_IDS.len();
+const STATE_ROWS: usize = 3;
+
+const TABS_HINTS: &[(&str, &str)] = &[("← →", "Section"), ("1–3", "Jump"), ("Enter", "Activate")];
+const SELECT_HINTS: &[(&str, &str)] = &[("↑ ↓", "Choose"), ("Enter", "Choose")];
+const SCROLL_HINTS: &[(&str, &str)] = &[("Wheel", "Scroll"), ("PgUp/Dn", "Scroll")];
+const HIDDEN_OPTION_HINTS: &[(&str, &str)] = &[("Tab / Shift+Tab", "Focus"), ("Wheel", "Scroll")];
+const BUTTON_HINTS: &[(&str, &str)] = &[("Enter / Space", "Activate")];
+
+const CARD_TITLE: &[(Part, termrock::StylePatch)] = &[(
+    Part::TITLE,
+    termrock::StylePatch::new()
+        .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+        .remove(termrock::Modifier::BOLD),
+)];
+
+const DANGER_INK: &[(Part, termrock::StylePatch)] = &[(
+    Part::CONTAINER,
+    termrock::StylePatch::new().set_fg(termrock::Role::Danger),
+)];
+
+const DISABLED_PLATE: &[(Part, termrock::StylePatch)] = &[(
+    Part::CONTAINER,
+    termrock::StylePatch::new().set_bg(termrock::Role::Custom(termrock::Color::from_u32(
+        0x0011_1111,
+    ))),
+)];
+
+const PRESSED_BOLD: &[(Part, termrock::StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        termrock::StylePatch::new().add(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::LABEL,
+        termrock::StylePatch::new().add(termrock::Modifier::BOLD),
+    ),
+];
 
 fn playground_panel() -> Panel<'static> {
     Panel::new(PLAYGROUND_PANEL)
         .kind(PanelKind::Card)
         .title("Playground")
         .meta("hover · click · Tab · Enter / Space ")
+        .patch_part(CARD_TITLE)
+        .slot(Part::DETAIL, &paint_playground_meta)
 }
 
 fn matrix_panel() -> Panel<'static> {
@@ -24,6 +275,53 @@ fn matrix_panel() -> Panel<'static> {
         .kind(PanelKind::Card)
         .title("State matrix")
         .meta("reference rendering ")
+        .patch_part(CARD_TITLE)
+        .slot(Part::DETAIL, &paint_matrix_meta)
+}
+
+fn paint_playground_meta(ui: &mut Ui<'_>, rect: Rect) {
+    paint_faint(ui, rect, "hover · click · Tab · Enter / Space");
+}
+
+fn paint_matrix_meta(ui: &mut Ui<'_>, rect: Rect) {
+    paint_faint(ui, rect, "reference rendering");
+}
+
+fn paint_faint(ui: &mut Ui<'_>, rect: Rect, text: &str) {
+    let columns = termrock::width(text);
+    let _ = ui.paint_str(
+        Rect {
+            width: columns.min(rect.width),
+            ..rect
+        },
+        text,
+        faint_ink(ui),
+    );
+}
+
+fn paint_toggle_off(ui: &mut Ui<'_>, rect: Rect) {
+    ui.glyph(rect, termrock::GlyphRole::DotOff, toggle_ink(ui, false));
+}
+
+fn paint_toggle_on(ui: &mut Ui<'_>, rect: Rect) {
+    ui.glyph(rect, termrock::GlyphRole::DotOn, toggle_ink(ui, true));
+}
+
+fn toggle_ink(ui: &Ui<'_>, on: bool) -> termrock::author::PaintStyle {
+    let level = ui.theme().capability.color;
+    let fg = if on {
+        ui.theme().color.accent
+    } else {
+        termrock::theme::baseline_muted(level)
+    };
+    ui.surface_style()
+        .fg(fg)
+        .bg(ui.theme().bg(termrock::Surface::Overlay))
+}
+
+fn faint_ink(ui: &Ui<'_>) -> termrock::author::PaintStyle {
+    ui.surface_style()
+        .fg(termrock::theme::baseline_faint(ui.theme().capability.color))
 }
 
 const SPECS: [(&str, Variant, bool, Option<bool>); 9] = [
@@ -60,7 +358,12 @@ const MATRIX_STATES: [(&str, StateFlags); 6] = [
             .union(StateFlags::FOCUS_VISIBLE)
             .union(StateFlags::HOVERED),
     ),
-    ("pressed", StateFlags::PRESSED.union(StateFlags::FOCUSED)),
+    (
+        "pressed",
+        StateFlags::PRESSED
+            .union(StateFlags::FOCUSED)
+            .union(StateFlags::FOCUS_VISIBLE),
+    ),
     ("disabled", StateFlags::DISABLED),
 ];
 
@@ -70,20 +373,6 @@ const MATRIX_VARIANTS: [(Variant, &str); 4] = [
     (Variant::SUBTLE, "Subtle"),
     (Variant::DANGER, "Danger"),
 ];
-
-fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlags) {
-    if area.is_empty() {
-        return;
-    }
-    let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
-    let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
-
-    gutter = gutter.with_bg_from(container.style);
-    if !flags.contains(StateFlags::FOCUSED) {
-        gutter = gutter.with_fg_from_bg(container.style);
-    }
-    let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
-}
 
 fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
     let mut state = ReferenceState::default();
@@ -102,12 +391,134 @@ fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
     present.then_some(state)
 }
 
+fn section_tabs_area(area: Rect) -> Rect {
+    let y = area.y.saturating_add(2).min(area.bottom());
+    Rect {
+        y,
+        height: area.bottom().saturating_sub(y).min(2),
+        ..area
+    }
+}
+
+fn option_row(id: Id) -> Option<usize> {
+    OPTION_IDS.iter().position(|candidate| *candidate == id)
+}
+
+fn option_window(scroll: &ScrollState, view: Rect) -> Option<VerticalWindow> {
+    let projected = ScrollRegion::view(scroll, view, OPTION_ROWS);
+    let first_row = projected.offset().min(OPTION_ROWS);
+    let visible = Rect {
+        height: view
+            .height
+            .min(u16::try_from(OPTION_ROWS).unwrap_or(u16::MAX)),
+        ..view
+    };
+    VerticalWindow::new(visible, OPTION_ROWS, first_row).ok()
+}
+
+fn option_row_areas(view: Rect, y: u16) -> (Rect, Rect) {
+    let label_width = view.width.saturating_sub(14).min(28);
+    let control_x = view.x.saturating_add(label_width).saturating_add(1);
+    let control_width = view.right().saturating_sub(control_x);
+    (
+        Rect::new(view.x, y, label_width, 1),
+        Rect::new(control_x, y, control_width, 1),
+    )
+}
+
+fn option_field_is_visible(id: Id, scroll: &ScrollState, view: Rect) -> bool {
+    let Some(row) = option_row(id) else {
+        return false;
+    };
+    let Some(window) = option_window(scroll, view) else {
+        return false;
+    };
+    if !window.visible_source_range().contains(&row) {
+        return false;
+    }
+    let Some(y) = window.physical_row_for_source(row) else {
+        return false;
+    };
+    let (_, control_area) = option_row_areas(view, y);
+    !control_area.is_empty()
+}
+
+fn initial_select_state(index: usize) -> SelectState {
+    let mut state = SelectState::default();
+    state.set_value(Some(ItemKey::index(index)));
+    state
+}
+
+fn wheel_delta(cx: &Cx<'_>, id: Id) -> i32 {
+    cx.intents(id)
+        .filter_map(|intent| match intent {
+            Intent::Wheel { delta, .. } => Some(i32::from(delta)),
+            _ => None,
+        })
+        .fold(0i32, i32::saturating_add)
+}
+
+fn page_scroll_keys(cx: &mut Cx<'_>, id: Id, scroll: &mut ScrollState) -> Response<()> {
+    let mut response = Response::ignored();
+    for intent in cx.intents(id) {
+        let Intent::Key(key) = intent else {
+            continue;
+        };
+        let before = scroll.offset();
+        match key.code {
+            KeyCode::PageUp => scroll.page_up(),
+            KeyCode::PageDown => scroll.page_down(),
+            _ => continue,
+        }
+        response |= if scroll.offset() == before {
+            Response::consumed()
+        } else {
+            Response::changed()
+        };
+    }
+    response
+}
+
+fn consume_hidden_option_intents(cx: &mut Cx<'_>, id: Id, locally_open: bool) -> Response<()> {
+    if !cx.state(id).contains(StateFlags::FOCUSED)
+        || cx.area(id).is_some()
+        || locally_open
+        || cx.is_open(id)
+    {
+        return Response::ignored();
+    }
+    if cx.intents(id).count() > 0 {
+        Response::consumed()
+    } else {
+        Response::ignored()
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ButtonsDrawFacts {
+    section: usize,
+    options_view: Option<Rect>,
+}
+
 #[derive(Debug)]
 pub struct ButtonsPage {
     checked: [Option<bool>; 9],
     clicks: u32,
     last: Option<String>,
     busy_until: Option<Moment>,
+    page_tabs: TabsState,
+    focus_visibility_index: usize,
+    focus_visibility_state: SelectState,
+    action_focus_index: usize,
+    action_focus_state: SelectState,
+    row_alignment_index: usize,
+    row_alignment_state: SelectState,
+    row_gap_index: usize,
+    row_gap_state: SelectState,
+    options_scroll: ScrollState,
+    options_focus: Option<Id>,
+    states_scroll: ScrollState,
+    drawn_layout: Cell<Option<ButtonsDrawFacts>>,
 }
 
 impl ButtonsPage {
@@ -117,6 +528,19 @@ impl ButtonsPage {
             clicks: 0,
             last: None,
             busy_until: None,
+            page_tabs: TabsState::default(),
+            focus_visibility_index: 0,
+            focus_visibility_state: initial_select_state(0),
+            action_focus_index: 0,
+            action_focus_state: initial_select_state(0),
+            row_alignment_index: 0,
+            row_alignment_state: initial_select_state(0),
+            row_gap_index: 0,
+            row_gap_state: initial_select_state(0),
+            options_scroll: ScrollState::default(),
+            options_focus: None,
+            states_scroll: ScrollState::default(),
+            drawn_layout: Cell::new(None),
         };
         for (slot, (_, _, _, checked)) in page.checked.iter_mut().zip(SPECS) {
             *slot = checked;
@@ -128,16 +552,75 @@ impl ButtonsPage {
         BUTTONS.index(index)
     }
 
+    fn selected_section(&self) -> usize {
+        match self.page_tabs.active().or(self.page_tabs.cursor()) {
+            Some(ItemKey::Index(index)) => index.min(PAGE_SECTIONS.len().saturating_sub(1)),
+            _ => 0,
+        }
+    }
+
+    fn effective_section(&self, tabs_area: Rect) -> usize {
+        if tabs_area.is_empty() {
+            0
+        } else {
+            self.selected_section()
+        }
+    }
+
+    fn focus_visibility(&self) -> ButtonFocusVisibility {
+        match self.focus_visibility_index {
+            1 => ButtonFocusVisibility::KeyboardOnly,
+            _ => ButtonFocusVisibility::Always,
+        }
+    }
+
+    fn action_focusability(&self) -> Focusability {
+        match self.action_focus_index {
+            1 => Focusability::ClickOnly,
+            _ => Focusability::Focusable,
+        }
+    }
+
+    fn row_alignment(&self) -> RowAlign {
+        match self.row_alignment_index {
+            1 => RowAlign::End,
+            _ => RowAlign::Start,
+        }
+    }
+
+    fn row_gap(&self, theme_gap: u16) -> u16 {
+        match self.row_gap_index {
+            1 => 1,
+            2 => 4,
+            _ => theme_gap,
+        }
+    }
+
     fn button(&self, index: usize) -> Option<Button<'static>> {
         let (label, variant, disabled, _) = SPECS.get(index).copied()?;
         let mut button = Button::new(Self::button_id(index), label)
             .variant(variant)
-            .disabled(disabled);
+            .disabled(disabled)
+            .focus_visible(self.focus_visibility());
+        if index < GROUPS[0].1.len() {
+            button = button.focusability(self.action_focusability());
+        }
+        button = button.busy_marker_policy(BusyMarkerPolicy::Replace);
         if let Some(checked) = self.checked.get(index).copied().flatten() {
             button = button.checked(checked);
         }
         if index == LONG_JOB && self.busy_until.is_some() {
             button = button.status(Status::Busy);
+        }
+        if variant == Variant::DANGER {
+            button = button.patch_part(DANGER_INK);
+        }
+        if variant == Variant::TOGGLE {
+            button = if self.checked.get(index).copied().flatten() == Some(true) {
+                button.slot(Part::MARKER, &paint_toggle_on)
+            } else {
+                button.slot(Part::MARKER, &paint_toggle_off)
+            };
         }
         Some(button)
     }
@@ -174,7 +657,21 @@ impl Page for ButtonsPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
-        let mut response = Response::ignored();
+        let tabs_area = cx.area(PAGE_TABS).unwrap_or_default();
+        let previous_section = self.effective_section(tabs_area);
+        let mut response = Tabs::new(PAGE_TABS)
+            .update(cx, &mut self.page_tabs, PAGE_SECTIONS)
+            .erase();
+        let section = self.effective_section(tabs_area);
+        if section != previous_section {
+            match section {
+                1 => self.options_scroll.scroll_to(0),
+                2 => self.states_scroll.scroll_to(0),
+                _ => (),
+            }
+            self.options_focus = None;
+        }
+
         let mut status = None;
         if cx.update_cause() == termrock::UpdateCause::Tick
             && self.busy_until.is_some_and(|deadline| cx.now() >= deadline)
@@ -183,13 +680,127 @@ impl Page for ButtonsPage {
             status = Some(PageStatus("Long job finished ✓".to_owned()));
             response = Response::changed();
         }
-        for index in 0..SPECS.len() {
-            if self
-                .button(index)
-                .is_some_and(|button| button.update(cx).activated())
+
+        if (section == 1 && cx.area(FOCUS_VISIBILITY).is_some())
+            || self.focus_visibility_state.is_open()
+            || cx.is_open(FOCUS_VISIBILITY)
+        {
+            response |= Select::new(FOCUS_VISIBILITY)
+                .popup_rows(2)
+                .update_in_form(
+                    cx,
+                    &mut self.focus_visibility_state,
+                    &mut self.focus_visibility_index,
+                    FOCUS_VISIBILITY_ITEMS,
+                    false,
+                )
+                .erase();
+        } else if section == 1 {
+            response |= consume_hidden_option_intents(
+                cx,
+                FOCUS_VISIBILITY,
+                self.focus_visibility_state.is_open(),
+            );
+        }
+        if (section == 1 && cx.area(ACTION_FOCUS).is_some())
+            || self.action_focus_state.is_open()
+            || cx.is_open(ACTION_FOCUS)
+        {
+            response |= Select::new(ACTION_FOCUS)
+                .popup_rows(2)
+                .update_in_form(
+                    cx,
+                    &mut self.action_focus_state,
+                    &mut self.action_focus_index,
+                    ACTION_FOCUS_ITEMS,
+                    false,
+                )
+                .erase();
+        } else if section == 1 {
+            response |=
+                consume_hidden_option_intents(cx, ACTION_FOCUS, self.action_focus_state.is_open());
+        }
+        if (section == 1 && cx.area(ROW_ALIGNMENT).is_some())
+            || self.row_alignment_state.is_open()
+            || cx.is_open(ROW_ALIGNMENT)
+        {
+            response |= Select::new(ROW_ALIGNMENT)
+                .popup_rows(2)
+                .update_in_form(
+                    cx,
+                    &mut self.row_alignment_state,
+                    &mut self.row_alignment_index,
+                    ROW_ALIGNMENT_ITEMS,
+                    false,
+                )
+                .erase();
+        } else if section == 1 {
+            response |= consume_hidden_option_intents(
+                cx,
+                ROW_ALIGNMENT,
+                self.row_alignment_state.is_open(),
+            );
+        }
+        if (section == 1 && cx.area(ROW_GAP).is_some())
+            || self.row_gap_state.is_open()
+            || cx.is_open(ROW_GAP)
+        {
+            response |= Select::new(ROW_GAP)
+                .popup_rows(3)
+                .update_in_form(
+                    cx,
+                    &mut self.row_gap_state,
+                    &mut self.row_gap_index,
+                    ROW_GAP_ITEMS,
+                    false,
+                )
+                .erase();
+        } else if section == 1 {
+            response |= consume_hidden_option_intents(cx, ROW_GAP, self.row_gap_state.is_open());
+        }
+
+        if section == 1 {
+            response |=
+                ScrollRegion::new(OPTIONS_SCROLL).update(cx, &mut self.options_scroll, OPTION_ROWS);
+            response |= page_scroll_keys(cx, OPTIONS_SCROLL, &mut self.options_scroll);
+
+            let focused_option = cx
+                .focused_in_scope(ScopeId::ROOT)
+                .filter(|id| option_row(*id).is_some());
+            let focus_changed = focused_option != self.options_focus;
+            self.options_focus = focused_option;
+            let wheel_delta = wheel_delta(cx, OPTIONS_SCROLL);
+            if wheel_delta == 0
+                && focus_changed
+                && let Some(id) = focused_option
+                && let Some(row) = option_row(id)
             {
-                status = self.activated(index, cx.now());
-                response = Response::changed();
+                let _ = ScrollRegion::new(OPTIONS_SCROLL).prepare(
+                    cx,
+                    &mut self.options_scroll,
+                    OPTION_ROWS,
+                );
+                let _ = self.options_scroll.reveal_span(row, 1);
+            }
+        } else {
+            self.options_focus = None;
+        }
+
+        if section == 2 {
+            response |=
+                ScrollRegion::new(STATES_SCROLL).update(cx, &mut self.states_scroll, STATE_ROWS);
+            response |= page_scroll_keys(cx, STATES_SCROLL, &mut self.states_scroll);
+        }
+
+        if section == 0 {
+            for index in 0..SPECS.len() {
+                if let Some(button) = self.button(index)
+                    && cx.area(button.id()).is_some()
+                    && button.update(cx).activated()
+                {
+                    status = self.activated(index, cx.now());
+                    response |= Response::changed();
+                }
             }
         }
         if cx.top_layer() == termrock::LayerId::PAGE
@@ -204,55 +815,166 @@ impl Page for ButtonsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
+        self.drawn_layout.set(None);
+        let tabs_area = section_tabs_area(area);
+        let tabs = Tabs::new(PAGE_TABS);
+        let previous =
+            ui.layout(PAGE_TABS)
+                .map(|facts| termrock::navigation::tabs::TabWindowReceipt {
+                    viewport_len: facts.viewport_len,
+                    content_len: facts.content_len,
+                });
+        let tabs_layout =
+            tabs.layout_default(tabs_area, area, &self.page_tabs, PAGE_SECTIONS, previous);
+        let tabs_theme = page_tabs_theme(ui, &tabs_layout);
+        let section = if tabs_layout.visible_area.is_empty() {
+            0
+        } else {
+            self.selected_section()
+        };
+        let mut options_view = None;
+        frame_with_body_rows(
             ui,
             area,
             self.title(),
             "Primary, secondary, subtle, danger, toggle, disabled, busy",
+            PAGE_BODY_START_ROW,
             |ui, body| {
-                let regions = layout::rows(
-                    body,
-                    &[
-                        termrock::Track::Fixed(15),
-                        termrock::Track::Fixed(1),
-                        termrock::Track::Fixed(11),
-                        termrock::Track::Flex(1),
-                    ],
-                );
-                playground_panel().draw(
-                    ui,
-                    regions.first().copied().unwrap_or(body),
-                    |ui, inner| self.draw_playground(ui, inner),
-                );
-                let matrix_area = regions.get(2).copied().unwrap_or(body);
-                if matrix_area.width < 70 && !matrix_area.is_empty() {
-                    matrix_panel().draw(ui, matrix_area, |_, _| ());
-                    Self::draw_matrix(
-                        ui,
-                        Rect {
-                            x: matrix_area.x.saturating_add(2),
-                            y: matrix_area.y.saturating_add(2),
-                            width: matrix_area.width.saturating_sub(4),
-                            height: 1,
-                        },
-                    );
-                } else {
-                    matrix_panel().draw(ui, matrix_area, Self::draw_matrix);
+                if !tabs_layout.visible_area.is_empty() {
+                    if let Some(theme) = tabs_theme.as_ref() {
+                        ui.with_theme(theme, |ui| {
+                            let _ = tabs.draw_layout(ui, &tabs_layout);
+                        });
+                    } else {
+                        let _ = tabs.draw_layout(ui, &tabs_layout);
+                    }
                 }
-                if let Some(status) = regions.get(3).copied()
-                    && let Some(last) = &self.last
-                {
-                    let text = format!("last: {last} · {} activations", self.clicks);
-                    let _ = ui.paint_str(status, &text, ui.surface_style());
+                match section {
+                    1 => options_view = self.draw_options(ui, body),
+                    2 => self.draw_states(ui, body),
+                    _ => self.draw_playground_section(ui, body, area),
                 }
             },
         );
+        self.drawn_layout.set(Some(ButtonsDrawFacts {
+            section,
+            options_view,
+        }));
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        let drawn = self.drawn_layout.get().unwrap_or(ButtonsDrawFacts {
+            section: 0,
+            options_view: None,
+        });
+        if ui.state(PAGE_TABS).contains(StateFlags::FOCUSED) {
+            return TABS_HINTS;
+        }
+        if let Some(id) = OPTION_IDS
+            .into_iter()
+            .find(|id| ui.state(*id).contains(StateFlags::FOCUSED))
+        {
+            let open = match id {
+                FOCUS_VISIBILITY => self.focus_visibility_state.is_open(),
+                ACTION_FOCUS => self.action_focus_state.is_open(),
+                ROW_ALIGNMENT => self.row_alignment_state.is_open(),
+                ROW_GAP => self.row_gap_state.is_open(),
+                _ => false,
+            };
+            let visible = drawn.section == 1
+                && drawn
+                    .options_view
+                    .is_some_and(|view| option_field_is_visible(id, &self.options_scroll, view));
+            return if open || visible {
+                SELECT_HINTS
+            } else {
+                HIDDEN_OPTION_HINTS
+            };
+        }
+        if ui.state(OPTIONS_SCROLL).contains(StateFlags::FOCUSED)
+            || ui.state(STATES_SCROLL).contains(StateFlags::FOCUSED)
+        {
+            return SCROLL_HINTS;
+        }
+        if (0..SPECS.len()).any(|index| {
+            ui.state(Self::button_id(index))
+                .contains(StateFlags::FOCUSED)
+        }) {
+            return BUTTON_HINTS;
+        }
+        match drawn.section {
+            1 => SELECT_HINTS,
+            2 => SCROLL_HINTS,
+            _ => BUTTON_HINTS,
+        }
     }
 }
 
 impl ButtonsPage {
+    fn draw_playground_section(&self, ui: &mut Ui<'_>, body: Rect, page_area: Rect) {
+        let regions = layout::rows(
+            body,
+            &[
+                termrock::Track::Fixed(15),
+                termrock::Track::Fixed(1),
+                termrock::Track::Fixed(11),
+                termrock::Track::Flex(1),
+            ],
+        );
+        playground_panel().draw(ui, regions.first().copied().unwrap_or(body), |ui, inner| {
+            self.draw_playground(ui, inner)
+        });
+        let matrix_area = regions.get(2).copied().unwrap_or(body);
+        if page_area.width < 70 && matrix_area.is_empty() {
+            let row = Rect {
+                y: page_area.bottom(),
+                height: 1,
+                ..page_area
+            };
+            let ink = ui
+                .surface_style()
+                .fg(termrock::theme::baseline_muted(ui.theme().capability.color))
+                .bg(termrock::Color::from_u32(0x0011_1111));
+            for (index, title) in ["Primary", "Secondary"].into_iter().enumerate() {
+                let x = page_area
+                    .x
+                    .saturating_add(15)
+                    .saturating_add(15 * u16::try_from(index).unwrap_or(0));
+                if x.saturating_add(15) > page_area.right() {
+                    break;
+                }
+                ui.paint_str(Rect::new(x, row.y, 15, 1), title, ink);
+            }
+        } else if matrix_area.width < 70 && !matrix_area.is_empty() {
+            matrix_panel().draw(ui, matrix_area, |_, _| ());
+            Self::draw_matrix(
+                ui,
+                Rect {
+                    x: matrix_area.x.saturating_add(2),
+                    y: matrix_area.y.saturating_add(2),
+                    width: matrix_area.width.saturating_sub(4),
+                    height: 1,
+                },
+            );
+        } else {
+            matrix_panel().draw(ui, matrix_area, Self::draw_matrix);
+        }
+        if let Some(status) = regions.get(3).copied() {
+            if let Some(last) = &self.last {
+                let text = format!("last: {last} · {} activations", self.clicks);
+                let _ = ui.paint_str(status, &text, ui.surface_style());
+            } else if !status.is_empty() {
+                ui.fill(
+                    status,
+                    ui.surface_style()
+                        .bg(termrock::Color::from_u32(0x0011_1111)),
+                );
+            }
+        }
+    }
+
     fn draw_playground(&self, ui: &mut Ui<'_>, area: Rect) {
-        let gap = ui.design().space.gap;
+        let gap = self.row_gap(ui.design().space.gap);
         let mut y = area.y;
         for (caption, indices) in GROUPS {
             if y.saturating_add(1) >= area.bottom() {
@@ -265,7 +987,8 @@ impl ButtonsPage {
                     ..area
                 },
                 caption,
-                ui.surface_style(),
+                ui.surface_style()
+                    .fg(termrock::theme::baseline_muted(ui.theme().capability.color)),
             );
             let widths: Vec<u16> = indices
                 .iter()
@@ -286,39 +1009,163 @@ impl ButtonsPage {
             for (&index, button_area) in
                 indices
                     .iter()
-                    .zip(layout::action_row(line, &widths, gap, RowAlign::Start))
+                    .zip(layout::action_row(line, &widths, gap, self.row_alignment()))
             {
-                if let Some(button) = self.button(index)
-                    && let Some(&(_, variant, disabled, _)) = SPECS.get(index)
-                {
-                    let mut flags = ui.state(button.id());
-                    if disabled {
-                        flags |= StateFlags::DISABLED;
-                    }
-                    if self.checked.get(index).copied().flatten() == Some(true) {
-                        flags |= StateFlags::CHECKED | StateFlags::SELECTED;
-                    }
-                    if self.busy_until.is_some() && index == LONG_JOB {
-                        flags |= StateFlags::BUSY;
-                    }
+                if let Some(button) = self.button(index) {
                     button.draw(ui, button_area);
-                    legacy_gutter(ui, button_area, variant, flags);
-                    if let Some(checked) = self.checked.get(index).copied().flatten() {
-                        let marker = ui.style(Family::BUTTON, variant, Part::MARKER, flags).style;
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: button_area.x.saturating_add(1),
-                                y: button_area.y,
-                                width: 1,
-                                height: 1,
-                            },
-                            if checked { "●" } else { "○" },
-                            marker,
-                        );
-                    }
                 }
             }
             y = y.saturating_add(3);
+        }
+    }
+
+    fn draw_options(&self, ui: &mut Ui<'_>, area: Rect) -> Option<Rect> {
+        if area.is_empty() {
+            return Some(area);
+        }
+        let view =
+            ScrollRegion::new(OPTIONS_SCROLL).draw(ui, area, &self.options_scroll, OPTION_ROWS);
+        if view.is_empty() {
+            return Some(view);
+        }
+        ui.register_focus_only(OPTIONS_SCROLL, Focusability::Focusable);
+        let Some(window) = option_window(&self.options_scroll, view) else {
+            return Some(view);
+        };
+        let source_rows = window.visible_source_range();
+        let rows = [
+            (FOCUS_VISIBILITY, FOCUS_VISIBILITY_ITEMS),
+            (ACTION_FOCUS, ACTION_FOCUS_ITEMS),
+            (ROW_ALIGNMENT, ROW_ALIGNMENT_ITEMS),
+            (ROW_GAP, ROW_GAP_ITEMS),
+        ];
+        for (source_y, ((id, label), (select_id, items))) in OPTION_IDS
+            .into_iter()
+            .zip(OPTION_LABELS)
+            .zip(rows)
+            .enumerate()
+        {
+            debug_assert_eq!(id, select_id);
+            if source_y < source_rows.start || source_y >= source_rows.end {
+                Select::new(select_id).register_focus_only_in_form(ui, false);
+                continue;
+            }
+            let Some(y) = window.physical_row_for_source(source_y) else {
+                Select::new(select_id).register_focus_only_in_form(ui, false);
+                continue;
+            };
+            let (label_area, control_area) = option_row_areas(view, y);
+            if !label_area.is_empty() {
+                let _ = ui.paint_str(label_area, label, ui.surface_style());
+            }
+            if control_area.is_empty() {
+                Select::new(select_id).register_focus_only_in_form(ui, false);
+                continue;
+            }
+            match source_y {
+                0 => {
+                    let _ = Select::new(FOCUS_VISIBILITY).popup_rows(2).draw(
+                        ui,
+                        control_area,
+                        &self.focus_visibility_state,
+                        items,
+                    );
+                }
+                1 => {
+                    let _ = Select::new(ACTION_FOCUS).popup_rows(2).draw(
+                        ui,
+                        control_area,
+                        &self.action_focus_state,
+                        items,
+                    );
+                }
+                2 => {
+                    let _ = Select::new(ROW_ALIGNMENT).popup_rows(2).draw(
+                        ui,
+                        control_area,
+                        &self.row_alignment_state,
+                        items,
+                    );
+                }
+                3 => {
+                    let _ = Select::new(ROW_GAP).popup_rows(3).draw(
+                        ui,
+                        control_area,
+                        &self.row_gap_state,
+                        items,
+                    );
+                }
+                _ => unreachable!("the option list and native Select rows stay aligned"),
+            }
+        }
+        Some(view)
+    }
+
+    fn draw_states(&self, ui: &mut Ui<'_>, area: Rect) {
+        if area.is_empty() {
+            return;
+        }
+        let view = ScrollRegion::new(STATES_SCROLL).draw(ui, area, &self.states_scroll, STATE_ROWS);
+        if view.is_empty() {
+            return;
+        }
+        ui.register_focus_only(STATES_SCROLL, Focusability::Focusable);
+        let projected = ScrollRegion::view(&self.states_scroll, view, STATE_ROWS);
+        let first_row = projected.offset().min(STATE_ROWS);
+        let visible = Rect {
+            height: view
+                .height
+                .min(u16::try_from(STATE_ROWS).unwrap_or(u16::MAX)),
+            ..view
+        };
+        let Ok(window) = VerticalWindow::new(visible, STATE_ROWS, first_row) else {
+            return;
+        };
+        for source_y in window.visible_source_range() {
+            let Some(y) = window.physical_row_for_source(source_y) else {
+                continue;
+            };
+            let label_width = 12u16.min(view.width);
+            let button_x = view.x.saturating_add(label_width).saturating_add(1);
+            let available_button_width = view.right().saturating_sub(button_x);
+            let button_width = if source_y == 2 {
+                18.min(available_button_width)
+            } else {
+                28.min(available_button_width)
+            };
+            let button_area = Rect::new(button_x, y, button_width, 1);
+            let (label, button) = match source_y {
+                0 => (
+                    "Selected",
+                    Button::new(STATE_BUTTONS.index(0), "Selected")
+                        .variant(Variant::TOGGLE)
+                        .checked(true),
+                ),
+                1 => (
+                    "Busy",
+                    Button::new(STATE_BUTTONS.index(1), "Running")
+                        .variant(Variant::PRIMARY)
+                        .status(Status::Busy),
+                ),
+                _ => (
+                    "Overflow",
+                    Button::new(
+                        STATE_BUTTONS.index(2),
+                        "Long action label clips to this row",
+                    )
+                    .variant(Variant::SECONDARY),
+                ),
+            };
+            if label_width > 0 {
+                let _ = ui.paint_str(
+                    Rect::new(view.x, y, label_width, 1),
+                    label,
+                    ui.surface_style(),
+                );
+            }
+            if !button_area.is_empty() {
+                ui.reference(None, |ui| button.draw(ui, button_area));
+            }
         }
     }
 
@@ -343,9 +1190,14 @@ impl ButtonsPage {
                     height: 1,
                 },
                 title,
-                ui.surface_style(),
+                ui.surface_style()
+                    .fg(termrock::theme::baseline_muted(ui.theme().capability.color))
+                    .bg(termrock::Color::from_u32(0x0011_1111)),
             );
         }
+        let row_ink = ui
+            .surface_style()
+            .fg(ui.theme().color.fg[termrock::FgStep::Secondary.index()]);
         for (state_index, (name, flags)) in MATRIX_STATES.iter().enumerate() {
             let y = area.y.saturating_add(1).saturating_add(state_index as u16);
             if y >= area.bottom() {
@@ -359,7 +1211,7 @@ impl ButtonsPage {
                     height: 1,
                 },
                 name,
-                ui.surface_style(),
+                row_ink,
             );
             for (variant_index, (variant, _)) in MATRIX_VARIANTS.iter().enumerate() {
                 let x = column_x(variant_index);
@@ -371,19 +1223,21 @@ impl ButtonsPage {
                     ReferenceTarget::new(id, state).part(PartRef::of(Part::CONTAINER))
                 });
                 ui.reference(target, |ui| {
-                    Button::new(id, " Label")
+                    let mut button = Button::new(id, " Label")
                         .variant(*variant)
                         .disabled(flags.contains(StateFlags::DISABLED))
-                        .draw(
-                            ui,
-                            Rect {
-                                x,
-                                y,
-                                width: column_width,
-                                height: 1,
-                            },
-                        );
-                    legacy_gutter(
+                        .busy_marker_policy(BusyMarkerPolicy::Replace);
+                    if *variant == Variant::SUBTLE && flags.contains(StateFlags::DISABLED) {
+                        button = button.patch_part(DISABLED_PLATE);
+                    } else if *variant == Variant::PRIMARY && flags.contains(StateFlags::PRESSED) {
+                        button = button.patch_part(PRESSED_BOLD);
+                    } else if *variant == Variant::DANGER
+                        && !flags.contains(StateFlags::PRESSED)
+                        && !flags.contains(StateFlags::DISABLED)
+                    {
+                        button = button.patch_part(DANGER_INK);
+                    }
+                    button.draw(
                         ui,
                         Rect {
                             x,
@@ -391,24 +1245,7 @@ impl ButtonsPage {
                             width: column_width,
                             height: 1,
                         },
-                        *variant,
-                        *flags,
                     );
-                    if flags.contains(StateFlags::PRESSED) {
-                        let container = ui
-                            .style(Family::BUTTON, *variant, Part::CONTAINER, *flags)
-                            .style;
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: x.saturating_add(7),
-                                y,
-                                width: 1,
-                                height: 1,
-                            },
-                            " ",
-                            container,
-                        );
-                    }
                 });
             }
         }

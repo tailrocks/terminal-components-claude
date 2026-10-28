@@ -2,10 +2,252 @@ use ratatui_core::layout::{Constraint, Position, Rect};
 
 pub use termrock_core::layer_types::{DismissReason, LayerEvent, LayerId};
 
-#[cfg(test)]
-use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
+use crate::intent::LayerIntentToken;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct UpdateToken {
+    runtime: u64,
+    callback: u64,
+}
+
+impl UpdateToken {
+    pub(crate) const fn new(runtime: u64, callback: u64) -> Self {
+        Self { runtime, callback }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LayerEventReceipt {
+    pub(crate) opening: LayerOpening,
+    pub(crate) event: LayerEvent,
+    pub(crate) update: Option<UpdateToken>,
+}
+
+impl LayerEventReceipt {
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+
+    pub const fn event(self) -> LayerEvent {
+        self.event
+    }
+
+    pub const fn update(self) -> Option<UpdateToken> {
+        self.update
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct PendingLayerEvent {
+    pub(crate) opening: LayerOpening,
+    pub(crate) event: LayerEvent,
+    pub(crate) update: Option<UpdateToken>,
+}
+
+#[derive(Debug)]
+pub(crate) struct RoutedLayerEvent {
+    receipt: LayerEventReceipt,
+    token: LayerIntentToken,
+}
+
+impl RoutedLayerEvent {
+    pub(crate) fn new(receipt: LayerEventReceipt, token: LayerIntentToken) -> Self {
+        Self { receipt, token }
+    }
+
+    pub(crate) const fn receipt(&self) -> LayerEventReceipt {
+        self.receipt
+    }
+
+    pub(crate) const fn opening(&self) -> LayerOpening {
+        self.receipt.opening
+    }
+
+    pub(crate) const fn event(&self) -> LayerEvent {
+        self.receipt.event
+    }
+
+    pub(crate) fn token(&self) -> &LayerIntentToken {
+        &self.token
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LayerOpening {
+    runtime: u64,
+    generation: u64,
+    id: Id,
+    owner: Id,
+    layer: LayerId,
+    parent: Option<LayerParent>,
+}
+
+impl LayerOpening {
+    const fn new(
+        runtime: u64,
+        generation: u64,
+        id: Id,
+        owner: Id,
+        layer: LayerId,
+        parent: Option<LayerParent>,
+    ) -> Self {
+        Self {
+            runtime,
+            generation,
+            id,
+            owner,
+            layer,
+            parent,
+        }
+    }
+
+    pub const fn owner(self) -> Id {
+        self.owner
+    }
+
+    pub const fn layer_id(self) -> LayerId {
+        self.layer
+    }
+
+    pub(crate) const fn runtime(self) -> u64 {
+        self.runtime
+    }
+
+    pub(crate) const fn generation(self) -> u64 {
+        self.generation
+    }
+
+    pub(crate) const fn id(self) -> Id {
+        self.id
+    }
+
+    pub(crate) const fn parent(self) -> Option<LayerParent> {
+        self.parent
+    }
+}
+
+impl core::fmt::Debug for LayerOpening {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("LayerOpening")
+            .field("id", &self.id)
+            .field("owner", &self.owner)
+            .field("layer", &self.layer)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LayerCompletion {
+    opening: LayerOpening,
+    event: LayerEvent,
+    restored_focus: Option<Id>,
+    continuation_owner: Option<Id>,
+    continuation_acknowledged: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FocusContinuationOutcome {
+    opening: LayerOpening,
+    owner: Id,
+    restored_focus: Option<Id>,
+    continued: bool,
+}
+
+impl FocusContinuationOutcome {
+    pub(crate) const fn new(
+        opening: LayerOpening,
+        owner: Id,
+        restored_focus: Option<Id>,
+        continued: bool,
+    ) -> Self {
+        Self {
+            opening,
+            owner,
+            restored_focus,
+            continued,
+        }
+    }
+
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+    pub const fn owner(self) -> Id {
+        self.owner
+    }
+    pub const fn restored_focus(self) -> Option<Id> {
+        self.restored_focus
+    }
+    pub const fn continued(self) -> bool {
+        self.continued
+    }
+
+    pub(crate) const fn with_continued(mut self, continued: bool) -> Self {
+        self.continued = continued;
+        self
+    }
+}
+
+impl LayerCompletion {
+    pub(crate) const fn new(
+        opening: LayerOpening,
+        event: LayerEvent,
+        restored_focus: Option<Id>,
+        continuation_owner: Option<Id>,
+        continuation_acknowledged: bool,
+    ) -> Self {
+        Self {
+            opening,
+            event,
+            restored_focus,
+            continuation_owner,
+            continuation_acknowledged,
+        }
+    }
+
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+
+    pub const fn event(self) -> LayerEvent {
+        self.event
+    }
+
+    pub const fn restored_focus(self) -> Option<Id> {
+        self.restored_focus
+    }
+
+    pub const fn continuation_owner(self) -> Option<Id> {
+        self.continuation_owner
+    }
+
+    pub const fn continuation_acknowledged(self) -> bool {
+        self.continuation_acknowledged
+    }
+
+    pub(crate) const fn with_continuation_acknowledged(mut self, acknowledged: bool) -> Self {
+        self.continuation_acknowledged = acknowledged;
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct LayerParent {
+    pub(crate) generation: u64,
+    pub(crate) id: Id,
+    pub(crate) layer: LayerId,
+}
+
+impl From<LayerOpening> for LayerParent {
+    fn from(opening: LayerOpening) -> Self {
+        Self {
+            generation: opening.generation,
+            id: opening.id,
+            layer: opening.layer,
+        }
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerKind {
@@ -35,6 +277,10 @@ pub enum Anchor {
 pub enum ScreenAlign {
     Center,
 
+    GeometricCenter,
+
+    Balanced,
+
     UpperThird,
 
     Bottom,
@@ -61,12 +307,26 @@ pub enum CrossAlign {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum RefuseFeedback {
+    #[default]
+    Flash,
+
+    None,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Dismiss {
     pub esc: bool,
 
     pub outside_click: bool,
 
     pub focus_out: bool,
+
+    pub pass_through: bool,
+
+    pub close_button: bool,
+
+    pub refuse_feedback: RefuseFeedback,
 }
 
 impl Dismiss {
@@ -74,25 +334,66 @@ impl Dismiss {
         esc: false,
         outside_click: false,
         focus_out: false,
+        pass_through: false,
+        close_button: false,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 
     pub const ESC: Dismiss = Dismiss {
         esc: true,
         outside_click: false,
         focus_out: false,
+        pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 
     pub const ESC_AND_OUTSIDE: Dismiss = Dismiss {
         esc: true,
         outside_click: true,
         focus_out: false,
+        pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 
     pub const ALL: Dismiss = Dismiss {
         esc: true,
         outside_click: true,
         focus_out: true,
+        pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
+
+    pub const fn pass_through(mut self, on: bool) -> Self {
+        self.pass_through = on;
+        self
+    }
+
+    pub const fn close_button(mut self, on: bool) -> Self {
+        self.close_button = on;
+        self
+    }
+
+    pub const fn refuse_feedback(mut self, feedback: RefuseFeedback) -> Self {
+        self.refuse_feedback = feedback;
+        self
+    }
+
+    pub const fn allows(self, reason: DismissReason) -> bool {
+        match reason {
+            DismissReason::Esc => self.esc,
+            DismissReason::OutsideClick => self.outside_click,
+            DismissReason::FocusOut => self.focus_out,
+
+            _ => true,
+        }
+    }
+
+    pub const fn shows_close(self) -> bool {
+        self.close_button && self.esc
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -127,9 +428,15 @@ pub struct LayerSpec {
 
     pub size: LayerSize,
 
+    pub viewport_margin: (u16, u16),
+
+    pub continues_focus_owner: Option<Id>,
+
     pub backdrop: Backdrop,
 
     pub inert_below: bool,
+
+    pointer_transparent: bool,
 }
 
 impl LayerSpec {
@@ -142,10 +449,13 @@ impl LayerSpec {
             restore_focus: true,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::Dim {
                 exclude_footer: true,
             },
             inert_below: true,
+            pointer_transparent: false,
         }
     }
 
@@ -158,8 +468,11 @@ impl LayerSpec {
             restore_focus: true,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
+            pointer_transparent: false,
         }
     }
 
@@ -172,14 +485,29 @@ impl LayerSpec {
             restore_focus: false,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
+            pointer_transparent: false,
         }
+    }
+
+    #[must_use]
+    pub const fn tooltip_pointer_transparent(mut self, on: bool) -> Self {
+        self.pointer_transparent = on;
+        self
     }
 
     #[must_use]
     pub const fn anchor(mut self, a: Anchor) -> Self {
         self.anchor = a;
+        self
+    }
+
+    #[must_use]
+    pub const fn continues_focus(mut self, owner: Id) -> Self {
+        self.continues_focus_owner = Some(owner);
         self
     }
 
@@ -208,6 +536,12 @@ impl LayerSpec {
     }
 
     #[must_use]
+    pub const fn viewport_margin(mut self, horizontal_total: u16, vertical_total: u16) -> Self {
+        self.viewport_margin = (horizontal_total, vertical_total);
+        self
+    }
+
+    #[must_use]
     pub const fn inert_below(mut self, yes: bool) -> Self {
         self.inert_below = yes;
         self
@@ -222,6 +556,23 @@ impl LayerSpec {
     pub const fn dismisses_on_focus_out(&self) -> bool {
         self.dismiss.focus_out && !matches!(self.kind, LayerKind::Modal)
     }
+}
+
+pub(crate) fn resolve_layer_area(viewport: Rect, spec: LayerSpec) -> Rect {
+    let LayerSize::Fixed(desired_width, desired_height) = spec.size else {
+        return resolve_anchor(viewport, spec.anchor, spec.size);
+    };
+    if viewport.width == 0 || viewport.height == 0 {
+        return Rect::ZERO;
+    }
+    let max_width = viewport.width.saturating_sub(spec.viewport_margin.0).max(1);
+    let max_height = viewport
+        .height
+        .saturating_sub(spec.viewport_margin.1)
+        .max(1);
+    let width = desired_width.min(max_width).min(viewport.width);
+    let height = desired_height.min(max_height).min(viewport.height);
+    resolve_anchor(viewport, spec.anchor, LayerSize::Fixed(width, height))
 }
 
 #[expect(
@@ -240,6 +591,8 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
             let free = screen.height.saturating_sub(h);
             let y = match align {
                 ScreenAlign::Center => screen.y.saturating_add(free / 3),
+                ScreenAlign::GeometricCenter => screen.y.saturating_add(free / 2),
+                ScreenAlign::Balanced => screen.y.saturating_add(free.div_ceil(2)),
                 ScreenAlign::UpperThird => screen.y.saturating_add(free / 6),
                 ScreenAlign::Bottom => screen.y.saturating_add(free),
             };
@@ -343,6 +696,8 @@ pub(crate) struct OpenLayer {
     pub(crate) id: Id,
     pub(crate) layer: LayerId,
     pub(crate) spec: LayerSpec,
+    pub(crate) opening: LayerOpening,
+    pub(crate) closed_event: Option<LayerEvent>,
 
     pub(crate) restore_to: Option<Id>,
 }
@@ -357,9 +712,11 @@ impl OpenLayer {
 pub(crate) struct LayerStack {
     open: Vec<OpenLayer>,
 
-    pending: Vec<(Id, LayerEvent)>,
+    pending: Vec<PendingLayerEvent>,
 
     next: u32,
+
+    next_generation: u64,
 }
 
 impl Default for LayerStack {
@@ -368,11 +725,16 @@ impl Default for LayerStack {
             open: Vec::new(),
             pending: Vec::new(),
             next: 1,
+            next_generation: 1,
         }
     }
 }
 
 impl LayerStack {
+    pub(crate) const fn next_generation(&self) -> u64 {
+        self.next_generation
+    }
+
     pub(crate) fn top(&self) -> LayerId {
         self.open.last().map_or(LayerId::PAGE, |l| l.layer)
     }
@@ -387,6 +749,19 @@ impl LayerStack {
 
     pub(crate) fn is_open(&self, id: Id) -> bool {
         self.get(id).is_some()
+    }
+
+    fn admission(&self, id: Id) -> Option<(LayerId, u64)> {
+        if self.is_open(id) {
+            return None;
+        }
+        let layer = LayerId(u16::try_from(self.next).ok()?);
+        self.next_generation.checked_add(1)?;
+        Some((layer, self.next_generation))
+    }
+
+    pub(crate) fn can_open(&self, id: Id) -> bool {
+        self.admission(id).is_some()
     }
 
     pub(crate) fn spec_mut(&mut self, id: Id) -> Option<&mut LayerSpec> {
@@ -408,618 +783,129 @@ impl LayerStack {
             .map_or(LayerId::PAGE, |l| l.layer)
     }
 
-    pub(crate) fn open(
+    pub(crate) fn pointer_input_layer(&self) -> LayerId {
+        let inert_floor = self.inert_floor();
+        for open in self.open.iter().rev() {
+            if open.layer <= inert_floor {
+                return inert_floor;
+            }
+            let transparent_tooltip = open.spec.kind == LayerKind::Tooltip
+                && open.spec.pointer_transparent
+                && !open.spec.inert_below;
+            if !transparent_tooltip {
+                return open.layer;
+            }
+        }
+        LayerId::PAGE
+    }
+
+    pub(crate) fn pointer_transparent_suffix(&self) -> impl Iterator<Item = LayerId> + '_ {
+        let inert_floor = self.inert_floor();
+        self.open
+            .iter()
+            .rev()
+            .take_while(move |open| {
+                open.layer > inert_floor
+                    && open.spec.kind == LayerKind::Tooltip
+                    && open.spec.pointer_transparent
+                    && !open.spec.inert_below
+            })
+            .map(|open| open.layer)
+    }
+
+    pub(crate) fn open_with_runtime(
         &mut self,
         id: Id,
         spec: LayerSpec,
         restore_to: Option<Id>,
-    ) -> Option<LayerId> {
-        if self.is_open(id) {
+        runtime: u64,
+    ) -> Option<LayerOpening> {
+        let (layer, generation) = self.admission(id)?;
+        Some(self.open_admitted(id, spec, restore_to, runtime, layer, generation))
+    }
+
+    pub(crate) fn replace_top_with_runtime(
+        &mut self,
+        current: LayerOpening,
+        id: Id,
+        spec: LayerSpec,
+        restore_to: Option<Id>,
+        runtime: u64,
+        update: Option<UpdateToken>,
+    ) -> Option<(Vec<OpenLayer>, LayerOpening)> {
+        if self
+            .top_layer()
+            .is_none_or(|layer| layer.opening != current)
+        {
             return None;
         }
-        let layer = LayerId(u16::try_from(self.next).ok()?);
+        let (layer, generation) = self.admission(id)?;
+        let closed = self.close_with_update(
+            current.id(),
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+            update,
+        );
+        debug_assert_eq!(closed.len(), 1, "an exact top replacement closes one layer");
+        let opening = self.open_admitted(id, spec, restore_to, runtime, layer, generation);
+        Some((closed, opening))
+    }
+
+    fn open_admitted(
+        &mut self,
+        id: Id,
+        spec: LayerSpec,
+        restore_to: Option<Id>,
+        runtime: u64,
+        layer: LayerId,
+        generation: u64,
+    ) -> LayerOpening {
         self.next = self.next.saturating_add(1);
+        self.next_generation = generation + 1;
+        let parent = self.open.last().map(|open| LayerParent::from(open.opening));
+        let opening = LayerOpening::new(runtime, generation, id, spec.owner, layer, parent);
         self.open.push(OpenLayer {
             id,
             layer,
             spec,
+            opening,
+            closed_event: None,
             restore_to,
         });
-        self.pending.push((id, LayerEvent::Opened));
-        Some(layer)
+        self.pending.push(PendingLayerEvent {
+            opening,
+            event: LayerEvent::Opened,
+            update: None,
+        });
+        opening
     }
 
-    pub(crate) fn close(&mut self, id: Id, event: LayerEvent) -> Vec<OpenLayer> {
+    pub(crate) fn close_with_update(
+        &mut self,
+        id: Id,
+        event: LayerEvent,
+        update: Option<UpdateToken>,
+    ) -> Vec<OpenLayer> {
         let Some(pos) = self.open.iter().position(|l| l.id == id) else {
             return Vec::new();
         };
-        let closed: Vec<OpenLayer> = self.open.drain(pos..).collect();
-        for (i, l) in closed.iter().enumerate() {
+        let mut closed: Vec<OpenLayer> = self.open.drain(pos..).collect();
+        for (i, l) in closed.iter_mut().enumerate() {
             let ev = if i == 0 {
                 event
             } else {
                 LayerEvent::Dismissed(DismissReason::Programmatic)
             };
-            self.pending.push((l.id, ev));
+            l.closed_event = Some(ev);
+            self.pending.push(PendingLayerEvent {
+                opening: l.opening,
+                event: ev,
+                update: if i == 0 { update } else { None },
+            });
         }
         closed
     }
 
-    pub(crate) fn take_pending(&mut self) -> Vec<(Id, LayerEvent)> {
+    pub(crate) fn take_pending_receipts(&mut self) -> Vec<PendingLayerEvent> {
         core::mem::take(&mut self.pending)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const DLG: Id = Id::root("dlg");
-    const PICK: Id = Id::root("pick");
-
-    #[test]
-    fn push_and_pop_maintain_layer_order() {
-        let mut s = LayerStack::default();
-        assert_eq!(s.top(), LayerId::PAGE);
-        assert_eq!(s.open(DLG, LayerSpec::modal(DLG), None), Some(LayerId(1)));
-        assert_eq!(
-            s.open(
-                PICK,
-                LayerSpec::popover(PICK, Anchor::Point(Position::new(1, 1))),
-                None
-            ),
-            Some(LayerId(2))
-        );
-        assert_eq!(s.open(PICK, LayerSpec::modal(PICK), None), None);
-        assert_eq!(s.top(), LayerId(2));
-        let closed = s.close(PICK, LayerEvent::Closed(ActionKey::CONFIRM));
-        assert_eq!(closed.len(), 1);
-        assert_eq!(s.top(), LayerId(1));
-
-        s.open(PICK, LayerSpec::modal(PICK), None);
-        let closed = s.close(DLG, LayerEvent::Dismissed(DismissReason::Esc));
-        assert_eq!(
-            closed.iter().map(|l| l.id).collect::<Vec<_>>(),
-            vec![DLG, PICK]
-        );
-        assert_eq!(s.top(), LayerId::PAGE);
-        let ev = s.take_pending();
-        assert!(ev.contains(&(DLG, LayerEvent::Dismissed(DismissReason::Esc))));
-        assert!(ev.contains(&(PICK, LayerEvent::Dismissed(DismissReason::Programmatic))));
-    }
-
-    #[test]
-    fn reopened_layers_keep_monotonic_ids() {
-        let mut s = LayerStack::default();
-        assert_eq!(s.open(DLG, LayerSpec::modal(DLG), None), Some(LayerId(1)));
-        assert_eq!(s.close(DLG, LayerEvent::Closed(ActionKey::CANCEL)).len(), 1);
-        assert_eq!(s.open(PICK, LayerSpec::modal(PICK), None), Some(LayerId(2)));
-    }
-
-    #[test]
-    fn modal_pushes_a_trap_and_a_pointer_barrier() {
-        let m = LayerSpec::modal(DLG);
-        assert_eq!(m.kind, LayerKind::Modal);
-        assert!(m.inert_below && m.restore_focus);
-        assert!(matches!(
-            m.backdrop,
-            Backdrop::Dim {
-                exclude_footer: true
-            }
-        ));
-        assert!(!m.dismisses_on_focus_out());
-        let mut s = LayerStack::default();
-        s.open(DLG, m, Some(Id::root("opener")));
-        assert_eq!(s.inert_floor(), LayerId(1));
-        assert_eq!(
-            s.get(DLG).and_then(|l| l.restore_to),
-            Some(Id::root("opener"))
-        );
-    }
-
-    #[test]
-    fn popover_pushes_a_pointer_barrier_only() {
-        let p = LayerSpec::popover(PICK, Anchor::Point(Position::new(0, 0))).dismiss(Dismiss::ALL);
-        assert_eq!(p.kind, LayerKind::Popover);
-        assert!(!p.inert_below);
-        assert_eq!(p.backdrop, Backdrop::None);
-        assert!(p.dismisses_on_focus_out());
-        let mut s = LayerStack::default();
-        s.open(PICK, p, None);
-        assert_eq!(s.inert_floor(), LayerId::PAGE);
-        assert_eq!(s.top(), LayerId(1));
-    }
-
-    #[test]
-    fn anchor_rect_flips_then_clamps() {
-        let screen = Rect::new(0, 0, 100, 30);
-        let anchor = Rect::new(10, 5, 5, 1);
-        let below = Anchor::Rect {
-            rect: anchor,
-            side: Side::Below,
-            align: CrossAlign::Start,
-        };
-        assert_eq!(
-            resolve_anchor(screen, below, LayerSize::Fixed(40, 8)),
-            Rect::new(10, 6, 40, 8)
-        );
-        let low = Anchor::Rect {
-            rect: Rect::new(10, 26, 5, 1),
-            side: Side::Below,
-            align: CrossAlign::Start,
-        };
-        assert_eq!(
-            resolve_anchor(screen, low, LayerSize::Fixed(40, 8)),
-            Rect::new(10, 18, 40, 8)
-        );
-        let right = Anchor::Rect {
-            rect: Rect::new(90, 5, 5, 1),
-            side: Side::Below,
-            align: CrossAlign::Start,
-        };
-        assert_eq!(
-            resolve_anchor(screen, right, LayerSize::Fixed(40, 8)).right(),
-            100
-        );
-        let tall = resolve_anchor(screen, below, LayerSize::Fixed(40, 60));
-        assert!(tall.height <= 30);
-        let end = Anchor::Rect {
-            rect: Rect::new(50, 5, 10, 1),
-            side: Side::Above,
-            align: CrossAlign::End,
-        };
-        assert_eq!(
-            resolve_anchor(screen, end, LayerSize::Fixed(4, 2)),
-            Rect::new(56, 3, 4, 2)
-        );
-        let side = Anchor::Rect {
-            rect: Rect::new(95, 5, 5, 3),
-            side: Side::Right,
-            align: CrossAlign::Center,
-        };
-        assert_eq!(
-            resolve_anchor(screen, side, LayerSize::Fixed(10, 1)),
-            Rect::new(85, 6, 10, 1)
-        );
-    }
-
-    #[test]
-    fn anchor_screen_center_sits_in_the_upper_third() {
-        let screen = Rect::new(0, 0, 120, 40);
-        let r = resolve_anchor(
-            screen,
-            Anchor::Screen(ScreenAlign::Center),
-            LayerSize::Fixed(60, 12),
-        );
-        assert_eq!(r, Rect::new(30, 9, 60, 12));
-        let b = resolve_anchor(
-            screen,
-            Anchor::Screen(ScreenAlign::Bottom),
-            LayerSize::Fixed(60, 12),
-        );
-        assert_eq!(b.bottom(), 40);
-        let u = resolve_anchor(
-            screen,
-            Anchor::Screen(ScreenAlign::UpperThird),
-            LayerSize::Fixed(60, 12),
-        );
-        assert!(u.y < r.y);
-    }
-
-    #[test]
-    fn fill_resolves_to_the_whole_screen() {
-        let screen = Rect::new(0, 0, 120, 40);
-        for anchor in [
-            Anchor::Screen(ScreenAlign::Center),
-            Anchor::Point(Position::new(3, 3)),
-            Anchor::Rect {
-                rect: Rect::new(1, 1, 2, 2),
-                side: Side::Below,
-                align: CrossAlign::Start,
-            },
-        ] {
-            assert_eq!(resolve_anchor(screen, anchor, LayerSize::Fill), screen);
-        }
-        assert_eq!(LayerSpec::modal(DLG).size, LayerSize::Fill);
-        assert_eq!(
-            LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::Center)).size,
-            LayerSize::Fill
-        );
-        assert_eq!(
-            LayerSpec::tooltip(DLG, Position::new(0, 0)).size,
-            LayerSize::Fill
-        );
-    }
-
-    #[test]
-    fn fixed_size_is_clamped_never_grown() {
-        let screen = Rect::new(0, 0, 40, 10);
-        let r = resolve_anchor(
-            screen,
-            Anchor::Screen(ScreenAlign::Center),
-            LayerSize::Fixed(54, 20),
-        );
-        assert_eq!(r, screen);
-        assert_eq!(
-            resolve_anchor(
-                screen,
-                Anchor::Screen(ScreenAlign::Center),
-                LayerSize::Fixed(0, 8)
-            ),
-            Rect::ZERO
-        );
-        assert_eq!(
-            resolve_anchor(
-                screen,
-                Anchor::Screen(ScreenAlign::Center),
-                LayerSize::Fixed(8, 0)
-            ),
-            Rect::ZERO
-        );
-
-        let small = resolve_anchor(
-            screen,
-            Anchor::Screen(ScreenAlign::Center),
-            LayerSize::Fixed(10, 4),
-        );
-        assert_eq!((small.width, small.height), (10, 4));
-    }
-
-    #[test]
-    fn popover_flips_above_when_the_content_does_not_fit_below() {
-        let screen = Rect::new(0, 0, 40, 20);
-        let below = Anchor::Rect {
-            rect: Rect::new(4, 17, 6, 1),
-            side: Side::Below,
-            align: CrossAlign::Start,
-        };
-        let r = resolve_anchor(screen, below, LayerSize::Fixed(12, 6));
-        assert_eq!(r, Rect::new(4, 11, 12, 6));
-
-        let high = Anchor::Rect {
-            rect: Rect::new(4, 2, 6, 1),
-            side: Side::Below,
-            align: CrossAlign::Start,
-        };
-        assert_eq!(
-            resolve_anchor(screen, high, LayerSize::Fixed(12, 6)),
-            Rect::new(4, 3, 12, 6)
-        );
-    }
-
-    #[test]
-    fn point_anchor_flips_instead_of_covering_the_pointer() {
-        let screen = Rect::new(0, 0, 40, 10);
-        let p = resolve_anchor(
-            screen,
-            Anchor::Point(Position::new(38, 9)),
-            LayerSize::Fixed(10, 3),
-        );
-        assert_eq!(p, Rect::new(28, 6, 10, 3));
-        assert!(!p.contains(Position::new(38, 9)));
-
-        let q = resolve_anchor(
-            screen,
-            Anchor::Point(Position::new(2, 1)),
-            LayerSize::Fixed(10, 3),
-        );
-        assert_eq!(q, Rect::new(2, 2, 10, 3));
-        assert!(!q.contains(Position::new(2, 1)));
-    }
-
-    #[test]
-    fn closed_with_action_key_emits_layer_event_closed() {
-        let mut s = LayerStack::default();
-        s.open(DLG, LayerSpec::modal(DLG), None);
-        let _ = s.take_pending();
-        s.close(DLG, LayerEvent::Closed(ActionKey::SAVE));
-        assert_eq!(
-            s.take_pending(),
-            vec![(DLG, LayerEvent::Closed(ActionKey::SAVE))]
-        );
-    }
-
-    #[test]
-    fn dismissed_emits_the_reason() {
-        let mut s = LayerStack::default();
-        s.open(DLG, LayerSpec::modal(DLG), None);
-        assert_eq!(s.take_pending(), vec![(DLG, LayerEvent::Opened)]);
-        s.close(DLG, LayerEvent::Dismissed(DismissReason::OutsideClick));
-        assert_eq!(
-            s.take_pending(),
-            vec![(DLG, LayerEvent::Dismissed(DismissReason::OutsideClick))]
-        );
-    }
-
-    #[test]
-    fn backdrop_excludes_the_footer_row() {
-        let screen = Rect::new(0, 0, 120, 40);
-        assert_eq!(
-            backdrop_area(
-                screen,
-                Backdrop::Dim {
-                    exclude_footer: true
-                }
-            ),
-            Rect::new(0, 0, 120, 39)
-        );
-        assert_eq!(
-            backdrop_area(
-                screen,
-                Backdrop::Dim {
-                    exclude_footer: false
-                }
-            ),
-            screen
-        );
-        assert_eq!(backdrop_area(screen, Backdrop::None), Rect::ZERO);
-    }
-}
-
-#[cfg(test)]
-mod runtime_tests {
-    use ratatui_core::layout::{Position, Rect};
-
-    use super::*;
-    use crate::diagnostics::Diagnostic;
-    use crate::event::{KeyCode, MouseKind};
-    use crate::focus::ScopeId;
-    use crate::intent::Intent;
-    use crate::runtime::stub::{Control, Stub, key, mouse, runtime, step};
-
-    const PAGE_A: Id = Id::root("page.a");
-    const PAGE_B: Id = Id::root("page.b");
-    const DLG: Id = Id::root("dlg");
-    const OK: Id = Id::root("dlg.ok");
-    const INPUT: Id = Id::root("dlg.input");
-    const PICK: Id = Id::root("pick");
-    const ROW: Id = Id::root("pick.row");
-
-    fn dialog_stub() -> Stub {
-        Stub {
-            page: vec![Control::new(PAGE_A, Rect::new(0, 0, 10, 1))],
-            layers: vec![(
-                DLG,
-                vec![
-                    Control::new(OK, Rect::new(5, 5, 5, 1)),
-                    Control {
-                        editor: true,
-                        ..Control::new(INPUT, Rect::new(5, 7, 10, 1))
-                    },
-                ],
-            )],
-            consume_keys: false,
-            ..Stub::default()
-        }
-    }
-
-    fn popover_stub() -> Stub {
-        Stub {
-            page: vec![
-                Control::new(PAGE_A, Rect::new(0, 0, 10, 1)),
-                Control::new(PAGE_B, Rect::new(0, 2, 10, 1)),
-            ],
-            layers: vec![(PICK, vec![Control::new(ROW, Rect::new(20, 4, 5, 1))])],
-            consume_keys: false,
-            ..Stub::default()
-        }
-    }
-
-    #[test]
-    fn resize_layer_re_resolves_the_anchor_on_the_next_draw() {
-        let (mut rt, mut buf) = runtime(dialog_stub());
-        rt.app_mut().open_request =
-            Some((DLG, LayerSpec::modal(DLG).size(LayerSize::Fixed(20, 4))));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
-        let first = rt.layer_area(DLG).expect("the layer is open");
-        assert_eq!((first.width, first.height), (20, 4));
-        rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(40, 10)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
-        let grown = rt.layer_area(DLG).expect("the layer is still open");
-        assert_eq!((grown.width, grown.height), (40, 10));
-
-        assert_eq!(
-            grown,
-            resolve_anchor(
-                rt.screen(),
-                Anchor::Screen(ScreenAlign::Center),
-                LayerSize::Fixed(40, 10)
-            )
-        );
-
-        rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(40, 10)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
-        assert_eq!(rt.layer_area(DLG), Some(grown));
-    }
-
-    #[test]
-    fn spec_geometry_is_the_only_mutable_field() {
-        let (mut rt, mut buf) = runtime(dialog_stub());
-        let spec = LayerSpec::modal(DLG)
-            .size(LayerSize::Fixed(20, 4))
-            .initial_focus(OK)
-            .inert_below(true);
-        rt.app_mut().open_request = Some((DLG, spec));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
-        rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(24, 6)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
-
-        let open = rt.open_spec(DLG).expect("the layer is open");
-        assert_eq!(open.size, LayerSize::Fixed(24, 6));
-        assert_eq!(open.kind, spec.kind);
-        assert_eq!(open.inert_below, spec.inert_below);
-        assert_eq!(open.restore_focus, spec.restore_focus);
-        assert_eq!(open.initial_focus, spec.initial_focus);
-        assert_eq!(open.dismiss, spec.dismiss);
-    }
-
-    #[test]
-    fn esc_dismisses_only_the_top_layer() {
-        let mut s = dialog_stub();
-        s.layers
-            .push((PICK, vec![Control::new(ROW, Rect::new(20, 2, 5, 1))]));
-        let (mut rt, mut buf) = runtime(s);
-        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        rt.app_mut().open_request = Some((
-            PICK,
-            LayerSpec::popover(PICK, Anchor::Point(Position::new(20, 2))),
-        ));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        assert_eq!(rt.top_layer(), LayerId(2));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Esc));
-        assert!(!rt.is_open(PICK));
-        assert!(rt.is_open(DLG));
-        assert!(rt.app().saw(PICK, "Dismissed(Esc)"));
-        assert!(rt.app().saw(PICK, "Cancel"));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Esc));
-        assert!(!rt.is_open(DLG));
-        assert_eq!(rt.focus(), Some(PAGE_A), "focus restored to the opener");
-    }
-
-    #[test]
-    fn esc_reaches_the_focused_editor_before_the_layer() {
-        let (mut rt, mut buf) = runtime(dialog_stub());
-        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).initial_focus(INPUT)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        assert_eq!(rt.focus(), Some(INPUT));
-
-        let r = step(&mut rt, &mut buf, key(KeyCode::Esc));
-        assert!(r.is_consumed());
-        assert!(rt.is_open(DLG));
-        assert!(rt.app().saw(INPUT, "Key("));
-
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
-        assert_eq!(rt.focus(), Some(OK));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Esc));
-        assert!(!rt.is_open(DLG));
-    }
-
-    #[test]
-    fn layer_id_is_assigned_at_open_not_at_draw() {
-        let mut s = dialog_stub();
-
-        s.layers
-            .insert(0, (PICK, vec![Control::new(ROW, Rect::new(20, 2, 5, 1))]));
-        let (mut rt, mut buf) = runtime(s);
-        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        rt.app_mut().open_request = Some((
-            PICK,
-            LayerSpec::popover(PICK, Anchor::Point(Position::new(20, 2))),
-        ));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        assert_eq!(rt.top_layer(), LayerId(2));
-        assert_eq!(rt.registry().layer_of(ROW), Some(LayerId(2)));
-        assert_eq!(rt.registry().layer_of(OK), Some(LayerId(1)));
-
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 21, 2));
-        assert!(rt.app().saw(ROW, "Press"));
-    }
-
-    #[test]
-    fn outside_click_is_layer_less_than_top_or_none() {
-        let (mut rt, mut buf) = runtime(dialog_stub());
-        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 30, 10));
-        assert!(!rt.is_open(DLG));
-        assert!(rt.app().saw(DLG, "Dismissed(OutsideClick)"));
-
-        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 1, 0));
-        assert!(!rt.is_open(DLG));
-        assert!(!rt.app().saw(PAGE_A, "Press"));
-    }
-
-    #[test]
-    fn focus_out_dismisses_a_popover_but_never_a_modal() {
-        let (mut rt, mut buf) = runtime(popover_stub());
-        assert_eq!(rt.focus(), Some(PAGE_A));
-        rt.app_mut().open_request = Some((
-            PICK,
-            LayerSpec::popover(PICK, Anchor::Point(Position::new(20, 4))).dismiss(Dismiss::ALL),
-        ));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        assert!(rt.is_open(PICK));
-        assert_eq!(
-            rt.focus(),
-            Some(PAGE_A),
-            "the opener keeps focus while open"
-        );
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
-        assert!(
-            !rt.is_open(PICK),
-            "focus left the popover's scope, so the popover is dismissed"
-        );
-        assert!(
-            rt.app().saw(PICK, "Dismissed(FocusOut)"),
-            "the owner must be told why: {:?}",
-            rt.app().log
-        );
-        assert_eq!(
-            rt.focus(),
-            Some(PAGE_B),
-            "focus is on the Tab target, not restored to the opener"
-        );
-        assert!(
-            !rt.diagnostics()
-                .iter()
-                .any(|d| matches!(d, Diagnostic::FocusTransitionDidNotSettle { .. })),
-            "the dismissal is one more pass, not an unsettled loop: {:?}",
-            rt.diagnostics()
-        );
-
-        let (mut rt, mut buf) = runtime(dialog_stub());
-        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).dismiss(Dismiss::ALL)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        assert!(rt.is_open(DLG));
-        assert_eq!(rt.focus(), Some(OK), "the trap moved focus into the modal");
-        for _ in 0..3 {
-            let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
-            assert!(rt.is_open(DLG), "a modal never dismisses on focus-out");
-            let focused = rt.focus().expect("the trap is not empty");
-            assert_eq!(
-                rt.ring().entry(focused).map(|e| e.scope),
-                Some(ScopeId::new(DLG)),
-                "focus never left the modal's scope"
-            );
-        }
-        assert!(!rt.app().saw(DLG, "Dismissed(FocusOut)"));
-    }
-
-    #[test]
-    fn nested_layers_each_trap() {
-        let mut s = dialog_stub();
-        s.layers
-            .push((PICK, vec![Control::new(ROW, Rect::new(20, 2, 5, 1))]));
-        let (mut rt, mut buf) = runtime(s);
-        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        let ids: Vec<Id> = rt.ring().reachable().map(|e| e.id).collect();
-        assert_eq!(ids, vec![OK, INPUT]);
-        rt.app_mut().open_request = Some((PICK, LayerSpec::modal(PICK)));
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        let ids: Vec<Id> = rt.ring().reachable().map(|e| e.id).collect();
-        assert_eq!(ids, vec![ROW]);
-        assert_eq!(rt.focus(), Some(ROW));
-        rt.app_mut().close_request = Some(PICK);
-        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        assert_eq!(
-            rt.focus(),
-            Some(OK),
-            "focus restored to the dialog's control"
-        );
-        assert!(
-            rt.needs_settle(),
-            "publication stages restoration callbacks"
-        );
-        let _ = rt.settle();
-        assert!(rt.app().saw(OK, "FocusIn { via: Restore }"));
-        let ids: Vec<Id> = rt.ring().reachable().map(|e| e.id).collect();
-        assert_eq!(ids, vec![OK, INPUT]);
-        let _ = Intent::Cancel;
     }
 }

@@ -1,0 +1,6 @@
+0000000000000000000000000000000000000000 b68b376bda8043667303c14794588a42e09fe30d Alexey Zhokhov <alexey@zhokhov.com> 1792157260 +0700	branch: Created from HEAD
+b68b376bda8043667303c14794588a42e09fe30d 5fea4ac9bce0d8db09c9af16246abff6c4bc1089 Alexey Zhokhov <alexey@zhokhov.com> 1792157303 +0700	rebase (finish): refs/heads/colour-tablepro onto 5fea4ac9bce0d8db09c9af16246abff6c4bc1089
+5fea4ac9bce0d8db09c9af16246abff6c4bc1089 3df1da2f676f0f5bf3c3e4a7797c0efdbbd3c71c Alexey Zhokhov <alexey@zhokhov.com> 1792158005 +0700	commit: feat(theme): status and environment tones, glyphs by environment
+3df1da2f676f0f5bf3c3e4a7797c0efdbbd3c71c df1bb37e3687a066818345cbb676bfd32d1acdaa Alexey Zhokhov <alexey@zhokhov.com> 1792158005 +0700	commit: feat(widgets): status-kind hint bar, dialog title status, tree and list tones
+df1bb37e3687a066818345cbb676bfd32d1acdaa b5e63a7c2a4ace6993e8808e7679f8aa98b08fdb Alexey Zhokhov <alexey@zhokhov.com> 1792158005 +0700	commit: feat(tablepro): colour as meaning through the library roles
+b5e63a7c2a4ace6993e8808e7679f8aa98b08fdb 67ddac8a818dd183c169878e2654065dda7162ea Alexey Zhokhov <alexey@zhokhov.com> 1792158012 +0700	rebase (finish): refs/heads/colour-tablepro onto 56a137c78907204f6086dff7436e7e5a63c2c04f

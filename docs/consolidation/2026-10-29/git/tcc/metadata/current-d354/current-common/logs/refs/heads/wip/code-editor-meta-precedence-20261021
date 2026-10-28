@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 e830877cdebe2461466f643f476a2dc1575b6ae8 Alexey Zhokhov <alexey@zhokhov.com> 1792590037 +0700	branch: Created from HEAD
+e830877cdebe2461466f643f476a2dc1575b6ae8 29dddba0d632a9eec072dbf9fd28c88346fdfeae Alexey Zhokhov <alexey@zhokhov.com> 1792590719 +0700	commit: fix(editors): preserve CodeEditor meta style overrides
+29dddba0d632a9eec072dbf9fd28c88346fdfeae 9cc405924280905c842f9b26ebfc66a98d2b2183 Alexey Zhokhov <alexey@zhokhov.com> 1792590783 +0700	commit: docs: deduplicate CodeEditor precedence evidence
+9cc405924280905c842f9b26ebfc66a98d2b2183 671443b89133dda618fb661cdf65e2d8edbd0664 Alexey Zhokhov <alexey@zhokhov.com> 1792593000 +0700	commit: fix(editors): preserve CodeEditor footer styles

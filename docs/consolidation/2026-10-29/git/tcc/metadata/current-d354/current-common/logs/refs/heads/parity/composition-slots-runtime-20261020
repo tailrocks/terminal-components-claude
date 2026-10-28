@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 d11713bc68642aaf7854393806ba789fa80dbb9c Alexey Zhokhov <alexey@zhokhov.com> 1792503828 +0700	branch: Created from d11713bc68642aaf7854393806ba789fa80dbb9c
+d11713bc68642aaf7854393806ba789fa80dbb9c ed01a53e34677ceb7ba2e6c837d73d791b10c753 Alexey Zhokhov <alexey@zhokhov.com> 1792503834 +0700	cherry-pick: feat(layout): add immutable composition plans
+ed01a53e34677ceb7ba2e6c837d73d791b10c753 0e674bdf4820f609be57000727c63011f58bd1dd Alexey Zhokhov <alexey@zhokhov.com> 1792503834 +0700	cherry-pick: fix(layout): address composition plan review findings
+0e674bdf4820f609be57000727c63011f58bd1dd 2a413d4918a619c2b0804d8372aa8f41953c34bd Alexey Zhokhov <alexey@zhokhov.com> 1792503834 +0700	cherry-pick: docs(layout): record independent regression results
+2a413d4918a619c2b0804d8372aa8f41953c34bd 801e6c94892703bde5309e3daa31f37c3a727910 Alexey Zhokhov <alexey@zhokhov.com> 1792503900 +0700	reset: moving to 801e6c94892703bde5309e3daa31f37c3a727910
+801e6c94892703bde5309e3daa31f37c3a727910 fc3a230c3295176f0416f3012e39016f6ce0c901 Alexey Zhokhov <alexey@zhokhov.com> 1792503900 +0700	cherry-pick: feat(layout): add immutable composition plans
+fc3a230c3295176f0416f3012e39016f6ce0c901 80e261dd3e9c6ea9c276bd442764b2b7b9599079 Alexey Zhokhov <alexey@zhokhov.com> 1792503900 +0700	cherry-pick: fix(layout): address composition plan review findings
+80e261dd3e9c6ea9c276bd442764b2b7b9599079 68aa9a9777b4c9e975d643ee308adbdc7ffb4f6c Alexey Zhokhov <alexey@zhokhov.com> 1792503900 +0700	cherry-pick: docs(layout): record independent regression results
+68aa9a9777b4c9e975d643ee308adbdc7ffb4f6c dbcd7c2891ae89763c0413f472c6045e8ec4f9af Alexey Zhokhov <alexey@zhokhov.com> 1792504253 +0700	commit: feat(runtime): add measured composition slots
+dbcd7c2891ae89763c0413f472c6045e8ec4f9af 697e864b8534a7eb4cbb41b0b30168524d927922 Alexey Zhokhov <alexey@zhokhov.com> 1792505046 +0700	commit: fix(runtime): clip cursor requests to active area
+697e864b8534a7eb4cbb41b0b30168524d927922 10ab21cdb33939ec5ead16b1923c8f91a4bf5cb8 Alexey Zhokhov <alexey@zhokhov.com> 1792505146 +0700	commit: fix(runtime): suppress clipped cursor requests

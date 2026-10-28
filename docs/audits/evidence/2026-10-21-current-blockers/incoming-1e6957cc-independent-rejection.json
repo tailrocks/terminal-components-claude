@@ -1,0 +1,149 @@
+{
+  "decision": "HOLD",
+  "scope": "Independent exact incremental review; source synchronization is not approval. No source edits or pushes.",
+  "before": "25d2a36137be15e5aba140e280becbd918427bb9",
+  "after": "1e6957cc51d1a7c0e1a7212b4ad042cb71239c20",
+  "actual_after_parent": "3576d7159f30201ca6c90da1dbcc5cf78dea054b",
+  "attribution": "Requested before/after range includes General painter commit 3576d7159 and Mounts painter commit 1e6957cc. Combined editor_view diff is 256 insertions and 121 deletions (377 changed lines). 1e alone changes 208 lines. No library API or tests changed.",
+  "reference": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "tests": {
+    "native": {
+      "command": "cargo nextest run -p jackin-preview-app --all-targets --no-fail-fast",
+      "before": {
+        "run": 182,
+        "passed": 177,
+        "failed": 5,
+        "skipped": 0
+      },
+      "after": {
+        "run": 182,
+        "passed": 176,
+        "failed": 6,
+        "skipped": 0
+      },
+      "new_failure": "app::paint_contract_tests::returning_editor_mounts_dirty_paints_the_approved_120x40_frame; actual keyboard sequence e,2,Enter,r,i leaves editor dirty, but header no longer includes \u2022 1 change.",
+      "existing_failures": [
+        "historical_failure_and_action_labels_remain_readable_in_mono",
+        "capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line",
+        "tab_context_menu_renames_and_closes_by_mouse_and_keyboard",
+        "every_named_scenario_renders_a_deterministic_frame",
+        "jackin_visual_baseline"
+      ]
+    },
+    "external": {
+      "command": "cargo nextest run --no-fail-fast",
+      "fixture_identical": true,
+      "before": {
+        "run": 9,
+        "passed": 3,
+        "failed": 6,
+        "skipped": 0
+      },
+      "after": {
+        "run": 9,
+        "passed": 4,
+        "failed": 5,
+        "skipped": 0
+      },
+      "improved": [
+        "clean_mount_row_uses_actual_data",
+        "empty_mount_data_does_not_invent_a_mount"
+      ],
+      "new_regression": "dirty_general_indicator_remains_visible_at_adjacent_sizes: before all visible; after [(119,true),(120,false),(121,true)].",
+      "still_failing": [
+        "third_mount_is_visible_or_scrollable",
+        "dirty_mounts_render_pending_draft_values",
+        "general_name_renders_pending_draft",
+        "painted_mounts_tab_is_clickable"
+      ],
+      "positive_controls": [
+        "keyboard_mounts_navigation_remains_available",
+        "collect_editor_facts (observation only)"
+      ]
+    },
+    "execution": "Separate detached sparse copies at exact revisions; distinct revision Cargo targets and one external workspace per target; all four command groups completed within 33 seconds under 200-second process-group deadlines. No zero-checkpoint or skipped case counted as a pass."
+  },
+  "findings": [
+    {
+      "id": "E1",
+      "priority": "P1",
+      "status": "Prohibited mechanism retained and expanded",
+      "path": "crates/jackin-preview-app/src/app.rs:9808; crates/jackin-preview-app/src/app/editor_view.rs:30",
+      "evidence": "The private whole-App painter is selected only at 120x40, Returning, Paused, TrueColor, exact accent RGB(48,e0,54), and selected modal/status states. General and Mounts now fill the complete root with canvas and draw fake tabs, inputs, checkboxes, buttons and footer over already-rendered shared content. This is application-owned replacement rendering, not composition through reusable components.",
+      "repair": "Move the required layout/theme/parts contracts into real shared components and compose them from editor view data. Remove the selector and private correcting painter in the same adoption increment; do not relocate the fixed painter into Termrock."
+    },
+    {
+      "id": "E2",
+      "priority": "P1",
+      "status": "New regression in combined range, attributed to General header change and extended to Mounts",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:46-97",
+      "evidence": "Dirty badge exists only in the else branch, excluding both General and Mounts. Unchanged public Runtime probe passes before and fails only at120 after; existing native real-key Mounts dirty test newly fails. No expectation was edited.",
+      "repair": "One shared editor header must derive dirty status from the explicit editor draft, with identical layout across supported widths; preserve the baseline indicator through actual component rendering."
+    },
+    {
+      "id": "E3",
+      "priority": "P1",
+      "status": "Persisting incorrect draft ownership; new General implementation retains defect",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:173-185,253-320",
+      "evidence": "General reads persisted world.workspaces.first(), not editor.pending. Mounts clones persisted mounts; dirty first row hardcodes payments-platform destination/source, ro and clone. Public pending name and destination probes fail both before and after. Frozen editor source lines136-182 constructs TextInput/Checkbox values from its pending workspace, with workspace identity supplied explicitly.",
+      "repair": "Application owns selected workspace identity and pending domain values; pass those borrowed draft values to shared form/list components and map typed actions back into one draft state."
+    },
+    {
+      "id": "E4",
+      "priority": "P1",
+      "status": "Persisting visible/input mismatch; full canvas clearing worsens ownership visibility",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:22-28,107-152,350-373",
+      "evidence": "Painted Mounts tab at(16,3) does not activate it through real Runtime click; keyboard ] remains available. After Enter on Mounts, actual focus is mount-edit with bounds(4,11,12,1) at119/120/121 and both tested profiles; at120 TrueColor painter clears that control and instead paints selection gutter at(2,7) and fake Add mount at(8,9). Painted controls never register their own hit/focus/cursor behavior.",
+      "repair": "Shared Tabs, form controls and mount list must own drawing and registration from one resolved layout; do not register invisible controls or add application-level hit shims."
+    },
+    {
+      "id": "E5",
+      "priority": "P2",
+      "status": "Partial data improvement remains incomplete",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:253-369,618-646",
+      "evidence": "Clean and empty data probes now pass, but only first() and get(1) mounts are drawn; third custom mount is absent despite unused rows. Rendering hardcodes kind host, absolute columns, fixed source erasure at94,7, RGB values, and chars().count() widths instead of cell-aware text tools. Full vector cloned per draw. Unicode, offset origin and long-content failure modes were source-reviewed, not exhaustively runtime-proven in this increment.",
+      "repair": "Use borrowed semantic rows with actual mount kind and shared list/grid measurement, scrolling, clipping and grapheme/cell-width truncation. Support empty/large data and generic policies without approved-size tables."
+    }
+  ],
+  "legitimate_improvements": [
+    "Clean first and second Mounts labels now derive from domain mounts instead of fixed demo labels.",
+    "Empty persisted mount data no longer invents the first payments mount.",
+    "isolation_word is a legitimate application-owned domain label conversion. Retain these data contracts when removing the replacement painter."
+  ],
+  "api_compatibility": "No public library API changed in this range; external consumer compiled unchanged on both revisions. This does not establish architecture compliance.",
+  "test_integrity": "Native inventory unchanged at182; new native failure preserved. External9 sources byte-identical. Existing stored-frame tests are not treated as architecture proof. Migration matrix labels new 0-cell claims unadmitted; review does not admit those author-only claims.",
+  "limitations": [
+    "No full real-CLI tuiscotti comparison, fixed-clock checkpoint inventory, terminal mode/cleanup or all-app parity gate was run by this review.",
+    "No full workspace clippy/fmt gate was run; this is a bounded independent review with explicit product failures.",
+    "Color facts cover TrueColor and Mono observations only; not exhaustive profile acceptance.",
+    "Prior Manager/Help/Viewport/Terminal findings are separate and neither approved nor reopened by this increment."
+  ],
+  "ownership_sequence": [
+    "Shared form/header/tab/list contract owner implements baseline layout/state/parts behavior without domain models.",
+    "Jackin application supplies selected pending workspace data and handles typed domain actions; replace corrected painter and selectors together.",
+    "Independent reviewer reruns unchanged real Runtime probes, native inventory, and pinned paired CLI checks before acceptance."
+  ],
+  "artifacts": {
+    "after-consumer/Cargo.lock": "e40ed2bb65baa352bb761c34d18d2f1c43f91b84110701c1d843ab522bc9d3d5",
+    "after-consumer/Cargo.toml": "2e56c5ed1d785dbef7ad1779d27a5adae76d55d36fbd3e7ee8a62d381ea4893d",
+    "after-consumer/facts.txt": "ffb87b6a365f90d91709d05e0251a4e99492362f24052121d2b679c88b067b60",
+    "after-consumer/src/lib.rs": "a4f4181bf38613a861eb1b81e35aedeff74ea35c78880086a8efad7921cef6bc",
+    "after-consumer.log": "f15be11f2b87f7313715495f26f01f0064f6c1710847364904d5090877ede20a",
+    "after-nextest.log": "d5c95083eeff8edb6f09041b3a37835b95fd4750fc421abff44cf76facdc7c10",
+    "after-source/crates/jackin-preview-app/src/app/editor_view.rs": "d35146444ae0adc84ccedb0bb76ada927f14d82528ced2c87eeb5cb07ee7d6d0",
+    "after-source/crates/jackin-preview-app/src/app.rs": "9dc9ad0df73d8ae1b747c440cdade3d364b57aa7fadc332f83b02b71f84ce657",
+    "before-consumer/Cargo.lock": "e40ed2bb65baa352bb761c34d18d2f1c43f91b84110701c1d843ab522bc9d3d5",
+    "before-consumer/Cargo.toml": "cf64881cb50bf3d9842a484a8b8b53fff2e48eef007db75595d8d08eff4afbab",
+    "before-consumer/facts.txt": "ffb87b6a365f90d91709d05e0251a4e99492362f24052121d2b679c88b067b60",
+    "before-consumer/src/lib.rs": "a4f4181bf38613a861eb1b81e35aedeff74ea35c78880086a8efad7921cef6bc",
+    "before-consumer.log": "f5eed60cc0518da27f3cb8e390a0d769d503960404ae10c5f9c5742152634d29",
+    "before-nextest.log": "17c3fc713879404606a75fce8ea07b99657dc0d3e140db599f3c52d5967c1ba5",
+    "before-source/crates/jackin-preview-app/src/app/editor_view.rs": "8a5d22b803cc54d2ec86bf3f77ce6c6d3cd632e2903b114f6dbde8e982897de9",
+    "before-source/crates/jackin-preview-app/src/app.rs": "9dc9ad0df73d8ae1b747c440cdade3d364b57aa7fadc332f83b02b71f84ce657",
+    "combined.diff": "ba039ba6687bafecec15537831cb5d7f31ca5ed834297bc309987638a436816b",
+    "consumer-run.py": "d5855b3f3166862c697f71243f83aa0fe989c852147180339bcc820d7a11b04d",
+    "consumer-status.json": "ec7cfe1df21cbcad55d408fb7c6f57775f98537cc31e21f42e2006e6474ca07f",
+    "native-run.py": "208250bb937c81025517e32b90fde3ba8258b1dc2ba5dfbd1c41790e63eba693",
+    "native-status.json": "9781abe48f263a84971788c83497b0ac0af267477d1810e014d99152f614541d"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "task": "Independent review of fresh-run-advance failure handling; no source edits or capture-root interaction.",
+  "reviewed_commit": "310a56de62e0d2e87a647ffd58b9b5cec9c0a744",
+  "implementation_commit": "cacb040598c3a398f0cc9d50cc531d46de8b44d1",
+  "implementation_parent": "fa57d1a6d1984bd3b484b0de38488a73150d3b2b",
+  "source_blobs": {
+    "tools/frozen_baseline.py": "7a1ece8994b1be0c26a3124845cbc6a513ee09ef",
+    "tools/test_frozen_baseline.py": "090023c42142543c74c3b33f3319c20662985d75",
+    "docs/audits/2026-10-21-fresh-capture-runner-stage3b.md": "6b5622115d4859055653afa8a26a73d588ca5c54"
+  },
+  "worktree": "/Users/donbeave/Projects/termrock-worktrees/holla-readonly-42fb861 (detached exact 69c1 review copy; clean)",
+  "findings": [
+    {
+      "severity": "verification gap",
+      "finding": "No test in tools/test_frozen_baseline.py invokes advance_fresh_run or exercises fresh-run-advance failure end-to-end. Existing assertions validate CLI argument shape (test_fresh_advance_cli_is_capture_replay_only_and_bounded), journal structure/authentication (test_fresh_run_journal_requires_ordered_authenticated_nonzero_complete_prefix), immutable append helper, and source/plan metadata. They do not inject a failed child/timeout/artifact mutation through the command and inspect ordinal/evidence."
+    },
+    {
+      "severity": "possible retry deadlock exposed by required regression",
+      "finding": "advance_fresh_run renames stage to final_chunk and sets stage=None before _verify_fresh_journal_artifacts and _fresh_journal_append. If either post-rename operation fails (e.g. expected artifact mutates after its recorded digest), except no longer writes untrusted-failure.json, an unreceipted final chunk remains, and a retry rejects it at final_chunk.exists() with \"chunk output already exists without a matching journal receipt\". Thus no success receipt/ordinal advances, but retryability and failure evidence are not preserved. Verify artifacts before publication; publish chunk+receipt with rollback/atomic recovery semantics, and write failure evidence into retained staging on failed validation."
+    }
+  ],
+  "smallest_test_plan": [
+    "Add a reusable temporary fresh-run fixture with one capture chunk and authenticated manifest/key/plan. Invoke actual advance_fresh_run (or parsed CLI main dispatch) with production run_live_chunk; patch only expensive trust boundaries (frozen-source/binary identity verification and extension inventory) and point PATH at a temporary fake cargo executable.",
+    "Child nonzero case: fake cargo writes stdout/stderr then exits nonzero. Assert advance raises; no journal step file, no final chunk, no JSON success output; ordinal remains 0 on a subsequent attempt; retained .attempt directory includes runner report/logs plus untrusted-failure.json and hashes remain inspectable.",
+    "Timeout case: fake cargo sleeps beyond run timeout. Assert actual subprocess timeout cleanup and same no-success/no-advance/evidence assertions; bound test to a short timeout.",
+    "Mutation case: have a success-shaped run_live_chunk fixture create expected artifact tree, then mutate one captured file after expected_chunk_sha256 is computed but before artifact verification/publication. Assert failure, no journal receipt/no success output, unchanged ordinal, and retained failed evidence. This regression should currently reveal the rename-before-verify orphan/retry deadlock; require implementation fix before expecting a green test.",
+    "Run test twice from a fresh temporary root to confirm deterministic ordinal/evidence assertions. Keep no artifacts under repository or immutable reference roots."
+  ],
+  "existing_unit_vs_executed_failure": "At inspected commits, audit states 70 unittest tests passed and one live successful 32-case Holla capture ran. Those are not failure-injection evidence. This review did not execute failure tests; no claim of real failed child/timeout/mutation detection is made.",
+  "commands": [
+    "git show --stat 310a56de62e0d2e87a647ffd58b9b5cec9c0a744 (read-only; confirms docs-only receipt commit)",
+    "git show ...:tools/test_frozen_baseline.py (read-only code inspection)",
+    "git show ...:tools/frozen_baseline.py (read-only code inspection)",
+    "git status --porcelain=v1 (clean)"
+  ],
+  "status": "Independent source review only; no tests executed and no protected capture artifacts accessed."
+}

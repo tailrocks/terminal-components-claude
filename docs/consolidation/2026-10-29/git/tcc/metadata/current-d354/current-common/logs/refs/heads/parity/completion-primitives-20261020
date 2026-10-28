@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 5bfbd1e40fcf6de34d92a16df6a71b4e3fd55541 Alexey Zhokhov <alexey@zhokhov.com> 1792489405 +0700	branch: Created from HEAD
+5bfbd1e40fcf6de34d92a16df6a71b4e3fd55541 c9d6c4ee967f9d0187949841ceec8c2736438d30 Alexey Zhokhov <alexey@zhokhov.com> 1792489576 +0700	commit: feat(editors): support completion splicing
+c9d6c4ee967f9d0187949841ceec8c2736438d30 cf1ff91536fdb402325eb6716856eec4688c106c Alexey Zhokhov <alexey@zhokhov.com> 1792489585 +0700	rebase (finish): refs/heads/parity/completion-primitives-20261020 onto f02d43e299278db7980a2cc2bf0a303868aa24cc

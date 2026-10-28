@@ -1,0 +1,90 @@
+{
+  "review_kind": "Read-only design and source review; no implementation or acceptance clearance",
+  "reviewed_source_commit": "9c99356abe26a6e82ffcdc2e4f3f089d70050af4",
+  "proposal": "App::layout(&self, &mut LayoutCx) default no-op; immutable resolved composition; arrange publishes owner-part geometry only; owner-part layer anchors resolved before rendering",
+  "verdict": "Direction is suitable only after the required constraints below are made explicit. Do not implement a render prepass or a second input engine.",
+  "findings": [
+    {
+      "priority": "P1",
+      "title": "Tabs part geometry currently depends on painting, so the proposed first consumer needs a real shared semantic layout extraction",
+      "paths": [
+        "crates/termrock-navigation/src/tabs.rs:591",
+        "crates/termrock-navigation/src/tabs.rs:654",
+        "crates/termrock-navigation/src/tabs.rs:656",
+        "crates/termrock-navigation/src/tabs.rs:894",
+        "crates/termrock-navigation/src/tabs.rs:906"
+      ],
+      "evidence": "Tabs::draw invokes the custom RowUi callback, derives label width from painted_width scanning Ui::raw buffer cells, and reserves overflow width from previous Ui.layout. Tabs::measure reports only strip size. A new arrange adapter cannot reproduce actual Part::TAB rectangles through that measure API.",
+      "required_change": "Extract one semantic row measurement and tab layout result consumed by both arrange and draw. Preserve custom row support or bound the first adapter to an explicitly measured public row contract with a demonstrated consumer. Never call existing draw against a scratch buffer or guess separate label widths."
+    },
+    {
+      "priority": "P1",
+      "title": "Owner geometry publication must not replace the interaction registry or frame commit",
+      "paths": [
+        "crates/termrock-runtime/src/ui/mod.rs:1004",
+        "crates/termrock-runtime/src/hit.rs:190",
+        "crates/termrock-runtime/src/runtime.rs:2051",
+        "crates/termrock-runtime/src/runtime.rs:2073",
+        "crates/termrock-runtime/src/ui/cx.rs:76"
+      ],
+      "evidence": "Ui::register_part creates hit-test regions, not an inert bounds map. commit_geometry swaps registry, layout, bindings and typing; commit_frame additionally reconciles focus. A bounds-only prephase cannot truthfully register an interactive control or call these commits.",
+      "required_change": "Keep a separate immutable planned-bounds view, keyed by owner Id, PartRef and layer identity, for owner-anchor resolution. Existing rendered registration remains the sole source of live controls, bindings, cursor and focus. During rendering validate/use the same planned geometry; do not turn planned parts into invisible controls."
+    },
+    {
+      "priority": "P1",
+      "title": "The proposal needs an explicit shared layout epoch and failure transaction",
+      "paths": [
+        "crates/termrock-runtime/src/ui/composition.rs:367",
+        "crates/termrock-runtime/src/runtime.rs:1515",
+        "crates/termrock-runtime/src/runtime.rs:1560",
+        "crates/termrock-runtime/src/runtime.rs:1719",
+        "crates/termrock-runtime/src/runtime.rs:1374"
+      ],
+      "evidence": "CompositionSlots::draw_at currently measures, remeasures and resolves afresh. Prepared frames already carry runtime/generation/area tokens and input is blocked until presentation. Independently rebuilding an application tree for layout and draw does not establish identical bounds after resize-driven update, focus settling or route/data changes.",
+      "required_change": "Resolve and atomically publish one immutable layout epoch for viewport plus application update/theme/layer revision. Draw consumes that epoch rather than re-resolving. Failed/partial/depth-invalid layout leaves no usable new geometry or prepared token. Recompute after updates that change geometry, without replaying physical input; preserve existing input presentation guard."
+    },
+    {
+      "priority": "P2",
+      "title": "Layer owner lookup needs explicit dependency, missing-owner and clipping rules",
+      "paths": [
+        "crates/termrock-runtime/src/layer.rs:421",
+        "crates/termrock-runtime/src/ui/mod.rs:1187",
+        "crates/termrock-overlays/src/menu.rs:479",
+        "crates/termrock-overlays/src/menu.rs:500",
+        "crates/termrock-overlays/src/menu.rs:651"
+      ],
+      "evidence": "LayerSpec is non_exhaustive, so adding an optional descriptor is compatible. Current Menu converts owner parts to concrete Rect anchors from the last registry during update, and layer drawing uses a pre-resolved area. Resolving all arbitrary layer-owned parts after all plans introduces potential mutual dependencies and obsolete-owner ambiguity.",
+      "required_change": "First consumer may anchor only to a registered planned owner in the page or an earlier parent layer, preserving draw-order independence within that layer. Reject duplicate identity, self/cyclic/forward dependencies and missing, clipped-out or zero-sized owner parts deterministically. Use visible clipped bounds for anchoring; retain logical bounds separately. Runtime performs normal close/focus restoration outside the pure callback, with one documented dismissal result, not a silent fallback to stale Rect."
+    },
+    {
+      "priority": "P2",
+      "title": "Measure(&Ui) is read-only but not independent of previous geometry/state",
+      "paths": [
+        "crates/termrock-runtime/src/ui/measure.rs:5",
+        "crates/termrock-runtime/src/ui/measure.rs:148",
+        "crates/termrock-runtime/src/ui/mod.rs:1540",
+        "crates/termrock-runtime/src/ui/mod.rs:1571"
+      ],
+      "evidence": "Safe shared &Ui cannot call the mutable registration/painting APIs, which is useful. Existing measurement nevertheless can observe previous focus flags, area and layout; a supplied callback can also use interior mutable application data. The existing test intentionally changes intrinsic width with focus-visible themed glyph width.",
+      "required_change": "Use a restricted immutable LayoutRead snapshot for new arrange APIs, explicitly documenting which interaction/theme state is frozen and whether old geometry queries are forbidden. A private compatibility bridge must not expose mutable Ui or invoke domain/update effects, must preserve required surface/overlay/theme state, and needs real custom-measurement tests. Do not claim Rust &self proves arbitrary consumer purity."
+    }
+  ],
+  "staged_proposal": [
+    "Stage 1: exact one real Tabs leaf and ContextMenu consumer; shared semantic tab row layout and immutable resolved parts, no generic framework expansion.",
+    "Stage 2: runtime-owned layout epochs, pure restricted LayoutCx, optional compatible LayerSpec owner-part descriptor, deterministic parent-layer dependency resolution.",
+    "Stage 3: draw consumes exact resolved epoch, validates emitted part/hit/focus/cursor bounds, and reuses existing rendering/input/presentation machinery.",
+    "Default App::layout must be an explicit legacy no-op path. An opted-in missing plan or owner must fail closed; do not silently fall back to last-frame geometry. Existing CompositionLeaf trait implementations remain source compatible."
+  ],
+  "required_tests": [
+    "Actual owner/menu 80x24 to 100x30 x51 anchor without another key; one physical resize update only",
+    "Queued pointer against new bounds, resize-driven route/data changes, abort and stale prepared tokens",
+    "Owner removal, stable keyed reorder, duplicates, Unicode/custom rows, overflow, clipping and zero area",
+    "Overlay-before-owner drawing in one layer, parent-layer owner, forbidden cycle/forward dependency",
+    "Focus scope/restoration, modal input, cursor retention, hover and pointer capture unchanged",
+    "Layout errors cannot partially publish; no callbacks for update, domain effects, input routing or painting during measurement",
+    "Unchanged legacy consumers and ordinary full-frame output"
+  ],
+  "checks": "Source inspection only. No Rust tests or code edits performed. Existing coordinator report of 37 passed/2 skipped plus 4 focused tests is not independently rerun here.",
+  "guard_correction": "Existing Runtime::run_update already invalidates prepared output; Runtime::handle rejects input while unpresented or unsettled. No redundant resize guard requested.",
+  "remaining_acceptance": "All four application product/library gates remain incomplete; this packet provides design constraints only."
+}

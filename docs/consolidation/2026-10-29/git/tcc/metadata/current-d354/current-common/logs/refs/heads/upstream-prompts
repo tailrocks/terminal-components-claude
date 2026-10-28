@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 8da9efa7fdf130437e6ff5927c91b6dc0b62f2e3 Alexey Zhokhov <alexey@zhokhov.com> 1792144156 +0700	branch: Created from HEAD
+8da9efa7fdf130437e6ff5927c91b6dc0b62f2e3 0d60361507e63234d8b3f68c12965872aea55051 Alexey Zhokhov <alexey@zhokhov.com> 1792144570 +0700	commit: docs(upstream): feedback prompts for velnor-new and tuiscotti
+0d60361507e63234d8b3f68c12965872aea55051 9daa6f9387d0c0c0d916106953763e3e88b24707 Alexey Zhokhov <alexey@zhokhov.com> 1792144576 +0700	rebase (finish): refs/heads/upstream-prompts onto 0b23798183ad92edd3a30a1e85e3cdd301e7e054

@@ -1,68 +1,29 @@
 use core::fmt;
 use core::ops::{ControlFlow, Range};
 
-#[cfg(feature = "testing")]
-use std::cell::Cell;
-
 use crate::theme::PaintStyle;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
 use super::{Acc, PartStyle, SlotFn};
-use crate::event::{Chord, KeyCode};
+use crate::event::{Axis, Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::scroll::ScrollState;
+use crate::scroll::{FollowCursor, ScrollState, TrackClick};
 use crate::text::Span;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
-use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
+use crate::ui::{Axes, Cx, FrameRead, Headroom, LayoutFacts, Ui};
+use termrock_runtime::author::VerticalWindow;
+use termrock_runtime::hit::ScrollRouteKey;
+use termrock_runtime::runtime::{WheelRouteAttempt, WheelRouteResult};
 use termrock_runtime::scroll_region::ScrollRegion;
 
 const TAB_WIDTH: u16 = 4;
-
-#[cfg(feature = "testing")]
-#[derive(Debug, Default)]
-pub struct ViewportWorkProbe {
-    indexed_lines: Cell<usize>,
-    visible_rows: Cell<usize>,
-}
-
-#[cfg(feature = "testing")]
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-pub struct ViewportWorkSnapshot {
-    pub indexed_lines: usize,
-    pub visible_rows: usize,
-}
-
-#[cfg(feature = "testing")]
-impl ViewportWorkProbe {
-    pub fn reset(&self) {
-        self.indexed_lines.set(0);
-        self.visible_rows.set(0);
-    }
-
-    pub fn snapshot(&self) -> ViewportWorkSnapshot {
-        ViewportWorkSnapshot {
-            indexed_lines: self.indexed_lines.get(),
-            visible_rows: self.visible_rows.get(),
-        }
-    }
-
-    fn add_indexed(&self, count: usize) {
-        self.indexed_lines
-            .set(self.indexed_lines.get().saturating_add(count));
-    }
-
-    fn add_visible(&self, count: usize) {
-        self.visible_rows
-            .set(self.visible_rows.get().saturating_add(count));
-    }
-}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ViewportLine<'a> {
@@ -82,6 +43,7 @@ pub(crate) struct ProjectedRun {
     text: Range<usize>,
     role: Option<Role>,
     modifier: Modifier,
+    paint: Option<PaintStyle>,
 }
 
 impl ProjectedText {
@@ -98,15 +60,49 @@ impl ProjectedText {
     {
         let start = self.runs.len();
         for (value, role, modifier) in runs {
-            let text_start = self.text.len();
-            self.text.push_str(value.as_ref());
-            self.runs.push(ProjectedRun {
-                text: text_start..self.text.len(),
-                role,
-                modifier,
-            });
+            self.push_run(value.as_ref(), role, modifier, None);
         }
         self.lines.push(start..self.runs.len());
+    }
+
+    pub fn push_styled_line<I, S>(&mut self, runs: I)
+    where
+        I: IntoIterator<Item = (S, PaintStyle)>,
+        S: AsRef<str>,
+    {
+        let start = self.runs.len();
+        for (value, paint) in runs {
+            self.push_run(value.as_ref(), None, Modifier::empty(), Some(paint));
+        }
+        self.lines.push(start..self.runs.len());
+    }
+
+    fn push_run(
+        &mut self,
+        value: &str,
+        role: Option<Role>,
+        modifier: Modifier,
+        paint: Option<PaintStyle>,
+    ) {
+        let text_start = self.text.len();
+        self.text.push_str(value);
+        self.runs.push(ProjectedRun {
+            text: text_start..self.text.len(),
+            role,
+            modifier,
+            paint,
+        });
+    }
+
+    pub fn widest_cols(&self) -> usize {
+        (0..self.lines.len())
+            .map(|index| line_cols(LineRef::Projected(self, index)))
+            .max()
+            .unwrap_or(0)
+    }
+
+    pub fn line_count(&self) -> usize {
+        self.lines.len()
     }
 }
 
@@ -120,6 +116,12 @@ impl<'a> From<ViewportLine<'a>> for LineRef<'a> {
     fn from(line: ViewportLine<'a>) -> Self {
         LineRef::Borrowed(line)
     }
+}
+
+#[derive(Clone, Copy)]
+enum FadePolicy {
+    LegacyRect,
+    LogicalWindow,
 }
 
 #[derive(Clone, Copy)]
@@ -310,13 +312,272 @@ const BINDINGS: &[Binding<ViewportCmd>] = &[
     ),
 ];
 
-#[derive(Clone, Copy, Debug)]
+pub const HORIZONTAL_PAN_LEFT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.horizontal-pan-left");
+
+pub const HORIZONTAL_PAN_RIGHT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.horizontal-pan-right");
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum HorizontalPanCmd {
+    Left,
+    Right,
+}
+
+const fn pan_binding(
+    action: crate::ActionKey,
+    chord: Option<Chord>,
+    cmd: HorizontalPanCmd,
+    label: &'static str,
+    visible: bool,
+) -> Binding<HorizontalPanCmd> {
+    Binding {
+        action,
+        chord,
+        cmd,
+        label,
+        priority: if visible { 50 } else { 10 },
+        visible,
+    }
+}
+
+const HORIZONTAL_PAN_BINDINGS: &[Binding<HorizontalPanCmd>] = &[
+    pan_binding(
+        HORIZONTAL_PAN_LEFT,
+        Some(Chord::key(KeyCode::Left)),
+        HorizontalPanCmd::Left,
+        "Pan left",
+        true,
+    ),
+    pan_binding(
+        HORIZONTAL_PAN_RIGHT,
+        Some(Chord::key(KeyCode::Right)),
+        HorizontalPanCmd::Right,
+        "Pan right",
+        true,
+    ),
+];
+
+const HORIZONTAL_PAN_SEMANTIC_BINDINGS: &[Binding<HorizontalPanCmd>] = &[
+    pan_binding(HORIZONTAL_PAN_LEFT, None, HorizontalPanCmd::Left, "", false),
+    pan_binding(
+        HORIZONTAL_PAN_RIGHT,
+        None,
+        HorizontalPanCmd::Right,
+        "",
+        false,
+    ),
+];
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum SelectionCmd {
+    Left,
+    Right,
+    Up,
+    Down,
+    Home,
+    End,
+    WordLeft,
+    WordRight,
+    DocumentHome,
+    DocumentEnd,
+    Clear,
+}
+
+pub const SELECTION_LEFT: crate::ActionKey = crate::ActionKey::custom("viewport.selection-left");
+
+pub const SELECTION_RIGHT: crate::ActionKey = crate::ActionKey::custom("viewport.selection-right");
+
+pub const SELECTION_UP: crate::ActionKey = crate::ActionKey::custom("viewport.selection-up");
+
+pub const SELECTION_DOWN: crate::ActionKey = crate::ActionKey::custom("viewport.selection-down");
+
+pub const SELECTION_HOME: crate::ActionKey = crate::ActionKey::custom("viewport.selection-home");
+
+pub const SELECTION_END: crate::ActionKey = crate::ActionKey::custom("viewport.selection-end");
+
+pub const SELECTION_WORD_LEFT_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-word-left-ctrl");
+
+pub const SELECTION_WORD_RIGHT_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-word-right-ctrl");
+
+pub const SELECTION_WORD_LEFT_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-word-left-alt");
+
+pub const SELECTION_WORD_RIGHT_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-word-right-alt");
+
+pub const SELECTION_UP_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-up-ctrl");
+
+pub const SELECTION_DOWN_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-down-ctrl");
+
+pub const SELECTION_UP_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-up-alt");
+
+pub const SELECTION_DOWN_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-down-alt");
+
+pub const SELECTION_DOCUMENT_HOME_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-document-home-ctrl");
+
+pub const SELECTION_DOCUMENT_END_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-document-end-ctrl");
+
+pub const SELECTION_DOCUMENT_HOME_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-document-home-alt");
+
+pub const SELECTION_DOCUMENT_END_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-document-end-alt");
+
+pub const SELECTION_CLEAR: crate::ActionKey = crate::ActionKey::custom("viewport.selection-clear");
+
+const fn selection_binding(
+    action: crate::ActionKey,
+    chord: Chord,
+    cmd: SelectionCmd,
+) -> Binding<SelectionCmd> {
+    Binding {
+        action,
+        chord: Some(chord),
+        cmd,
+        label: "",
+        priority: 10,
+        visible: false,
+    }
+}
+
+const SELECTION_BINDINGS: &[Binding<SelectionCmd>] = &[
+    selection_binding(
+        SELECTION_LEFT,
+        Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+        SelectionCmd::Left,
+    ),
+    selection_binding(
+        SELECTION_RIGHT,
+        Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+        SelectionCmd::Right,
+    ),
+    selection_binding(
+        SELECTION_UP,
+        Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+        SelectionCmd::Up,
+    ),
+    selection_binding(
+        SELECTION_DOWN,
+        Chord::with(KeyCode::Down, KeyModifiers::SHIFT),
+        SelectionCmd::Down,
+    ),
+    selection_binding(
+        SELECTION_HOME,
+        Chord::with(KeyCode::Home, KeyModifiers::SHIFT),
+        SelectionCmd::Home,
+    ),
+    selection_binding(
+        SELECTION_END,
+        Chord::with(KeyCode::End, KeyModifiers::SHIFT),
+        SelectionCmd::End,
+    ),
+    selection_binding(
+        SELECTION_WORD_LEFT_CTRL,
+        Chord::with(
+            KeyCode::Left,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::WordLeft,
+    ),
+    selection_binding(
+        SELECTION_WORD_RIGHT_CTRL,
+        Chord::with(
+            KeyCode::Right,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::WordRight,
+    ),
+    selection_binding(
+        SELECTION_WORD_LEFT_ALT,
+        Chord::with(KeyCode::Left, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::WordLeft,
+    ),
+    selection_binding(
+        SELECTION_WORD_RIGHT_ALT,
+        Chord::with(KeyCode::Right, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::WordRight,
+    ),
+    selection_binding(
+        SELECTION_UP_CTRL,
+        Chord::with(
+            KeyCode::Up,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::Up,
+    ),
+    selection_binding(
+        SELECTION_DOWN_CTRL,
+        Chord::with(
+            KeyCode::Down,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::Down,
+    ),
+    selection_binding(
+        SELECTION_UP_ALT,
+        Chord::with(KeyCode::Up, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::Up,
+    ),
+    selection_binding(
+        SELECTION_DOWN_ALT,
+        Chord::with(KeyCode::Down, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::Down,
+    ),
+    selection_binding(
+        SELECTION_DOCUMENT_HOME_CTRL,
+        Chord::with(
+            KeyCode::Home,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::DocumentHome,
+    ),
+    selection_binding(
+        SELECTION_DOCUMENT_END_CTRL,
+        Chord::with(
+            KeyCode::End,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::DocumentEnd,
+    ),
+    selection_binding(
+        SELECTION_DOCUMENT_HOME_ALT,
+        Chord::with(KeyCode::Home, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::DocumentHome,
+    ),
+    selection_binding(
+        SELECTION_DOCUMENT_END_ALT,
+        Chord::with(KeyCode::End, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::DocumentEnd,
+    ),
+];
+
+const SELECTION_CLEAR_BINDINGS: &[Binding<SelectionCmd>] = &[selection_binding(
+    SELECTION_CLEAR,
+    Chord::key(KeyCode::Esc),
+    SelectionCmd::Clear,
+)];
+
+const HORIZONTAL_TRACK: Part = Part::custom("viewport.horizontal-track");
+const HORIZONTAL_THUMB: Part = Part::custom("viewport.horizontal-thumb");
+
+#[derive(Debug)]
 struct VCell {
     span: usize,
     at: usize,
     len: usize,
     w: u16,
     tab: bool,
+
+    joined: Option<Box<str>>,
 }
 
 const fn runs(line: ViewportLine<'_>) -> &[Span<'_>] {
@@ -347,23 +608,39 @@ fn run_text(line: LineRef<'_>, ix: usize) -> &str {
     }
 }
 
-fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier) {
+fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier, Option<PaintStyle>) {
     match line {
         LineRef::Borrowed(line) => runs(line)
             .get(ix)
-            .map_or((None, Modifier::empty()), |s| (s.role, s.add)),
+            .map_or((None, Modifier::empty(), None), |s| (s.role, s.add, None)),
         LineRef::Projected(text, line) => text
             .lines
             .get(line)
             .and_then(|line| text.runs.get(line.start.saturating_add(ix)))
-            .map_or((None, Modifier::empty()), |run| (run.role, run.modifier)),
+            .map_or((None, Modifier::empty(), None), |run| {
+                (run.role, run.modifier, run.paint)
+            }),
     }
 }
 
-fn cell_text<'a>(line: impl Into<LineRef<'a>>, c: VCell) -> &'a str {
+fn run_paint_style(base: PaintStyle, run: PaintStyle, selected: bool) -> PaintStyle {
+    let composed = base.patch(run);
+    if selected {
+        composed.with_fg_from(base).with_bg_from(base)
+    } else {
+        composed
+    }
+}
+
+fn cell_text<'line, 'cell>(line: impl Into<LineRef<'line>>, c: &'cell VCell) -> &'cell str
+where
+    'line: 'cell,
+{
     let line = line.into();
     if c.tab {
         " "
+    } else if let Some(joined) = &c.joined {
+        joined
     } else {
         run_text(line, c.span)
             .get(c.at..c.at.saturating_add(c.len))
@@ -371,21 +648,37 @@ fn cell_text<'a>(line: impl Into<LineRef<'a>>, c: VCell) -> &'a str {
     }
 }
 
-fn walk_run(
-    ix: usize,
-    text: &str,
-    f: &mut impl FnMut(VCell) -> ControlFlow<()>,
-) -> ControlFlow<()> {
+fn walk_text(line: LineRef<'_>, text: &str, f: &mut impl FnMut(VCell) -> ControlFlow<()>) {
+    let count = run_count(line);
+    if count == 0 {
+        return;
+    }
+    let mut span = 0usize;
+    let mut run_start = 0usize;
+    let mut run_end = run_text(line, span).len();
     for (at, g) in graphemes(text) {
+        while span + 1 < count && at >= run_end {
+            span += 1;
+            run_start = run_end;
+            run_end = run_end.saturating_add(run_text(line, span).len());
+        }
+        let end = at.saturating_add(g.len());
+        let run_at = at.saturating_sub(run_start);
+        let joined = (end > run_end).then(|| Box::<str>::from(&text[at..end]));
         if g == "\t" {
             for _ in 0..TAB_WIDTH {
-                f(VCell {
-                    span: ix,
-                    at,
+                if f(VCell {
+                    span,
+                    at: run_at,
                     len: g.len(),
                     w: 1,
                     tab: true,
-                })?;
+                    joined: None,
+                })
+                .is_break()
+                {
+                    return;
+                }
             }
             continue;
         }
@@ -393,22 +686,59 @@ fn walk_run(
         if w == 0 {
             continue;
         }
-        f(VCell {
-            span: ix,
-            at,
+        if f(VCell {
+            span,
+            at: run_at,
             len: g.len(),
             w,
             tab: false,
-        })?;
+            joined,
+        })
+        .is_break()
+        {
+            return;
+        }
     }
-    ControlFlow::Continue(())
 }
 
 fn walk_line<'a>(line: impl Into<LineRef<'a>>, mut f: impl FnMut(VCell) -> ControlFlow<()>) {
     let line = line.into();
-    for index in 0..run_count(line) {
-        if walk_run(index, run_text(line, index), &mut f).is_break() {
-            return;
+    match line {
+        LineRef::Borrowed(ViewportLine::Plain(text)) => walk_text(line, text, &mut f),
+        LineRef::Borrowed(ViewportLine::Spans(spans)) => {
+            if spans.len() <= 1 {
+                walk_text(line, spans.first().map_or("", |span| span.text), &mut f);
+            } else {
+                let capacity = spans
+                    .iter()
+                    .fold(0usize, |size, span| size.saturating_add(span.text.len()));
+                let mut joined = String::with_capacity(capacity);
+                for span in spans {
+                    joined.push_str(span.text);
+                }
+                walk_text(line, &joined, &mut f);
+            }
+        }
+        LineRef::Projected(projected, index) => {
+            let Some(runs) = projected.lines.get(index) else {
+                return;
+            };
+            if runs.is_empty() {
+                return;
+            }
+            let Some(first) = projected.runs.get(runs.start) else {
+                return;
+            };
+            let Some(last) = runs
+                .end
+                .checked_sub(1)
+                .and_then(|ix| projected.runs.get(ix))
+            else {
+                return;
+            };
+            if let Some(text) = projected.text.get(first.text.start..last.text.end) {
+                walk_text(line, text, &mut f);
+            }
         }
     }
 }
@@ -479,33 +809,485 @@ fn row_cols<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool, row: usize) ->
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+struct WordRow {
+    ownership_start: usize,
+    ownership_end: usize,
+    painted_start: usize,
+    painted_end: usize,
+    display_end_source: usize,
+    display_cols: usize,
+    replacement: Option<WordReplacement>,
+    soft_break_start: Option<usize>,
+    trailing_omitted: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct WordReplacement {
+    source_start: usize,
+    source_end: usize,
+    display_start: usize,
+}
+
+#[derive(Debug, Default)]
+struct WordLine {
+    rows: Vec<WordRow>,
+}
+
+impl WordLine {
+    fn row_for_source(&self, col: usize) -> usize {
+        let last = self.rows.len().saturating_sub(1);
+        if self
+            .rows
+            .get(last)
+            .is_some_and(|row| row.trailing_omitted && col >= row.ownership_start)
+        {
+            return last;
+        }
+        for (index, row) in self.rows.iter().enumerate() {
+            if index > 0 && row.soft_break_start == Some(col) {
+                return index - 1;
+            }
+            if col >= row.ownership_start && col < row.ownership_end {
+                return index;
+            }
+        }
+        last
+    }
+}
+
+#[derive(Clone, Copy)]
+struct WordCell {
+    start: usize,
+    end: usize,
+    width: usize,
+}
+
+#[derive(Clone, Copy)]
+struct WordSeparator {
+    start: usize,
+    end: usize,
+    width: usize,
+}
+
+#[derive(Clone, Copy)]
+struct WordToken {
+    start: usize,
+    end: usize,
+    width: usize,
+    has_cells: bool,
+    separator: Option<WordSeparator>,
+}
+
+struct WordRowBuilder {
+    ownership_start: usize,
+    anchor: usize,
+    painted_start: Option<usize>,
+    painted_end: usize,
+    display_cols: usize,
+    replacement: Option<WordReplacement>,
+    soft_break_start: Option<usize>,
+}
+
+impl WordRowBuilder {
+    fn new(ownership_start: usize, anchor: usize, soft_break_start: Option<usize>) -> Self {
+        WordRowBuilder {
+            ownership_start,
+            anchor,
+            painted_start: None,
+            painted_end: anchor,
+            display_cols: 0,
+            replacement: None,
+            soft_break_start,
+        }
+    }
+
+    fn append(&mut self, cell: WordCell, width: usize) {
+        let display_width = if cell.width > width { 1 } else { cell.width };
+        if cell.width > width {
+            self.replacement = Some(WordReplacement {
+                source_start: cell.start,
+                source_end: cell.end,
+                display_start: self.display_cols,
+            });
+        }
+        self.painted_start.get_or_insert(cell.start);
+        self.painted_end = cell.end;
+        self.display_cols = self.display_cols.saturating_add(display_width);
+    }
+
+    fn append_separator_range(&mut self, start: usize, end: usize, width: usize) {
+        if width == 0 {
+            return;
+        }
+        self.painted_start.get_or_insert(start);
+        self.painted_end = end;
+        self.display_cols = self.display_cols.saturating_add(width);
+    }
+
+    fn finish(self, ownership_end: usize, display_end_source: usize) -> WordRow {
+        WordRow {
+            ownership_start: self.ownership_start,
+            ownership_end,
+            painted_start: self.painted_start.unwrap_or(self.anchor),
+            painted_end: self.painted_start.map_or(self.anchor, |_| self.painted_end),
+            display_end_source,
+            display_cols: self.display_cols,
+            replacement: self.replacement,
+            soft_break_start: self.soft_break_start,
+            trailing_omitted: false,
+        }
+    }
+}
+
+impl WordRow {
+    fn source_to_display(self, col: usize) -> usize {
+        if col <= self.painted_start {
+            return 0;
+        }
+        if col >= self.painted_end {
+            return self.display_cols;
+        }
+        let Some(replacement) = self.replacement else {
+            return col
+                .saturating_sub(self.painted_start)
+                .min(self.display_cols);
+        };
+        if col < replacement.source_start {
+            return col
+                .saturating_sub(self.painted_start)
+                .min(self.display_cols);
+        }
+        if col < replacement.source_end {
+            return replacement.display_start;
+        }
+        let removed = replacement
+            .source_end
+            .saturating_sub(replacement.source_start)
+            .saturating_sub(1);
+        col.saturating_sub(self.painted_start)
+            .saturating_sub(removed)
+            .min(self.display_cols)
+    }
+
+    fn display_to_source(self, col: usize) -> usize {
+        if col >= self.display_cols {
+            return self.display_end_source;
+        }
+        let Some(replacement) = self.replacement else {
+            return self.painted_start.saturating_add(col).min(self.painted_end);
+        };
+        if col < replacement.display_start {
+            return self.painted_start.saturating_add(col).min(self.painted_end);
+        }
+        if col == replacement.display_start {
+            return replacement.source_start;
+        }
+        let added = replacement
+            .source_end
+            .saturating_sub(replacement.source_start)
+            .saturating_sub(1);
+        self.painted_start
+            .saturating_add(col)
+            .saturating_add(added)
+            .min(self.painted_end)
+    }
+}
+
+fn begin_word_token(
+    token_index: usize,
+    token: WordToken,
+    limit: usize,
+    rows: &mut Vec<WordRowBuilder>,
+    row_width: &mut usize,
+) -> bool {
+    if token_index > 0
+        && let Some(separator) = token.separator
+    {
+        let mut appended_start = None;
+        let mut appended_end = separator.start;
+        let mut appended_width = 0usize;
+        for separator_index in 0..separator.width {
+            let start = separator.start.saturating_add(separator_index);
+            let end = start.saturating_add(1);
+            let next_word_width = if separator_index.saturating_add(1) == separator.width {
+                token.width
+            } else {
+                0
+            };
+            if *row_width > 0 && row_width.saturating_add(1).saturating_add(next_word_width) > limit
+            {
+                if appended_width > 0
+                    && let Some(row) = rows.last_mut()
+                {
+                    row.append_separator_range(
+                        appended_start.unwrap_or(separator.start),
+                        appended_end,
+                        appended_width,
+                    );
+                }
+                rows.push(WordRowBuilder::new(start, end, Some(start)));
+                *row_width = 0;
+                appended_start = None;
+                appended_width = 0;
+            } else if *row_width > 0 {
+                appended_start.get_or_insert(start);
+                appended_end = end;
+                appended_width = appended_width.saturating_add(1);
+                *row_width = row_width.saturating_add(1);
+            }
+        }
+        if appended_width > 0
+            && let Some(row) = rows.last_mut()
+        {
+            row.append_separator_range(
+                appended_start.unwrap_or(separator.start),
+                appended_end,
+                appended_width,
+            );
+        }
+    }
+
+    if token.width > limit && *row_width > 0 {
+        rows.push(WordRowBuilder::new(token.start, token.start, None));
+        *row_width = 0;
+    }
+    token.width > limit
+}
+
+fn build_word_rows(line: LineRef<'_>, width: u16) -> WordLine {
+    if width == 0 {
+        let total = line_cols(line);
+        return WordLine {
+            rows: vec![WordRow {
+                ownership_end: total,
+                painted_end: total,
+                display_end_source: total,
+                ..WordRow::default()
+            }],
+        };
+    }
+
+    let mut tokens = vec![WordToken {
+        start: 0,
+        end: 0,
+        width: 0,
+        has_cells: false,
+        separator: None,
+    }];
+    let mut pending_separator: Option<WordSeparator> = None;
+    let mut total = 0usize;
+    walk_line(line, |cell| {
+        let start = total;
+        let end = start.saturating_add(usize::from(cell.w));
+        let source_width = usize::from(cell.w);
+        if !cell.tab && cell_text(line, &cell) == " " {
+            if let Some(separator) = pending_separator.as_mut() {
+                separator.end = end;
+                separator.width = separator.width.saturating_add(source_width);
+            } else {
+                if let Some(token) = tokens.last_mut() {
+                    token.end = start;
+                }
+                pending_separator = Some(WordSeparator {
+                    start,
+                    end,
+                    width: source_width,
+                });
+            }
+        } else if let Some(separator) = pending_separator.take() {
+            tokens.push(WordToken {
+                start,
+                end,
+                width: source_width,
+                has_cells: true,
+                separator: Some(separator),
+            });
+        } else if let Some(token) = tokens.last_mut() {
+            if !token.has_cells {
+                token.start = start;
+            }
+            token.end = end;
+            token.width = token.width.saturating_add(source_width);
+            token.has_cells = true;
+        }
+        total = end;
+        ControlFlow::Continue(())
+    });
+    if let Some(separator) = pending_separator {
+        tokens.push(WordToken {
+            start: total,
+            end: total,
+            width: 0,
+            has_cells: false,
+            separator: Some(separator),
+        });
+    }
+
+    let limit = usize::from(width);
+    let mut rows = vec![WordRowBuilder::new(0, 0, None)];
+    let mut row_width = 0usize;
+    let mut token_index = 0usize;
+    let mut active_token = None;
+    let mut active_overlong = false;
+    let mut col = 0usize;
+    walk_line(line, |cell| {
+        if active_token.is_none() {
+            while let Some(token) = tokens.get(token_index).copied() {
+                if token.start > col {
+                    break;
+                }
+                if token.has_cells {
+                    active_overlong =
+                        begin_word_token(token_index, token, limit, &mut rows, &mut row_width);
+                    active_token = Some(token);
+                    break;
+                }
+                begin_word_token(token_index, token, limit, &mut rows, &mut row_width);
+                token_index = token_index.saturating_add(1);
+            }
+        }
+
+        let end = col.saturating_add(usize::from(cell.w));
+        if let Some(token) = active_token
+            && col >= token.start
+            && col < token.end
+        {
+            let source = WordCell {
+                start: col,
+                end,
+                width: usize::from(cell.w),
+            };
+            let display_width = if active_overlong && source.width > limit {
+                1
+            } else {
+                source.width
+            };
+            if active_overlong && row_width > 0 && row_width.saturating_add(display_width) > limit {
+                rows.push(WordRowBuilder::new(source.start, source.start, None));
+                row_width = 0;
+            }
+            if let Some(row) = rows.last_mut() {
+                row.append(source, limit);
+            }
+            row_width = row_width.saturating_add(display_width);
+            if end >= token.end {
+                active_token = None;
+                token_index = token_index.saturating_add(1);
+            }
+        }
+        col = end;
+        ControlFlow::Continue(())
+    });
+
+    while let Some(token) = tokens.get(token_index).copied() {
+        if token.start > total {
+            break;
+        }
+        debug_assert!(!token.has_cells, "unvisited non-empty word token");
+        begin_word_token(token_index, token, limit, &mut rows, &mut row_width);
+        token_index = token_index.saturating_add(1);
+    }
+
+    let trailing_separator = tokens
+        .last()
+        .and_then(|token| token.separator)
+        .filter(|separator| separator.end == total);
+    let trailing_omitted = trailing_separator.is_some_and(|_| {
+        rows.last()
+            .is_none_or(|row| row.painted_start.is_none() || row.painted_end < total)
+    });
+    if trailing_omitted && let Some(row) = rows.last_mut() {
+        row.soft_break_start = None;
+    }
+
+    let row_count = rows.len();
+    let mut finished = Vec::with_capacity(row_count);
+    let mut rows = rows.into_iter().peekable();
+    while let Some(row) = rows.next() {
+        let ownership_end = rows.peek().map_or(total, |next| next.ownership_start);
+        let display_end_source = if finished.len() + 1 == row_count && trailing_omitted {
+            total
+        } else {
+            row.painted_start.map_or(row.anchor, |_| row.painted_end)
+        };
+        finished.push(row.finish(ownership_end, display_end_source));
+    }
+    if let Some(last) = finished.last_mut() {
+        last.trailing_omitted = trailing_omitted;
+        if trailing_omitted {
+            last.display_end_source = total;
+        }
+    }
+    WordLine { rows: finished }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 struct LayoutKey {
     width: u16,
     wrap: bool,
+    word_wrap: bool,
     generation: u32,
+    layout_revision: u64,
+    source_revision: Option<u64>,
+}
+
+#[derive(Clone, Copy)]
+struct SelectionLayout {
+    key: LayoutKey,
+    text_height: usize,
 }
 
 #[derive(Debug, Default)]
 struct ViewportLayout {
     key: LayoutKey,
     prefix: Vec<usize>,
+    word_lines: Vec<WordLine>,
     lines: usize,
+    widest_cols: usize,
+    widest_valid: bool,
 }
 
 impl ViewportLayout {
-    fn ensure<'a>(&mut self, lines: impl Into<LineSet<'a>>, key: LayoutKey) -> usize {
+    fn ensure_with_widest<'a>(
+        &mut self,
+        lines: impl Into<LineSet<'a>>,
+        key: LayoutKey,
+        measure_widest: bool,
+    ) -> usize {
         let lines = lines.into();
-        let reusable = key.generation != u32::MAX;
-        if reusable && self.key == key && self.lines == lines.len() {
+        let reusable = key.generation != u32::MAX
+            && key.layout_revision != u64::MAX
+            && key
+                .source_revision
+                .is_none_or(|revision| revision != u64::MAX);
+        if reusable
+            && self.key == key
+            && self.lines == lines.len()
+            && (!measure_widest || self.widest_valid)
+        {
             return 0;
         }
         let append = reusable && self.key == key && self.lines <= lines.len();
         if !append {
             self.key = key;
             self.prefix.clear();
+            self.word_lines.clear();
             self.lines = 0;
+            self.widest_cols = 0;
+            self.widest_valid = false;
         }
         if !key.wrap {
+            if measure_widest {
+                let first = if self.widest_valid { self.lines } else { 0 };
+                for index in first..lines.len() {
+                    if let Some(line) = lines.get(index) {
+                        self.widest_cols = self.widest_cols.max(line_cols(line));
+                    }
+                }
+                self.widest_valid = true;
+            } else if lines.len() != self.lines {
+                self.widest_valid = false;
+            }
             self.lines = lines.len();
             return 0;
         }
@@ -529,7 +1311,14 @@ impl ViewportLayout {
         let mut indexed = 0usize;
         for index in self.lines..lines.len() {
             let Some(line) = lines.get(index) else { break };
-            let r = line_rows(line, key.width, true);
+            let r = if key.word_wrap {
+                let word_line = build_word_rows(line, key.width);
+                let rows = word_line.rows.len();
+                self.word_lines.push(word_line);
+                rows
+            } else {
+                line_rows(line, key.width, true)
+            };
             acc = acc.saturating_add(r);
             self.prefix.push(acc);
             indexed = indexed.saturating_add(1);
@@ -543,6 +1332,10 @@ impl ViewportLayout {
             return self.lines;
         }
         self.prefix.last().copied().unwrap_or(0)
+    }
+
+    fn widest_cols(&self) -> Option<usize> {
+        self.widest_valid.then_some(self.widest_cols)
     }
 
     fn row_start<'a>(&self, lines: impl Into<LineSet<'a>>, row: usize) -> (usize, usize) {
@@ -570,6 +1363,17 @@ impl ViewportLayout {
         }
         self.prefix.get(line).copied().unwrap_or(0)
     }
+
+    fn word_line(&self, line: usize) -> Option<&WordLine> {
+        self.key
+            .word_wrap
+            .then(|| self.word_lines.get(line))
+            .flatten()
+    }
+
+    fn word_row(&self, line: usize, row: usize) -> Option<WordRow> {
+        self.word_line(line)?.rows.get(row).copied()
+    }
 }
 
 fn is_word(c: char) -> bool {
@@ -582,7 +1386,7 @@ fn word_at<'a>(line: impl Into<LineRef<'a>>, col: usize) -> Option<(usize, usize
     let mut found: Option<(usize, usize)> = None;
     let mut at = 0usize;
     walk_line(line, |c| {
-        let text = cell_text(line, c);
+        let text = cell_text(line, &c);
         let word = !text.is_empty() && text.chars().all(is_word);
         if word {
             if cur.is_none() {
@@ -608,23 +1412,285 @@ fn word_at<'a>(line: impl Into<LineRef<'a>>, col: usize) -> Option<(usize, usize
     found
 }
 
+#[derive(Clone, Copy)]
+struct LogicalCell {
+    start: usize,
+    end: usize,
+    word: bool,
+}
+
+fn logical_cells(line: LineRef<'_>) -> Vec<LogicalCell> {
+    let mut cells = Vec::new();
+    let mut col = 0usize;
+    walk_line(line, |cell| {
+        let end = col.saturating_add(usize::from(cell.w));
+        cells.push(LogicalCell {
+            start: col,
+            end,
+            word: cell_text(line, &cell).chars().all(is_word),
+        });
+        col = end;
+        ControlFlow::Continue(())
+    });
+    cells
+}
+
+fn snap_column(cells: &[LogicalCell], col: usize) -> usize {
+    for cell in cells {
+        if col < cell.end {
+            return cell.start;
+        }
+    }
+    cells.last().map_or(0, |cell| cell.end)
+}
+
+fn cell_at_column(cells: &[LogicalCell], col: usize) -> usize {
+    cells
+        .iter()
+        .position(|cell| col < cell.end)
+        .unwrap_or(cells.len())
+}
+
+fn clamp_position(lines: LineSet<'_>, pos: CellPos) -> Option<CellPos> {
+    let line_index = pos.line.min(lines.len().checked_sub(1)?);
+    let line = lines.get(line_index)?;
+    let cells = logical_cells(line);
+    Some(CellPos::new(line_index, snap_column(&cells, pos.col)))
+}
+
+fn word_range_at(lines: LineSet<'_>, pos: CellPos) -> Option<(CellPos, CellPos)> {
+    let line = lines.get(pos.line)?;
+    let (start, end) = word_at(line, pos.col)?;
+    Some((CellPos::new(pos.line, start), CellPos::new(pos.line, end)))
+}
+
+fn logical_line_range(lines: LineSet<'_>, pos: CellPos) -> Option<(CellPos, CellPos)> {
+    let line = lines.get(pos.line)?;
+    Some((
+        CellPos::new(pos.line, 0),
+        CellPos::new(pos.line, line_cols(line)),
+    ))
+}
+
+fn extend_word_range(
+    original: (CellPos, CellPos),
+    head: CellPos,
+    target: Option<(CellPos, CellPos)>,
+) -> (CellPos, CellPos) {
+    let (start, end) = original;
+    let (target_start, target_end) = target.unwrap_or((head, head));
+    if target_start < start {
+        (end, target_start)
+    } else {
+        (start, target_end.max(end))
+    }
+}
+
+fn selection_destination(
+    lines: LineSet<'_>,
+    from: CellPos,
+    command: SelectionCmd,
+) -> Option<CellPos> {
+    let last_line = lines.len().checked_sub(1)?;
+    let line_index = from.line.min(last_line);
+    let line = lines.get(line_index)?;
+    let cells = logical_cells(line);
+    let width = cells.last().map_or(0, |cell| cell.end);
+    let col = snap_column(&cells, from.col);
+    let index = cell_at_column(&cells, col);
+    let at = |line: usize, col: usize| Some(CellPos::new(line, col));
+
+    match command {
+        SelectionCmd::Left | SelectionCmd::WordLeft => {
+            if index == 0 {
+                if line_index > 0 {
+                    let previous = logical_cells(lines.get(line_index - 1)?);
+                    return at(line_index - 1, previous.last().map_or(0, |cell| cell.end));
+                }
+                return at(line_index, col);
+            }
+            let target = if command == SelectionCmd::Left {
+                index - 1
+            } else {
+                let mut target = index;
+                while target > 0 && !cells[target - 1].word {
+                    target -= 1;
+                }
+                while target > 0 && cells[target - 1].word {
+                    target -= 1;
+                }
+                target
+            };
+            at(line_index, cells[target].start)
+        }
+        SelectionCmd::Right | SelectionCmd::WordRight => {
+            if index >= cells.len() {
+                if line_index < last_line {
+                    return at(line_index + 1, 0);
+                }
+                return at(line_index, col);
+            }
+            let target = if command == SelectionCmd::Right {
+                index + 1
+            } else {
+                let mut target = index;
+                while target < cells.len() && !cells[target].word {
+                    target += 1;
+                }
+                while target < cells.len() && cells[target].word {
+                    target += 1;
+                }
+                target
+            };
+            at(
+                line_index,
+                cells.get(target).map_or(width, |cell| cell.start),
+            )
+        }
+        SelectionCmd::Up => {
+            if line_index == 0 {
+                return at(0, 0);
+            }
+            let previous = logical_cells(lines.get(line_index - 1)?);
+            let previous_width = previous.last().map_or(0, |cell| cell.end);
+            at(
+                line_index - 1,
+                snap_column(&previous, col.min(previous_width)),
+            )
+        }
+        SelectionCmd::Down => {
+            if line_index == last_line {
+                return at(line_index, width);
+            }
+            let next = logical_cells(lines.get(line_index + 1)?);
+            let next_width = next.last().map_or(0, |cell| cell.end);
+            at(line_index + 1, snap_column(&next, col.min(next_width)))
+        }
+        SelectionCmd::Home => at(line_index, 0),
+        SelectionCmd::End => at(line_index, width),
+        SelectionCmd::DocumentHome => at(0, 0),
+        SelectionCmd::DocumentEnd => {
+            let last = logical_cells(lines.get(last_line)?);
+            at(last_line, last.last().map_or(0, |cell| cell.end))
+        }
+        SelectionCmd::Clear => None,
+    }
+}
+
+fn visual_row_for_position(
+    layout: &ViewportLayout,
+    lines: LineSet<'_>,
+    key: LayoutKey,
+    pos: CellPos,
+) -> Option<usize> {
+    let line = lines.get(pos.line)?;
+    if key.word_wrap {
+        let row = layout.word_line(pos.line)?.row_for_source(pos.col);
+        return Some(layout.line_start(pos.line).saturating_add(row));
+    }
+    let rows = line_rows(line, key.width, key.wrap).max(1);
+    for row in 0..rows {
+        let (start, end) = row_cols(line, key.width, key.wrap, row);
+        if pos.col >= start && (pos.col < end || (row + 1 == rows && pos.col <= end)) {
+            return Some(layout.line_start(pos.line).saturating_add(row));
+        }
+    }
+    Some(
+        layout
+            .line_start(pos.line)
+            .saturating_add(rows.saturating_sub(1)),
+    )
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ViewportState {
     scroll: ScrollState,
-    follow: bool,
+    horizontal: ScrollState,
+    follow: FollowCursor,
     selection: Option<(CellPos, CellPos)>,
     anchor: Option<CellPos>,
+    pointer_gesture: PointerGesture,
+    browse: Option<CellPos>,
     caret: Option<CellPos>,
     generation: u32,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+enum PointerGesture {
+    #[default]
+    Idle,
+    Plain {
+        dragged: bool,
+    },
+    Word {
+        range: (CellPos, CellPos),
+        dragged: bool,
+    },
+    Shift {
+        dragged: bool,
+    },
+    Line {
+        dragged: bool,
+    },
+    SuppressClick,
+}
+
+impl PointerGesture {
+    const fn allows_autoscroll(self) -> bool {
+        matches!(
+            self,
+            PointerGesture::Plain { .. }
+                | PointerGesture::Word { .. }
+                | PointerGesture::Shift { .. }
+                | PointerGesture::Line { .. }
+        )
+    }
+
+    const fn dragged(self) -> bool {
+        matches!(
+            self,
+            PointerGesture::Plain { dragged: true }
+                | PointerGesture::Word { dragged: true, .. }
+                | PointerGesture::Shift { dragged: true }
+                | PointerGesture::Line { dragged: true }
+        )
+    }
+
+    fn mark_dragged(&mut self) {
+        match self {
+            PointerGesture::Plain { dragged }
+            | PointerGesture::Word { dragged, .. }
+            | PointerGesture::Shift { dragged }
+            | PointerGesture::Line { dragged } => *dragged = true,
+            PointerGesture::Idle | PointerGesture::SuppressClick => {}
+        }
+    }
+
+    fn retain(&mut self, dropped: usize) -> bool {
+        let PointerGesture::Word { range, .. } = self else {
+            return false;
+        };
+        if range.0.line < dropped && range.1.line < dropped {
+            *self = PointerGesture::Idle;
+            true
+        } else {
+            shift(&mut range.0, dropped);
+            shift(&mut range.1, dropped);
+            false
+        }
+    }
 }
 
 impl Default for ViewportState {
     fn default() -> Self {
         ViewportState {
             scroll: ScrollState::default(),
-            follow: true,
+            horizontal: ScrollState::default(),
+            follow: FollowCursor::Always,
             selection: None,
             anchor: None,
+            pointer_gesture: PointerGesture::Idle,
+            browse: None,
             caret: None,
             generation: 0,
         }
@@ -636,12 +1702,38 @@ impl ViewportState {
         &self.scroll
     }
 
+    pub const fn horizontal_offset(&self) -> usize {
+        self.horizontal.offset()
+    }
+
+    pub fn reset_scroll_offsets(&mut self) {
+        self.scroll.jump_start();
+        self.scroll.release_track();
+        self.horizontal.jump_start();
+        self.horizontal.release_track();
+    }
+
     pub const fn follow(&self) -> bool {
-        self.follow
+        match self.follow {
+            FollowCursor::Always => true,
+            FollowCursor::OnMove => false,
+        }
     }
 
     pub const fn set_follow(&mut self, on: bool) {
-        self.follow = on;
+        self.follow = if on {
+            FollowCursor::Always
+        } else {
+            FollowCursor::OnMove
+        };
+    }
+
+    pub const fn follow_cursor(&self) -> FollowCursor {
+        self.follow
+    }
+
+    pub const fn set_follow_cursor(&mut self, follow: FollowCursor) {
+        self.follow = follow;
     }
 
     pub fn selection(&self) -> Option<(CellPos, CellPos)> {
@@ -655,13 +1747,45 @@ impl ViewportState {
     pub const fn select(&mut self, a: CellPos, b: CellPos) {
         self.selection = Some((a, b));
         self.anchor = None;
+        self.pointer_gesture = PointerGesture::Idle;
+        self.browse = Some(b);
     }
 
     pub const fn clear_selection(&mut self) -> bool {
         let had = self.selection.is_some();
         self.selection = None;
         self.anchor = None;
+        self.pointer_gesture = PointerGesture::Idle;
+        self.browse = None;
         had
+    }
+
+    fn reconcile_text_positions(&mut self, lines: LineSet<'_>) {
+        if lines.is_empty() {
+            return;
+        }
+
+        self.selection = self.selection.and_then(|(anchor, head)| {
+            Some((clamp_position(lines, anchor)?, clamp_position(lines, head)?))
+        });
+        self.anchor = self.anchor.and_then(|anchor| clamp_position(lines, anchor));
+        self.browse = if let Some((_, head)) = self.selection {
+            Some(head)
+        } else {
+            self.browse.and_then(|pos| clamp_position(lines, pos))
+        };
+        if let PointerGesture::Word { range, dragged } = self.pointer_gesture {
+            self.pointer_gesture = match (
+                clamp_position(lines, range.0),
+                clamp_position(lines, range.1),
+            ) {
+                (Some(start), Some(end)) => PointerGesture::Word {
+                    range: (start, end),
+                    dragged,
+                },
+                _ => PointerGesture::Idle,
+            };
+        }
     }
 
     pub const fn caret(&self) -> Option<CellPos> {
@@ -676,17 +1800,27 @@ impl ViewportState {
         if dropped == 0 {
             return;
         }
-        if self
+        let selection_dropped = self
             .selection
-            .is_some_and(|(a, b)| a.line < dropped && b.line < dropped)
-        {
+            .is_some_and(|(a, b)| a.line < dropped && b.line < dropped);
+        if selection_dropped {
             self.selection = None;
+            self.browse = None;
         } else if let Some((a, b)) = self.selection.as_mut() {
             shift(a, dropped);
             shift(b, dropped);
         }
-        if let Some(a) = self.anchor.as_mut() {
-            shift(a, dropped);
+        let word_gesture_dropped = self.pointer_gesture.retain(dropped);
+        if selection_dropped && matches!(self.pointer_gesture, PointerGesture::Shift { .. }) {
+            self.pointer_gesture = PointerGesture::Idle;
+            self.anchor = None;
+        } else if word_gesture_dropped {
+            self.anchor = None;
+        } else if let Some(anchor) = self.anchor.as_mut() {
+            shift(anchor, dropped);
+        }
+        if !selection_dropped && let Some(b) = self.browse.as_mut() {
+            shift(b, dropped);
         }
         if let Some(c) = self.caret.as_mut() {
             shift(c, dropped);
@@ -726,7 +1860,7 @@ impl ViewportState {
                     return ControlFlow::Break(());
                 }
                 if col >= from {
-                    out.push_str(cell_text(line, c));
+                    out.push_str(cell_text(line, &c));
                 }
                 col = col.saturating_add(usize::from(c.w));
                 ControlFlow::Continue(())
@@ -749,12 +1883,20 @@ fn shift(p: &mut CellPos, dropped: usize) {
 pub struct TextViewport<'a> {
     id: Id,
     wrap: bool,
+    word_wrap: bool,
+    horizontal_pan: bool,
+    layout_revision: u64,
+
+    reserve_gutter: bool,
+
+    scroll_gap: u16,
+    caret_when_unfocused: bool,
+
+    bar_cursor: bool,
     click_selects_word: bool,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     slot: Option<(Part, SlotFn<'a>)>,
-    #[cfg(feature = "testing")]
-    work_probe: Option<&'a ViewportWorkProbe>,
 }
 
 impl fmt::Debug for TextViewport<'_> {
@@ -762,10 +1904,48 @@ impl fmt::Debug for TextViewport<'_> {
         f.debug_struct("TextViewport")
             .field("id", &self.id)
             .field("wrap", &self.wrap)
+            .field("word_wrap", &self.word_wrap)
+            .field("horizontal_pan", &self.horizontal_pan)
+            .field("layout_revision", &self.layout_revision)
+            .field("reserve_gutter", &self.reserve_gutter)
+            .field("scroll_gap", &self.scroll_gap)
+            .field("caret_when_unfocused", &self.caret_when_unfocused)
+            .field("bar_cursor", &self.bar_cursor)
             .field("click_selects_word", &self.click_selects_word)
             .field("slot", &self.slot.map(|(p, _)| p))
             .finish_non_exhaustive()
     }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct PanDimensions {
+    text_width: u16,
+    text_height: usize,
+    horizontal_overflow: bool,
+    horizontal_bar: bool,
+}
+
+#[derive(Clone, Copy)]
+struct PreparedGeometry {
+    body_window: VerticalWindow,
+    logical_rows: usize,
+    text_window: Option<VerticalWindow>,
+    text: Rect,
+    hit_text: Rect,
+    key: LayoutKey,
+    total: usize,
+    widest: usize,
+    dimensions: PanDimensions,
+    horizontal_track: Rect,
+    authoritative: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct RowPosition {
+    key: LayoutKey,
+    line: usize,
+    wrapped_row: usize,
+    horizontal_offset: usize,
 }
 
 impl<'a> TextViewport<'a> {
@@ -783,39 +1963,22 @@ impl<'a> TextViewport<'a> {
         TextViewport {
             id,
             wrap: false,
+            word_wrap: false,
+            horizontal_pan: false,
+            layout_revision: 0,
+            reserve_gutter: true,
+            scroll_gap: 0,
+            caret_when_unfocused: false,
+            bar_cursor: false,
             click_selects_word: false,
             patch: None,
             parts: &[],
             slot: None,
-            #[cfg(feature = "testing")]
-            work_probe: None,
         }
     }
 
-    #[cfg(feature = "testing")]
-    #[must_use]
-    pub const fn work_probe(mut self, probe: &'a ViewportWorkProbe) -> Self {
-        self.work_probe = Some(probe);
-        self
-    }
-
-    #[cfg(feature = "testing")]
-    fn note_indexed(&self, count: usize) {
-        if let Some(probe) = self.work_probe {
-            probe.add_indexed(count);
-        }
-    }
-
-    #[cfg(not(feature = "testing"))]
     fn note_indexed(count: usize) {
         let _ = count;
-    }
-
-    #[cfg(feature = "testing")]
-    fn note_visible(&self, count: usize) {
-        if let Some(probe) = self.work_probe {
-            probe.add_visible(count);
-        }
     }
 
     pub const fn id(&self) -> Id {
@@ -825,6 +1988,48 @@ impl<'a> TextViewport<'a> {
     #[must_use]
     pub const fn wrap(mut self, yes: bool) -> Self {
         self.wrap = yes;
+        self
+    }
+
+    #[must_use]
+    pub const fn wrap_words(mut self, enabled: bool) -> Self {
+        self.word_wrap = enabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn horizontal_pan(mut self, enabled: bool) -> Self {
+        self.horizontal_pan = enabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn layout_revision(mut self, revision: u64) -> Self {
+        self.layout_revision = revision;
+        self
+    }
+
+    #[must_use]
+    pub const fn reserve_gutter(mut self, yes: bool) -> Self {
+        self.reserve_gutter = yes;
+        self
+    }
+
+    #[must_use]
+    pub const fn scroll_gap(mut self, cols: u16) -> Self {
+        self.scroll_gap = cols;
+        self
+    }
+
+    #[must_use]
+    pub const fn caret_when_unfocused(mut self, enabled: bool) -> Self {
+        self.caret_when_unfocused = enabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn bar_cursor(mut self, yes: bool) -> Self {
+        self.bar_cursor = yes;
         self
     }
 
@@ -876,45 +2081,284 @@ impl<'a> TextViewport<'a> {
         sr
     }
 
-    const fn text_width(width: u16) -> u16 {
-        width.saturating_sub(2)
+    fn text_width(width: u16, gutter: bool, gap: u16) -> u16 {
+        let reserved = 1u16.saturating_add(u16::from(gutter)).saturating_add(gap);
+        width.saturating_sub(reserved)
     }
 
-    const fn layout_key(&self, st: &ViewportState, width: u16) -> LayoutKey {
+    const fn pan_active(&self) -> bool {
+        self.horizontal_pan && !self.wrap
+    }
+
+    fn pan_dimensions(
+        &self,
+        width: u16,
+        body_rows: usize,
+        content_rows: usize,
+        widest_cols: usize,
+    ) -> PanDimensions {
+        let mut vertical = false;
+        let mut horizontal = false;
+        for _ in 0..3 {
+            let rows = body_rows.saturating_sub(usize::from(horizontal && body_rows > 1));
+            let next_vertical = content_rows > rows;
+            let text_width = if self.scroll_gap > 0 && !next_vertical && content_rows <= rows {
+                width.saturating_sub(u16::from(self.reserve_gutter))
+            } else {
+                Self::text_width(width, self.reserve_gutter, self.scroll_gap)
+            };
+            let next_horizontal = widest_cols > usize::from(text_width);
+            if next_vertical == vertical && next_horizontal == horizontal {
+                break;
+            }
+            vertical |= next_vertical;
+            horizontal |= next_horizontal;
+        }
+
+        let horizontal_bar = horizontal && body_rows > 1;
+        let text_height = body_rows.saturating_sub(usize::from(horizontal_bar));
+        let vertical_overflow = content_rows > text_height;
+        let text_width = if self.scroll_gap > 0 && !vertical_overflow && content_rows <= text_height
+        {
+            width.saturating_sub(u16::from(self.reserve_gutter))
+        } else {
+            Self::text_width(width, self.reserve_gutter, self.scroll_gap)
+        };
+
+        PanDimensions {
+            text_width,
+            text_height,
+            horizontal_overflow: widest_cols > usize::from(text_width),
+            horizontal_bar,
+        }
+    }
+
+    fn fallback_width(&self, width: u16, body_rows: usize, lines: LineSet<'_>) -> u16 {
+        if self.scroll_gap > 0 && !self.wrap && lines.len() <= body_rows {
+            width.saturating_sub(u16::from(self.reserve_gutter))
+        } else {
+            Self::text_width(width, self.reserve_gutter, self.scroll_gap)
+        }
+    }
+
+    const fn layout_key(
+        &self,
+        st: &ViewportState,
+        width: u16,
+        source_revision: Option<u64>,
+    ) -> LayoutKey {
         LayoutKey {
             width,
             wrap: self.wrap,
+            word_wrap: self.wrap && self.word_wrap,
             generation: st.generation,
+            layout_revision: self.layout_revision,
+            source_revision,
         }
+    }
+
+    fn prepared_geometry(
+        &self,
+        body_window: VerticalWindow,
+        st: &ViewportState,
+        lines: LineSet<'_>,
+        source_revision: Option<u64>,
+        layout: &mut ViewportLayout,
+        authoritative: bool,
+    ) -> PreparedGeometry {
+        let area = body_window.visible_body();
+        let fallback_width = self.fallback_width(area.width, body_window.logical_rows(), lines);
+        let initial_key = self.layout_key(st, fallback_width, source_revision);
+        let indexed = layout.ensure_with_widest(lines, initial_key, self.pan_active());
+        let total = layout.total();
+
+        Self::note_indexed(indexed);
+        let dimensions = if self.pan_active() {
+            self.pan_dimensions(
+                area.width,
+                body_window.logical_rows(),
+                total,
+                layout.widest_cols().unwrap_or(0),
+            )
+        } else {
+            PanDimensions {
+                text_width: fallback_width,
+                text_height: body_window.logical_rows(),
+                horizontal_overflow: false,
+                horizontal_bar: false,
+            }
+        };
+        let key = self.layout_key(st, dimensions.text_width, source_revision);
+        let indexed = layout.ensure_with_widest(lines, key, self.pan_active());
+        let total = layout.total();
+        let widest = layout.widest_cols().unwrap_or(0);
+
+        Self::note_indexed(indexed);
+        let dimensions = if self.pan_active() {
+            self.pan_dimensions(area.width, body_window.logical_rows(), total, widest)
+        } else {
+            dimensions
+        };
+        let logical_rows = dimensions.text_height;
+        let text_window = self.text_window(body_window, logical_rows);
+        let text = self.text_rect(body_window, text_window, dimensions, total);
+        let horizontal_track = self.horizontal_track(body_window, dimensions);
+        PreparedGeometry {
+            body_window,
+            logical_rows,
+            text_window,
+            text,
+            hit_text: Rect::ZERO,
+            key,
+            total,
+            widest,
+            dimensions,
+            horizontal_track,
+            authoritative,
+        }
+    }
+
+    fn text_window(
+        &self,
+        body_window: VerticalWindow,
+        logical_rows: usize,
+    ) -> Option<VerticalWindow> {
+        if logical_rows == 0 {
+            return None;
+        }
+        let body = body_window.visible_body();
+        let gutter = u16::from(self.reserve_gutter);
+        let x = body.x.checked_add(gutter)?;
+        let width = body.width.checked_sub(gutter)?;
+        let visible = body_window.visible_source_range();
+        let start = visible.start;
+        let end = visible.end.min(logical_rows);
+        if start >= end {
+            return None;
+        }
+        let y = body_window.physical_row_for_source(start)?;
+        let height = u16::try_from(end.checked_sub(start)?).ok()?;
+        VerticalWindow::new(Rect::new(x, y, width, height), logical_rows, start).ok()
+    }
+
+    fn text_rect(
+        &self,
+        body_window: VerticalWindow,
+        text_window: Option<VerticalWindow>,
+        dimensions: PanDimensions,
+        content_rows: usize,
+    ) -> Rect {
+        let Some(text_window) = text_window else {
+            let body = body_window.visible_body();
+            let visible = body_window.visible_source_range();
+            let start = visible.start;
+            let end = visible.end.min(dimensions.text_height);
+            if body.width.saturating_sub(u16::from(self.reserve_gutter)) == 0 && start < end {
+                let y = body_window.physical_row_for_source(start).unwrap_or(body.y);
+                return Rect::new(
+                    body.x.saturating_add(u16::from(self.reserve_gutter)),
+                    y,
+                    0,
+                    u16::try_from(end - start).unwrap_or(0),
+                );
+            }
+            return Rect::ZERO;
+        };
+        let body = text_window.visible_body();
+        let content_width = body
+            .width
+            .saturating_sub(u16::from(content_rows > dimensions.text_height));
+        Rect {
+            width: dimensions.text_width.min(content_width),
+            ..body
+        }
+    }
+
+    fn update_layout(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &ViewportState,
+        lines: LineSet<'_>,
+        source_revision: Option<u64>,
+    ) -> PreparedGeometry {
+        let facts = cx.layout(self.id);
+        let text_part = cx.area_of_part(self.id, PartRef::of(Part::TEXT));
+        let body_window = facts
+            .and_then(|facts| facts.vertical_body_window)
+            .or_else(|| {
+                facts
+                    .and_then(|facts| facts.logical_area)
+                    .map(VerticalWindow::full)
+            })
+            .or_else(|| {
+                text_part
+                    .and_then(|_| cx.area(self.id))
+                    .map(VerticalWindow::full)
+            });
+        let Some(body_window) = body_window else {
+            return PreparedGeometry {
+                body_window: VerticalWindow::full(Rect::ZERO),
+                logical_rows: 0,
+                text_window: None,
+                text: Rect::ZERO,
+                hit_text: Rect::ZERO,
+                key: self.layout_key(st, 0, source_revision),
+                total: 0,
+                widest: 0,
+                dimensions: PanDimensions::default(),
+                horizontal_track: Rect::ZERO,
+                authoritative: false,
+            };
+        };
+        let mut prepared = {
+            let layout = cx.cache::<ViewportLayout>(self.id);
+            self.prepared_geometry(body_window, st, lines, source_revision, layout, true)
+        };
+        prepared.hit_text = text_part.unwrap_or(Rect::ZERO);
+        prepared
     }
 
     fn pos_at(
         &self,
         cx: &mut Cx<'_>,
         lines: LineSet<'_>,
-        geometry: (Rect, LayoutKey, usize),
+        geometry: &PreparedGeometry,
+        offset: usize,
+        horizontal_offset: usize,
         pos: Position,
     ) -> Option<CellPos> {
-        let (area, key, offset) = geometry;
-        if area.is_empty() || lines.is_empty() {
+        let text_window = geometry.text_window?;
+        let hit_text = geometry.hit_text;
+        let key = geometry.key;
+        if hit_text.is_empty() || lines.is_empty() || !hit_text.contains(pos) {
             return None;
         }
         let layout = cx.cache::<ViewportLayout>(self.id);
-        let indexed = layout.ensure(lines, key);
-        #[cfg(feature = "testing")]
-        self.note_indexed(indexed);
-        #[cfg(not(feature = "testing"))]
+        let indexed = layout.ensure_with_widest(lines, key, self.pan_active());
+
         Self::note_indexed(indexed);
-        let dy = usize::from(pos.y.saturating_sub(area.y));
-        let visual = offset.saturating_add(dy);
+        let source_row = text_window.source_row_for_physical(pos.y)?;
+        let visual = offset.checked_add(source_row)?;
         let (li, row) = layout.row_start(lines, visual);
         let line = lines.get(li)?;
+        let dx = usize::from(pos.x.checked_sub(hit_text.x)?);
+        if key.word_wrap {
+            let row = layout.word_row(li, row)?;
+            return Some(CellPos {
+                line: li,
+                col: row.display_to_source(dx),
+            });
+        }
         let (start, end) = row_cols(line, key.width, self.wrap, row);
-        let dx = usize::from(pos.x.saturating_sub(area.x.saturating_add(1)));
         let last = end.min(line_cols(line));
+        let col = if self.pan_active() {
+            start.saturating_add(horizontal_offset).saturating_add(dx)
+        } else {
+            start.saturating_add(dx)
+        };
         Some(CellPos {
             line: li,
-            col: start.saturating_add(dx).min(last),
+            col: col.min(last),
         })
     }
 
@@ -924,7 +2368,7 @@ impl<'a> TextViewport<'a> {
         st: &mut ViewportState,
         lines: &[ViewportLine<'_>],
     ) -> Response<ViewportAction> {
-        self.update_lines(cx, st, LineSet::Borrowed(lines))
+        self.update_lines(cx, st, LineSet::Borrowed(lines), None)
     }
 
     pub fn update_projected(
@@ -933,7 +2377,239 @@ impl<'a> TextViewport<'a> {
         st: &mut ViewportState,
         lines: &ProjectedText,
     ) -> Response<ViewportAction> {
-        self.update_lines(cx, st, LineSet::Projected(lines))
+        self.update_lines(cx, st, LineSet::Projected(lines), None)
+    }
+
+    pub fn update_routed(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: &[ViewportLine<'_>],
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        self.update_source_lines(cx, st, LineSet::Borrowed(lines), source_revision)
+    }
+
+    pub fn update_projected_routed(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: &ProjectedText,
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        self.update_source_lines(cx, st, LineSet::Projected(lines), source_revision)
+    }
+
+    pub fn service_routed_wheel(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: &[ViewportLine<'_>],
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        self.service_source_wheel(cx, st, LineSet::Borrowed(lines), source_revision)
+    }
+
+    pub fn service_projected_routed_wheel(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: &ProjectedText,
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        self.service_source_wheel(cx, st, LineSet::Projected(lines), source_revision)
+    }
+
+    fn update_source_lines(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        if let Some(attempt) = self.active_wheel_attempt(cx) {
+            if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Event {
+                let intents = cx.intents(self.id);
+                let route_wheel_count = Self::count_route_wheel_intents(intents.clone(), attempt);
+                if route_wheel_count == 1 {
+                    let other_intents = Self::without_route_wheel_intent(intents, attempt);
+                    let has_other_intents = other_intents.clone().next().is_some();
+                    let routed =
+                        self.service_source_wheel_attempt(cx, st, lines, source_revision, attempt);
+                    if has_other_intents {
+                        let other = self.update_lines_with(
+                            cx,
+                            st,
+                            lines,
+                            Some(source_revision),
+                            other_intents,
+                        );
+                        return Self::fold_routed_and_other(routed, other, self.id);
+                    }
+                    return routed;
+                }
+                if route_wheel_count > 1 {
+                    let other_intents = Self::without_route_wheel_intent(intents, attempt);
+                    if other_intents.clone().next().is_some() {
+                        return self.update_lines_with(
+                            cx,
+                            st,
+                            lines,
+                            Some(source_revision),
+                            other_intents,
+                        );
+                    }
+                    return Response::ignored().for_id(self.id);
+                }
+
+                return self.update_lines_with(cx, st, lines, Some(source_revision), intents);
+            }
+            return self.service_source_wheel_attempt(cx, st, lines, source_revision, attempt);
+        }
+        self.update_lines(cx, st, lines, Some(source_revision))
+    }
+
+    fn fold_routed_and_other(
+        routed: Response<ViewportAction>,
+        mut other: Response<ViewportAction>,
+        id: Id,
+    ) -> Response<ViewportAction> {
+        let action = other.take_action();
+        let mut acc = Acc::new();
+        acc.fold(&routed.erase());
+        acc.fold(&other.erase());
+        if let Some(action) = action {
+            acc.action(action);
+        }
+        acc.finish(id)
+    }
+
+    fn is_route_wheel_intent(intent: &Intent<'_>, attempt: WheelRouteAttempt) -> bool {
+        matches!(
+            intent,
+            Intent::Wheel {
+                axis,
+                delta,
+                part,
+                pos,
+            } if *axis == attempt.axis()
+                && *delta == attempt.delta()
+                && *part == attempt.part()
+                && *pos == attempt.position()
+        )
+    }
+
+    fn count_route_wheel_intents<'f>(
+        intents: impl Iterator<Item = Intent<'f>>,
+        attempt: WheelRouteAttempt,
+    ) -> usize {
+        intents
+            .filter(|intent| Self::is_route_wheel_intent(intent, attempt))
+            .count()
+    }
+
+    fn without_route_wheel_intent<'f, I>(
+        intents: I,
+        attempt: WheelRouteAttempt,
+    ) -> impl Iterator<Item = Intent<'f>> + Clone + 'f
+    where
+        I: Iterator<Item = Intent<'f>> + Clone + 'f,
+    {
+        intents.filter(move |intent| !Self::is_route_wheel_intent(intent, attempt))
+    }
+
+    fn active_wheel_attempt(&self, cx: &Cx<'_>) -> Option<WheelRouteAttempt> {
+        cx.wheel_route_attempt(self.id, PartRef::of(Part::CONTAINER), Axis::V)
+            .or_else(|| cx.wheel_route_attempt(self.id, PartRef::of(Part::CONTAINER), Axis::H))
+    }
+
+    fn service_source_wheel(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        let Some(attempt) = self.active_wheel_attempt(cx) else {
+            return Response::ignored().for_id(self.id);
+        };
+        self.service_source_wheel_attempt(cx, st, lines, source_revision, attempt)
+    }
+
+    fn service_source_wheel_attempt(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        source_revision: u64,
+        attempt: WheelRouteAttempt,
+    ) -> Response<ViewportAction> {
+        if attempt.source_revision() != source_revision {
+            return Response::ignored().for_id(self.id);
+        }
+
+        let before = st.clone();
+        let prepared = self.update_layout(cx, st, lines, Some(source_revision));
+        if !prepared.authoritative || prepared.text_window.is_none() || prepared.hit_text.is_empty()
+        {
+            return Response::ignored().for_id(self.id);
+        }
+        let eligible = match attempt.axis() {
+            Axis::V => prepared.total > prepared.logical_rows,
+            Axis::H => self.pan_active() && prepared.dimensions.horizontal_overflow,
+        };
+        if !eligible {
+            if !cx.acknowledge_wheel_route(&attempt, WheelRouteResult::Ignored) {
+                return Response::ignored().for_id(self.id);
+            }
+            return Response::ignored().for_id(self.id);
+        }
+
+        let result = match attempt.axis() {
+            Axis::V => {
+                st.scroll
+                    .apply_layout(prepared.logical_rows, prepared.total);
+                let before_wheel = st.scroll.offset();
+                let _ = st.scroll.wheel(attempt.delta());
+                if st.scroll.offset() != before_wheel {
+                    st.follow = if st.scroll.at_end() {
+                        FollowCursor::Always
+                    } else {
+                        FollowCursor::OnMove
+                    };
+                    if st.follow == FollowCursor::Always {
+                        st.scroll.jump_end();
+                    }
+                    WheelRouteResult::Changed
+                } else {
+                    WheelRouteResult::Consumed
+                }
+            }
+            Axis::H => {
+                st.horizontal.set_content(prepared.widest);
+                st.horizontal
+                    .set_viewport(usize::from(prepared.dimensions.text_width));
+                let before_wheel = st.horizontal.offset();
+                st.horizontal
+                    .scroll_by(isize::from(attempt.delta().signum()).saturating_mul(4));
+                if st.horizontal.offset() != before_wheel {
+                    WheelRouteResult::Changed
+                } else {
+                    WheelRouteResult::Consumed
+                }
+            }
+        };
+
+        if !cx.acknowledge_wheel_route(&attempt, result) {
+            *st = before;
+            return Response::ignored().for_id(self.id);
+        }
+        match result {
+            WheelRouteResult::Ignored => Response::ignored().for_id(self.id),
+            WheelRouteResult::Consumed => Response::consumed().for_id(self.id),
+            WheelRouteResult::Changed => Response::changed().for_id(self.id),
+            _ => Response::ignored().for_id(self.id),
+        }
     }
 
     fn update_lines(
@@ -941,51 +2617,463 @@ impl<'a> TextViewport<'a> {
         cx: &mut Cx<'_>,
         st: &mut ViewportState,
         lines: LineSet<'_>,
+        source_revision: Option<u64>,
     ) -> Response<ViewportAction> {
-        let area = cx.area(self.id).unwrap_or(Rect::ZERO);
-        let width = cx
-            .layout(self.id)
-            .map_or_else(|| Self::text_width(area.width), |l| l.cols);
-        let key = self.layout_key(st, width);
-        let (total, indexed) = {
-            let layout = cx.cache::<ViewportLayout>(self.id);
-            let indexed = layout.ensure(lines, key);
-            (layout.total(), indexed)
-        };
-        #[cfg(feature = "testing")]
-        self.note_indexed(indexed);
-        #[cfg(not(feature = "testing"))]
-        Self::note_indexed(indexed);
-        let before = st.scroll.offset();
-        let bar = self.bar().update(cx, &mut st.scroll, total);
-        let mut acc = Acc::<ViewportAction>::new();
-        acc.fold(&bar);
-        if st.scroll.offset() != before {
-            st.follow = st.scroll.at_end();
+        self.update_lines_with(cx, st, lines, source_revision, cx.intents(self.id))
+    }
+
+    fn update_lines_with<'f>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        source_revision: Option<u64>,
+        intents: impl Iterator<Item = Intent<'f>>,
+    ) -> Response<ViewportAction> {
+        if lines.is_empty() {
+            st.anchor = None;
+            st.pointer_gesture = PointerGesture::Idle;
+            if cx.capture_owner() == Some(self.id) {
+                cx.release_capture();
+            }
         }
-        for it in cx.intents(self.id) {
+        let prepared = self.update_layout(cx, st, lines, source_revision);
+        let mut acc = Acc::<ViewportAction>::new();
+        if !prepared.authoritative {
+            for intent in intents {
+                if matches!(
+                    intent,
+                    Intent::Cancel
+                        | Intent::Pointer {
+                            phase: Phase::Release | Phase::DragEnd,
+                            ..
+                        }
+                ) {
+                    st.pointer_gesture = PointerGesture::SuppressClick;
+                    st.anchor = None;
+                    st.scroll.release_track();
+                    st.horizontal.release_track();
+                    if cx.capture_owner() == Some(self.id) {
+                        cx.release_capture();
+                    }
+                    acc.consumed();
+                }
+            }
+            return acc.finish(self.id);
+        }
+        let visible_text = prepared.text_window.is_some() && !prepared.hit_text.is_empty();
+        if !visible_text {
+            for intent in intents {
+                match intent {
+                    Intent::Cancel
+                    | Intent::Pointer {
+                        phase: Phase::Release | Phase::DragEnd,
+                        ..
+                    } => {
+                        st.pointer_gesture = PointerGesture::SuppressClick;
+                        st.anchor = None;
+                        st.scroll.release_track();
+                        st.horizontal.release_track();
+                        if cx.capture_owner() == Some(self.id) {
+                            cx.release_capture();
+                        }
+                        acc.consumed();
+                    }
+                    Intent::Pointer { part, .. }
+                        if part.part == HORIZONTAL_TRACK || part.part == HORIZONTAL_THUMB =>
+                    {
+                        let mut horizontal = st.horizontal;
+                        horizontal.set_content(if self.pan_active() {
+                            prepared.widest
+                        } else {
+                            0
+                        });
+                        horizontal.set_viewport(usize::from(prepared.dimensions.text_width));
+                        self.handle_horizontal_pointer(
+                            cx,
+                            &mut horizontal,
+                            prepared.horizontal_track,
+                            intent,
+                            &mut acc,
+                        );
+                        st.horizontal = horizontal;
+                    }
+                    _ => {}
+                }
+            }
+            return acc.finish(self.id);
+        }
+        let total = prepared.total;
+        let widest = prepared.widest;
+        let dimensions = prepared.dimensions;
+        st.scroll.apply_layout(prepared.logical_rows, total);
+        st.horizontal
+            .set_content(if self.pan_active() { widest } else { 0 });
+        st.horizontal
+            .set_viewport(usize::from(dimensions.text_width));
+        let before = st.scroll.offset();
+        let mut selection_moved = false;
+        let bar = self.bar();
+        let track_len = prepared.logical_rows.min(usize::from(u16::MAX)) as u16;
+        let mut edge_drag_scrolled = false;
+        for it in intents {
+            let horizontal_wheel = matches!(it, Intent::Wheel { axis: Axis::H, .. });
+            if !horizontal_wheel || !self.pan_active() {
+                acc.fold(&bar.handle_intent_with_window(
+                    cx,
+                    &mut st.scroll,
+                    track_len,
+                    prepared.text_window,
+                    it,
+                ));
+            }
             match it {
                 Intent::Binding(action) => {
                     if let Some(cmd) = Binding::command(BINDINGS, action) {
                         Self::command(st, lines, cmd, &mut acc);
+                    } else if self.pan_active()
+                        && let Some(cmd) = Binding::command(HORIZONTAL_PAN_BINDINGS, action)
+                            .or_else(|| Binding::command(HORIZONTAL_PAN_SEMANTIC_BINDINGS, action))
+                    {
+                        Self::horizontal_command(st, cmd, dimensions.horizontal_overflow, &mut acc);
+                    } else if let Some(cmd) = Binding::command(SELECTION_BINDINGS, action)
+                        .or_else(|| Binding::command(SELECTION_CLEAR_BINDINGS, action))
+                    {
+                        let moved = self.selection_command(
+                            cx,
+                            st,
+                            lines,
+                            SelectionLayout {
+                                key: prepared.key,
+                                text_height: prepared.logical_rows,
+                            },
+                            cmd,
+                            &mut acc,
+                        );
+                        selection_moved |= moved;
+                        if moved && cx.capture_owner() == Some(self.id) {
+                            cx.cancel_text_drag_autoscroll(self.id, PartRef::of(Part::TEXT));
+                            st.anchor = None;
+                            st.pointer_gesture = PointerGesture::SuppressClick;
+                        }
+                    }
+                }
+                Intent::Wheel {
+                    axis: Axis::H,
+                    delta,
+                    ..
+                } if self.pan_active() && dimensions.horizontal_overflow => {
+                    let horizontal_before = st.horizontal.offset();
+                    st.horizontal
+                        .scroll_by(isize::from(delta.signum()).saturating_mul(4));
+                    if horizontal_before == st.horizontal.offset() {
+                        acc.consumed();
+                    } else {
+                        acc.changed();
+                    }
+                }
+                Intent::Pointer { part, .. }
+                    if self.pan_active()
+                        && (part.part == HORIZONTAL_TRACK || part.part == HORIZONTAL_THUMB) =>
+                {
+                    self.handle_horizontal_pointer(
+                        cx,
+                        &mut st.horizontal,
+                        prepared.horizontal_track,
+                        it,
+                        &mut acc,
+                    );
+                }
+                Intent::Cancel => {
+                    st.pointer_gesture = PointerGesture::SuppressClick;
+                    st.anchor = None;
+                    st.horizontal.release_track();
+                    if cx.capture_owner() == Some(self.id) {
+                        cx.release_capture();
                     }
                 }
                 Intent::Pointer {
+                    part,
                     phase,
-                    part:
-                        PartRef {
-                            part: Part::TEXT, ..
-                        },
                     pos,
+                    mods,
                     ..
-                } => self.handle_text_pointer(cx, st, lines, (area, key), (phase, pos), &mut acc),
+                } if part.part == Part::TEXT => {
+                    let scroll_before_pointer = st.scroll.offset();
+                    self.handle_text_pointer(
+                        cx,
+                        st,
+                        lines,
+                        prepared,
+                        (phase, part, pos, mods),
+                        &mut acc,
+                    );
+                    edge_drag_scrolled |=
+                        phase == Phase::Drag && st.scroll.offset() != scroll_before_pointer;
+                }
                 _ => {}
             }
         }
-        if st.follow {
-            st.scroll.jump_end();
+        if !selection_moved && !edge_drag_scrolled {
+            if st.scroll.offset() != before {
+                st.follow = if st.scroll.at_end() {
+                    FollowCursor::Always
+                } else {
+                    FollowCursor::OnMove
+                };
+            }
+            if st.follow == FollowCursor::Always {
+                st.scroll.jump_end();
+            }
         }
         acc.finish(self.id)
+    }
+
+    fn horizontal_track(&self, body_window: VerticalWindow, dimensions: PanDimensions) -> Rect {
+        if !self.pan_active() || !dimensions.horizontal_overflow || !dimensions.horizontal_bar {
+            return Rect::ZERO;
+        }
+        let body = body_window.visible_body();
+        let Some(y) = body_window.physical_row_for_source(dimensions.text_height) else {
+            return Rect::ZERO;
+        };
+        let gutter = u16::from(self.reserve_gutter);
+        let Some(x) = body.x.checked_add(gutter) else {
+            return Rect::ZERO;
+        };
+        let width = dimensions.text_width.min(body.width.saturating_sub(gutter));
+        if width == 0 {
+            return Rect::ZERO;
+        }
+        Rect::new(x, y, width, 1)
+    }
+
+    fn horizontal_command(
+        st: &mut ViewportState,
+        cmd: HorizontalPanCmd,
+        overflows: bool,
+        acc: &mut Acc<ViewportAction>,
+    ) {
+        if !overflows {
+            acc.consumed();
+            return;
+        }
+        let before = st.horizontal.offset();
+        match cmd {
+            HorizontalPanCmd::Left => st.horizontal.scroll_by(-4),
+            HorizontalPanCmd::Right => st.horizontal.scroll_by(4),
+        }
+        if before == st.horizontal.offset() {
+            acc.consumed();
+        } else {
+            acc.changed();
+        }
+    }
+
+    fn selection_command(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        layout: SelectionLayout,
+        cmd: SelectionCmd,
+        acc: &mut Acc<ViewportAction>,
+    ) -> bool {
+        let SelectionLayout { key, text_height } = layout;
+        if cmd == SelectionCmd::Clear {
+            if st.clear_selection() {
+                acc.action(ViewportAction::SelectionChanged);
+            }
+            return false;
+        }
+        let previous_selection = st.selection;
+        let previous_browse = st.browse;
+        let previous_head = previous_selection.map(|(_, head)| head).or(previous_browse);
+        if lines.is_empty() {
+            st.selection = None;
+            st.browse = None;
+            if previous_head.is_some() {
+                st.follow = FollowCursor::OnMove;
+            }
+            if previous_selection.is_some() {
+                acc.action(ViewportAction::SelectionChanged);
+            } else if previous_browse.is_some() {
+                acc.changed();
+            } else {
+                acc.consumed();
+            }
+            return previous_head.is_some();
+        }
+
+        st.reconcile_text_positions(lines);
+        let selection_changed = previous_selection != st.selection;
+        let browse_changed = previous_browse != st.browse;
+        let reconciled_head = st.selection.map(|(_, head)| head).or(st.browse);
+        let head_changed = previous_head != reconciled_head;
+
+        let current = reconciled_head;
+        let from = current.or_else(|| {
+            let layout = cx.cache::<ViewportLayout>(self.id);
+            let line = if text_height > 0 && layout.total() > 0 {
+                let last_visible = st
+                    .scroll
+                    .offset()
+                    .saturating_add(text_height.saturating_sub(1))
+                    .min(layout.total().saturating_sub(1));
+                layout.row_start(lines, last_visible).0
+            } else {
+                lines.len().saturating_sub(1)
+            };
+            let line_ref = lines.get(line)?;
+            Some(CellPos::new(line, line_cols(line_ref)))
+        });
+        let Some(from) = from else {
+            if selection_changed {
+                acc.action(ViewportAction::SelectionChanged);
+            } else if browse_changed {
+                acc.changed();
+            } else {
+                acc.consumed();
+            }
+            if head_changed {
+                st.follow = FollowCursor::OnMove;
+                return true;
+            }
+            return false;
+        };
+        let anchor = st.selection.map_or(from, |(anchor, _)| anchor);
+        let Some(to) = selection_destination(lines, from, cmd) else {
+            if selection_changed {
+                acc.action(ViewportAction::SelectionChanged);
+            } else if browse_changed {
+                acc.changed();
+            } else {
+                acc.consumed();
+            }
+            if head_changed {
+                st.follow = FollowCursor::OnMove;
+                return true;
+            }
+            return false;
+        };
+        let row = {
+            let layout = cx.cache::<ViewportLayout>(self.id);
+            visual_row_for_position(layout, lines, key, to)
+        };
+
+        if to == from {
+            if selection_changed {
+                acc.action(ViewportAction::SelectionChanged);
+            } else if browse_changed {
+                acc.changed();
+            } else {
+                acc.consumed();
+            }
+            if head_changed {
+                if let Some(row) = row {
+                    st.scroll.ensure_visible(row);
+                }
+                if self.pan_active() {
+                    st.horizontal.ensure_visible(to.col);
+                }
+                st.follow = FollowCursor::OnMove;
+                return true;
+            }
+            return false;
+        }
+
+        st.selection = Some((anchor, to));
+        st.anchor = None;
+        if matches!(st.pointer_gesture, PointerGesture::Word { .. }) {
+            st.pointer_gesture = PointerGesture::SuppressClick;
+        }
+        st.browse = Some(to);
+        if let Some(row) = row {
+            st.scroll.ensure_visible(row);
+        }
+        if self.pan_active() {
+            st.horizontal.ensure_visible(to.col);
+        }
+        st.follow = FollowCursor::OnMove;
+        acc.action(ViewportAction::SelectionChanged);
+        true
+    }
+
+    fn handle_horizontal_pointer(
+        &self,
+        cx: &mut Cx<'_>,
+        horizontal: &mut ScrollState,
+        track: Rect,
+        intent: Intent<'_>,
+        acc: &mut Acc<ViewportAction>,
+    ) {
+        let Intent::Pointer {
+            phase,
+            part,
+            pos,
+            local,
+            ..
+        } = intent
+        else {
+            return;
+        };
+        if track.is_empty() {
+            horizontal.release_track();
+            if cx.capture_owner() == Some(self.id) {
+                cx.release_capture();
+            }
+            acc.consumed();
+            return;
+        }
+
+        let before = horizontal.offset();
+        match phase {
+            Phase::Press if part.part == HORIZONTAL_THUMB => {
+                let track_pos = usize::from(pos.x.saturating_sub(track.x));
+                horizontal.press_track(track_pos, usize::from(track.width));
+                if !cx.capture(self.id, PartRef::of(HORIZONTAL_THUMB)) {
+                    horizontal.release_track();
+                }
+                acc.consumed();
+            }
+            Phase::Press => {
+                let track_pos = usize::from(local.x);
+                horizontal.press_track_with(track_pos, usize::from(track.width), TrackClick::Page);
+                if before == horizontal.offset() {
+                    acc.consumed();
+                } else {
+                    acc.changed();
+                }
+            }
+            Phase::Drag => {
+                let track_pos = if cx.capture_owner() == Some(self.id) {
+                    let origin = cx.capture_origin().unwrap_or(pos);
+                    let capture_area = cx.capture_area().unwrap_or(track);
+                    let grab = origin.x.saturating_sub(capture_area.x);
+                    let (_, thumb_len) = horizontal.thumb(usize::from(track.width));
+                    usize::from(pos.x.saturating_sub(track.x).saturating_sub(grab))
+                        .saturating_add(thumb_len / 2)
+                } else {
+                    usize::from(pos.x.saturating_sub(track.x))
+                };
+                horizontal.scroll_to(
+                    horizontal.offset_for_track_pos(track_pos, usize::from(track.width)),
+                );
+                if before == horizontal.offset() {
+                    acc.consumed();
+                } else {
+                    acc.changed();
+                }
+            }
+            Phase::Release | Phase::DragEnd => {
+                horizontal.release_track();
+                if cx.capture_owner() == Some(self.id) {
+                    cx.release_capture();
+                }
+                acc.consumed();
+            }
+            _ => acc.consumed(),
+        }
     }
 
     fn handle_text_pointer(
@@ -993,73 +3081,220 @@ impl<'a> TextViewport<'a> {
         cx: &mut Cx<'_>,
         st: &mut ViewportState,
         lines: LineSet<'_>,
-        geometry: (Rect, LayoutKey),
-        pointer: (Phase, Position),
+        geometry: PreparedGeometry,
+        pointer: (Phase, PartRef, Position, KeyModifiers),
         acc: &mut Acc<ViewportAction>,
     ) {
-        let (area, key) = geometry;
-        let (phase, pos) = pointer;
+        let hit_text = geometry.hit_text;
+        let (phase, part, pos, mods) = pointer;
+        if matches!(
+            phase,
+            Phase::Press | Phase::DragStart | Phase::Click | Phase::DoubleClick
+        ) && !hit_text.contains(pos)
+        {
+            acc.consumed();
+            return;
+        }
+        let mut horizontal_offset = st.horizontal.offset();
+        let selection_before = st.selection;
+        st.reconcile_text_positions(lines);
+        let selection_reconciled = selection_before != st.selection;
         match phase {
             Phase::Press | Phase::DragStart => {
                 cx.focus(self.id);
                 let _ = cx.capture(self.id, PartRef::of(Part::TEXT));
-                let had = st.selection.take().is_some();
-                st.anchor = self.pos_at(cx, lines, (area, key, st.scroll.offset()), pos);
-                if had {
+                let at = self.pos_at(
+                    cx,
+                    lines,
+                    &geometry,
+                    st.scroll.offset(),
+                    horizontal_offset,
+                    pos,
+                );
+                let Some(at) = at else {
+                    let had = st.selection.take().is_some();
+                    st.browse = None;
+                    st.anchor = None;
+                    st.pointer_gesture = PointerGesture::SuppressClick;
+                    if had {
+                        acc.action(ViewportAction::SelectionChanged);
+                    } else {
+                        acc.consumed();
+                    }
+                    return;
+                };
+
+                if mods.contains(KeyModifiers::SHIFT) {
+                    if let Some(anchor) = st.selection.map(|(anchor, _)| anchor).or(st.anchor) {
+                        st.selection = Some((anchor, at));
+                        st.browse = Some(at);
+                        st.anchor = Some(anchor);
+                        st.pointer_gesture = PointerGesture::Shift { dragged: false };
+                        acc.action(ViewportAction::SelectionChanged);
+                    } else {
+                        st.pointer_gesture = PointerGesture::SuppressClick;
+                        acc.consumed();
+                    }
+                } else {
+                    st.browse = None;
+                    let count = cx.pointer_press_count(self.id, part).unwrap_or(1);
+                    if count >= 3 {
+                        if let Some((start, end)) = logical_line_range(lines, at) {
+                            st.select(start, end);
+                            st.pointer_gesture = PointerGesture::Line { dragged: false };
+                            acc.action(ViewportAction::SelectionChanged);
+                        } else {
+                            acc.consumed();
+                        }
+                    } else if count == 2
+                        && let Some((start, end)) = word_range_at(lines, at)
+                    {
+                        st.select(start, end);
+                        st.anchor = Some(start);
+                        st.pointer_gesture = PointerGesture::Word {
+                            range: (start, end),
+                            dragged: false,
+                        };
+                        acc.action(ViewportAction::SelectionChanged);
+                    } else {
+                        let had = st.selection.take().is_some();
+                        st.anchor = Some(at);
+                        st.pointer_gesture = PointerGesture::Plain { dragged: false };
+                        if had {
+                            acc.action(ViewportAction::SelectionChanged);
+                        } else {
+                            acc.consumed();
+                        }
+                    }
+                }
+            }
+            Phase::Drag => {
+                st.pointer_gesture.mark_dragged();
+                if self.pan_active() && !hit_text.is_empty() {
+                    let before = st.horizontal.offset();
+                    if pos.x < hit_text.x {
+                        st.horizontal.scroll_by(-1);
+                    } else if pos.x >= hit_text.right() {
+                        st.horizontal.scroll_by(1);
+                    }
+                    horizontal_offset = st.horizontal.offset();
+                    if before != horizontal_offset {
+                        acc.changed();
+                    }
+                }
+                let vertical_delta = if !hit_text.is_empty() && pos.y < hit_text.y {
+                    -isize::try_from(hit_text.y - pos.y).unwrap_or(isize::MAX)
+                } else if !hit_text.is_empty() && pos.y >= hit_text.bottom() {
+                    isize::try_from(pos.y.saturating_add(1).saturating_sub(hit_text.bottom()))
+                        .unwrap_or(isize::MAX)
+                } else {
+                    0
+                };
+                if vertical_delta != 0 {
+                    let before = st.scroll.offset();
+                    st.scroll.scroll_by(vertical_delta);
+                    if st.scroll.offset() != before {
+                        st.follow = FollowCursor::OnMove;
+                        acc.changed();
+                    }
+                }
+                let clamped = if hit_text.is_empty() {
+                    pos
+                } else {
+                    Position::new(
+                        pos.x.clamp(
+                            hit_text.x,
+                            hit_text.right().saturating_sub(1).max(hit_text.x),
+                        ),
+                        pos.y.clamp(
+                            hit_text.y,
+                            hit_text.bottom().saturating_sub(1).max(hit_text.y),
+                        ),
+                    )
+                };
+                let at = self.pos_at(
+                    cx,
+                    lines,
+                    &geometry,
+                    st.scroll.offset(),
+                    horizontal_offset,
+                    clamped,
+                );
+                let selected = match (st.pointer_gesture, st.anchor, at) {
+                    (PointerGesture::Word { range, .. }, _, Some(head)) => {
+                        Some(extend_word_range(range, head, word_range_at(lines, head)))
+                    }
+                    (
+                        PointerGesture::Plain { .. } | PointerGesture::Shift { .. },
+                        Some(anchor),
+                        Some(head),
+                    ) => Some((anchor, head)),
+                    _ => None,
+                };
+                if let Some((anchor, head)) = selected {
+                    st.selection = Some((anchor, head));
+                    st.browse = Some(head);
+                    acc.action(ViewportAction::SelectionChanged);
+                } else if selection_reconciled {
                     acc.action(ViewportAction::SelectionChanged);
                 } else {
                     acc.consumed();
                 }
             }
-            Phase::Drag => {
-                if pos.y < area.y {
-                    st.scroll.scroll_by(-1);
-                    st.follow = false;
-                } else if pos.y >= area.bottom() {
-                    st.scroll.scroll_by(1);
-                    st.follow = st.scroll.at_end();
-                }
-                let clamped = Position::new(
-                    pos.x
-                        .clamp(area.x, area.right().saturating_sub(1).max(area.x)),
-                    pos.y
-                        .clamp(area.y, area.bottom().saturating_sub(1).max(area.y)),
-                );
-                let at = self.pos_at(cx, lines, (area, key, st.scroll.offset()), clamped);
-                match (st.anchor, at) {
-                    (Some(anchor), Some(head)) => {
-                        st.selection = Some((anchor, head));
-                        acc.action(ViewportAction::SelectionChanged);
-                    }
-                    _ => acc.consumed(),
-                }
-            }
-            Phase::Click if !self.click_selects_word => {
-                cx.focus(self.id);
-                acc.consumed();
-            }
             Phase::Click | Phase::DoubleClick => {
                 cx.focus(self.id);
-                let at = self.pos_at(cx, lines, (area, key, st.scroll.offset()), pos);
-                match at.and_then(|p| {
-                    lines
-                        .get(p.line)
-                        .and_then(|line| word_at(line, p.col))
-                        .map(|(start, end)| (p.line, start, end))
-                }) {
-                    Some((line, start, end)) => {
-                        st.select(CellPos::new(line, start), CellPos::new(line, end));
-                        acc.action(ViewportAction::SelectionChanged);
-                    }
-                    None => acc.consumed(),
+                let gesture = st.pointer_gesture;
+                if gesture.dragged()
+                    || matches!(
+                        gesture,
+                        PointerGesture::Shift { .. } | PointerGesture::SuppressClick
+                    )
+                {
+                    st.anchor = None;
+                    st.pointer_gesture = PointerGesture::Idle;
+                    acc.consumed();
+                    return;
                 }
+
+                let count = cx.pointer_click_count(self.id, part).unwrap_or(1);
+                let at = self.pos_at(
+                    cx,
+                    lines,
+                    &geometry,
+                    st.scroll.offset(),
+                    horizontal_offset,
+                    pos,
+                );
+                let selected = at.and_then(|at| {
+                    if count >= 3 {
+                        logical_line_range(lines, at)
+                    } else if count == 2 || self.click_selects_word {
+                        word_range_at(lines, at)
+                    } else {
+                        None
+                    }
+                });
+                if let Some((start, end)) = selected {
+                    st.select(start, end);
+                    acc.action(ViewportAction::SelectionChanged);
+                } else if selection_reconciled {
+                    acc.action(ViewportAction::SelectionChanged);
+                } else {
+                    acc.consumed();
+                }
+                st.anchor = None;
+                st.pointer_gesture = PointerGesture::Idle;
             }
             Phase::Release | Phase::DragEnd => {
                 if cx.capture_owner() == Some(self.id) {
                     cx.release_capture();
                 }
                 st.anchor = None;
-                acc.consumed();
+                if selection_reconciled {
+                    acc.action(ViewportAction::SelectionChanged);
+                } else {
+                    acc.consumed();
+                }
             }
             Phase::Secondary => acc.consumed(),
             Phase::Move => {}
@@ -1085,8 +3320,8 @@ impl<'a> TextViewport<'a> {
             ViewportCmd::End => {
                 st.scroll.jump_end();
                 let was = st.follow;
-                st.follow = true;
-                if was {
+                st.follow = FollowCursor::Always;
+                if was == FollowCursor::Always {
                     acc.changed();
                 } else {
                     acc.action(ViewportAction::FollowChanged(true));
@@ -1094,11 +3329,16 @@ impl<'a> TextViewport<'a> {
                 return;
             }
             ViewportCmd::ToggleFollow => {
-                st.follow = !st.follow;
-                if st.follow {
+                st.follow = match st.follow {
+                    FollowCursor::Always => FollowCursor::OnMove,
+                    FollowCursor::OnMove => FollowCursor::Always,
+                };
+                if st.follow == FollowCursor::Always {
                     st.scroll.jump_end();
                 }
-                acc.action(ViewportAction::FollowChanged(st.follow));
+                acc.action(ViewportAction::FollowChanged(
+                    st.follow == FollowCursor::Always,
+                ));
                 return;
             }
             ViewportCmd::Copy => {
@@ -1114,7 +3354,11 @@ impl<'a> TextViewport<'a> {
         if st.scroll.offset() == before {
             acc.consumed();
         } else {
-            st.follow = st.scroll.at_end();
+            st.follow = if st.scroll.at_end() {
+                FollowCursor::Always
+            } else {
+                FollowCursor::OnMove
+            };
             acc.changed();
         }
     }
@@ -1126,7 +3370,15 @@ impl<'a> TextViewport<'a> {
         st: &ViewportState,
         lines: &[ViewportLine<'_>],
     ) -> Rect {
-        self.draw_lines(ui, area, st, LineSet::Borrowed(lines))
+        self.draw_lines(
+            ui,
+            VerticalWindow::full(area),
+            FadePolicy::LegacyRect,
+            st,
+            LineSet::Borrowed(lines),
+            None,
+        )
+        .0
     }
 
     pub fn draw_projected(
@@ -1136,49 +3388,232 @@ impl<'a> TextViewport<'a> {
         st: &ViewportState,
         lines: &ProjectedText,
     ) -> Rect {
-        self.draw_lines(ui, area, st, LineSet::Projected(lines))
+        self.draw_lines(
+            ui,
+            VerticalWindow::full(area),
+            FadePolicy::LegacyRect,
+            st,
+            LineSet::Projected(lines),
+            None,
+        )
+        .0
+    }
+
+    pub fn draw_window(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ViewportState,
+        lines: &[ViewportLine<'_>],
+    ) -> Rect {
+        self.draw_lines(
+            ui,
+            window,
+            FadePolicy::LogicalWindow,
+            st,
+            LineSet::Borrowed(lines),
+            None,
+        )
+        .0
+    }
+
+    pub fn draw_projected_window(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ViewportState,
+        lines: &ProjectedText,
+    ) -> Rect {
+        self.draw_lines(
+            ui,
+            window,
+            FadePolicy::LogicalWindow,
+            st,
+            LineSet::Projected(lines),
+            None,
+        )
+        .0
+    }
+
+    pub fn draw_routed(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &ViewportState,
+        lines: &[ViewportLine<'_>],
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>) {
+        self.draw_lines(
+            ui,
+            VerticalWindow::full(area),
+            FadePolicy::LegacyRect,
+            st,
+            LineSet::Borrowed(lines),
+            Some(source_revision),
+        )
+    }
+
+    pub fn draw_window_routed(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ViewportState,
+        lines: &[ViewportLine<'_>],
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>) {
+        self.draw_lines(
+            ui,
+            window,
+            FadePolicy::LogicalWindow,
+            st,
+            LineSet::Borrowed(lines),
+            Some(source_revision),
+        )
+    }
+
+    pub fn draw_window_routed_with_view(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ViewportState,
+        lines: &[ViewportLine<'_>],
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>, Option<ScrollState>) {
+        self.draw_lines_with_view(
+            ui,
+            window,
+            FadePolicy::LogicalWindow,
+            st,
+            LineSet::Borrowed(lines),
+            Some(source_revision),
+        )
+    }
+
+    pub fn draw_projected_routed(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &ViewportState,
+        lines: &ProjectedText,
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>) {
+        self.draw_lines(
+            ui,
+            VerticalWindow::full(area),
+            FadePolicy::LegacyRect,
+            st,
+            LineSet::Projected(lines),
+            Some(source_revision),
+        )
+    }
+
+    pub fn draw_projected_window_routed(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ViewportState,
+        lines: &ProjectedText,
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>) {
+        self.draw_lines(
+            ui,
+            window,
+            FadePolicy::LogicalWindow,
+            st,
+            LineSet::Projected(lines),
+            Some(source_revision),
+        )
+    }
+
+    pub fn draw_projected_window_routed_with_view(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ViewportState,
+        lines: &ProjectedText,
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>, Option<ScrollState>) {
+        self.draw_lines_with_view(
+            ui,
+            window,
+            FadePolicy::LogicalWindow,
+            st,
+            LineSet::Projected(lines),
+            Some(source_revision),
+        )
     }
 
     fn draw_lines(
         &self,
         ui: &mut Ui<'_>,
-        area: Rect,
+        body_window: VerticalWindow,
+        fade_policy: FadePolicy,
         st: &ViewportState,
         lines: LineSet<'_>,
-    ) -> Rect {
+        source_revision: Option<u64>,
+    ) -> (Rect, Option<ScrollRouteKey>) {
+        let (text, route_key, _) =
+            self.draw_lines_with_view(ui, body_window, fade_policy, st, lines, source_revision);
+        (text, route_key)
+    }
+
+    fn draw_lines_with_view(
+        &self,
+        ui: &mut Ui<'_>,
+        body_window: VerticalWindow,
+        fade_policy: FadePolicy,
+        st: &ViewportState,
+        lines: LineSet<'_>,
+        source_revision: Option<u64>,
+    ) -> (Rect, Option<ScrollRouteKey>, Option<ScrollState>) {
+        let area = body_window.visible_body();
         if area.is_empty() {
-            return area;
+            return (area, None, None);
         }
         let ov = self.overrides();
         let id = self.id;
         let runtime = ui.state(id).difference(StateFlags::SELECTED);
         let live = PartStyle::flags(runtime, StateFlags::empty());
-        let text_w = Self::text_width(area.width);
-        let key = self.layout_key(st, text_w);
-        let (total, indexed) = {
-            let lay = ui.cache::<ViewportLayout>(id);
-            let indexed = lay.ensure(lines, key);
-            (lay.total(), indexed)
+        let mut geometry = {
+            let layout = ui.cache::<ViewportLayout>(id);
+            self.prepared_geometry(body_window, st, lines, source_revision, layout, true)
         };
-        #[cfg(feature = "testing")]
-        self.note_indexed(indexed);
-        #[cfg(not(feature = "testing"))]
-        Self::note_indexed(indexed);
+        let body_window = geometry.body_window;
+        let area = body_window.visible_body();
+        let total = geometry.total;
+        let logical_rows = geometry.logical_rows;
+        let text_width = geometry.dimensions.text_width;
         let mut view = st.scroll;
-        view.apply_layout(usize::from(area.height), total);
-        if st.follow {
+        view.apply_layout(logical_rows, total);
+        if st.follow == FollowCursor::Always {
             view.jump_end();
         }
-        let (first_line, first_row) = {
-            let lay = ui.cache::<ViewportLayout>(id);
-            lay.row_start(lines, view.offset())
-        };
-        let caret_line_start = st.caret.map(|c| {
-            let lay = ui.cache::<ViewportLayout>(id);
-            lay.line_start(c.line)
+        let mut horizontal = st.horizontal;
+        horizontal.set_content(if self.pan_active() {
+            geometry.widest
+        } else {
+            0
         });
+        horizontal.set_viewport(usize::from(text_width));
+        let caret_line_start = st.caret.map(|caret| {
+            let layout = ui.cache::<ViewportLayout>(id);
+            layout.line_start(caret.line)
+        });
+
         ui.register_control(id, area, Focusability::Focusable);
         ui.publish_bindings(id, live, BINDINGS);
+        ui.publish_additional_bindings(id, runtime, SELECTION_BINDINGS);
+        if st.selection.is_some() {
+            ui.publish_additional_bindings(id, runtime, SELECTION_CLEAR_BINDINGS);
+        }
+        if self.pan_active() && geometry.dimensions.horizontal_overflow {
+            let pan_bindings = if st.caret.is_some() {
+                HORIZONTAL_PAN_SEMANTIC_BINDINGS
+            } else {
+                HORIZONTAL_PAN_BINDINGS
+            };
+            ui.publish_additional_bindings(id, runtime, pan_bindings);
+        }
         let container = ov.style(
             ui,
             id,
@@ -1188,52 +3623,321 @@ impl<'a> TextViewport<'a> {
             live,
         );
         ui.fill(area, container.style);
-        self.gutter(ui, area, live, &ov);
-        let body = Rect {
-            x: area.x.saturating_add(1),
-            y: area.y,
-            width: area.width.saturating_sub(1),
-            height: area.height,
-        };
-        let content = self.bar().draw(ui, body, &view, total);
-        let text = Rect {
-            width: text_w.min(content.width),
-            ..content
-        };
-        ui.report_layout(
-            id,
-            LayoutFacts::new(usize::from(area.height), total, area.height, text_w),
-        );
-        if text.is_empty() {
-            return text;
+        if self.reserve_gutter {
+            self.gutter(ui, area, live, &ov);
         }
-        ui.register_part(id, PartRef::of(Part::TEXT), text);
-        let base = ov.style(ui, id, Family::VIEWPORT, Variant::DEFAULT, Part::TEXT, live);
-        let selected = ov.style(
+
+        let bar = self.bar();
+        if let Some(text_window) = geometry.text_window {
+            if source_revision.is_some() {
+                let _ = bar.draw_window_without_wheel_registration(ui, text_window, &view, total);
+            } else {
+                let _ = bar.draw_window(ui, text_window, &view, total);
+            }
+        }
+
+        let text = geometry.text;
+        geometry.hit_text = text;
+        let mut facts = LayoutFacts::new(
+            logical_rows,
+            total,
+            logical_rows.min(usize::from(u16::MAX)) as u16,
+            text_width,
+        )
+        .with_vertical_body_window(body_window);
+        if let Some(text_window) = geometry.text_window {
+            facts = facts.with_vertical_window(text_window);
+        }
+        if body_window.first_source_row() == 0
+            && usize::from(area.height) == body_window.logical_rows()
+        {
+            facts = facts.with_logical_area(area);
+        }
+        ui.report_layout(id, facts);
+
+        let mut route_key = None;
+        if let Some(source_revision) = source_revision
+            && let Some(text_window) = geometry.text_window
+            && !text.is_empty()
+        {
+            let vertical = view.headroom_v();
+            let horizontal_headroom = horizontal.headroom_v();
+            let axes = if self.pan_active() {
+                Axes::Both
+            } else {
+                Axes::V
+            };
+            if view.overflows() {
+                let body = text_window.visible_body();
+                if body.width > 0 && body.height > 0 {
+                    let bar_strip =
+                        Rect::new(body.right().saturating_sub(1), body.y, 1, body.height);
+                    if bar_strip.intersection(text).is_empty() {
+                        ui.register_scroll(id, bar_strip, Axes::V, vertical);
+                    }
+                }
+            }
+            route_key = ui.register_routed_scroll(
+                id,
+                text,
+                axes,
+                Headroom {
+                    up: vertical.up,
+                    down: vertical.down,
+                    left: if axes.handles(Axis::H) {
+                        horizontal_headroom.up
+                    } else {
+                        0
+                    },
+                    right: if axes.handles(Axis::H) {
+                        horizontal_headroom.down
+                    } else {
+                        0
+                    },
+                },
+                source_revision,
+            );
+        } else if source_revision.is_none() && self.pan_active() && !text.is_empty() {
+            let vertical = view.headroom_v();
+            let horizontal_headroom = horizontal.headroom_v();
+            ui.register_scroll(
+                id,
+                text,
+                Axes::Both,
+                Headroom {
+                    up: vertical.up,
+                    down: vertical.down,
+                    left: horizontal_headroom.up,
+                    right: horizontal_headroom.down,
+                },
+            );
+        }
+        let text_window = geometry.text_window;
+        if !text.is_empty()
+            && let Some(text_window) = text_window
+        {
+            ui.register_part(id, PartRef::of(Part::TEXT), text);
+            let vertical_headroom = view.headroom_v();
+            let horizontal_headroom = horizontal.headroom_v();
+            let drag_axes = if self.pan_active() && geometry.dimensions.horizontal_overflow {
+                Axes::Both
+            } else {
+                Axes::V
+            };
+            if st.pointer_gesture.allows_autoscroll() {
+                ui.register_text_drag_autoscroll(
+                    id,
+                    PartRef::of(Part::TEXT),
+                    text,
+                    drag_axes,
+                    Headroom {
+                        up: vertical_headroom.up,
+                        down: vertical_headroom.down,
+                        left: if drag_axes.handles(Axis::H) {
+                            horizontal_headroom.up
+                        } else {
+                            0
+                        },
+                        right: if drag_axes.handles(Axis::H) {
+                            horizontal_headroom.down
+                        } else {
+                            0
+                        },
+                    },
+                    st.generation,
+                );
+            }
+            let first_visual = view.offset().saturating_add(text_window.first_source_row());
+            if first_visual < total {
+                let (first_line, first_row) = {
+                    let layout = ui.cache::<ViewportLayout>(id);
+                    layout.row_start(lines, first_visual)
+                };
+                let base = ov.style(ui, id, Family::VIEWPORT, Variant::DEFAULT, Part::TEXT, live);
+                let selected = ov.style(
+                    ui,
+                    id,
+                    Family::VIEWPORT,
+                    Variant::DEFAULT,
+                    Part::TEXT,
+                    live | StateFlags::SELECTED,
+                );
+                self.rows(
+                    ui,
+                    text,
+                    lines,
+                    RowPosition {
+                        key: geometry.key,
+                        line: first_line,
+                        wrapped_row: first_row,
+                        horizontal_offset: if self.pan_active() {
+                            horizontal.offset()
+                        } else {
+                            0
+                        },
+                    },
+                    st.selection(),
+                    (base.style, selected.style),
+                );
+            }
+            self.caret(
+                ui,
+                geometry,
+                st,
+                lines,
+                (
+                    text_width,
+                    view.offset(),
+                    caret_line_start,
+                    if self.pan_active() {
+                        horizontal.offset()
+                    } else {
+                        0
+                    },
+                ),
+                live,
+            );
+            let mut faded = text;
+            let extra = self
+                .scroll_gap
+                .min(area.right().saturating_sub(text.right()));
+            faded.width = faded.width.saturating_add(extra);
+            match fade_policy {
+                FadePolicy::LegacyRect => ui.scroll_edges(faded, &view),
+                FadePolicy::LogicalWindow => {
+                    if let Ok(faded_window) =
+                        VerticalWindow::new(faded, logical_rows, text_window.first_source_row())
+                    {
+                        ui.scroll_edges_window(faded_window, &view);
+                    }
+                }
+            }
+        }
+        if !geometry.horizontal_track.is_empty() {
+            self.paint_horizontal_bar(ui, geometry.horizontal_track, &horizontal, live, &ov);
+        }
+        (text, route_key, Some(view))
+    }
+
+    fn paint_horizontal_bar(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        state: &ScrollState,
+        live: StateFlags,
+        overrides: &PartStyle<'a>,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let track = overrides.style(
             ui,
-            id,
+            self.id,
             Family::VIEWPORT,
             Variant::DEFAULT,
-            Part::TEXT,
-            live | StateFlags::SELECTED,
-        );
-        self.rows(
-            ui,
-            text,
-            lines,
-            (first_line, first_row),
-            st.selection(),
-            (base.style, selected.style),
-        );
-        self.caret(
-            ui,
-            text,
-            st,
-            lines,
-            (text_w, view.offset(), caret_line_start),
+            Part::TRACK,
             live,
         );
-        text
+        let thumb_live = if ui.pressed_part(self.id) == Some(PartRef::of(HORIZONTAL_THUMB)) {
+            live | StateFlags::PRESSED
+        } else {
+            live
+        };
+        let thumb = overrides.style(
+            ui,
+            self.id,
+            Family::VIEWPORT,
+            Variant::DEFAULT,
+            Part::THUMB,
+            thumb_live,
+        );
+        let (start, len) = state.thumb(usize::from(area.width));
+        let end = start.saturating_add(len);
+        ui.register_part(self.id, PartRef::of(HORIZONTAL_TRACK), area);
+        if len > 0 {
+            ui.register_part(
+                self.id,
+                PartRef::of(HORIZONTAL_THUMB),
+                Rect::new(
+                    area.x
+                        .saturating_add(start.min(usize::from(u16::MAX)) as u16),
+                    area.y,
+                    len.min(usize::from(u16::MAX)) as u16,
+                    1,
+                ),
+            );
+        }
+        for column in 0..area.width {
+            let index = usize::from(column);
+            let on_thumb = (start..end).contains(&index);
+            ui.paint_str(
+                Rect::new(area.x.saturating_add(column), area.y, 1, 1),
+                if on_thumb { "━" } else { "┄" },
+                if on_thumb { thumb.style } else { track.style },
+            );
+        }
+    }
+
+    pub fn paint_horizontal_overflow(
+        &self,
+        ui: &mut Ui<'_>,
+        row: Rect,
+        lines: &ProjectedText,
+        viewport_rows: u16,
+    ) {
+        if row.width < 2 || row.height == 0 {
+            return;
+        }
+        let v_bar = !self.wrap && lines.line_count() > usize::from(viewport_rows);
+        let text_w = if v_bar {
+            Self::text_width(row.width, self.reserve_gutter, self.scroll_gap)
+        } else {
+            row.width.saturating_sub(u16::from(self.reserve_gutter))
+        };
+        let widest = lines.widest_cols();
+        if text_w == 0 || widest <= usize::from(text_w) {
+            return;
+        }
+        let track_w = usize::from(if v_bar {
+            row.width.saturating_sub(1)
+        } else {
+            row.width
+        });
+        let mut across = ScrollState::default();
+        across.set_content(widest);
+        across.set_viewport(usize::from(text_w));
+        let (start, len) = across.thumb(track_w);
+        let ov = self.overrides();
+        let live = StateFlags::empty();
+        let thumb = ov
+            .style(
+                ui,
+                self.id,
+                Family::VIEWPORT,
+                Variant::DEFAULT,
+                Part::THUMB,
+                live,
+            )
+            .style;
+        let track = ov
+            .style(
+                ui,
+                self.id,
+                Family::VIEWPORT,
+                Variant::DEFAULT,
+                Part::TRACK,
+                live,
+            )
+            .style;
+        let end = start.saturating_add(len);
+        for i in 0..track_w {
+            let on_thumb = i >= start && i < end;
+            ui.paint_str(
+                Rect::new(row.x.saturating_add(i as u16), row.y, 1, 1),
+                if on_thumb { "━" } else { "┄" },
+                if on_thumb { thumb } else { track },
+            );
+        }
     }
 
     fn rows(
@@ -1241,39 +3945,64 @@ impl<'a> TextViewport<'a> {
         ui: &mut Ui<'_>,
         text: Rect,
         lines: LineSet<'_>,
-        from: (usize, usize),
+        from: RowPosition,
         sel: Option<(CellPos, CellPos)>,
         styles: (PaintStyle, PaintStyle),
     ) {
-        let (mut li, mut row) = from;
+        let mut li = from.line;
+        let mut row = from.wrapped_row;
         let text_w = text.width;
-        let mut rows_here = lines.get(li).map_or(0, |l| line_rows(l, text_w, self.wrap));
-        #[cfg(feature = "testing")]
-        let mut visible = 0usize;
+        let mut rows_here = lines.get(li).map_or(0, |line| {
+            if from.key.word_wrap {
+                let layout = ui.cache::<ViewportLayout>(self.id);
+                layout.word_line(li).map_or(0, |word| word.rows.len())
+            } else {
+                line_rows(line, text_w, self.wrap)
+            }
+        });
+
         for y in text.rows() {
             let Some(line) = lines.get(li) else { break };
-            #[cfg(feature = "testing")]
-            {
-                visible = visible.saturating_add(1);
+
+            let word_row = if from.key.word_wrap {
+                let layout = ui.cache::<ViewportLayout>(self.id);
+                let Some(word_row) = layout.word_row(li, row) else {
+                    break;
+                };
+                Some(word_row)
+            } else {
+                None
+            };
+            let cols = if let Some(word_row) = word_row {
+                (word_row.painted_start, word_row.painted_end)
+            } else if self.pan_active() {
+                (
+                    from.horizontal_offset,
+                    from.horizontal_offset.saturating_add(usize::from(text_w)),
+                )
+            } else {
+                row_cols(line, text_w, self.wrap, row)
+            };
+            if let Some(word_row) = word_row {
+                paint_word_row(ui, y, line, li, sel, styles, word_row);
+            } else {
+                paint_legacy_row(ui, y, line, li, cols, sel, styles);
             }
-            paint_row(
-                ui,
-                y,
-                line,
-                li,
-                row_cols(line, text_w, self.wrap, row),
-                sel,
-                styles,
-            );
-            row = row.saturating_add(1);
-            if row >= rows_here {
+            if row.saturating_add(1) >= rows_here {
                 row = 0;
                 li = li.saturating_add(1);
-                rows_here = lines.get(li).map_or(0, |l| line_rows(l, text_w, self.wrap));
+                rows_here = lines.get(li).map_or(0, |line| {
+                    if from.key.word_wrap {
+                        let layout = ui.cache::<ViewportLayout>(self.id);
+                        layout.word_line(li).map_or(0, |word| word.rows.len())
+                    } else {
+                        line_rows(line, text_w, self.wrap)
+                    }
+                });
+            } else {
+                row = row.saturating_add(1);
             }
         }
-        #[cfg(feature = "testing")]
-        self.note_visible(visible);
     }
 
     fn gutter(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, ov: &PartStyle<'a>) {
@@ -1313,68 +4042,145 @@ impl<'a> TextViewport<'a> {
     fn caret(
         &self,
         ui: &mut Ui<'_>,
-        text: Rect,
+        geometry: PreparedGeometry,
         st: &ViewportState,
         lines: LineSet<'_>,
-        view: (u16, usize, Option<usize>),
+        view: (u16, usize, Option<usize>, usize),
         live: StateFlags,
     ) {
-        let (width, offset, line_start) = view;
+        let text = geometry.text;
+        let Some(text_window) = geometry.text_window else {
+            return;
+        };
+        let (width, offset, line_start, horizontal_offset) = view;
         let Some(c) = st.caret else { return };
-        if !live.contains(StateFlags::FOCUSED) {
+        if !live.contains(StateFlags::FOCUSED)
+            && !(self.caret_when_unfocused && st.follow() && st.selection().is_none())
+        {
+            return;
+        }
+        let visible = text.intersection(ui.full());
+        if visible.is_empty() {
             return;
         }
         let Some(at) = lines.get(c.line) else {
             return;
         };
         let before = line_start.unwrap_or(c.line);
-        let mut within = 0usize;
-        if self.wrap {
-            for i in 0..line_rows(at, width, true) {
-                let (a, b) = row_cols(at, width, true, i);
-                if c.col >= a && c.col < b {
-                    within = i;
-                    break;
+        let (within, caret_col) = if geometry.key.word_wrap {
+            let mapping = {
+                let layout = ui.cache::<ViewportLayout>(self.id);
+                layout.word_line(c.line).and_then(|word_line| {
+                    let row = word_line.row_for_source(c.col);
+                    word_line
+                        .rows
+                        .get(row)
+                        .copied()
+                        .map(|word_row| (row, word_row.source_to_display(c.col)))
+                })
+            };
+            let Some(mapping) = mapping else { return };
+            mapping
+        } else {
+            let mut within = 0usize;
+            if self.wrap {
+                for i in 0..line_rows(at, width, true) {
+                    let (a, b) = row_cols(at, width, true, i);
+                    if c.col >= a && c.col < b {
+                        within = i;
+                        break;
+                    }
                 }
             }
-        }
+            let (start, _) = row_cols(at, width, self.wrap, within);
+            (within, c.col.saturating_sub(start))
+        };
         let visual = before.saturating_add(within);
-        if visual < offset {
+        let Some(source_row) = visual.checked_sub(offset) else {
+            return;
+        };
+        let Some(y) = text_window.physical_row_for_source(source_row) else {
+            return;
+        };
+        if caret_col < horizontal_offset {
             return;
         }
-        let dy = visual.saturating_sub(offset);
-        let (start, _) = row_cols(at, width, self.wrap, within);
-        let dx = c.col.saturating_sub(start);
-        if dy >= usize::from(text.height) || dx >= usize::from(text.width) {
+        let dx = caret_col.saturating_sub(horizontal_offset);
+        if dx >= usize::from(text.width) {
             return;
         }
-        ui.set_cursor(
-            self.id,
-            Position::new(
-                text.x.saturating_add(dx as u16),
-                text.y.saturating_add(dy as u16),
-            ),
-        );
+        let Ok(dx) = u16::try_from(dx) else {
+            return;
+        };
+        let Some(x) = visible.x.checked_add(dx) else {
+            return;
+        };
+        let pos = Position::new(x, y);
+        if !visible.contains(pos) {
+            return;
+        }
+        if self.bar_cursor {
+            ui.set_bar_cursor(self.id, pos);
+        } else {
+            ui.set_cursor(self.id, pos);
+        }
     }
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
+        let reserved = 1u16
+            .saturating_add(u16::from(self.reserve_gutter))
+            .saturating_add(self.scroll_gap);
         Size {
             min: (3, 1),
-            preferred: (Self::PREFERRED_TEXT_WIDTH.saturating_add(2), c.max.1),
+            preferred: (Self::PREFERRED_TEXT_WIDTH.saturating_add(reserved), c.max.1),
         }
         .fit(c)
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Run {
     span: usize,
     sel: bool,
     a: usize,
     b: usize,
+    joined: Option<Box<str>>,
 }
 
-fn paint_row(
+fn paint_replacement(
+    ui: &mut Ui<'_>,
+    line: LineRef<'_>,
+    span: usize,
+    rect: Rect,
+    x: &mut u16,
+    styles: (PaintStyle, PaintStyle),
+    selected: bool,
+) {
+    if *x >= rect.right() {
+        return;
+    }
+    let (role, add, paint) = run_style(line, span);
+    let base = if selected { styles.1 } else { styles.0 };
+    let area = Rect {
+        x: *x,
+        y: rect.y,
+        width: rect.right().saturating_sub(*x),
+        height: 1,
+    };
+    let width = if let Some(paint) = paint {
+        ui.paint_str(area, "…", run_paint_style(base, paint, selected))
+    } else {
+        let replacement = Span {
+            text: "…",
+            role: if selected { None } else { role },
+            add,
+        };
+        ui.paint_spans(area, &[replacement], base)
+    };
+    *x = x.saturating_add(width);
+}
+
+fn paint_legacy_row(
     ui: &mut Ui<'_>,
     rect: Rect,
     line: LineRef<'_>,
@@ -1390,27 +4196,32 @@ fn paint_row(
     let mut run: Option<Run> = None;
     let flush = |ui: &mut Ui<'_>, r: Option<Run>, x: &mut u16| {
         let Some(r) = r else { return };
-        let text = run_text(line, r.span).get(r.a..r.b).unwrap_or("");
+        let text = r
+            .joined
+            .as_deref()
+            .or_else(|| run_text(line, r.span).get(r.a..r.b))
+            .unwrap_or("");
         if text.is_empty() || *x >= right {
             return;
         }
-        let (role, add) = run_style(line, r.span);
-        let sp = Span {
-            text,
-            role: if r.sel { None } else { role },
-            add,
-        };
+        let (role, add, paint) = run_style(line, r.span);
         let base = if r.sel { styles.1 } else { styles.0 };
-        let w = ui.paint_spans(
-            Rect {
-                x: *x,
-                y: rect.y,
-                width: right.saturating_sub(*x),
-                height: 1,
-            },
-            &[sp],
-            base,
-        );
+        let area = Rect {
+            x: *x,
+            y: rect.y,
+            width: right.saturating_sub(*x),
+            height: 1,
+        };
+        let w = if let Some(paint) = paint {
+            ui.paint_str(area, text, run_paint_style(base, paint, r.sel))
+        } else {
+            let sp = Span {
+                text,
+                role: if r.sel { None } else { role },
+                add,
+            };
+            ui.paint_spans(area, &[sp], base)
+        };
         *x = x.saturating_add(w);
     };
     walk_line(line, |c| {
@@ -1422,12 +4233,43 @@ fn paint_row(
             col = next;
             return ControlFlow::Continue(());
         }
+        if col < from {
+            flush(ui, run.take(), &mut x);
+            let blank = next
+                .saturating_sub(from)
+                .min(usize::from(right.saturating_sub(x)));
+            let is_sel = sel.is_some_and(|(a, b)| {
+                let p = CellPos { line: line_ix, col };
+                p >= a && p < b
+            });
+            if blank > 0 {
+                ui.fill(
+                    Rect {
+                        x,
+                        y: rect.y,
+                        width: blank.min(usize::from(u16::MAX)) as u16,
+                        height: 1,
+                    },
+                    if is_sel { styles.1 } else { styles.0 },
+                );
+                x = x.saturating_add(blank.min(usize::from(u16::MAX)) as u16);
+            }
+            col = next;
+            return ControlFlow::Continue(());
+        }
+        if next > to {
+            return ControlFlow::Break(());
+        }
         let is_sel = sel.is_some_and(|(a, b)| {
             let p = CellPos { line: line_ix, col };
             p >= a && p < b
         });
         if c.tab {
             flush(ui, run.take(), &mut x);
+            let base = if is_sel { styles.1 } else { styles.0 };
+            let paint = run_style(line, c.span)
+                .2
+                .map_or(base, |paint| run_paint_style(base, paint, is_sel));
             ui.fill(
                 Rect {
                     x,
@@ -1435,13 +4277,24 @@ fn paint_row(
                     width: 1,
                     height: 1,
                 },
-                if is_sel { styles.1 } else { styles.0 },
+                paint,
             );
             x = x.saturating_add(1);
+        } else if c.joined.is_some() {
+            flush(ui, run.take(), &mut x);
+            run = Some(Run {
+                span: c.span,
+                sel: is_sel,
+                a: c.at,
+                b: c.at.saturating_add(c.len),
+                joined: c.joined,
+            });
         } else {
             let end = c.at.saturating_add(c.len);
-            match run {
-                Some(r) if r.span == c.span && r.sel == is_sel && r.b == c.at => {
+            match run.take() {
+                Some(r)
+                    if r.joined.is_none() && r.span == c.span && r.sel == is_sel && r.b == c.at =>
+                {
                     run = Some(Run { b: end, ..r });
                 }
                 other => {
@@ -1451,6 +4304,151 @@ fn paint_row(
                         sel: is_sel,
                         a: c.at,
                         b: end,
+                        joined: None,
+                    });
+                }
+            }
+        }
+        col = next;
+        ControlFlow::Continue(())
+    });
+    flush(ui, run.take(), &mut x);
+}
+
+fn paint_word_row(
+    ui: &mut Ui<'_>,
+    rect: Rect,
+    line: LineRef<'_>,
+    line_ix: usize,
+    sel: Option<(CellPos, CellPos)>,
+    styles: (PaintStyle, PaintStyle),
+    word_row: WordRow,
+) {
+    let (from, to) = (word_row.painted_start, word_row.painted_end);
+    let right = rect.right();
+    let mut x = rect.x;
+    let mut col = 0usize;
+    let mut run: Option<Run> = None;
+    let flush = |ui: &mut Ui<'_>, r: Option<Run>, x: &mut u16| {
+        let Some(r) = r else { return };
+        let text = r
+            .joined
+            .as_deref()
+            .or_else(|| run_text(line, r.span).get(r.a..r.b))
+            .unwrap_or("");
+        if text.is_empty() || *x >= right {
+            return;
+        }
+        let (role, add, paint) = run_style(line, r.span);
+        let base = if r.sel { styles.1 } else { styles.0 };
+        let area = Rect {
+            x: *x,
+            y: rect.y,
+            width: right.saturating_sub(*x),
+            height: 1,
+        };
+        let w = if let Some(paint) = paint {
+            ui.paint_str(area, text, run_paint_style(base, paint, r.sel))
+        } else {
+            let sp = Span {
+                text,
+                role: if r.sel { None } else { role },
+                add,
+            };
+            ui.paint_spans(area, &[sp], base)
+        };
+        *x = x.saturating_add(w);
+    };
+    walk_line(line, |c| {
+        if col >= to || x >= right {
+            return ControlFlow::Break(());
+        }
+        let next = col.saturating_add(usize::from(c.w));
+        if next <= from {
+            col = next;
+            return ControlFlow::Continue(());
+        }
+        if col < from {
+            flush(ui, run.take(), &mut x);
+            let blank = next
+                .saturating_sub(from)
+                .min(usize::from(right.saturating_sub(x)));
+            let is_sel = sel.is_some_and(|(a, b)| {
+                let p = CellPos { line: line_ix, col };
+                p >= a && p < b
+            });
+            if blank > 0 {
+                ui.fill(
+                    Rect {
+                        x,
+                        y: rect.y,
+                        width: blank.min(usize::from(u16::MAX)) as u16,
+                        height: 1,
+                    },
+                    if is_sel { styles.1 } else { styles.0 },
+                );
+                x = x.saturating_add(blank.min(usize::from(u16::MAX)) as u16);
+            }
+            col = next;
+            return ControlFlow::Continue(());
+        }
+        if next > to {
+            return ControlFlow::Break(());
+        }
+        let is_sel = sel.is_some_and(|(a, b)| {
+            let p = CellPos { line: line_ix, col };
+            p >= a && p < b
+        });
+        let replacement = word_row.replacement.filter(|replacement| {
+            replacement.source_start == col && replacement.source_end == next
+        });
+        if replacement.is_some() {
+            flush(ui, run.take(), &mut x);
+            paint_replacement(ui, line, c.span, rect, &mut x, styles, is_sel);
+            col = next;
+            return ControlFlow::Continue(());
+        }
+        if c.tab {
+            flush(ui, run.take(), &mut x);
+            let base = if is_sel { styles.1 } else { styles.0 };
+            let paint = run_style(line, c.span)
+                .2
+                .map_or(base, |paint| run_paint_style(base, paint, is_sel));
+            ui.fill(
+                Rect {
+                    x,
+                    y: rect.y,
+                    width: 1,
+                    height: 1,
+                },
+                paint,
+            );
+            x = x.saturating_add(1);
+        } else if c.joined.is_some() {
+            flush(ui, run.take(), &mut x);
+            run = Some(Run {
+                span: c.span,
+                sel: is_sel,
+                a: c.at,
+                b: c.at.saturating_add(c.len),
+                joined: c.joined,
+            });
+        } else {
+            let end = c.at.saturating_add(c.len);
+            match run.take() {
+                Some(r)
+                    if r.joined.is_none() && r.span == c.span && r.sel == is_sel && r.b == c.at =>
+                {
+                    run = Some(Run { b: end, ..r });
+                }
+                other => {
+                    flush(ui, other, &mut x);
+                    run = Some(Run {
+                        span: c.span,
+                        sel: is_sel,
+                        a: c.at,
+                        b: end,
+                        joined: None,
                     });
                 }
             }
@@ -1466,909 +4464,5 @@ impl Bindings for TextViewport<'_> {
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<ViewportCmd>] {
         BINDINGS
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use ratatui_core::buffer::{Buffer, Cell};
-
-    use super::*;
-    use crate::event::MouseKind;
-    use crate::runtime::stub::{SCREEN, Stub, key, mouse};
-    use crate::runtime::{App, Runtime};
-    use crate::theme::{ColorLevel, Surface, Theme};
-    use crate::{ReferenceState, ReferenceTarget};
-
-    const ID: Id = Id::root("viewport.tests");
-    const POINTER_AREA: Rect = Rect::new(0, 0, 12, 8);
-    const MANY_LINES: [ViewportLine<'static>; 100] = [ViewportLine::Plain("row"); 100];
-
-    struct ViewportApp {
-        state: ViewportState,
-    }
-
-    impl Default for ViewportApp {
-        fn default() -> Self {
-            let mut state = ViewportState::default();
-            state.set_follow(false);
-            ViewportApp { state }
-        }
-    }
-
-    impl App for ViewportApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            TextViewport::new(ID)
-                .update(cx, &mut self.state, &MANY_LINES)
-                .erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            TextViewport::new(ID).draw(ui, POINTER_AREA, &self.state, &MANY_LINES);
-        }
-    }
-
-    struct MutableViewportApp {
-        state: ViewportState,
-        lines: Vec<&'static str>,
-        area: Rect,
-        wrap: bool,
-    }
-
-    impl MutableViewportApp {
-        fn view_lines(lines: &[&'static str]) -> Vec<ViewportLine<'static>> {
-            lines.iter().copied().map(ViewportLine::Plain).collect()
-        }
-    }
-
-    impl App for MutableViewportApp {
-        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let lines = Self::view_lines(&self.lines);
-            TextViewport::new(ID)
-                .wrap(self.wrap)
-                .update(cx, &mut self.state, &lines)
-                .erase()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            let lines = Self::view_lines(&self.lines);
-            TextViewport::new(ID)
-                .wrap(self.wrap)
-                .draw(ui, self.area, &self.state, &lines);
-        }
-    }
-
-    #[test]
-    fn track_registration_uses_the_full_bar_geometry() {
-        let mut runtime = Runtime::new(ViewportApp::default(), Theme::junie());
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-
-        let track = runtime
-            .area_of_part(ID, PartRef::of(Part::TRACK))
-            .expect("the overflowing viewport must register its track");
-        assert_eq!(track, Rect::new(11, 0, 1, POINTER_AREA.height));
-
-        let _ = runtime.initialize();
-        let _ = crate::runtime::stub::deliver(
-            &mut runtime,
-            mouse(MouseKind::Down, track.x, track.bottom() - 1),
-        );
-        assert!(runtime.app().state.scroll.at_end());
-    }
-
-    #[test]
-    fn pointer_mapping_uses_current_lines_after_invalidation() {
-        let mut state = ViewportState::default();
-        state.set_follow(false);
-        let mut runtime = Runtime::new(
-            MutableViewportApp {
-                state,
-                lines: vec!["012345678901234567890", "old second line"],
-                area: Rect::new(0, 0, 12, 4),
-                wrap: true,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-
-        let app = runtime.app_mut();
-        app.lines = vec!["short", "target line"];
-        app.state.invalidate();
-
-        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 1, 1));
-        assert!(runtime.app().state.anchor.is_some(), "press did not anchor");
-        assert_eq!(runtime.capture_owner(), Some(ID), "press did not capture");
-        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 4, 1));
-
-        assert!(
-            runtime.app().state.selection.is_some(),
-            "drag did not set a selection"
-        );
-        assert_eq!(
-            runtime.app().state.selection,
-            Some((CellPos::new(1, 0), CellPos::new(1, 3)))
-        );
-        assert_eq!(
-            runtime.app().state.selection(),
-            Some((CellPos::new(1, 0), CellPos::new(1, 3)))
-        );
-    }
-
-    #[test]
-    fn update_uses_the_current_content_length() {
-        let mut state = ViewportState::default();
-        state.set_follow(false);
-        let mut runtime = Runtime::new(
-            MutableViewportApp {
-                state,
-                lines: vec!["row"; 2],
-                area: POINTER_AREA,
-                wrap: false,
-            },
-            Theme::junie(),
-        );
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-
-        runtime.app_mut().lines = vec!["row"; 100];
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::End));
-
-        assert_eq!(runtime.app().state.scroll.offset(), 92);
-    }
-
-    #[test]
-    fn bottom_track_click_and_thumb_drag_reach_the_end() {
-        let mut runtime = Runtime::new(ViewportApp::default(), Theme::junie());
-        let _ = runtime.initialize();
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-
-        let track = runtime
-            .area_of_part(ID, PartRef::of(Part::TRACK))
-            .unwrap_or(Rect::ZERO);
-        let bottom = track.bottom().saturating_sub(1);
-        let _ =
-            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, track.x, bottom));
-        assert!(runtime.app().state.scroll.at_end());
-
-        runtime.app_mut().state.scroll.scroll_to(40);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let thumb = runtime
-            .area_of_part(ID, PartRef::of(Part::THUMB))
-            .unwrap_or(Rect::ZERO);
-        let grab_y = thumb.bottom().saturating_sub(1);
-        let _ =
-            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, thumb.x, grab_y));
-        let _ =
-            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, track.x, bottom));
-        assert!(runtime.app().state.scroll.at_end());
-    }
-
-    #[test]
-    fn offscreen_caret_emits_no_cursor_while_visible_caret_does() {
-        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
-        let area = Rect::new(0, 0, 12, 4);
-        let render = |caret: CellPos| {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(SCREEN);
-            let mut state = ViewportState::default();
-            state.set_follow(false);
-            state
-                .scroll
-                .apply_layout(usize::from(area.height), lines.len());
-            state.scroll.scroll_to(5);
-            state.set_caret(Some(caret));
-            for _ in 0..2 {
-                runtime
-                    .draw_scene(SCREEN, &mut buffer, |ui, _| {
-                        TextViewport::new(ID).draw(ui, area, &state, &lines);
-                    })
-                    .commit_presented();
-            }
-            runtime.cursor()
-        };
-        assert_eq!(render(CellPos::new(0, 0)), None, "caret above viewport");
-        assert_eq!(render(CellPos::new(20, 0)), None, "caret below viewport");
-        assert_eq!(render(CellPos::new(6, 1)), Some(Position::new(2, 1)));
-    }
-
-    #[test]
-    fn append_extends_the_wrapped_index_without_rebuilding_its_prefix() {
-        let key = LayoutKey {
-            width: 4,
-            wrap: true,
-            generation: 0,
-        };
-        let mut layout = ViewportLayout::default();
-        let first = [ViewportLine::Plain("abcdefgh"), ViewportLine::Plain("ij")];
-        layout.ensure(&first, key);
-        layout.prefix[1] = 777;
-        let appended = [
-            ViewportLine::Plain("abcdefgh"),
-            ViewportLine::Plain("ij"),
-            ViewportLine::Plain("klmnop"),
-        ];
-        layout.ensure(&appended, key);
-        assert_eq!(layout.prefix[1], 777, "append rebuilt the existing prefix");
-        assert_eq!(layout.prefix.len(), 4);
-    }
-
-    #[test]
-    fn ensure_work_is_cold_zero_warm_suffix_on_append_and_full_on_reflow() {
-        let lines = [ViewportLine::Plain("abcdefgh"); 4];
-        let mut layout = ViewportLayout::default();
-        let key = LayoutKey {
-            width: 4,
-            wrap: true,
-            generation: 0,
-        };
-
-        assert_eq!(layout.ensure(&lines, key), lines.len());
-        assert_eq!(layout.ensure(&lines, key), 0);
-
-        let appended = [ViewportLine::Plain("abcdefgh"); 7];
-        assert_eq!(layout.ensure(&appended, key), 3);
-
-        assert_eq!(
-            layout.ensure(
-                &appended,
-                LayoutKey {
-                    generation: 1,
-                    ..key
-                },
-            ),
-            appended.len()
-        );
-
-        assert_eq!(
-            layout.ensure(
-                &appended,
-                LayoutKey {
-                    width: 5,
-                    generation: 1,
-                    ..key
-                },
-            ),
-            appended.len()
-        );
-    }
-
-    #[cfg(feature = "testing")]
-    #[test]
-    fn work_probe_is_isolated_resettable_and_reports_cold_warm_work() {
-        let first = ViewportWorkProbe::default();
-        let other = ViewportWorkProbe::default();
-        let lines = [ViewportLine::Plain("abcdefgh"); 7];
-        let viewport = TextViewport::new(ID).wrap(true).work_probe(&first);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-        let mut buffer = Buffer::empty(SCREEN);
-        runtime
-            .draw_scene(SCREEN, &mut buffer, |ui, area| {
-                viewport.draw(ui, area, &ViewportState::default(), &lines);
-            })
-            .commit_presented();
-        let cold = first.snapshot();
-        assert_eq!(cold.indexed_lines, lines.len());
-        assert!(cold.visible_rows > 0);
-        assert_eq!(other.snapshot(), ViewportWorkSnapshot::default());
-
-        first.reset();
-        runtime
-            .draw_scene(SCREEN, &mut buffer, |ui, area| {
-                viewport.draw(ui, area, &ViewportState::default(), &lines);
-            })
-            .commit_presented();
-        let warm = first.snapshot();
-        assert_eq!(warm.indexed_lines, 0);
-        assert!(warm.visible_rows > 0);
-    }
-
-    #[cfg(feature = "testing")]
-    #[test]
-    fn work_probes_are_parallel_caller_owned() {
-        let run = || {
-            let probe = ViewportWorkProbe::default();
-            let lines = [ViewportLine::Plain("parallel"); 5];
-            let viewport = TextViewport::new(ID).wrap(true).work_probe(&probe);
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
-            let mut buffer = Buffer::empty(SCREEN);
-            runtime
-                .draw_scene(SCREEN, &mut buffer, |ui, area| {
-                    viewport.draw(ui, area, &ViewportState::default(), &lines);
-                })
-                .commit_presented();
-            probe.snapshot()
-        };
-        let a = std::thread::spawn(run);
-        let b = std::thread::spawn(run);
-        assert_eq!(a.join().expect("first probe thread").indexed_lines, 5);
-        assert_eq!(b.join().expect("second probe thread").indexed_lines, 5);
-    }
-
-    #[test]
-    fn wrapped_prefix_matches_bruteforce() {
-        let spans = [
-            Span::new("ab\t").role(Role::Info),
-            Span::new("漢e\u{301}").modifier(Modifier::BOLD),
-        ];
-        let lines = [
-            ViewportLine::Plain(""),
-            ViewportLine::Plain("ascii"),
-            ViewportLine::Plain("漢字"),
-            ViewportLine::Plain("e\u{301}clair"),
-            ViewportLine::Spans(&spans),
-        ];
-        for width in 1..=12 {
-            let key = LayoutKey {
-                width,
-                wrap: true,
-                generation: u32::from(width),
-            };
-            let mut layout = ViewportLayout::default();
-            layout.ensure(&lines, key);
-            let mut expected = vec![0usize];
-            for line in lines {
-                let next = expected
-                    .last()
-                    .copied()
-                    .unwrap_or(0)
-                    .saturating_add(line_rows(line, width, true));
-                expected.push(next);
-            }
-            assert_eq!(layout.prefix, expected, "width {width}");
-            for (line, pair) in expected.windows(2).enumerate() {
-                for visual in pair[0]..pair[1] {
-                    assert_eq!(
-                        layout.row_start(&lines, visual),
-                        (line, visual.saturating_sub(pair[0])),
-                        "width {width}, visual row {visual}"
-                    );
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn generation_saturation_never_reuses_stale_layout() {
-        let mut layout = ViewportLayout::default();
-        let key = LayoutKey {
-            width: 4,
-            wrap: true,
-            generation: u32::MAX,
-        };
-        let before = [ViewportLine::Plain("a"), ViewportLine::Plain("b")];
-        let after = [ViewportLine::Plain("abcdefgh"), ViewportLine::Plain("b")];
-        layout.ensure(&before, key);
-        assert_eq!(layout.total(), 2);
-        assert_eq!(layout.ensure(&after, key), after.len());
-        assert_eq!(layout.total(), 3);
-
-        let mut state = ViewportState {
-            generation: u32::MAX - 1,
-            ..ViewportState::default()
-        };
-        state.invalidate();
-        state.invalidate();
-        assert_eq!(state.generation, u32::MAX);
-    }
-
-    #[test]
-    fn same_length_offscreen_rewrap_after_invalidate_updates_total_end_thumb_and_mapping() {
-        let before = [ViewportLine::Plain("row"); 8];
-        let mut after = before;
-        after[5] = ViewportLine::Plain("01234567890123456789");
-        let width = 4;
-        let viewport = 4;
-        let track = 6;
-        let mut state = ViewportState::default();
-        state.set_follow(false);
-        let mut layout = ViewportLayout::default();
-        let old_key = LayoutKey {
-            width,
-            wrap: true,
-            generation: state.generation,
-        };
-        layout.ensure(&before, old_key);
-        let old_total = layout.total();
-        let mut old_scroll = state.scroll;
-        old_scroll.apply_layout(viewport, old_total);
-        let (_, old_thumb) = old_scroll.thumb(track);
-
-        state.invalidate();
-        let new_key = LayoutKey {
-            generation: state.generation,
-            ..old_key
-        };
-        layout.ensure(&after, new_key);
-        let new_total = layout.total();
-        state.scroll.apply_layout(viewport, new_total);
-        let (_, new_thumb) = state.scroll.thumb(track);
-        assert_eq!(old_total, 8);
-        assert_eq!(new_total, 12);
-        assert_eq!(state.scroll.max_offset(), new_total - viewport);
-        assert!(
-            new_thumb < old_thumb,
-            "a larger total did not shorten the thumb"
-        );
-
-        let mut acc = Acc::new();
-        TextViewport::command(&mut state, &after, ViewportCmd::End, &mut acc);
-        assert!(state.follow());
-        assert_eq!(state.scroll.offset(), state.scroll.max_offset());
-
-        state.scroll.scroll_to(0);
-        let track_pos = track.saturating_sub(1);
-        state
-            .scroll
-            .scroll_to(state.scroll.offset_for_track_pos(track_pos, track));
-        assert!(
-            state.scroll.at_end(),
-            "bottom track cap did not reach the end"
-        );
-        assert_eq!(layout.row_start(&after, 7), (5, 2));
-    }
-
-    #[test]
-    fn copy_command_carries_the_selected_text_in_the_exact_action() {
-        let lines = [ViewportLine::Plain("alpha beta")];
-        let mut st = ViewportState::default();
-        st.select(CellPos::new(0, 6), CellPos::new(0, 10));
-        let mut acc = Acc::new();
-        TextViewport::command(&mut st, &lines, ViewportCmd::Copy, &mut acc);
-        assert_eq!(
-            acc.finish(ID).into_action(),
-            Some(ViewportAction::Copy("beta".to_owned()))
-        );
-    }
-
-    #[test]
-    fn first_end_emits_follow_changed() {
-        let mut st = ViewportState::default();
-        st.set_follow(false);
-        let mut acc = Acc::new();
-
-        TextViewport::command(&mut st, &[], ViewportCmd::End, &mut acc);
-
-        assert_eq!(
-            acc.finish(ID).into_action(),
-            Some(ViewportAction::FollowChanged(true))
-        );
-    }
-
-    #[test]
-    fn repeated_end_repaints_without_emitting_follow_changed() {
-        let mut st = ViewportState::default();
-        let mut acc = Acc::new();
-
-        TextViewport::command(&mut st, &[], ViewportCmd::End, &mut acc);
-        let response = acc.finish(ID);
-
-        assert!(response.is_consumed());
-        assert!(response.is_changed());
-        assert_eq!(response.into_action(), None);
-    }
-
-    #[test]
-    fn parts_match_the_exact_styling_surface() {
-        assert_eq!(
-            TextViewport::PARTS,
-            &[
-                Part::CONTAINER,
-                Part::TEXT,
-                Part::GUTTER,
-                Part::TRACK,
-                Part::THUMB,
-            ]
-        );
-    }
-
-    #[test]
-    fn a_reference_viewport_makes_its_nested_scroll_region_inert() {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = ViewportState::default();
-        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            ui.reference(
-                Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)),
-                |ui| {
-                    TextViewport::new(ID).draw(ui, Rect::new(0, 0, 12, 3), &st, &lines);
-                },
-            );
-        })
-        .commit_presented();
-        assert!(rt.area_of(ID).is_none());
-    }
-
-    #[test]
-    fn nested_scrollbar_resolves_through_the_viewport_family() {
-        let theme = Theme::junie()
-            .override_family(Family::VIEWPORT, |recipe| {
-                recipe
-                    .part(Part::TRACK)
-                    .base(StylePatch::new().set_fg(Role::Danger));
-            })
-            .override_family(Family::SCROLLBAR, |recipe| {
-                recipe
-                    .part(Part::TRACK)
-                    .base(StylePatch::new().set_fg(Role::Info));
-            });
-        let expected = theme.resolve(
-            Family::VIEWPORT,
-            Variant::DEFAULT,
-            Part::TRACK,
-            StateFlags::empty(),
-            Surface::Canvas,
-        );
-        let scrollbar = theme.resolve(
-            Family::SCROLLBAR,
-            Variant::DEFAULT,
-            Part::TRACK,
-            StateFlags::empty(),
-            Surface::Canvas,
-        );
-        let mut rt = Runtime::new(Stub::default(), theme);
-        let mut buf = Buffer::empty(SCREEN);
-        let st = ViewportState::default();
-        let lines = [ViewportLine::Plain("row"); 30];
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-            TextViewport::new(ID).draw(ui, POINTER_AREA, &st, &lines);
-        })
-        .commit_presented();
-
-        assert_eq!(rt.resolved(ID, Part::TRACK), expected);
-        assert_ne!(rt.resolved(ID, Part::TRACK), scrollbar);
-    }
-
-    #[test]
-    fn retention_fixes_up_selection_and_caret() {
-        let mut st = ViewportState::default();
-        st.select(CellPos::new(7, 2), CellPos::new(9, 4));
-        st.anchor = Some(CellPos::new(7, 2));
-        st.set_caret(Some(CellPos::new(9, 1)));
-
-        st.retained(5);
-        assert_eq!(
-            st.selection(),
-            Some((CellPos::new(2, 2), CellPos::new(4, 4))),
-            "the selection did not move with the buffer"
-        );
-        assert_eq!(st.anchor, Some(CellPos::new(2, 2)));
-        assert_eq!(st.caret(), Some(CellPos::new(4, 1)));
-
-        let mut partial = ViewportState::default();
-        partial.select(CellPos::new(1, 3), CellPos::new(4, 6));
-        partial.retained(3);
-        assert_eq!(
-            partial.selection(),
-            Some((CellPos::new(0, 0), CellPos::new(1, 6)))
-        );
-
-        st.retained(10);
-        assert_eq!(
-            st.selection(),
-            None,
-            "a fully dropped selection must collapse, not name line 0 twice"
-        );
-        assert_eq!(st.caret(), Some(CellPos::new(0, 0)));
-
-        let before = st.generation;
-        st.retained(1);
-        assert_ne!(st.generation, before);
-
-        let g = st.generation;
-        st.retained(0);
-        assert_eq!(st.generation, g);
-    }
-
-    #[test]
-    fn wrapped_rows_partition_the_line() {
-        let text = "the quick brown fox jumps over the lazy dog and keeps going";
-        let line = ViewportLine::Plain(text);
-        let cols = line_cols(line);
-        for w in [1u16, 2, 7, 13, 40, 200] {
-            let rows = line_rows(line, w, true);
-            assert!(rows >= 1);
-            let mut next = 0usize;
-            for r in 0..rows {
-                let (a, b) = row_cols(line, w, true, r);
-                assert_eq!(a, next, "w={w} row {r}: starts at {a}, expected {next}");
-                let end = b.min(cols);
-                assert!(end > a || cols == 0, "w={w} row {r}: empty row");
-                assert!(
-                    end.saturating_sub(a) <= usize::from(w).max(1),
-                    "w={w} row {r}: {a}..{end} is wider than the viewport"
-                );
-                next = end;
-            }
-            assert_eq!(next, cols, "w={w}: the rows do not cover the line");
-        }
-    }
-
-    #[test]
-    fn copy_joins_lines_and_trims_each() {
-        let lines = [
-            ViewportLine::Plain("alpha beta   "),
-            ViewportLine::Plain("gamma delta"),
-            ViewportLine::Plain("epsilon"),
-        ];
-        let mut st = ViewportState::default();
-        st.select(CellPos::new(0, 6), CellPos::new(2, 3));
-        let mut out = String::new();
-        assert!(st.copy_into(&lines, &mut out));
-        assert_eq!(out, "beta\ngamma delta\neps");
-
-        let mut st2 = ViewportState::default();
-        let mut out2 = String::new();
-        assert!(!st2.copy_into(&lines, &mut out2));
-        assert!(out2.is_empty());
-        assert!(!st2.clear_selection());
-    }
-
-    #[test]
-    fn a_double_click_selects_a_path_like_word() {
-        let line = ViewportLine::Plain("see src/main.rs:42 for the rest");
-        assert_eq!(word_at(line, 5), Some((4, 15)));
-        assert_eq!(
-            "src/main.rs",
-            line_slice(line, 4, 15),
-            "the word bounds do not name the path"
-        );
-
-        assert_eq!(word_at(line, 3), None);
-
-        assert_eq!(word_at(line, 999), None);
-    }
-
-    fn line_slice(line: ViewportLine<'_>, a: usize, b: usize) -> String {
-        let mut out = String::new();
-        let mut col = 0usize;
-        walk_line(line, |c| {
-            if col >= b {
-                return ControlFlow::Break(());
-            }
-            if col >= a {
-                out.push_str(cell_text(line, c));
-            }
-            col = col.saturating_add(usize::from(c.w));
-            ControlFlow::Continue(())
-        });
-        out
-    }
-
-    #[test]
-    fn the_text_width_does_not_depend_on_whether_the_bar_is_painted() {
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 24,
-            height: 4,
-        };
-        let short = [ViewportLine::Plain("one"), ViewportLine::Plain("two")];
-        let long: Vec<ViewportLine<'_>> = (0..50).map(|_| ViewportLine::Plain("row")).collect();
-        let width_of = |lines: &[ViewportLine<'_>]| {
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            let st = ViewportState::default();
-            let mut w = 0;
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                w = TextViewport::new(ID).draw(ui, area, &st, lines).width;
-            })
-            .commit_presented();
-            w
-        };
-        assert_eq!(width_of(&short), width_of(&long));
-        assert_eq!(width_of(&short), TextViewport::text_width(area.width));
-    }
-
-    #[test]
-    fn the_focus_gutter_is_the_only_focus_affordance_and_it_is_painted() {
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 20,
-            height: 3,
-        };
-        let lines = [ViewportLine::Plain("hello"), ViewportLine::Plain("world")];
-        let bar = Theme::junie().design.glyphs.get(GlyphRole::FocusBar);
-        let gutter = |state: ReferenceState| {
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            let st = ViewportState::default();
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                ui.reference(Some(ReferenceTarget::new(ID, state)), |ui| {
-                    TextViewport::new(ID).draw(ui, area, &st, &lines);
-                });
-            })
-            .commit_presented();
-            buf.cell(Position::new(0, 0))
-                .map_or_else(String::new, |c| c.symbol().to_owned())
-        };
-        assert_eq!(gutter(ReferenceState::FOCUSED), bar);
-        assert_ne!(gutter(ReferenceState::default()), bar);
-    }
-
-    #[test]
-    fn mono_selection_paints_the_resolved_inverse_underlined_style() {
-        let area = Rect::new(0, 0, 8, 1);
-        let lines = [ViewportLine::Plain("abcdef")];
-        let mut state = ViewportState::default();
-        state.select(CellPos::new(0, 1), CellPos::new(0, 3));
-
-        for base in [Theme::junie(), Theme::paper()] {
-            let theme = base.downgrade(ColorLevel::Mono);
-            let expected = theme
-                .resolve(
-                    Family::VIEWPORT,
-                    Variant::DEFAULT,
-                    Part::TEXT,
-                    StateFlags::SELECTED,
-                    Surface::Canvas,
-                )
-                .style;
-            let mut runtime = Runtime::new(Stub::default(), theme);
-            let mut buffer = Buffer::empty(SCREEN);
-            runtime
-                .draw_scene(SCREEN, &mut buffer, |ui, _| {
-                    TextViewport::new(ID).draw(ui, area, &state, &lines);
-                })
-                .commit_presented();
-
-            let base_cell = buffer.cell(Position::new(1, 0));
-            let selected_cell = buffer.cell(Position::new(2, 0));
-            let selected_end = buffer.cell(Position::new(3, 0));
-            let after = buffer.cell(Position::new(4, 0));
-            assert_ne!(selected_cell.map(Cell::style), base_cell.map(Cell::style));
-            assert_eq!(
-                selected_end.map(Cell::style),
-                selected_cell.map(Cell::style)
-            );
-            assert_eq!(after.map(Cell::style), base_cell.map(Cell::style));
-            assert_eq!(selected_cell.map(|cell| cell.fg), expected.fg);
-            assert_eq!(selected_cell.map(|cell| cell.bg), expected.bg);
-            assert!(selected_cell.is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED)));
-        }
-    }
-
-    #[test]
-    fn a_rebuilt_layout_paints_what_the_warm_one_did() {
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 18,
-            height: 4,
-        };
-        let text = "a wrapped line long enough to need several visual rows";
-        let lines = [ViewportLine::Plain(text), ViewportLine::Plain("tail")];
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut st = ViewportState::default();
-        st.set_follow(false);
-        let before = st.clone();
-
-        let mut frames = Vec::new();
-        for f in 0..3 {
-            if f == 2 {
-                st.invalidate();
-            }
-            let mut buf = Buffer::empty(SCREEN);
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                TextViewport::new(ID).wrap(true).draw(ui, area, &st, &lines);
-            })
-            .commit_presented();
-            frames.push(buf);
-        }
-        assert_eq!(
-            frames.get(1),
-            frames.get(2),
-            "a rebuilt layout paints a different frame from the warm one"
-        );
-        assert_eq!(
-            st.scroll(),
-            before.scroll(),
-            "draw moved the caller's offset"
-        );
-        assert_eq!(st.selection(), before.selection());
-    }
-
-    #[test]
-    fn tabs_expand_to_a_fixed_width_everywhere() {
-        let line = ViewportLine::Plain("\tif x:");
-        assert_eq!(line_cols(line), usize::from(TAB_WIDTH) + 5);
-        let lines = [line];
-        let mut st = ViewportState::default();
-        st.select(
-            CellPos::new(0, 0),
-            CellPos::new(0, usize::from(TAB_WIDTH) + 2),
-        );
-        let mut out = String::new();
-        assert!(st.copy_into(&lines, &mut out));
-        assert_eq!(out, "    if", "the tab did not copy as its expansion");
-    }
-
-    #[test]
-    fn every_declared_part_is_one_a_drawn_viewport_styles() {
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 20,
-            height: 3,
-        };
-        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
-        let render = |patched: Option<Part>| {
-            let ps: [(Part, StylePatch); 1] = [(
-                patched.unwrap_or(Part::CONTAINER),
-                StylePatch::new().set_fg(Role::Warning).set_bg(Role::Danger),
-            )];
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            let st = ViewportState::default();
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                let mut v = TextViewport::new(ID);
-                if patched.is_some() {
-                    v = v.patch_part(&ps);
-                }
-                v.draw(ui, area, &st, &lines);
-            })
-            .commit_presented();
-            buf
-        };
-        let plain = render(None);
-        for part in TextViewport::PARTS {
-            assert_ne!(
-                render(Some(*part)),
-                plain,
-                "TextViewport declares {part:?} and paints nothing with it"
-            );
-        }
-    }
-
-    #[test]
-    fn the_slot_addressable_parts_are_exactly_the_documented_ones() {
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 20,
-            height: 3,
-        };
-        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
-        let marker = |ui: &mut Ui<'_>, r: Rect| {
-            let s = ui.surface_style();
-            ui.paint_str(r, "ZZZZ", s);
-        };
-        let render = |slot: Option<Part>| {
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            let st = ViewportState::default();
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                let mut v = TextViewport::new(ID);
-                if let Some(part) = slot {
-                    v = v.slot(part, &marker);
-                }
-                v.draw(ui, area, &st, &lines);
-            })
-            .commit_presented();
-            buf
-        };
-        let plain = render(None);
-        for part in [Part::GUTTER, Part::TRACK, Part::THUMB] {
-            assert_ne!(
-                render(Some(part)),
-                plain,
-                "`## Overrides` grants a slot on {part:?} and it is dropped"
-            );
-        }
-        for part in [Part::CONTAINER, Part::TEXT] {
-            assert_eq!(
-                render(Some(part)),
-                plain,
-                "a slot on {part:?} changes cells, and `## Overrides` says it does not"
-            );
-        }
     }
 }
