@@ -12,12 +12,13 @@ crosswalk = [
     "The 0.2.0 capture backend is a new suite successor: no v1, v2, or 0.1.1 result is inherited; reference A/B and explicit approval are required before the new expected store is populated.",
     "Existing showcase_status_and_hints gains a five-checkpoint native plan; this adds no case or coverage ID and is outside the first-delivery subset.",
     "Status & hints plan v2 corrects only the options_menu readiness oracle after independent review; v1 A/B failures remain immutable history and are not inherited.",
-    "This revision registers 89 cases and 276 coverage IDs. Ten cases currently have native action plans; the remaining 79 stay not-run or setup-failed until planned. These counts are descriptive and do not constrain future plan coverage.",
+    "This revision registers 89 cases and 276 coverage IDs. Twelve cases currently have native action plans; the remaining 77 stay not-run or setup-failed until planned. These counts are descriptive and do not constrain future plan coverage.",
+    "Existing tablepro_query_execution adds an ordered paused/full two-phase plan with 16 globally unique checkpoints; its nine coverage IDs and the 89-case/276-ID denominators stay unchanged.",
     "Runtime binary and output inputs are TERMROCK_PARITY_BIN_DIR and TERMROCK_PARITY_OUT_DIR."
 ]
 
 [suite]
-coverage_scope = "v3 retains all 84 v1 journeys and 271 v1 coverage IDs, adds four delivery cases and one Holla frame-1 variant, and adds a five-checkpoint plan to existing showcase_status_and_hints for 89 registered cases and 276 coverage IDs. Ten cases currently have native action plans; the remaining 79 stay not-run or setup-failed until planned. These counts are descriptive, not a fixed coverage rule. The first four delivery cases contain 30 checkpoints; the Status & hints plan is outside that subset. Coverage IDs are requirement identifiers rather than frame counts. Results are not inherited across the v1, v2, or 0.2.0 capture contracts."
+coverage_scope = "v3 retains all 84 v1 journeys and 271 v1 coverage IDs, adds four delivery cases and one Holla frame-1 variant, and adds plans to showcase_status_and_hints and tablepro_query_execution for 89 registered cases and 276 coverage IDs. Twelve cases currently have native action plans; the remaining 77 stay not-run or setup-failed until planned. These counts are descriptive, not a fixed coverage rule. The first four delivery cases contain 30 checkpoints; the Status & hints plan is outside that subset. Coverage IDs are requirement identifiers rather than frame counts. Results are not inherited across the v1, v2, or 0.2.0 capture contracts."
 render_profile = "tuiscotti-pinned-v1"
 fixture_dataset = "fixtures/dataset.json"
 expected_store = "expected"
@@ -830,8 +831,90 @@ coverage_ids = ["showcase.query_tab_switching.reference_semantics", "suite.case.
 [[cases]]
 name = "holla_home_actions"
 binary = "holla"
-arguments = []
+arguments = ["--scenario", "first-use"]
+exit_key = "Ctrl+q"
 coverage_ids = ["suite.case.holla_home_actions", "holla.screen.home", "holla.overlay.actions", "holla.behavior.return_to_origin"]
+
+
+[[cases.steps]]
+name = "initial"
+expected_cols = 120
+expected_rows = 40
+required_anchors = ["holla❯", "Here", "Search actions and resources"]
+forbidden_anchors = ["Key reference", "Reset ranking", "Set alias…"]
+actions = []
+
+[[cases.steps]]
+name = "origin"
+expected_cols = 120
+expected_rows = 40
+required_anchors = ["holla❯", "Here", "Show system resources", "holla snapshot system"]
+forbidden_anchors = ["Nothing to preview", "Reset ranking", "Set alias…"]
+
+[[cases.steps.actions]]
+kind = "write"
+text = "Show system resources"
+
+[[cases.steps]]
+name = "actions"
+expected_cols = 120
+expected_rows = 40
+required_anchors = ["Show system resources", "Copy command", "Pin here", "Set alias…", "Reset ranking"]
+forbidden_anchors = ["Key reference"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Alt+Enter"
+
+[[cases.steps]]
+name = "returned"
+expected_cols = 120
+expected_rows = 40
+required_anchors = ["holla❯", "Here", "Show system resources", "holla snapshot system"]
+forbidden_anchors = ["Nothing to preview", "Reset ranking", "Set alias…"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Esc"
+
+[[cases.steps]]
+name = "focus_probe"
+expected_cols = 120
+expected_rows = 40
+required_anchors = ["No matches for “Show system resourcesx”", "Nothing to preview"]
+forbidden_anchors = ["Reset ranking", "Set alias…"]
+
+[[cases.steps.actions]]
+kind = "write"
+text = "x"
+
+[[cases.steps]]
+name = "small"
+expected_cols = 80
+expected_rows = 24
+required_anchors = ["holla❯", "Here", "Show system resources"]
+forbidden_anchors = ["No matches for “Show system resourcesx”", "Reset ranking", "Set alias…"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Backspace"
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 80
+rows = 24
+
+[[cases.steps]]
+name = "restored"
+expected_cols = 120
+expected_rows = 40
+required_anchors = ["holla❯", "Here", "Show system resources", "holla snapshot system"]
+forbidden_anchors = ["Nothing to preview", "Reset ranking", "Set alias…"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 120
+rows = 40
 
 [[cases]]
 name = "holla_plan_args_gate"
@@ -938,8 +1021,114 @@ coverage_ids = ["suite.case.tablepro_edit_transaction", "tablepro.screen.tablegr
 [[cases]]
 name = "tablepro_query_execution"
 binary = "tablepro"
-arguments = []
+arguments = ["--connect", "Local PostgreSQL"]
 coverage_ids = ["suite.case.tablepro_query_execution", "tablepro.screen.workbenchdefault", "tablepro.screen.queryediting", "tablepro.screen.completionpopup", "tablepro.screen.resultsgrid", "tablepro.screen.errorresult", "tablepro.screen.explainplan", "tablepro.behavior.completion", "interaction.error"]
+
+[[cases.phases]]
+name = "paused_pending"
+motion = "paused"
+dialog_checkpoint = "paused_quit_dialog"
+cleanup = "ctrl_q_right_enter"
+
+[[cases.phases.steps]]
+name = "paused_workbench"
+required_anchors = ["Local PostgreSQL", "Type SQL. Ctrl+R runs the statement under the cursor."]
+forbidden_anchors = ["running", "Cancelled"]
+
+[[cases.phases.steps]]
+name = "paused_query_input"
+required_anchors = ["Query 2", "SELECT id FROM orders LIMIT 1"]
+forbidden_anchors = ["running", "Esc cancels", "Cancelled"]
+actions = [{ kind = "key", key = "Ctrl+T" }, { kind = "write", text = "SELECT id FROM orders LIMIT 1" }]
+
+[[cases.phases.steps]]
+name = "paused_running"
+required_anchors = ["Query 2", "SELECT id FROM orders LIMIT 1", "running", "Esc cancels"]
+forbidden_anchors = ["Cancelled"]
+actions = [{ kind = "key", key = "Esc" }, { kind = "key", key = "Ctrl+R" }]
+
+[[cases.phases.steps]]
+name = "paused_cancelled"
+required_anchors = ["Query 2", "SELECT id FROM orders LIMIT 1", "Cancelled"]
+forbidden_anchors = ["running", "Esc cancels"]
+actions = [{ kind = "key", key = "Esc" }]
+
+[[cases.phases.steps]]
+name = "paused_quit_dialog"
+required_anchors = ["Quit TablePro?", "1 unsaved query will be lost.", "Cancel", "Quit"]
+forbidden_anchors = []
+actions = [{ kind = "key", key = "Ctrl+Q" }]
+
+[[cases.phases]]
+name = "full_completion"
+motion = "full"
+dialog_checkpoint = "complete_quit_dialog"
+cleanup = "ctrl_q_right_enter"
+
+[[cases.phases.steps]]
+name = "complete_workbench"
+required_anchors = ["Local PostgreSQL", "Type SQL. Ctrl+R runs the statement under the cursor."]
+forbidden_anchors = ["running", "Cancelled"]
+
+[[cases.phases.steps]]
+name = "completion_popup"
+required_anchors = ["Query 2", "SELECT id FROM subscrip", "subscriptions", "public · 1.1 k rows", "Enter", "Accept"]
+forbidden_anchors = ["Cancelled"]
+actions = [{ kind = "key", key = "Ctrl+T" }, { kind = "write", text = "SELECT id FROM subscrip" }, { kind = "key", key = "Ctrl+Space" }]
+
+[[cases.phases.steps]]
+name = "completion_accepted"
+required_anchors = ["Query 2", "SELECT id FROM subscriptions LIMIT 1"]
+forbidden_anchors = ["public · 1.1 k rows"]
+actions = [{ kind = "key", key = "Tab" }, { kind = "write", text = " LIMIT 1" }, { kind = "key", key = "Esc" }]
+
+[[cases.phases.steps]]
+name = "completed_rows"
+required_anchors = ["SELECT subscriptions (1)", "id", "1 row"]
+forbidden_anchors = ["running", "Esc cancels", "relation \"missing_query_fixture\" does not exist"]
+actions = [{ kind = "key", key = "Ctrl+R" }]
+
+[[cases.phases.steps]]
+name = "completed_explain"
+required_anchors = ["EXPLAIN", "cost", "rows", "Planning 0.210 ms"]
+forbidden_anchors = ["Running"]
+actions = [{ kind = "key", key = "Ctrl+X" }]
+
+[[cases.phases.steps]]
+name = "batch_input"
+required_anchors = ["Query 3", "SELECT id FROM orders LIMIT 1;", "SELECT id FROM customers LIMIT 2;", "SELECT id FROM missing_query_fixture LIMIT 1;", "SELECT id FROM payments LIMIT 3"]
+forbidden_anchors = ["SELECT subscriptions (1)", "relation \"missing_query_fixture\" does not exist"]
+actions = [{ kind = "key", key = "Ctrl+T" }, { kind = "write", text = "\u001b[200~SELECT id FROM orders LIMIT 1;\nSELECT id FROM customers LIMIT 2;\nSELECT id FROM missing_query_fixture LIMIT 1;\nSELECT id FROM payments LIMIT 3\u001b[201~" }, { kind = "key", key = "Esc" }]
+
+[[cases.phases.steps]]
+name = "batch_error"
+required_anchors = ["SELECT orders (1)", "SELECT customers (2)", "Error 3", "relation \"missing_query_fixture\" does not exist"]
+forbidden_anchors = ["Running"]
+actions = [{ kind = "key", key = "Alt+R" }]
+
+[[cases.phases.steps]]
+name = "retained_customers"
+required_anchors = ["SELECT customers (2)", "2 rows", "id"]
+forbidden_anchors = ["Running", "relation \"missing_query_fixture\" does not exist"]
+actions = [{ kind = "key", key = "Tab" }, { kind = "key", key = "Left" }, { kind = "key", key = "Enter" }]
+
+[[cases.phases.steps]]
+name = "retained_orders"
+required_anchors = ["SELECT orders (1)", "1 row", "id"]
+forbidden_anchors = ["Running", "relation \"missing_query_fixture\" does not exist"]
+actions = [{ kind = "key", key = "Left" }, { kind = "key", key = "Enter" }]
+
+[[cases.phases.steps]]
+name = "execution_history"
+required_anchors = ["History", "SELECT subscriptions", "EXPLAIN", "orders", "customers", "missing_query_fixture", "relation", "does not exist", "Error"]
+forbidden_anchors = ["SELECT id FROM payments LIMIT 3"]
+actions = [{ kind = "key", key = "Ctrl+Y" }]
+
+[[cases.phases.steps]]
+name = "complete_quit_dialog"
+required_anchors = ["Quit TablePro?", "2 unsaved queries will be lost.", "Cancel", "Quit"]
+forbidden_anchors = []
+actions = [{ kind = "key", key = "Ctrl+Q" }]
 
 [[cases]]
 name = "tablepro_safety_ack"

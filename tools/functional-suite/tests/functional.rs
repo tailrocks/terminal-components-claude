@@ -195,7 +195,17 @@ struct Journey {
     native_steps: Option<Vec<String>>,
     frame: Option<u64>,
     steps: Option<Vec<CheckpointPlan>>,
+    phases: Option<Vec<JourneyPhase>>,
     coverage_ids: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JourneyPhase {
+    name: String,
+    motion: String,
+    dialog_checkpoint: String,
+    cleanup: String,
+    steps: Vec<CheckpointPlan>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -293,6 +303,43 @@ enum CaseStage {
     Finalize,
 }
 
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum PhaseRunStatus {
+    NotRun,
+    SetupFailed,
+    Launched,
+    Passed,
+    Failed,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct PhaseResultEvidence {
+    name: String,
+    motion: String,
+    cleanup: String,
+    planned_checkpoint_names: Vec<String>,
+    status: PhaseRunStatus,
+    comparison_failure_kind: Option<ComparisonFailureKind>,
+    launched: bool,
+    cleanup_actions_attempted: Vec<String>,
+    wait_exit_succeeded: Option<bool>,
+    exit_status: Option<i32>,
+    exit_status_zero: Option<bool>,
+    exit_signal: Option<String>,
+    no_signal: Option<bool>,
+    eof_drained: Option<bool>,
+    post_drain_exit_confirmed: Option<bool>,
+    raw_pty_sha256: Option<String>,
+    raw_checkpoint_prefixes: BTreeMap<String, String>,
+    terminal_restored: Option<bool>,
+    /// Relative to the directory containing this case-result receipt.
+    cleanup_snapshot_file: Option<String>,
+    cleanup_snapshot_sha256: Option<String>,
+    cleanup_raw_prefix_sha256: Option<String>,
+    error: Option<String>,
+}
+
 enum ReadinessOutcome {
     Ready,
     TimedOut(String),
@@ -317,6 +364,8 @@ struct CaseResultEvidence {
     case_id: Option<String>,
     planned_checkpoint_names: Vec<String>,
     not_run_checkpoints: Vec<NotReachedCheckpointEvidence>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    phases: Vec<PhaseResultEvidence>,
     status: CaseResultStatus,
     failure_kind: Option<CaseFailureKind>,
     comparison_failure_kind: Option<ComparisonFailureKind>,
@@ -328,6 +377,7 @@ struct CaseResultEvidence {
 struct CaseResultWriter {
     root: PathBuf,
     file_name: String,
+    persist_to_disk: bool,
     evidence: CaseResultEvidence,
 }
 
@@ -339,6 +389,7 @@ impl CaseResultWriter {
         let writer = Self {
             root,
             file_name: format!("{test_name}.json"),
+            persist_to_disk: true,
             evidence: CaseResultEvidence {
                 schema_version: 1,
                 suite_id: None,
@@ -346,6 +397,7 @@ impl CaseResultWriter {
                 case_id: None,
                 planned_checkpoint_names: Vec::new(),
                 not_run_checkpoints: Vec::new(),
+                phases: Vec::new(),
                 status: CaseResultStatus::Pending,
                 failure_kind: None,
                 comparison_failure_kind: None,
@@ -359,6 +411,9 @@ impl CaseResultWriter {
     }
 
     fn persist(&self) -> Result<()> {
+        if !self.persist_to_disk {
+            return Ok(());
+        }
         let bytes = serde_json::to_vec_pretty(&self.evidence)
             .context("serialize structured case result")?;
         write_atomic(&self.root, &self.file_name, &bytes).context("write structured case result")
@@ -372,10 +427,15 @@ struct CaptureIndex {
     case_name: String,
     case_id: String,
     test_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    phase_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    motion: Option<String>,
     case_status: String,
     failure_kind: Option<CaseFailureKind>,
     comparison_failure_kind: Option<ComparisonFailureKind>,
     frame_checkpoint_count: usize,
+    /// Relative to the directory containing this capture-index receipt.
     exit_result_file: Option<String>,
     executable_name: String,
     arguments: Vec<String>,
@@ -389,6 +449,8 @@ struct CaptureIndex {
     evidence_roots: EvidenceRootsEvidence,
     raw_pty: Option<RawPtyEvidence>,
     raw_tail: Option<RawTailEvidence>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cleanup_selection: Option<CleanupSelectionEvidence>,
     drain_succeeded: bool,
     process_state_before_finalize: Option<ProcessStateEvidence>,
     process_state_after_finalize: Option<ProcessStateEvidence>,
@@ -408,12 +470,20 @@ struct DeliveryExitResult {
     suite_id: String,
     case_id: String,
     test_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    phase_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    motion: Option<String>,
     case_status: String,
     failure_kind: Option<CaseFailureKind>,
     comparison_failure_kind: Option<ComparisonFailureKind>,
     exit_key: Option<String>,
     exit_key_attempted: bool,
     exit_key_error: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    cleanup_actions: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cleanup_selection: Option<CleanupSelectionEvidence>,
     wait_exit_succeeded: bool,
     process_state_before_finalize: Option<ProcessStateEvidence>,
     drain_succeeded: bool,
@@ -425,6 +495,15 @@ struct DeliveryExitResult {
     application_errors: Vec<String>,
     execution_errors: Vec<String>,
     capture_errors: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct CleanupSelectionEvidence {
+    /// Relative to the directory containing the capture-index and exit-result receipts.
+    snapshot_file: String,
+    snapshot_sha256: String,
+    raw_prefix_offset: usize,
+    raw_prefix_sha256: Option<String>,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -476,6 +555,7 @@ struct RawPtyEvidence {
     byte_length: usize,
     sha256: String,
     maximum_retained_bytes: usize,
+    /// Relative to the directory containing its capture-index or exit-result receipt.
     bytes_file: String,
     exact_bytes: bool,
     drain_reached_eof: bool,
@@ -490,8 +570,10 @@ struct CheckpointAttemptEvidence {
     reason: Option<String>,
     raw_prefix_offset: Option<usize>,
     raw_prefix_sha256: Option<String>,
+    /// Relative to the directory containing the capture-index receipt.
     sample_file: Option<String>,
     sample_sha256: Option<String>,
+    /// Relative to the directory containing the capture-index receipt.
     native_snapshot_file: Option<String>,
     native_snapshot_sha256: Option<String>,
 }
@@ -510,8 +592,10 @@ struct CheckpointEvidence {
     source_revision: u64,
     raw_prefix_offset: usize,
     raw_prefix_sha256: Option<String>,
+    /// Relative to the directory containing the capture-index receipt.
     sample_file: String,
     sample_sha256: String,
+    /// Relative to the directory containing the capture-index receipt.
     native_snapshot_file: String,
     native_snapshot_sha256: String,
     cols: u32,
@@ -746,6 +830,12 @@ fn run_case(case_name: &str) -> Result<()> {
                 for checkpoint in &mut result.evidence.not_run_checkpoints {
                     checkpoint.reason.clone_from(&reason);
                 }
+                for phase in &mut result.evidence.phases {
+                    if phase.status == PhaseRunStatus::NotRun {
+                        phase.status = PhaseRunStatus::SetupFailed;
+                    }
+                    phase.error.get_or_insert_with(|| reason.clone());
+                }
             }
             result.persist().context("persist failed case result")?;
             Err(error)
@@ -779,6 +869,16 @@ fn run_case_with_result(
             reason: "case has not reached this checkpoint".to_string(),
         })
         .collect();
+    result.evidence.phases = journey
+        .phases
+        .as_deref()
+        .unwrap_or_default()
+        .iter()
+        .map(phase_result_evidence)
+        .collect();
+    result
+        .persist()
+        .context("persist full planned case inventory before launch")?;
     let dataset: FixtureDataset =
         serde_json::from_str(DATASET_JSON).context("parse fixture dataset")?;
     validate_manifest(&manifest, &dataset)?;
@@ -802,6 +902,19 @@ fn run_case_with_result(
         "application binary is not a file: {}",
         binary_path.display()
     );
+
+    if let Some(phases) = journey.phases.as_deref() {
+        return run_phased_case_with_result(
+            journey,
+            phases,
+            &manifest,
+            &dataset,
+            &binary_path,
+            output_root,
+            case_name,
+            result,
+        );
+    }
 
     let fixture = prepare_fixture(&dataset, journey, &manifest)?;
     let output_dir = prepare_case_output(output_root, case_id)?;
@@ -832,8 +945,87 @@ fn run_case_with_result(
     let pixel_profile =
         resolve_profile(&manifest.suite.render_profile).context("resolve pinned pixel profile")?;
 
+    result.evidence.stage = CaseStage::Launch;
+    let (session, args, child_environment) =
+        spawn_application(journey, None, &binary_path, &fixture, &manifest)?;
+    result.evidence.launched = true;
+    result.evidence.stage = CaseStage::Journey;
+
+    let is_delivery = journey.steps.is_some();
+    let generated_legacy_plans;
+    let plans = if let Some(plans) = journey.steps.as_deref() {
+        plans
+    } else {
+        generated_legacy_plans = legacy_checkpoint_plans(journey)?;
+        &generated_legacy_plans
+    };
+    let journey_result = run_unified_journey(
+        &session,
+        journey,
+        plans,
+        is_delivery,
+        &manifest,
+        pixel_profile,
+        &store,
+        &evidence_roots,
+        &samples_dir,
+        &output_dir,
+        &child_environment,
+        &fixture,
+        &dataset,
+        &args,
+        case_name,
+        result,
+        None,
+        None,
+    );
+    let close_result = session
+        .close()
+        .context("close native session after journey");
+    result.evidence.stage = CaseStage::Finalize;
+    if let Err(close_error) = &close_result {
+        if output_dir.join("capture-index.json").is_file() {
+            append_capture_index_execution_error(
+                &output_dir,
+                &format!("checked session close failed: {close_error:#}"),
+            )
+            .context("record session close failure in capture index")?;
+            append_exit_result_execution_error(
+                &output_dir,
+                &format!("checked session close failed: {close_error:#}"),
+            )
+            .context("record session close failure in exit result")?;
+        }
+    }
+    match (journey_result, close_result) {
+        (Ok(()), Ok(())) => Ok(()),
+        (Err(journey_error), Ok(())) => Err(journey_error),
+        (Ok(()), Err(close_error)) => Err(close_error),
+        (Err(journey_error), Err(close_error)) => Err(anyhow::anyhow!(
+            "journey failed: {journey_error:#}; session cleanup also failed: {close_error:#}"
+        )),
+    }
+}
+
+fn spawn_application(
+    journey: &Journey,
+    phase: Option<&JourneyPhase>,
+    binary_path: &Path,
+    fixture: &FixturePaths,
+    manifest: &SuiteManifest,
+) -> Result<(Session, Vec<String>, BTreeMap<String, String>)> {
     let mut args = journey.arguments.clone();
     let mut motion_arguments = manifest.suite.terminal.motion_arguments.clone();
+    if let Some(phase) = phase {
+        let motion_index = motion_arguments
+            .iter()
+            .position(|argument| argument == "--motion")
+            .context("suite motion arguments lack a motion value")?;
+        let motion_value = motion_arguments
+            .get_mut(motion_index + 1)
+            .context("suite motion argument lacks a value")?;
+        *motion_value = phase.motion.clone();
+    }
     if let Some(frame) = journey.frame {
         let frame_index = motion_arguments
             .iter()
@@ -884,66 +1076,417 @@ fn run_case_with_result(
         recording: AutomaticRecording::default(),
         style: Style::default(),
     };
-    let session = Session::new(format!("termrock-functional-{case_id}"));
-    result.evidence.stage = CaseStage::Launch;
+    let session_name = phase.map_or_else(
+        || format!("termrock-functional-{}", case_id(journey)),
+        |phase| format!("termrock-functional-{}-{}", case_id(journey), phase.name),
+    );
+    let session = Session::new(session_name);
     session
         .spawn_with(launch, run_options)
         .context("spawn native application")?;
-    result.evidence.launched = true;
-    result.evidence.stage = CaseStage::Journey;
+    Ok((session, args, child_environment))
+}
 
-    let is_delivery = journey.steps.is_some();
-    let generated_legacy_plans;
-    let plans = if let Some(plans) = journey.steps.as_deref() {
-        plans
-    } else {
-        generated_legacy_plans = legacy_checkpoint_plans(journey)?;
-        &generated_legacy_plans
+fn phase_result_evidence(phase: &JourneyPhase) -> PhaseResultEvidence {
+    PhaseResultEvidence {
+        name: phase.name.clone(),
+        motion: phase.motion.clone(),
+        cleanup: phase.cleanup.clone(),
+        planned_checkpoint_names: phase.steps.iter().map(|step| step.name.clone()).collect(),
+        status: PhaseRunStatus::NotRun,
+        comparison_failure_kind: None,
+        launched: false,
+        cleanup_actions_attempted: Vec::new(),
+        wait_exit_succeeded: None,
+        exit_status: None,
+        exit_status_zero: None,
+        exit_signal: None,
+        no_signal: None,
+        eof_drained: None,
+        post_drain_exit_confirmed: None,
+        raw_pty_sha256: None,
+        raw_checkpoint_prefixes: BTreeMap::new(),
+        terminal_restored: None,
+        cleanup_snapshot_file: None,
+        cleanup_snapshot_sha256: None,
+        cleanup_raw_prefix_sha256: None,
+        error: None,
+    }
+}
+
+fn phase_case_result_writer(
+    output_dir: &Path,
+    journey: &Journey,
+    manifest: &SuiteManifest,
+    phase: &JourneyPhase,
+) -> Result<CaseResultWriter> {
+    let planned_checkpoint_names = phase
+        .steps
+        .iter()
+        .map(|step| step.name.clone())
+        .collect::<Vec<_>>();
+    let writer = CaseResultWriter {
+        root: output_dir.to_path_buf(),
+        file_name: "phase-result.json".to_string(),
+        persist_to_disk: false,
+        evidence: CaseResultEvidence {
+            schema_version: 1,
+            suite_id: Some(manifest.version.suite_id.clone()),
+            test_name: journey.name.clone(),
+            case_id: Some(case_id(journey).to_string()),
+            planned_checkpoint_names: planned_checkpoint_names.clone(),
+            not_run_checkpoints: planned_checkpoint_names
+                .iter()
+                .map(|name| NotReachedCheckpointEvidence {
+                    name: name.clone(),
+                    status: "not-run".to_string(),
+                    reason: "phase has not reached this checkpoint".to_string(),
+                })
+                .collect(),
+            phases: Vec::new(),
+            status: CaseResultStatus::Pending,
+            failure_kind: None,
+            comparison_failure_kind: None,
+            stage: CaseStage::Fixture,
+            launched: false,
+            error: None,
+        },
     };
-    let journey_result = run_unified_journey(
-        &session,
-        journey,
-        plans,
-        is_delivery,
-        &manifest,
-        pixel_profile,
-        &store,
-        &evidence_roots,
-        &samples_dir,
-        &output_dir,
-        &child_environment,
-        &fixture,
-        &dataset,
-        &args,
-        case_name,
-        result,
+    writer.persist()?;
+    Ok(writer)
+}
+
+fn run_phased_case_with_result(
+    journey: &Journey,
+    phases: &[JourneyPhase],
+    manifest: &SuiteManifest,
+    dataset: &FixtureDataset,
+    binary_path: &Path,
+    output_root: &Path,
+    case_name: &str,
+    result: &mut CaseResultWriter,
+) -> Result<()> {
+    let output_dir = prepare_case_output(output_root, case_id(journey))?;
+    let compare_dir = output_dir.join("comparison");
+    let expected_store = safe_manifest_path(&manifest.suite.expected_store)?;
+    let expected_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(expected_store)
+        .canonicalize()
+        .context("canonicalize expected frame store")?;
+    ensure_disjoint_roots(&expected_root, output_root)?;
+    let store =
+        FrozenStore::new(&expected_root, &compare_dir).context("open expected frame store")?;
+    let comparison_root = compare_dir
+        .canonicalize()
+        .context("canonicalize comparison artifact root")?;
+    ensure!(
+        comparison_root.starts_with(output_root),
+        "comparison artifact root escaped TERMROCK_PARITY_OUT_DIR"
     );
-    let close_result = session
-        .close()
-        .context("close native session after journey");
-    result.evidence.stage = CaseStage::Finalize;
-    if let Err(close_error) = &close_result {
-        if output_dir.join("capture-index.json").is_file() {
-            append_capture_index_execution_error(
-                &output_dir,
-                &format!("checked session close failed: {close_error:#}"),
-            )
-            .context("record session close failure in capture index")?;
-            append_exit_result_execution_error(
-                &output_dir,
-                &format!("checked session close failed: {close_error:#}"),
-            )
-            .context("record session close failure in exit result")?;
+    ensure_disjoint_roots(&expected_root, &comparison_root)?;
+    let evidence_roots = EvidenceRootsEvidence {
+        expected_store_root: expected_root.to_string_lossy().into_owned(),
+        output_root: output_root.to_string_lossy().into_owned(),
+        comparison_root: comparison_root.to_string_lossy().into_owned(),
+        roots_disjoint: true,
+    };
+    let pixel_profile =
+        resolve_profile(&manifest.suite.render_profile).context("resolve pinned pixel profile")?;
+    let phase_root = ensure_child_dir(&output_dir, "phases")?;
+    let mut completed_not_run = Vec::new();
+    let mut failures = Vec::new();
+
+    for (phase_index, phase) in phases.iter().enumerate() {
+        let phase_output_dir = match ensure_child_dir(&phase_root, &phase.name) {
+            Ok(path) => path,
+            Err(error) => {
+                let message = format!("prepare phase output failed: {error:#}");
+                result
+                    .evidence
+                    .failure_kind
+                    .get_or_insert(CaseFailureKind::Setup);
+                result.evidence.phases[phase_index].status = PhaseRunStatus::SetupFailed;
+                result.evidence.phases[phase_index].error = Some(message.clone());
+                completed_not_run.extend(phase.steps.iter().map(|step| {
+                    NotReachedCheckpointEvidence {
+                        name: step.name.clone(),
+                        status: "not-run".to_string(),
+                        reason: message.clone(),
+                    }
+                }));
+                failures.push(format!("{}: {message}", phase.name));
+                update_phased_not_run(result, &completed_not_run, phases, phase_index + 1)?;
+                continue;
+            }
+        };
+        let mut phase_writer =
+            match phase_case_result_writer(&phase_output_dir, journey, manifest, phase) {
+                Ok(writer) => writer,
+                Err(error) => {
+                    let message = format!("prepare phase result failed: {error:#}");
+                    result
+                        .evidence
+                        .failure_kind
+                        .get_or_insert(CaseFailureKind::Setup);
+                    result.evidence.phases[phase_index].status = PhaseRunStatus::SetupFailed;
+                    result.evidence.phases[phase_index].error = Some(message.clone());
+                    completed_not_run.extend(phase.steps.iter().map(|step| {
+                        NotReachedCheckpointEvidence {
+                            name: step.name.clone(),
+                            status: "not-run".to_string(),
+                            reason: message.clone(),
+                        }
+                    }));
+                    failures.push(format!("{}: {message}", phase.name));
+                    update_phased_not_run(result, &completed_not_run, phases, phase_index + 1)?;
+                    continue;
+                }
+            };
+        let phase_samples_dir = match ensure_child_dir(&phase_output_dir, "samples") {
+            Ok(path) => path,
+            Err(error) => {
+                let message = format!("prepare phase samples failed: {error:#}");
+                mark_phase_setup_failure(result, phase_index, &mut phase_writer, &message)?;
+                completed_not_run.extend(phase_writer.evidence.not_run_checkpoints.clone());
+                failures.push(format!("{}: {message}", phase.name));
+                update_phased_not_run(result, &completed_not_run, phases, phase_index + 1)?;
+                continue;
+            }
+        };
+        let fixture = match prepare_fixture(dataset, journey, manifest) {
+            Ok(fixture) => fixture,
+            Err(error) => {
+                let message = format!("prepare phase fixture failed: {error:#}");
+                mark_phase_setup_failure(result, phase_index, &mut phase_writer, &message)?;
+                completed_not_run.extend(phase_writer.evidence.not_run_checkpoints.clone());
+                failures.push(format!("{}: {message}", phase.name));
+                update_phased_not_run(result, &completed_not_run, phases, phase_index + 1)?;
+                continue;
+            }
+        };
+
+        result.evidence.stage = CaseStage::Launch;
+        let (session, args, child_environment) =
+            match spawn_application(journey, Some(phase), binary_path, &fixture, manifest) {
+                Ok(child) => child,
+                Err(error) => {
+                    let message = format!("prepare or spawn phase child failed: {error:#}");
+                    mark_phase_setup_failure(result, phase_index, &mut phase_writer, &message)?;
+                    completed_not_run.extend(phase_writer.evidence.not_run_checkpoints.clone());
+                    failures.push(format!("{}: {message}", phase.name));
+                    update_phased_not_run(result, &completed_not_run, phases, phase_index + 1)?;
+                    continue;
+                }
+            };
+        result.evidence.launched = true;
+        result.evidence.stage = CaseStage::Journey;
+        result.evidence.phases[phase_index].status = PhaseRunStatus::Launched;
+        result.evidence.phases[phase_index].launched = true;
+        phase_writer.evidence.launched = true;
+        phase_writer.evidence.stage = CaseStage::Journey;
+        if let Err(error) = result.persist() {
+            let message = format!("persist launched phase receipt failed: {error:#}");
+            result
+                .evidence
+                .failure_kind
+                .get_or_insert(CaseFailureKind::Capture);
+            result.evidence.error = Some(message.clone());
+            failures.push(format!("{}: {message}", phase.name));
+        }
+
+        let journey_result = run_unified_journey(
+            &session,
+            journey,
+            &phase.steps,
+            true,
+            manifest,
+            pixel_profile,
+            &store,
+            &evidence_roots,
+            &phase_samples_dir,
+            &phase_output_dir,
+            &child_environment,
+            &fixture,
+            dataset,
+            &args,
+            case_name,
+            &mut phase_writer,
+            Some(phase),
+            Some(&mut result.evidence.phases[phase_index]),
+        );
+        let close_result = session
+            .close()
+            .context("close native session after phased journey");
+        if let Some(comparison_failure_kind) = phase_writer.evidence.comparison_failure_kind {
+            result.evidence.phases[phase_index].comparison_failure_kind =
+                Some(comparison_failure_kind);
+            result
+                .evidence
+                .comparison_failure_kind
+                .get_or_insert(comparison_failure_kind);
+        }
+        let close_succeeded = close_result.is_ok();
+        if let Err(close_error) = &close_result {
+            let message = format!("checked session close failed: {close_error:#}");
+            if phase_output_dir.join("capture-index.json").is_file() {
+                if let Err(error) =
+                    append_capture_index_execution_error(&phase_output_dir, &message)
+                {
+                    failures.push(format!(
+                        "{}: record close failure in capture index: {error:#}",
+                        phase.name
+                    ));
+                }
+                if let Err(error) = append_exit_result_execution_error(&phase_output_dir, &message)
+                {
+                    failures.push(format!(
+                        "{}: record close failure in exit result: {error:#}",
+                        phase.name
+                    ));
+                }
+            }
+            phase_writer.evidence.status = CaseResultStatus::Failed;
+            phase_writer.evidence.failure_kind = Some(CaseFailureKind::Execution);
+            phase_writer.evidence.error = Some(message.clone());
+            result.evidence.phases[phase_index].status = PhaseRunStatus::Failed;
+            result.evidence.phases[phase_index].error = Some(message.clone());
+            result
+                .evidence
+                .failure_kind
+                .get_or_insert(CaseFailureKind::Execution);
+            if let Err(error) = phase_writer.persist() {
+                failures.push(format!("{}: persist close failure: {error:#}", phase.name));
+            }
+        }
+
+        let phase_error = match (journey_result, close_result) {
+            (Ok(()), Ok(())) if phase_writer.evidence.status == CaseResultStatus::Passed => None,
+            (Err(journey_error), Ok(())) => Some(format!("{journey_error:#}")),
+            (Ok(()), Err(close_error)) => Some(format!("{close_error:#}")),
+            (Err(journey_error), Err(close_error)) => Some(format!(
+                "journey failed: {journey_error:#}; session cleanup also failed: {close_error:#}"
+            )),
+            (Ok(()), Ok(())) => Some("phase result did not reach passed status".to_string()),
+        };
+        if let Some(message) = phase_error {
+            result.evidence.phases[phase_index].status = PhaseRunStatus::Failed;
+            result.evidence.phases[phase_index]
+                .error
+                .get_or_insert_with(|| message.clone());
+            result.evidence.failure_kind.get_or_insert_with(|| {
+                phase_writer
+                    .evidence
+                    .failure_kind
+                    .unwrap_or(CaseFailureKind::Execution)
+            });
+            failures.push(format!("{}: {message}", phase.name));
+        } else {
+            result.evidence.phases[phase_index].status = PhaseRunStatus::Passed;
+        }
+        if let Err(error) = phase_writer.persist() {
+            let message = format!("persist phase result failed: {error:#}");
+            result.evidence.phases[phase_index].status = PhaseRunStatus::Failed;
+            result.evidence.phases[phase_index].error = Some(message.clone());
+            result
+                .evidence
+                .failure_kind
+                .get_or_insert(CaseFailureKind::Capture);
+            failures.push(format!("{}: {message}", phase.name));
+        }
+        completed_not_run.extend(phase_writer.evidence.not_run_checkpoints.clone());
+        update_phased_not_run(result, &completed_not_run, phases, phase_index + 1)?;
+        let phase_lifecycle = &result.evidence.phases[phase_index];
+        let lifecycle_complete = close_succeeded
+            && phase_lifecycle.wait_exit_succeeded == Some(true)
+            && phase_lifecycle.exit_status == Some(0)
+            && phase_lifecycle.exit_status_zero == Some(true)
+            && phase_lifecycle.exit_signal.is_none()
+            && phase_lifecycle.no_signal == Some(true)
+            && phase_lifecycle.eof_drained == Some(true)
+            && phase_lifecycle.post_drain_exit_confirmed == Some(true)
+            && phase_lifecycle.terminal_restored == Some(true);
+        if !lifecycle_complete && phase_index + 1 < phases.len() {
+            let reason = format!(
+                "phase {} was not launched because the preceding child did not complete required lifecycle checks",
+                phases[phase_index + 1].name
+            );
+            for later_phase in &mut result.evidence.phases[phase_index + 1..] {
+                later_phase.status = PhaseRunStatus::NotRun;
+                later_phase.error = Some(reason.clone());
+            }
+            for later_phase in phases.iter().skip(phase_index + 1) {
+                completed_not_run.extend(later_phase.steps.iter().map(|step| {
+                    NotReachedCheckpointEvidence {
+                        name: step.name.clone(),
+                        status: "not-run".to_string(),
+                        reason: reason.clone(),
+                    }
+                }));
+            }
+            result.evidence.not_run_checkpoints = completed_not_run.clone();
+            result.persist()?;
+            break;
         }
     }
-    match (journey_result, close_result) {
-        (Ok(()), Ok(())) => Ok(()),
-        (Err(journey_error), Ok(())) => Err(journey_error),
-        (Ok(()), Err(close_error)) => Err(close_error),
-        (Err(journey_error), Err(close_error)) => Err(anyhow::anyhow!(
-            "journey failed: {journey_error:#}; session cleanup also failed: {close_error:#}"
-        )),
+
+    result.evidence.stage = CaseStage::Finalize;
+    if !failures.is_empty() {
+        bail!("phased case failed: {}", failures.join("; "));
     }
+    ensure!(
+        result.evidence.phases.len() == phases.len()
+            && result
+                .evidence
+                .phases
+                .iter()
+                .all(|phase| phase.status == PhaseRunStatus::Passed && phase.launched),
+        "phased case lacks a passed, launched result for every planned phase"
+    );
+    ensure!(
+        result.evidence.planned_checkpoint_names.len() == 16
+            && result.evidence.not_run_checkpoints.is_empty(),
+        "phased case did not reach its complete checkpoint inventory"
+    );
+    Ok(())
+}
+
+fn mark_phase_setup_failure(
+    result: &mut CaseResultWriter,
+    phase_index: usize,
+    phase_writer: &mut CaseResultWriter,
+    message: &str,
+) -> Result<()> {
+    result
+        .evidence
+        .failure_kind
+        .get_or_insert(CaseFailureKind::Setup);
+    result.evidence.phases[phase_index].status = PhaseRunStatus::SetupFailed;
+    result.evidence.phases[phase_index].error = Some(message.to_string());
+    phase_writer.evidence.status = CaseResultStatus::Failed;
+    phase_writer.evidence.failure_kind = Some(CaseFailureKind::Setup);
+    phase_writer.evidence.error = Some(message.to_string());
+    for checkpoint in &mut phase_writer.evidence.not_run_checkpoints {
+        checkpoint.reason = message.to_string();
+    }
+    phase_writer.persist()
+}
+
+fn update_phased_not_run(
+    result: &mut CaseResultWriter,
+    completed_not_run: &[NotReachedCheckpointEvidence],
+    phases: &[JourneyPhase],
+    next_phase_index: usize,
+) -> Result<()> {
+    let mut not_run = completed_not_run.to_vec();
+    for phase in phases.iter().skip(next_phase_index) {
+        not_run.extend(phase.steps.iter().map(|step| NotReachedCheckpointEvidence {
+            name: step.name.clone(),
+            status: "not-run".to_string(),
+            reason: format!("phase {} has not been attempted", phase.name),
+        }));
+    }
+    result.evidence.not_run_checkpoints = not_run;
+    result.persist()
 }
 
 fn append_capture_index_execution_error(output_dir: &Path, message: &str) -> Result<()> {
@@ -996,6 +1539,85 @@ fn append_json_array_error(
 }
 
 fn ensure_supported_plan(journey: &Journey) -> Result<()> {
+    if let Some(phases) = journey.phases.as_ref() {
+        ensure!(
+            journey.steps.is_none() && journey.native_steps.is_none(),
+            "setup failure: phased case {} also declares a single-phase plan",
+            journey.name
+        );
+        ensure!(
+            phases.len() == 2
+                && phases[0].name == "paused_pending"
+                && phases[0].motion == "paused"
+                && phases[1].name == "full_completion"
+                && phases[1].motion == "full",
+            "setup failure: phased case {} must declare paused_pending then full_completion",
+            journey.name
+        );
+        let mut phase_names = BTreeSet::new();
+        let mut checkpoint_names = BTreeSet::new();
+        for phase in phases {
+            ensure!(
+                is_safe_single_component(&phase.name)
+                    && phase_names.insert(phase.name.as_str())
+                    && phase.cleanup == "ctrl_q_right_enter"
+                    && !phase.steps.is_empty(),
+                "setup failure: case {} has an invalid phase {:?}",
+                journey.name,
+                phase.name
+            );
+            for step in &phase.steps {
+                ensure!(
+                    is_safe_single_component(&step.name)
+                        && checkpoint_names.insert(step.name.as_str())
+                        && !step.required_anchors.is_empty(),
+                    "setup failure: case {} has an invalid phase checkpoint {:?}",
+                    journey.name,
+                    step.name
+                );
+                for action in &step.actions {
+                    match action {
+                        NativeAction::Key { key } => ensure!(
+                            !key.is_empty(),
+                            "setup failure: case {} has an empty phase key",
+                            journey.name
+                        ),
+                        NativeAction::Write { text } => ensure!(
+                            !text.is_empty(),
+                            "setup failure: case {} has an empty phase text action",
+                            journey.name
+                        ),
+                        NativeAction::Resize { cols, rows } => ensure!(
+                            matches!((*cols, *rows), (80, 24) | (120, 40)),
+                            "setup failure: case {} has an invalid phase resize",
+                            journey.name
+                        ),
+                        NativeAction::MouseClick { x, y, button } => ensure!(
+                            *x == 30 && *y == 10 && button == "left",
+                            "setup failure: case {} has an unsupported phase mouse click",
+                            journey.name
+                        ),
+                    }
+                }
+            }
+            let dialog = phase
+                .steps
+                .last()
+                .context("phase lacks its final quit-dialog checkpoint")?;
+            ensure!(
+                dialog.name == phase.dialog_checkpoint
+                    && matches!(dialog.actions.as_slice(), [NativeAction::Key { key }] if key == "Ctrl+Q"),
+                "setup failure: case {} has an invalid phase quit-dialog contract",
+                journey.name
+            );
+        }
+        ensure!(
+            checkpoint_names.len() == 16,
+            "setup failure: phased case {} must declare all 16 checkpoints",
+            journey.name
+        );
+        return Ok(());
+    }
     if let Some(steps) = journey.steps.as_ref() {
         ensure!(
             !steps.is_empty(),
@@ -1113,6 +1735,12 @@ fn legacy_checkpoint_plans(journey: &Journey) -> Result<Vec<CheckpointPlan>> {
 }
 
 fn checkpoint_names(journey: &Journey) -> Vec<String> {
+    if let Some(phases) = journey.phases.as_deref() {
+        return phases
+            .iter()
+            .flat_map(|phase| phase.steps.iter().map(|step| step.name.clone()))
+            .collect();
+    }
     if let Some(steps) = journey.steps.as_deref() {
         return steps.iter().map(|step| step.name.clone()).collect();
     }
@@ -1146,6 +1774,8 @@ fn run_unified_journey(
     args: &[String],
     case_name: &str,
     result_writer: &mut CaseResultWriter,
+    phase: Option<&JourneyPhase>,
+    mut phase_result: Option<&mut PhaseResultEvidence>,
 ) -> Result<()> {
     let mut attempts = plans
         .iter()
@@ -1169,6 +1799,11 @@ fn run_unified_journey(
     let mut application_errors = Vec::new();
     let mut setup_errors = Vec::new();
     let mut journey_active = true;
+    let mut quit_dialog_ready = false;
+    let mut quit_action_attempted = false;
+    let mut quit_dialog_readiness_attempted = false;
+    let mut cleanup_actions = Vec::new();
+    let mut cleanup_selection = None;
 
     for (index, step) in plans.iter().enumerate() {
         if !is_delivery && step.name == "exited" {
@@ -1178,6 +1813,12 @@ fn run_unified_journey(
             continue;
         }
         for action in &step.actions {
+            if phase.is_some_and(|phase| {
+                step.name == phase.dialog_checkpoint
+                    && matches!(action, NativeAction::Key { key } if key == "Ctrl+Q")
+            }) {
+                quit_action_attempted = true;
+            }
             if !record_execution_step(
                 &mut execution_errors,
                 &format!("execute {} action for {}", step.name, journey.name),
@@ -1190,10 +1831,33 @@ fn run_unified_journey(
         if !journey_active {
             continue;
         }
+        if phase.is_some_and(|phase| step.name == phase.dialog_checkpoint) {
+            quit_dialog_readiness_attempted = true;
+        }
         journey_active = match wait_for_step_readiness(session, case_id(journey), step) {
-            Ok(ReadinessOutcome::Ready) => true,
+            Ok(ReadinessOutcome::Ready) => {
+                if phase.is_some_and(|phase| step.name == phase.dialog_checkpoint) {
+                    quit_dialog_ready = true;
+                }
+                true
+            }
             Ok(ReadinessOutcome::TimedOut(message)) => {
                 application_errors.push(message.clone());
+                if phase.is_some() {
+                    let _ = try_capture_checkpoint(
+                        session,
+                        step,
+                        &mut attempts[index],
+                        journey,
+                        pixel_profile,
+                        store,
+                        samples_dir,
+                        &mut checkpoints,
+                        &mut capture_errors,
+                        &mut application_errors,
+                        &mut setup_errors,
+                    );
+                }
                 attempts[index].reason = Some(message);
                 false
             }
@@ -1231,18 +1895,103 @@ fn run_unified_journey(
         );
     }
 
-    let exit_key = journey.exit_key.clone();
-    let exit_key_attempted = is_delivery || journey_active;
-    let exit_key_error = if exit_key_attempted {
-        match press_required(session, journey.exit_key.as_deref(), "exit") {
-            Ok(()) => None,
-            Err(error) => {
-                execution_errors.push(format!("send application exit key failed: {error:#}"));
-                Some(format!("{error:#}"))
+    let (exit_key, exit_key_attempted, exit_key_error) = if let Some(phase) = phase {
+        let dialog_step = plans
+            .iter()
+            .find(|step| step.name == phase.dialog_checkpoint)
+            .context("validated phase quit-dialog checkpoint disappeared")?;
+        let mut cleanup_errors = Vec::new();
+        cleanup_actions.push("Ctrl+Q".to_string());
+        if !quit_action_attempted {
+            if let Err(error) = press(session, "Ctrl+Q") {
+                let message = format!("send cleanup Ctrl+Q failed: {error:#}");
+                execution_errors.push(message.clone());
+                cleanup_errors.push(message);
             }
         }
+        if !quit_dialog_ready && !quit_dialog_readiness_attempted {
+            match wait_for_step_readiness(session, case_id(journey), dialog_step) {
+                Ok(ReadinessOutcome::Ready) => quit_dialog_ready = true,
+                Ok(ReadinessOutcome::TimedOut(message)) => application_errors.push(message),
+                Err(error) => capture_errors.push(format!(
+                    "cleanup quit-dialog readiness capture failed: {error:#}"
+                )),
+            }
+        }
+        cleanup_actions.push("Right".to_string());
+        if let Err(error) = press(session, "Right") {
+            let message = format!("send cleanup Right failed: {error:#}");
+            execution_errors.push(message.clone());
+            cleanup_errors.push(message);
+        }
+        if quit_dialog_ready {
+            if let Err(error) = settle(session) {
+                execution_errors.push(format!("settle selected quit action failed: {error:#}"));
+            }
+            let snapshot_name = format!("{}_cleanup_selected_quit", phase.name);
+            let mut attempt = CheckpointAttemptEvidence {
+                name: snapshot_name.clone(),
+                reached: true,
+                capture_attempted: true,
+                outcome: "captured".to_string(),
+                reason: None,
+                raw_prefix_offset: None,
+                raw_prefix_sha256: None,
+                sample_file: None,
+                sample_sha256: None,
+                native_snapshot_file: None,
+                native_snapshot_sha256: None,
+            };
+            match session.capture_checkpoint(SnapshotScope::ActiveScreen) {
+                Ok(captured) => {
+                    let raw_prefix_offset = captured.raw_pty_offset();
+                    attempt.raw_prefix_offset = Some(raw_prefix_offset);
+                    match save_native_snapshot(
+                        captured.snapshot(),
+                        &snapshot_name,
+                        samples_dir,
+                        &mut attempt,
+                    ) {
+                        Ok((snapshot_file, snapshot_sha256)) => {
+                            cleanup_selection = Some(CleanupSelectionEvidence {
+                                snapshot_file,
+                                snapshot_sha256,
+                                raw_prefix_offset,
+                                raw_prefix_sha256: None,
+                            });
+                        }
+                        Err(error) => capture_errors.push(format!(
+                            "retain selected quit action snapshot failed: {error:#}"
+                        )),
+                    }
+                }
+                Err(error) => {
+                    capture_errors.push(format!("capture selected quit action failed: {error:#}"))
+                }
+            }
+        }
+        cleanup_actions.push("Enter".to_string());
+        if let Err(error) = press(session, "Enter") {
+            let message = format!("send cleanup Enter failed: {error:#}");
+            execution_errors.push(message.clone());
+            cleanup_errors.push(message);
+        }
+        (None, true, cleanup_errors.first().cloned())
     } else {
-        None
+        let exit_key = journey.exit_key.clone();
+        let exit_key_attempted = is_delivery || journey_active;
+        let exit_key_error = if exit_key_attempted {
+            match press_required(session, journey.exit_key.as_deref(), "exit") {
+                Ok(()) => None,
+                Err(error) => {
+                    execution_errors.push(format!("send application exit key failed: {error:#}"));
+                    Some(format!("{error:#}"))
+                }
+            }
+        } else {
+            None
+        };
+        (exit_key, exit_key_attempted, exit_key_error)
     };
     let wait_exit_succeeded = match session.execute(Operation::WaitExit {
         timeout_ms: Some(EXIT_TIMEOUT_MS),
@@ -1389,6 +2138,18 @@ fn run_unified_journey(
                 checkpoint.raw_prefix_sha256 = Some(prefix_sha256);
             }
         }
+        if let Some(selection) = cleanup_selection.as_mut() {
+            if selection.raw_prefix_offset > bytes.len() {
+                capture_errors.push(format!(
+                    "selected quit snapshot PTY offset {} exceeds drained stream length {}",
+                    selection.raw_prefix_offset,
+                    bytes.len()
+                ));
+            } else {
+                selection.raw_prefix_sha256 =
+                    Some(sha256_hex(&bytes[..selection.raw_prefix_offset]));
+            }
+        }
         let tail_start = bytes.len().saturating_sub(512);
         let tail = &bytes[tail_start..];
         if is_delivery {
@@ -1464,12 +2225,16 @@ fn run_unified_journey(
             suite_id: manifest.version.suite_id.clone(),
             case_id: case_id(journey).to_string(),
             test_name: journey.name.clone(),
+            phase_name: phase.map(|phase| phase.name.clone()),
+            motion: phase.map(|phase| phase.motion.clone()),
             case_status: case_status.to_string(),
             failure_kind: exit_failure_kind,
             comparison_failure_kind,
             exit_key: exit_key.clone(),
             exit_key_attempted,
             exit_key_error: exit_key_error.clone(),
+            cleanup_actions: cleanup_actions.clone(),
+            cleanup_selection: cleanup_selection.clone(),
             wait_exit_succeeded,
             process_state_before_finalize: process_state_before_finalize.clone(),
             drain_succeeded,
@@ -1525,6 +2290,8 @@ fn run_unified_journey(
         case_name: case_name.to_string(),
         case_id: case_id(journey).to_string(),
         test_name: journey.name.clone(),
+        phase_name: phase.map(|phase| phase.name.clone()),
+        motion: phase.map(|phase| phase.motion.clone()),
         case_status: case_status.to_string(),
         failure_kind,
         comparison_failure_kind,
@@ -1551,6 +2318,7 @@ fn run_unified_journey(
         evidence_roots: evidence_roots.clone(),
         raw_pty,
         raw_tail,
+        cleanup_selection: cleanup_selection.clone(),
         drain_succeeded,
         process_state_before_finalize,
         process_state_after_finalize,
@@ -1563,9 +2331,130 @@ fn run_unified_journey(
         capture_errors,
         execution_errors,
     };
+    let failures = index
+        .checkpoints
+        .iter()
+        .filter(|checkpoint| !checkpoint.comparison.passed)
+        .map(|checkpoint| {
+            format!(
+                "{}: reason={:?}, report={:?}, first_cell={:?}",
+                checkpoint.test_id,
+                checkpoint.comparison.reason,
+                checkpoint.comparison.report_path,
+                checkpoint.comparison.first_changed_cell
+            )
+        })
+        .collect::<Vec<_>>();
+    let all_prefixes_bound = index
+        .checkpoints
+        .iter()
+        .all(|checkpoint| checkpoint.raw_prefix_sha256.is_some());
+    let raw_stream_complete = index
+        .raw_pty
+        .as_ref()
+        .is_some_and(|raw| raw.byte_length > 0 && raw.exact_bytes && raw.drain_reached_eof);
+    let terminal_restored = index
+        .terminal_restoration
+        .as_ref()
+        .is_some_and(|state| state.restored);
+    let cleanup_capture_complete = phase.is_none()
+        || cleanup_selection
+            .as_ref()
+            .is_some_and(|selection| selection.raw_prefix_sha256.is_some());
+    let phase_passed = index.checkpoints.len() == index.frame_checkpoint_count
+        && index.not_reached_checkpoints.is_empty()
+        && index.setup_errors.is_empty()
+        && index.application_errors.is_empty()
+        && index.execution_errors.is_empty()
+        && index.capture_errors.is_empty()
+        && failures.is_empty()
+        && index.drain_succeeded
+        && raw_stream_complete
+        && terminal_restored
+        && all_prefixes_bound
+        && cleanup_capture_complete;
+    if let Some(phase_result) = phase_result.as_deref_mut() {
+        phase_result.status = if phase_passed {
+            PhaseRunStatus::Passed
+        } else {
+            PhaseRunStatus::Failed
+        };
+        phase_result.launched = true;
+        phase_result.cleanup_actions_attempted = cleanup_actions.clone();
+        phase_result.wait_exit_succeeded = Some(wait_exit_succeeded);
+        phase_result.exit_status = index
+            .process_state_after_finalize
+            .as_ref()
+            .and_then(|state| state.exited)
+            .or_else(|| {
+                index
+                    .process_state_before_finalize
+                    .as_ref()
+                    .and_then(|state| state.exited)
+            });
+        phase_result.exit_status_zero = index
+            .process_state_after_finalize
+            .as_ref()
+            .map(|state| state.exited == Some(0));
+        phase_result.exit_signal = index
+            .process_state_after_finalize
+            .as_ref()
+            .and_then(|state| state.exit_signal.clone())
+            .or_else(|| {
+                index
+                    .process_state_before_finalize
+                    .as_ref()
+                    .and_then(|state| state.exit_signal.clone())
+            });
+        phase_result.no_signal = index
+            .process_state_after_finalize
+            .as_ref()
+            .map(|state| state.exit_signal.is_none());
+        phase_result.eof_drained = index.raw_pty.as_ref().map(|raw| raw.drain_reached_eof);
+        phase_result.post_drain_exit_confirmed = index
+            .process_state_after_finalize
+            .as_ref()
+            .map(|state| state.exited == Some(0) && state.exit_signal.is_none());
+        phase_result.raw_pty_sha256 = index.raw_pty.as_ref().map(|raw| raw.sha256.clone());
+        phase_result.raw_checkpoint_prefixes = index
+            .checkpoints
+            .iter()
+            .filter_map(|checkpoint| {
+                checkpoint
+                    .raw_prefix_sha256
+                    .as_ref()
+                    .map(|hash| (checkpoint.name.clone(), hash.clone()))
+            })
+            .collect();
+        phase_result.terminal_restored = Some(terminal_restored);
+        phase_result.cleanup_snapshot_file = if let Some(selection) = cleanup_selection.as_ref() {
+            let phase = phase.context("phase cleanup evidence is missing its phase")?;
+            Some(
+                Path::new("..")
+                    .join(case_id(journey))
+                    .join("phases")
+                    .join(phase.name.as_str())
+                    .join(selection.snapshot_file.as_str())
+                    .to_string_lossy()
+                    .into_owned(),
+            )
+        } else {
+            None
+        };
+        phase_result.cleanup_snapshot_sha256 = cleanup_selection
+            .as_ref()
+            .map(|selection| selection.snapshot_sha256.clone());
+        phase_result.cleanup_raw_prefix_sha256 = cleanup_selection
+            .as_ref()
+            .and_then(|selection| selection.raw_prefix_sha256.clone());
+        phase_result.error = result_writer.evidence.error.clone().or_else(|| {
+            (!phase_passed).then(|| {
+                "phase did not satisfy every checkpoint and lifecycle obligation".to_string()
+            })
+        });
+    }
     let index_bytes = serde_json::to_vec_pretty(&index).context("serialize capture index")?;
     write_atomic(output_dir, "capture-index.json", &index_bytes).context("write capture index")?;
-
     ensure!(
         index.checkpoints.len() == index.frame_checkpoint_count,
         "captured {} of {} frame checkpoints; not reached: {:?}; capture errors: {:?}",
@@ -1594,20 +2483,6 @@ fn run_unified_journey(
         "journey execution failures: {:?}",
         index.execution_errors
     );
-    let failures = index
-        .checkpoints
-        .iter()
-        .filter(|checkpoint| !checkpoint.comparison.passed)
-        .map(|checkpoint| {
-            format!(
-                "{}: reason={:?}, report={:?}, first_cell={:?}",
-                checkpoint.test_id,
-                checkpoint.comparison.reason,
-                checkpoint.comparison.report_path,
-                checkpoint.comparison.first_changed_cell
-            )
-        })
-        .collect::<Vec<_>>();
     ensure!(
         failures.is_empty(),
         "frozen visual checks failed: {failures:#?}"
@@ -2391,6 +3266,71 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
     ensure!(
         manifest.cases.len() == 89,
         "functional inventory must contain 89 cases"
+    );
+    let query_execution = manifest
+        .cases
+        .iter()
+        .find(|case| case.name == "tablepro_query_execution")
+        .context("functional inventory lacks tablepro_query_execution")?;
+    ensure!(
+        manifest
+            .cases
+            .iter()
+            .filter(|case| case.phases.is_some())
+            .count()
+            == 1
+            && query_execution.binary == "tablepro"
+            && query_execution.case_id.is_none()
+            && same_strings(
+                &query_execution.arguments,
+                &["--connect", "Local PostgreSQL"]
+            )
+            && query_execution.frame.is_none()
+            && query_execution.exit_key.is_none()
+            && query_execution.steps.is_none()
+            && query_execution.native_steps.is_none()
+            && same_strings(
+                &query_execution.coverage_ids,
+                &[
+                    "suite.case.tablepro_query_execution",
+                    "tablepro.screen.workbenchdefault",
+                    "tablepro.screen.queryediting",
+                    "tablepro.screen.completionpopup",
+                    "tablepro.screen.resultsgrid",
+                    "tablepro.screen.errorresult",
+                    "tablepro.screen.explainplan",
+                    "tablepro.behavior.completion",
+                    "interaction.error",
+                ],
+            ),
+        "TablePro query execution identity, inputs, or coverage changed"
+    );
+    ensure_supported_plan(query_execution)?;
+    ensure!(
+        query_execution.phases.as_ref().is_some_and(|phases| {
+            phases
+                .iter()
+                .flat_map(|phase| phase.steps.iter().map(|step| step.name.as_str()))
+                .eq([
+                    "paused_workbench",
+                    "paused_query_input",
+                    "paused_running",
+                    "paused_cancelled",
+                    "paused_quit_dialog",
+                    "complete_workbench",
+                    "completion_popup",
+                    "completion_accepted",
+                    "completed_rows",
+                    "completed_explain",
+                    "batch_input",
+                    "batch_error",
+                    "retained_customers",
+                    "retained_orders",
+                    "execution_history",
+                    "complete_quit_dialog",
+                ])
+        }),
+        "TablePro query execution must retain its ordered 16-checkpoint phase inventory"
     );
     let actual_legacy = manifest.cases[..LEGACY_CASES.len()]
         .iter()
