@@ -73,6 +73,57 @@ impl std::fmt::Display for ManagerRow {
 }
 
 #[derive(Debug, Clone)]
+struct SettingsRow {
+    key: ItemKey,
+    label: String,
+    detail: String,
+    tag: Option<String>,
+    trust_target: Option<SettingsTrustTarget>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum SettingsTrustTarget {
+    Global(usize),
+    Role(String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SettingsExitTarget {
+    Route(Route),
+    Quit,
+}
+
+impl SettingsRow {
+    fn new(key: impl AsRef<str>, label: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self {
+            key: ItemKey::text(key.as_ref()),
+            label: label.into(),
+            detail: detail.into(),
+            tag: None,
+            trust_target: None,
+        }
+    }
+
+    fn tag(mut self, tag: impl Into<String>) -> Self {
+        self.tag = Some(tag.into());
+        self
+    }
+
+    fn trust_target(mut self, target: SettingsTrustTarget) -> Self {
+        self.trust_target = Some(target);
+        self
+    }
+}
+
+fn paint_settings_row(row: &SettingsRow, cells: &mut RowUi<'_>) {
+    cells.label(&row.label);
+    if let Some(tag) = &row.tag {
+        cells.meta(tag);
+    }
+    cells.meta(&row.detail);
+}
+
+#[derive(Debug, Clone)]
 struct AccountFormReturn {
     selected_id: Option<String>,
     list: ListState,
@@ -84,6 +135,9 @@ pub const MANAGER: Id = APP.sub("manager");
 pub const ACCOUNTS: Id = APP.sub("accounts");
 pub const USAGE: Id = APP.sub("usage");
 pub const SETTINGS: Id = APP.sub("settings");
+const SETTINGS_TABS: Id = SETTINGS.sub("tabs");
+const SETTINGS_ROWS: Id = SETTINGS.sub("rows");
+const MANAGER_MENU_BAR: Id = APP.sub("manager-menu-bar");
 pub const CAPSULE: Id = APP.sub("capsule");
 pub const MANAGER_LIST: Id = crate::screens::manager::TREE;
 const USAGE_TABS: [&str; 3] = ["Overview", "Registration", "Quota"];
@@ -172,6 +226,7 @@ const CANCEL_LAUNCH_DIALOG: Id = APP.sub("cancel-dialog");
 const COCKPIT_INFO_DIALOG: Id = APP.sub("cockpit-info");
 const LAUNCH_FAILURE_DIALOG: Id = APP.sub("launch-failure");
 const EDITOR_EXIT_DIALOG: Id = APP.sub("editor-exit");
+const SETTINGS_EXIT_DIALOG: Id = APP.sub("settings-exit");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::quiet(ActionKey::CANCEL, "Cancel"),
@@ -259,10 +314,18 @@ const CMD_COCKPIT_TRACE: ActionKey = ActionKey::application("jackin.cockpit.trac
 const EXIT_CANCEL: ActionKey = ActionKey::application("jackin.editor.exit-cancel");
 const EXIT_DISCARD: ActionKey = ActionKey::application("jackin.editor.exit-discard");
 const EXIT_SAVE: ActionKey = ActionKey::application("jackin.editor.exit-save");
+const SETTINGS_EXIT_CANCEL: ActionKey = ActionKey::application("jackin.settings.exit-cancel");
+const SETTINGS_EXIT_DISCARD: ActionKey = ActionKey::application("jackin.settings.exit-discard");
+const SETTINGS_EXIT_SAVE: ActionKey = ActionKey::application("jackin.settings.exit-save");
 const EDITOR_EXIT_ACTIONS: [Action<'static>; 3] = [
     Action::quiet(EXIT_CANCEL, "Cancel"),
     Action::danger(EXIT_DISCARD, "Discard"),
     Action::new(EXIT_SAVE, "Save"),
+];
+const SETTINGS_EXIT_ACTIONS: [Action<'static>; 3] = [
+    Action::quiet(SETTINGS_EXIT_CANCEL, "Cancel"),
+    Action::danger(SETTINGS_EXIT_DISCARD, "Discard"),
+    Action::new(SETTINGS_EXIT_SAVE, "Save"),
 ];
 const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-rename");
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
@@ -318,6 +381,35 @@ const CAPSULE_MENUS: &[Menu<'static>] = &[
     Menu::new("View", CAPSULE_VIEW_ITEMS),
     Menu::new("Session", CAPSULE_SESSION_ITEMS),
     Menu::new("Help", CAPSULE_HELP_ITEMS),
+];
+const MANAGER_FILE_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_NEW_WORKSPACE, "New workspace…"),
+    MenuItem::new(CMD_EDITOR_OPEN, "Edit workspace…"),
+    MenuItem::new(CMD_EXIT_CONFIRM, "Launch…"),
+    MenuItem::new(ActionKey::application("jackin.manager.prewarm"), "Prewarm"),
+    MenuItem::new(
+        ActionKey::application("jackin.manager.delete"),
+        "Delete workspace…",
+    )
+    .danger()
+    .separator(),
+    MenuItem::new(CMD_ACCOUNT_REFRESH, "Refresh").separator(),
+    MenuItem::new(CMD_SETTINGS, "Settings"),
+    MenuItem::new(CMD_QUIT, "Quit"),
+];
+const MANAGER_GO_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_MANAGER, "Workspaces"),
+    MenuItem::new(CMD_ACCOUNTS, "Accounts"),
+    MenuItem::new(CMD_USAGE, "Usage"),
+];
+const MANAGER_HELP_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_ACCOUNT_HELP, "Keyboard shortcuts"),
+    MenuItem::new(CMD_ABOUT, "About Jackin Preview"),
+];
+const MANAGER_MENUS: &[Menu<'static>] = &[
+    Menu::new("File", MANAGER_FILE_ITEMS),
+    Menu::new("Go", MANAGER_GO_ITEMS),
+    Menu::new("Help", MANAGER_HELP_ITEMS),
 ];
 const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
     MenuItem::new(CMD_TAB_RENAME, "Change title…").hint("2×click"),
@@ -619,6 +711,9 @@ pub struct App {
     pub prelude: PreludeState,
     pub editor: EditorState,
     pub settings: SettingsState,
+    settings_tabs: TabsState,
+    settings_rows: ListState,
+    settings_list_focused: bool,
     pub usage: UsageState,
     usage_focus: UsageFocus,
     usage_list: NavListState,
@@ -639,6 +734,7 @@ pub struct App {
     quit: bool,
     keymap: KeyMap,
     manager_file_menu_state: MenuState,
+    manager_menu_bar_state: MenuState,
     manager_inspect_state: DialogState,
     manager_inspect_props_state: PropsState,
     capsule_menu_state: MenuState,
@@ -659,6 +755,10 @@ pub struct App {
     cockpit_trace_open: bool,
     editor_exit_open: bool,
     editor_exit_state: DialogState,
+    settings_exit_open: bool,
+    settings_exit_state: DialogState,
+    settings_exit_target: Option<SettingsExitTarget>,
+    settings_trusted_origin: Option<bool>,
     editor_leaf_focused: bool,
     editor_general_cursor: u8,
     editor_mounts_armed: bool,
@@ -669,6 +769,7 @@ pub struct App {
     settings_trust_armed: bool,
     settings_trust_cursor: usize,
     settings_trust_origin: Vec<bool>,
+    settings_role_trust_origin: Vec<(String, bool)>,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
@@ -852,6 +953,9 @@ impl App {
             prelude: PreludeState::default(),
             editor: EditorState::default(),
             settings: SettingsState::default(),
+            settings_tabs: TabsState::default(),
+            settings_rows: ListState::default(),
+            settings_list_focused: false,
             usage: UsageState::default(),
             usage_focus: UsageFocus::Tabs,
             usage_list: NavListState::default(),
@@ -872,6 +976,7 @@ impl App {
             quit: false,
             keymap: app_keymap(),
             manager_file_menu_state: MenuState::default(),
+            manager_menu_bar_state: MenuState::default(),
             manager_inspect_state: DialogState::default(),
             manager_inspect_props_state: PropsState::default(),
             capsule_menu_state: MenuState::default(),
@@ -892,6 +997,10 @@ impl App {
             cockpit_trace_open: false,
             editor_exit_open: false,
             editor_exit_state: DialogState::default(),
+            settings_exit_open: false,
+            settings_exit_state: DialogState::default(),
+            settings_exit_target: None,
+            settings_trusted_origin: None,
             editor_leaf_focused: false,
             editor_general_cursor: 0,
             editor_mounts_armed: false,
@@ -902,6 +1011,7 @@ impl App {
             settings_trust_armed: false,
             settings_trust_cursor: 0,
             settings_trust_origin: Vec::new(),
+            settings_role_trust_origin: Vec::new(),
             settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
@@ -1505,7 +1615,7 @@ impl App {
     }
 
     fn settings_trust_button(checked: bool) -> Button<'static> {
-        Button::new(SETTINGS_TRUST, "Trust local incident role").checked(checked)
+        Button::new(SETTINGS_TRUST, "Toggle selected trust").checked(checked)
     }
 
     fn launch_retry_button() -> Button<'static> {
@@ -1855,6 +1965,10 @@ impl App {
 
     fn capsule_menu_bar() -> MenuBar<'static> {
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS).hover_scope(MenuBarHoverScope::Title)
+    }
+
+    fn manager_menu_bar() -> MenuBar<'static> {
+        MenuBar::new(MANAGER_MENU_BAR, MANAGER_MENUS).hover_scope(MenuBarHoverScope::Title)
     }
 
     fn capsule_native_tabs() -> Tabs<'static, CapsuleTab, fn(&CapsuleTab) -> ItemKey> {
@@ -2456,6 +2570,254 @@ impl App {
         if self.status.as_deref() == Some("Save changes before leaving?") {
             self.status = None;
         }
+    }
+
+    fn settings_exit_dialog() -> Dialog<'static> {
+        Dialog::confirm(
+            SETTINGS_EXIT_DIALOG,
+            "Leave settings?",
+            "Save settings changes before leaving?",
+        )
+        .actions(&SETTINGS_EXIT_ACTIONS)
+    }
+
+    fn open_settings_exit(&mut self, cx: &mut Cx<'_>, target: SettingsExitTarget) {
+        self.settings_exit_target = Some(target);
+        self.settings_exit_state = DialogState::default();
+        self.settings_exit_open = true;
+        let dialog = Self::settings_exit_dialog();
+        cx.open_layer(
+            SETTINGS_EXIT_DIALOG,
+            dialog.layer(cx).initial_focus(dialog.action_id(0)),
+        );
+        self.status = Some("Save settings before leaving?".into());
+    }
+
+    fn close_settings_exit(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(SETTINGS_EXIT_DIALOG) {
+            cx.close_layer(SETTINGS_EXIT_DIALOG, Some(SETTINGS_EXIT_CANCEL));
+        }
+        self.settings_exit_open = false;
+        self.settings_exit_target = None;
+        if self.status.as_deref() == Some("Save settings before leaving?") {
+            self.status = None;
+        }
+    }
+
+    fn request_quit(&mut self, cx: &mut Cx<'_>) {
+        if !self.quit_open {
+            if self.route == Route::Manager && !self.help_open && cx.top_layer() == LayerId::PAGE {
+                self.world.arbiter.release_entry();
+                self.quit = true;
+                cx.quit();
+            } else {
+                self.open_quit(cx);
+            }
+        }
+    }
+
+    fn continue_settings_exit(&mut self, cx: &mut Cx<'_>) {
+        self.settings_save_preview = false;
+        match self
+            .settings_exit_target
+            .take()
+            .unwrap_or(SettingsExitTarget::Route(Route::Manager))
+        {
+            SettingsExitTarget::Route(route) => {
+                self.route = route;
+                match route {
+                    Route::Manager => cx.focus(MANAGER_LIST),
+                    Route::Accounts => cx.focus(ACCOUNTS_LIST),
+                    Route::Usage => cx.focus(crate::screens::usage::TABS),
+                    Route::Capsule => cx.focus(CAPSULE_INPUT),
+                    _ => {}
+                }
+            }
+            SettingsExitTarget::Quit => {
+                self.request_quit(cx);
+            }
+        }
+    }
+
+    fn begin_settings_draft(&mut self) {
+        if !self.settings.dirty {
+            self.settings.begin_draft();
+            self.settings_trusted_origin = Some(self.trusted);
+            self.settings_trust_origin = self
+                .world
+                .global
+                .trust
+                .iter()
+                .map(|row| row.trusted)
+                .collect();
+            self.settings_role_trust_origin = self
+                .world
+                .roles
+                .iter()
+                .map(|role| (role.full_name(), role.trusted))
+                .collect();
+        }
+    }
+
+    fn discard_settings_draft(&mut self) {
+        for (row, trusted) in self
+            .world
+            .global
+            .trust
+            .iter_mut()
+            .zip(self.settings_trust_origin.iter().copied())
+        {
+            row.trusted = trusted;
+        }
+        for (role, trusted) in &self.settings_role_trust_origin {
+            if let Some(entry) = self
+                .world
+                .roles
+                .iter_mut()
+                .find(|entry| entry.full_name() == *role)
+            {
+                entry.trusted = *trusted;
+            }
+        }
+        if let Some(trusted) = self.settings_trusted_origin.take() {
+            self.trusted = trusted;
+        }
+        self.settings_trust_origin.clear();
+        self.settings_role_trust_origin.clear();
+        self.settings.dirty = false;
+        self.settings.save_attempts = 0;
+        self.settings.clear_error();
+        self.settings_save_preview = false;
+    }
+
+    fn move_settings_row(&mut self, down: bool, advance: bool, cx: &mut Cx<'_>) {
+        let rows = self.settings_rows();
+        if rows.is_empty() {
+            return;
+        }
+        let current = self
+            .settings_rows
+            .cursor()
+            .and_then(|key| rows.iter().position(|row| row.key == key));
+        let index = if advance {
+            match (current, down) {
+                (Some(index), true) => index.saturating_add(1).min(rows.len() - 1),
+                (Some(index), false) => index.saturating_sub(1),
+                (None, true) | (None, false) => 0,
+            }
+        } else {
+            current.unwrap_or(0)
+        };
+        self.settings_rows.set_cursor(index, rows[index].key);
+        self.settings_list_focused = true;
+        self.sync_settings_trust_selection(&rows);
+        cx.focus(SETTINGS_ROWS);
+    }
+
+    fn sync_settings_trust_selection(&mut self, rows: &[SettingsRow]) {
+        let Some(key) = self.settings_rows.cursor() else {
+            return;
+        };
+        let Some(row) = rows.iter().find(|row| row.key == key) else {
+            return;
+        };
+        match row.trust_target.as_ref() {
+            Some(SettingsTrustTarget::Global(index)) => {
+                self.settings_trust_cursor = *index;
+                if let Some(trust) = self.world.global.trust.get(*index) {
+                    self.trusted = trust.trusted;
+                }
+            }
+            Some(SettingsTrustTarget::Role(name)) => {
+                self.settings_trust_cursor = self.world.global.trust.len()
+                    + self
+                        .world
+                        .roles
+                        .iter()
+                        .position(|role| role.full_name() == *name)
+                        .unwrap_or_default();
+                if let Some(role) = self
+                    .world
+                    .roles
+                    .iter()
+                    .find(|role| role.full_name() == *name)
+                {
+                    self.trusted = role.trusted;
+                }
+            }
+            None => {}
+        }
+    }
+
+    fn selected_settings_trust_target(&self) -> Option<SettingsTrustTarget> {
+        let selected = self.settings_rows.cursor()?;
+        self.settings_rows()
+            .into_iter()
+            .find(|row| row.key == selected)
+            .and_then(|row| row.trust_target)
+    }
+
+    fn toggle_selected_settings_trust(&mut self) -> bool {
+        let Some(target) = self.selected_settings_trust_target() else {
+            return false;
+        };
+        self.begin_settings_draft();
+        let trusted = match target {
+            SettingsTrustTarget::Global(index) => {
+                let Some(row) = self.world.global.trust.get_mut(index) else {
+                    return false;
+                };
+                row.trusted = !row.trusted;
+                row.trusted
+            }
+            SettingsTrustTarget::Role(name) => {
+                let Some(role) = self
+                    .world
+                    .roles
+                    .iter_mut()
+                    .find(|role| role.full_name() == name)
+                else {
+                    return false;
+                };
+                role.trusted = !role.trusted;
+                role.trusted
+            }
+        };
+        self.trusted = trusted;
+        self.settings.mark_dirty();
+        true
+    }
+
+    fn settings_trust_diff_lines(&self) -> Vec<String> {
+        let mut lines = Vec::new();
+        for (index, row) in self.world.global.trust.iter().enumerate() {
+            if let Some(before) = self.settings_trust_origin.get(index)
+                && *before != row.trusted
+            {
+                lines.push(format!(
+                    "{} · {} → {}",
+                    row.source,
+                    if *before { "trusted" } else { "untrusted" },
+                    if row.trusted { "trusted" } else { "untrusted" },
+                ));
+            }
+        }
+        for role in &self.world.roles {
+            if let Some((_, before)) = self
+                .settings_role_trust_origin
+                .iter()
+                .find(|(name, _)| *name == role.full_name())
+                && *before != role.trusted
+            {
+                lines.push(format!(
+                    "Role {} · {} → {}",
+                    role.full_name(),
+                    if *before { "trusted" } else { "untrusted" },
+                    if role.trusted { "trusted" } else { "untrusted" },
+                ));
+            }
+        }
+        lines
     }
 
     fn dismiss_editor_env_form(&mut self, cx: &mut Cx<'_>) {
@@ -3089,6 +3451,85 @@ impl App {
             }
         }
         list.erase()
+    }
+
+    fn focus_transition_only(cx: &Cx<'_>, owner: Id) -> bool {
+        let mut saw_focus = false;
+        let only_focus = cx.intents(owner).all(|intent| {
+            let focus = matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. });
+            saw_focus |= focus;
+            focus
+        });
+        only_focus && saw_focus
+    }
+
+    fn update_manager_list_focus_transition(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !Self::focus_transition_only(cx, MANAGER_LIST) {
+            return Response::ignored();
+        }
+
+        self.ensure_manager_rows();
+        let list =
+            Self::manager_list().update(cx, &mut self.manager.list, &self.manager_rows_cache);
+        let selected_key = match list.action_ref().copied() {
+            Some(ListAction::Activated(key) | ListAction::Chose(key)) => Some(key),
+            _ => self.manager.list.cursor(),
+        };
+        let mut result = list.erase();
+        if let Some(key) = selected_key
+            && let Some(row) = self.manager_rows_cache.iter().find(|row| row.key == key)
+            && self.manager.selected_row() != &row.domain
+        {
+            self.manager.select_row(row.domain.clone());
+            result |= Response::changed();
+        }
+        result
+    }
+
+    fn update_settings_focus_transitions(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut result = Response::ignored();
+
+        if Self::focus_transition_only(cx, SETTINGS_TABS) {
+            result |= Tabs::new(SETTINGS_TABS)
+                .update(
+                    cx,
+                    &mut self.settings_tabs,
+                    &crate::screens::settings::TAB_NAMES,
+                )
+                .erase();
+        }
+        if Self::focus_transition_only(cx, SETTINGS_ROWS) {
+            let rows = self.settings_rows();
+            result |= List::new(SETTINGS_ROWS)
+                .key(|row: &SettingsRow| row.key)
+                .row(paint_settings_row)
+                .update(cx, &mut self.settings_rows, &rows)
+                .erase();
+        }
+        if Self::focus_transition_only(cx, SETTINGS_TRUST) {
+            result |= Self::settings_trust_button(self.trusted).update(cx).erase();
+        }
+        if Self::focus_transition_only(cx, crate::screens::settings::SAVE) {
+            result |= Self::settings_save_button().update(cx).erase();
+        }
+        if Self::focus_transition_only(cx, SETTINGS_SAVE_CONFIRM) {
+            result |= Self::settings_save_confirm_button().update(cx).erase();
+        }
+
+        if cx
+            .state(SETTINGS_ROWS)
+            .contains(termrock::StateFlags::FOCUSED)
+        {
+            self.settings_list_focused = true;
+        } else if cx
+            .state(SETTINGS_TABS)
+            .contains(termrock::StateFlags::FOCUSED)
+            || self.route != Route::Settings
+        {
+            self.settings_list_focused = false;
+        }
+
+        result
     }
 
     fn acknowledge_account_list_focus_results(&self, cx: &mut Cx<'_>) {
@@ -4588,6 +5029,54 @@ impl App {
             }
         }
 
+        let settings_exit_was_open = self.settings_exit_open;
+        let dialog = Self::settings_exit_dialog();
+        let response = dialog.update(cx, &mut self.settings_exit_state);
+        let action = response.action_ref().copied();
+        result |= response.erase();
+        if settings_exit_was_open {
+            match action {
+                Some(DialogAction::Action(SETTINGS_EXIT_SAVE)) => {
+                    if cx.is_open(SETTINGS_EXIT_DIALOG) {
+                        cx.close_layer(SETTINGS_EXIT_DIALOG, Some(SETTINGS_EXIT_SAVE));
+                    }
+                    self.settings_exit_open = false;
+                    self.settings_save_preview = true;
+                    self.status = Some("Save settings · choose a confirmation action".into());
+                    cx.focus(SETTINGS_SAVE_CONFIRM);
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(SETTINGS_EXIT_DISCARD)) => {
+                    if cx.is_open(SETTINGS_EXIT_DIALOG) {
+                        cx.close_layer(SETTINGS_EXIT_DIALOG, Some(SETTINGS_EXIT_DISCARD));
+                    }
+                    self.settings_exit_open = false;
+                    self.discard_settings_draft();
+                    self.status = Some("Discarded settings changes".into());
+                    self.continue_settings_exit(cx);
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(SETTINGS_EXIT_CANCEL) | DialogAction::Dismissed(_)) => {
+                    self.close_settings_exit(cx);
+                    cx.focus(if self.settings_list_focused {
+                        SETTINGS_ROWS
+                    } else {
+                        SETTINGS_TABS
+                    });
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(SETTINGS_EXIT_DIALOG) => {
+                    self.settings_exit_open = false;
+                    self.settings_exit_target = None;
+                    if self.status.as_deref() == Some("Save settings before leaving?") {
+                        self.status = None;
+                    }
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
+
         let dialog = Self::launch_dialog();
         let response = dialog.update(cx, &mut self.launch_dialog);
         let action = response.action_ref().copied();
@@ -4914,6 +5403,22 @@ impl App {
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.ensure_manager_rows();
         let mut result = manager_detail::update(self, cx);
+        let menu_response = Self::manager_menu_bar().update(cx, &mut self.manager_menu_bar_state);
+        match menu_response.action_ref().copied() {
+            Some(MenuAction::Chosen(action)) => {
+                if let Some(response) = self.update_command(cx, action) {
+                    result |= response;
+                }
+                self.manager_menu_bar_state = MenuState::default();
+                cx.close_layer(MANAGER_MENU_BAR, None);
+            }
+            Some(MenuAction::Closed(_)) => {
+                self.manager_menu_bar_state = MenuState::default();
+            }
+            Some(MenuAction::Submenu(_)) => {}
+            Some(MenuAction::Opened(_)) | None => {}
+        }
+        result |= menu_response.erase();
         if self.route != Route::Manager {
             return result;
         }
@@ -5394,33 +5899,51 @@ impl App {
         });
     }
 
-    fn toggle_settings_trust_row(&mut self) {
-        if self.settings_trust_origin.is_empty() {
-            self.settings_trust_origin = self
-                .world
-                .global
-                .trust
-                .iter()
-                .map(|row| row.trusted)
-                .collect();
-        }
-        if let Some(row) = self.world.global.trust.get_mut(self.settings_trust_cursor) {
-            row.trusted = !row.trusted;
-        }
-    }
-
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.sync_settings_tabs();
+        let mut result = Response::ignored();
+
+        let tabs = Tabs::new(SETTINGS_TABS);
+        let tabs_response = tabs.update(
+            cx,
+            &mut self.settings_tabs,
+            &crate::screens::settings::TAB_NAMES,
+        );
+        if cx.update_cause() == UpdateCause::Event
+            && let Some(TabsAction::Activated(ItemKey::Index(index))) =
+                tabs_response.action_ref().copied()
+        {
+            self.set_settings_tab(index);
+            self.settings_list_focused = false;
+        }
+        result |= tabs_response.erase();
+
+        let rows = self.settings_rows();
+        let list_response = List::new(SETTINGS_ROWS)
+            .key(|row: &SettingsRow| row.key)
+            .row(paint_settings_row)
+            .update(cx, &mut self.settings_rows, &rows);
+        if cx
+            .state(SETTINGS_ROWS)
+            .contains(termrock::StateFlags::FOCUSED)
+        {
+            self.settings_list_focused = true;
+        } else if cx
+            .state(SETTINGS_TABS)
+            .contains(termrock::StateFlags::FOCUSED)
+        {
+            self.settings_list_focused = false;
+        }
+        self.sync_settings_trust_selection(&rows);
+        result |= list_response.erase();
+
         let button = Self::settings_trust_button(self.trusted).update(cx);
         let chosen = button.activated();
-        let mut result = button.erase();
+        result |= button.erase();
         if chosen {
-            self.trusted = !self.trusted;
-            if self.settings.dirty {
-                self.settings.mark_dirty();
-            } else {
-                self.settings.begin_draft();
+            if self.toggle_selected_settings_trust() {
+                result |= Response::changed();
             }
-            result |= Response::changed();
         }
         let save = Self::settings_save_button().update(cx);
         let save_chosen = save.activated();
@@ -5444,11 +5967,11 @@ impl App {
             if keep {
                 self.status = self.settings.save_error.clone();
             } else {
-                if let Some(trust) = self.world.global.trust.first_mut() {
-                    trust.trusted = self.trusted;
-                }
+                self.settings_trusted_origin = None;
+                self.settings_trust_origin.clear();
+                self.settings_role_trust_origin.clear();
                 self.status = Some("Settings saved".into());
-                self.route = Route::Manager;
+                self.continue_settings_exit(cx);
             }
             result |= Response::changed();
         }
@@ -6197,6 +6720,20 @@ impl App {
     }
 
     fn update_command(&mut self, cx: &mut Cx<'_>, command: ActionKey) -> Option<Response<()>> {
+        if self.route == Route::Settings && self.settings.dirty {
+            let target = match command {
+                CMD_QUIT => Some(SettingsExitTarget::Quit),
+                CMD_MANAGER => Some(SettingsExitTarget::Route(Route::Manager)),
+                CMD_ACCOUNTS => Some(SettingsExitTarget::Route(Route::Accounts)),
+                CMD_USAGE => Some(SettingsExitTarget::Route(Route::Usage)),
+                CMD_CAPSULE => Some(SettingsExitTarget::Route(Route::Capsule)),
+                _ => None,
+            };
+            if let Some(target) = target {
+                self.open_settings_exit(cx, target);
+                return Some(Response::changed());
+            }
+        }
         if self.account_form_owns_input(cx)
             && matches!(
                 command,
@@ -6244,18 +6781,7 @@ impl App {
         }
         match command {
             CMD_QUIT => {
-                if !self.quit_open {
-                    if self.route == Route::Manager
-                        && !self.help_open
-                        && cx.top_layer() == LayerId::PAGE
-                    {
-                        self.world.arbiter.release_entry();
-                        self.quit = true;
-                        cx.quit();
-                    } else {
-                        self.open_quit(cx);
-                    }
-                }
+                self.request_quit(cx);
                 Some(Response::changed())
             }
             CMD_MANAGER
@@ -6468,6 +6994,9 @@ impl App {
             CMD_SETTINGS => {
                 self.route = Route::Settings;
                 self.settings.clear_error();
+                self.sync_settings_tabs();
+                self.settings_list_focused = false;
+                cx.focus(SETTINGS_TABS);
                 Some(Response::changed())
             }
             CMD_CAPSULE_NEW_TAB if self.route == Route::Capsule => {
@@ -6505,19 +7034,12 @@ impl App {
             }
             CMD_MENU_OPEN if self.route == Route::Manager => {
                 self.ensure_manager_rows();
-                if !self.manager_menu_host(cx.theme(), cx.viewport()) {
-                    return None;
-                }
-                self.manager_file_menu = true;
-                if !cx.is_open(MANAGER_FILE_MENU) {
-                    cx.open_layer(
-                        MANAGER_FILE_MENU,
-                        self.manager_file_menu()
-                            .layer(cx)
-                            .backdrop(termrock::Backdrop::None),
-                    );
-                }
-                Some(Response::changed())
+                self.manager_menu_bar_state = MenuState::default();
+                Some(
+                    Self::manager_menu_bar()
+                        .open_menu(cx, &mut self.manager_menu_bar_state, 0)
+                        .erase(),
+                )
             }
             CMD_COPY_SELECTION if self.route == Route::Capsule => {
                 if let Some(pane_id) = self
@@ -6945,7 +7467,12 @@ impl App {
             CMD_SETTINGS_TAB_PREV
                 if self.route == Route::Settings && !self.settings_save_preview =>
             {
-                self.settings.cycle_tab(false);
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings.cycle_tab(false);
+                    self.sync_settings_tabs();
+                    self.settings_list_focused = false;
+                }
+                cx.focus(SETTINGS_TABS);
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM
@@ -7022,6 +7549,15 @@ impl App {
                 self.focus_editor_tab(cx);
                 Some(Response::changed())
             }
+            CMD_EDITOR_NEXT if self.route == Route::Settings && !self.settings_save_preview => {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings.cycle_tab(true);
+                    self.sync_settings_tabs();
+                    self.settings_list_focused = false;
+                }
+                cx.focus(SETTINGS_TABS);
+                Some(Response::changed())
+            }
             CMD_EDITOR_ENV if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(4);
@@ -7036,6 +7572,15 @@ impl App {
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
                 self.focus_editor_tab(cx);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_PREVIOUS if self.route == Route::Settings && !self.settings_save_preview => {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings.cycle_tab(false);
+                    self.sync_settings_tabs();
+                    self.settings_list_focused = false;
+                }
+                cx.focus(SETTINGS_TABS);
                 Some(Response::changed())
             }
             CMD_EDITOR_ROLES if self.route == Route::Editor => {
@@ -7081,7 +7626,9 @@ impl App {
             {
                 self.settings_mounts_armed = false;
                 if cx.update_cause() == UpdateCause::Event {
-                    self.settings.tab = 1;
+                    self.set_settings_tab(1);
+                    self.settings_list_focused = false;
+                    cx.focus(SETTINGS_TABS);
                 }
                 Some(Response::changed())
             }
@@ -7096,7 +7643,9 @@ impl App {
             {
                 self.settings_env_armed = false;
                 if cx.update_cause() == UpdateCause::Event {
-                    self.settings.tab = 2;
+                    self.set_settings_tab(2);
+                    self.settings_list_focused = false;
+                    cx.focus(SETTINGS_TABS);
                 }
                 Some(Response::changed())
             }
@@ -7111,7 +7660,9 @@ impl App {
             {
                 self.settings_agents_armed = false;
                 if cx.update_cause() == UpdateCause::Event {
-                    self.settings.tab = 3;
+                    self.set_settings_tab(3);
+                    self.settings_list_focused = false;
+                    cx.focus(SETTINGS_TABS);
                 }
                 Some(Response::changed())
             }
@@ -7126,17 +7677,21 @@ impl App {
             {
                 self.settings_trust_armed = false;
                 if cx.update_cause() == UpdateCause::Event {
-                    self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
+                    self.set_settings_tab(crate::screens::settings::TAB_NAMES.len() - 1);
+                    self.settings_list_focused = false;
+                    cx.focus(SETTINGS_TABS);
                 }
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
-                self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
+                self.set_settings_tab(crate::screens::settings::TAB_NAMES.len() - 1);
+                self.settings_list_focused = false;
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
             CMD_NAV_TAB_FIVE if self.route == Route::Settings => {
-                self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
+                self.set_settings_tab(crate::screens::settings::TAB_NAMES.len() - 1);
+                self.settings_list_focused = false;
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
@@ -7182,9 +7737,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SAVE if self.route == Route::Settings => {
-                if !self.settings.dirty {
-                    self.settings.begin_draft();
-                }
+                self.begin_settings_draft();
                 self.settings_save_preview = true;
                 cx.focus(SETTINGS_SAVE_CONFIRM);
                 self.status = Some("Save settings · choose a confirmation action".into());
@@ -7192,24 +7745,26 @@ impl App {
             }
             CMD_PRELUDE_SPACE if self.route == Route::Settings => {
                 if cx.update_cause() == UpdateCause::Event {
-                    if self.settings.tab == 4 {
-                        self.toggle_settings_trust_row();
-                    }
-                    self.trusted = !self.trusted;
-                    if self.settings.dirty {
-                        self.settings.mark_dirty();
-                    } else {
-                        self.settings.begin_draft();
+                    if self.settings.tab == 4 && self.toggle_selected_settings_trust() {
+                        return Some(Response::changed());
                     }
                 }
                 Some(Response::changed())
             }
-            CMD_NAV_DOWN if self.route == Route::Settings && self.settings.tab == 4 => {
-                let count = self.world.global.trust.len();
-                if count > 0 {
-                    self.settings_trust_cursor =
-                        self.settings_trust_cursor.saturating_add(1).min(count - 1);
-                }
+            CMD_NAV_UP if self.route == Route::Settings && !self.settings_save_preview => {
+                let advance = cx.update_cause() == UpdateCause::Event
+                    && cx
+                        .state(SETTINGS_ROWS)
+                        .contains(termrock::StateFlags::FOCUSED);
+                self.move_settings_row(false, advance, cx);
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Settings && !self.settings_save_preview => {
+                let advance = cx.update_cause() == UpdateCause::Event
+                    && cx
+                        .state(SETTINGS_ROWS)
+                        .contains(termrock::StateFlags::FOCUSED);
+                self.move_settings_row(true, advance, cx);
                 Some(Response::changed())
             }
             CMD_NAV_DOWN
@@ -7331,6 +7886,53 @@ impl App {
     }
 
     fn draw_header(&self, ui: &mut Ui<'_>, area: Rect) {
+        if self.route == Route::Manager {
+            if area.height == 0 {
+                return;
+            }
+            let brand = Brand::new(APP.sub("manager-brand"), "jackin❯")
+                .draw(ui, Rect::new(area.x, area.y, area.width.min(9), 1));
+            let menu_x = brand.right().saturating_add(1);
+            Self::manager_menu_bar().draw(
+                ui,
+                Rect::new(menu_x, area.y, area.right().saturating_sub(menu_x), 1),
+                &self.manager_menu_bar_state,
+            );
+            let style = ui.surface_style();
+            if area.height > 1 {
+                ui.paint_str(
+                    Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+                    Route::Manager.title(),
+                    style,
+                );
+            }
+            if area.height > 2 {
+                let labels = [
+                    (MANAGER, "Manager"),
+                    (ACCOUNTS, "Accounts"),
+                    (USAGE, "Usage"),
+                    (SETTINGS, "Settings"),
+                    (CAPSULE, "Capsule"),
+                ];
+                let mut x = area.x;
+                for (id, label) in labels {
+                    let width = 12;
+                    Button::new(id, label)
+                        .checked(match id {
+                            MANAGER => self.route == Route::Manager,
+                            ACCOUNTS => self.route == Route::Accounts,
+                            USAGE => self.route == Route::Usage,
+                            SETTINGS => self.route == Route::Settings,
+                            CAPSULE => self.route == Route::Capsule,
+                            _ => false,
+                        })
+                        .draw(ui, Rect::new(x, area.y.saturating_add(2), width, 1));
+                    x = x.saturating_add(width);
+                }
+            }
+            manager_detail::register_shell_tab(self, ui);
+            return;
+        }
         let heading = Rect {
             height: area.height.min(1),
             ..area
@@ -7722,12 +8324,20 @@ impl App {
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect, frame_owns_list: bool) {
-        if self.manager_detail_state.drawer_open() || self.manager.detail_open() {
-            manager_detail::draw(self, ui, area, frame_owns_list);
-            return;
+        manager_detail::draw(self, ui, area, frame_owns_list);
+    }
+
+    fn manager_selected_heading(&self) -> String {
+        match self.manager.selected_row() {
+            ManagerRowKey::Workspace(id) => self
+                .world
+                .workspace(*id)
+                .map(|workspace| format!("Workspaces › {}", workspace.name))
+                .unwrap_or_else(|| format!("Workspace {id} · unavailable")),
+            ManagerRowKey::Instance(id) => format!("Instance › {id}"),
+            ManagerRowKey::CurrentDirectory => "Current directory".to_owned(),
+            ManagerRowKey::NewWorkspace => "New workspace".to_owned(),
         }
-        self.draw_manager_master(ui, area, frame_owns_list);
-        manager_detail::register_list_tab(ui);
     }
 
     fn draw_manager_master(&self, ui: &mut Ui<'_>, area: Rect, frame_owns_list: bool) {
@@ -7739,7 +8349,7 @@ impl App {
         paint_lines(
             ui,
             Rect { height: 2, ..area },
-            std::slice::from_ref(&self.manager_header),
+            &[self.manager_header.clone(), self.manager_selected_heading()],
         );
         if !frame_owns_list {
             Self::manager_list().draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
@@ -8365,51 +8975,399 @@ impl App {
         lines
     }
 
-    fn draw_settings(&self, ui: &mut Ui<'_>, area: Rect) {
-        let mut lines = vec![
-            self.settings.tab_line(),
-            if self.settings.dirty {
-                "• 1 change · Runtime mode · Sync host credentials".to_owned()
-            } else {
-                "Runtime mode · Sync host credentials".to_owned()
-            },
-            "Workspace · payments-platform".to_owned(),
-            "DCO signoff · enabled".to_owned(),
-            "Secret policy · references only; resolved bytes are transient".to_owned(),
-        ];
-        if self.settings_save_preview {
-            lines.push("Scope · global config".to_owned());
-            lines.push("Changes · trust draft".to_owned());
+    fn settings_workspace(&self) -> Option<&crate::domain::workspace::Workspace> {
+        match self.manager.selected_row() {
+            ManagerRowKey::Workspace(id) => self.world.workspace(*id),
+            ManagerRowKey::CurrentDirectory => self.world.cwd_workspace(),
+            ManagerRowKey::Instance(id) => self
+                .world
+                .instances
+                .iter()
+                .find(|instance| instance.id == *id)
+                .and_then(|instance| instance.workspace)
+                .and_then(|workspace| self.world.workspace(workspace)),
+            ManagerRowKey::NewWorkspace => None,
         }
-        paint_lines(ui, area, &lines);
-        Self::settings_trust_button(self.trusted).draw(
-            ui,
-            Rect {
-                y: area.bottom().saturating_sub(3),
-                width: area.width.min(30),
-                height: 1,
-                ..area
-            },
-        );
-        Self::settings_save_button().draw(
-            ui,
-            Rect::new(area.x, area.bottom().saturating_sub(2), 18, 1),
-        );
-        if self
-            .status
-            .as_deref()
-            .is_some_and(|status| status.starts_with("Save settings"))
-        {
-            Self::settings_save_confirm_button().draw(
+    }
+
+    fn settings_rows(&self) -> Vec<SettingsRow> {
+        let mut rows = Vec::new();
+        match self.settings.tab.min(4) {
+            0 => {
+                rows.push(SettingsRow::new("scope", "Scope", "Global configuration").tag("global"));
+                if let Some(workspace) = self.settings_workspace() {
+                    rows.push(SettingsRow::new(
+                        format!("workspace:{}", workspace.id),
+                        "Selected workspace",
+                        workspace.name.clone(),
+                    ));
+                    rows.push(SettingsRow::new(
+                        format!("workdir:{}", workspace.id),
+                        "Working directory",
+                        workspace.workdir.clone(),
+                    ));
+                    rows.push(SettingsRow::new(
+                        format!("git-pull:{}", workspace.id),
+                        "Fetch before launch",
+                        if workspace.git_pull {
+                            "enabled"
+                        } else {
+                            "disabled"
+                        },
+                    ));
+                    rows.push(SettingsRow::new(
+                        format!("keep-awake:{}", workspace.id),
+                        "Keep workspace awake",
+                        if workspace.keep_awake {
+                            "enabled"
+                        } else {
+                            "disabled"
+                        },
+                    ));
+                    rows.push(SettingsRow::new(
+                        format!("dirty-policy:{}", workspace.id),
+                        "Dirty workspace on exit",
+                        workspace.dirty_policy.label(),
+                    ));
+                    rows.push(SettingsRow::new(
+                        format!("roles:{}", workspace.id),
+                        "Allowed roles",
+                        workspace.roles.summary(),
+                    ));
+                } else {
+                    rows.push(SettingsRow::new(
+                        "workspace:none",
+                        "Selected workspace",
+                        "No workspace is selected",
+                    ));
+                }
+                rows.push(SettingsRow::new(
+                    "trust-count",
+                    "Trusted sources",
+                    format!("{} configured", self.world.global.trust.len()),
+                ));
+            }
+            1 => {
+                for workspace in &self.world.workspaces {
+                    for (index, mount) in workspace.mounts.iter().enumerate() {
+                        let kind = match mount.kind {
+                            crate::domain::workspace::MountKind::Directory => "directory",
+                            crate::domain::workspace::MountKind::Repository => "repository",
+                        };
+                        let source_kind = match &mount.source {
+                            crate::domain::workspace::MountSource::Host(_) => "host",
+                            crate::domain::workspace::MountSource::Git(_) => "git",
+                        };
+                        rows.push(
+                            SettingsRow::new(
+                                format!("mount:{}:{index}", workspace.id),
+                                mount.destination.clone(),
+                                format!(
+                                    "{} · {} · {} · {} · {}",
+                                    workspace.name,
+                                    mount.scope.label(),
+                                    mount.mode_label(),
+                                    mount.isolation.label(),
+                                    mount.source_label(),
+                                ),
+                            )
+                            .tag(format!("{source_kind} {kind}")),
+                        );
+                    }
+                }
+                if rows.is_empty() {
+                    rows.push(SettingsRow::new(
+                        "mounts:none",
+                        "No mounts configured",
+                        "Workspace mount definitions are empty",
+                    ));
+                }
+            }
+            2 => {
+                for workspace in &self.world.workspaces {
+                    for variable in &workspace.env {
+                        rows.push(SettingsRow::new(
+                            format!("env:{}:{}", workspace.id, variable.key),
+                            variable.key.clone(),
+                            format!("{} · {}", workspace.name, variable.value.source_label()),
+                        ));
+                    }
+                    for (role, variables) in &workspace.role_env {
+                        for variable in variables {
+                            rows.push(SettingsRow::new(
+                                format!("role-env:{}:{role}:{}", workspace.id, variable.key),
+                                variable.key.clone(),
+                                format!(
+                                    "{} · role {role} · {}",
+                                    workspace.name,
+                                    variable.value.source_label(),
+                                ),
+                            ));
+                        }
+                    }
+                }
+                if rows.is_empty() {
+                    rows.push(SettingsRow::new(
+                        "env:none",
+                        "No environment variables configured",
+                        "Workspace and role environment definitions are empty",
+                    ));
+                }
+            }
+            3 => {
+                for agent in Agent::ALL {
+                    let accounts = self
+                        .world
+                        .accounts
+                        .accounts
+                        .iter()
+                        .filter(|account| account.provider == agent.provider())
+                        .count();
+                    rows.push(SettingsRow::new(
+                        format!("agent:{}", agent.short()),
+                        agent.label(),
+                        format!(
+                            "{} · {accounts} registered accounts",
+                            agent.provider().label()
+                        ),
+                    ));
+                }
+            }
+            _ => {
+                let trusted = self
+                    .world
+                    .global
+                    .trust
+                    .iter()
+                    .filter(|row| row.trusted)
+                    .count();
+                let untrusted = self.world.global.trust.len().saturating_sub(trusted);
+                let trusted_roles = self.world.roles.iter().filter(|role| role.trusted).count();
+                let untrusted_roles = self.world.roles.len().saturating_sub(trusted_roles);
+                rows.push(SettingsRow::new(
+                    "trust:summary",
+                    "Trust overview",
+                    format!(
+                        "Sources · {trusted} trusted · {untrusted} untrusted · Roles · {trusted_roles} trusted · {untrusted_roles} untrusted"
+                    ),
+                ));
+                for (index, trust) in self.world.global.trust.iter().enumerate() {
+                    let before = self.settings_trust_origin.get(index).copied();
+                    let dirty = before.is_some_and(|before| before != trust.trusted);
+                    let state = if trust.trusted {
+                        "trusted"
+                    } else {
+                        "untrusted"
+                    };
+                    let detail = match before.filter(|before| *before != trust.trusted) {
+                        Some(before) => format!(
+                            "{} roles · {} → {}",
+                            self.trust_role_count(&trust.source),
+                            if before { "trusted" } else { "untrusted" },
+                            state,
+                        ),
+                        None => format!("{} roles · {state}", self.trust_role_count(&trust.source)),
+                    };
+                    rows.push(
+                        SettingsRow::new(
+                            format!("trust:{index}:{}", trust.source),
+                            trust.source.clone(),
+                            detail,
+                        )
+                        .tag(if dirty {
+                            "changed"
+                        } else if trust.trusted {
+                            "trusted"
+                        } else {
+                            "untrusted"
+                        })
+                        .trust_target(SettingsTrustTarget::Global(index)),
+                    );
+                }
+                for role in &self.world.roles {
+                    let before = self
+                        .settings_role_trust_origin
+                        .iter()
+                        .find(|(name, _)| *name == role.full_name())
+                        .map(|(_, trusted)| *trusted);
+                    let dirty = before.is_some_and(|before| before != role.trusted);
+                    let state = if role.trusted { "trusted" } else { "untrusted" };
+                    let detail = match before.filter(|before| *before != role.trusted) {
+                        Some(before) => format!(
+                            "{} · {} · {} → {}",
+                            role.source.label(),
+                            role.description,
+                            if before { "trusted" } else { "untrusted" },
+                            state,
+                        ),
+                        None => format!("{} · {} · {state}", role.source.label(), role.description),
+                    };
+                    rows.push(
+                        SettingsRow::new(
+                            format!("role-trust:{}", role.full_name()),
+                            role.full_name(),
+                            detail,
+                        )
+                        .tag(if dirty {
+                            "changed"
+                        } else if role.trusted {
+                            "trusted"
+                        } else {
+                            "untrusted"
+                        })
+                        .trust_target(SettingsTrustTarget::Role(role.full_name())),
+                    );
+                }
+            }
+        }
+        rows
+    }
+
+    fn trust_role_count(&self, source: &str) -> usize {
+        self.world
+            .roles
+            .iter()
+            .filter(|role| match &role.source {
+                crate::domain::workspace::RoleSource::Git { url, .. } => url == source,
+                crate::domain::workspace::RoleSource::Local { path } => {
+                    path == source || path.starts_with(&format!("{source}/"))
+                }
+            })
+            .count()
+    }
+
+    fn sync_settings_tabs(&mut self) {
+        let index = usize::from(self.settings.tab.min(4));
+        self.settings_tabs.set_active(index, ItemKey::index(index));
+    }
+
+    fn set_settings_tab(&mut self, index: usize) {
+        self.settings.tab = (index % crate::screens::settings::TAB_NAMES.len()) as u8;
+        self.sync_settings_tabs();
+    }
+
+    fn draw_settings(&self, ui: &mut Ui<'_>, area: Rect) {
+        let tab = usize::from(self.settings.tab.min(4));
+        let trust_controls = tab == 4;
+        let tab_name = crate::screens::settings::TAB_NAMES[tab];
+        let title = format!("Settings › global › {tab_name}");
+        let panel = Panel::new(SETTINGS.sub("native-view")).title(&title);
+        panel.draw(ui, area, |ui, body| {
+            let tabs_area = Rect::new(body.x, body.y, body.width, body.height.min(2));
+            Tabs::new(SETTINGS_TABS).draw(
+                ui,
+                tabs_area,
+                &self.settings_tabs,
+                &crate::screens::settings::TAB_NAMES,
+            );
+
+            let trust_diffs = self.settings_trust_diff_lines();
+            let visible_diff_count = trust_diffs.len().min(3);
+            let preview_rows = if self.settings_save_preview {
+                3 + visible_diff_count + usize::from(trust_diffs.len() > visible_diff_count)
+            } else {
+                0
+            };
+            let trailing_footer_rows = if trust_controls { 3 } else { 2 };
+            let footer_rows = if self.settings_save_preview {
+                preview_rows.saturating_add(trailing_footer_rows) as u16
+            } else {
+                trailing_footer_rows.saturating_add(1) as u16
+            };
+            let footer_y = body.bottom().saturating_sub(footer_rows);
+            let list_y = tabs_area.bottom().saturating_add(1);
+            let list_area = Rect::new(body.x, list_y, body.width, footer_y.saturating_sub(list_y));
+            let rows = self.settings_rows();
+            List::new(SETTINGS_ROWS)
+                .key(|row: &SettingsRow| row.key)
+                .row(paint_settings_row)
+                .draw(ui, list_area, &self.settings_rows, &rows);
+
+            if self.settings_save_preview {
+                let style = ui.surface_style();
+                let mut preview_y = footer_y;
+                let change_summary = format!(
+                    "Changes · {} trust source{}",
+                    trust_diffs.len(),
+                    if trust_diffs.len() == 1 { "" } else { "s" }
+                );
+                let preview_lines = [
+                    "Scope · global config · trust changes are applied on save",
+                    change_summary.as_str(),
+                ];
+                for line in preview_lines {
+                    ui.paint_str(Rect::new(body.x, preview_y, body.width, 1), line, style);
+                    preview_y = preview_y.saturating_add(1);
+                }
+                for line in trust_diffs.iter().take(visible_diff_count) {
+                    ui.paint_str(Rect::new(body.x, preview_y, body.width, 1), line, style);
+                    preview_y = preview_y.saturating_add(1);
+                }
+                if trust_diffs.len() > visible_diff_count {
+                    ui.paint_str(
+                        Rect::new(body.x, preview_y, body.width, 1),
+                        &format!(
+                            "… and {} more changes",
+                            trust_diffs.len() - visible_diff_count
+                        ),
+                        style,
+                    );
+                    preview_y = preview_y.saturating_add(1);
+                }
+                let note = self
+                    .settings
+                    .save_error
+                    .as_deref()
+                    .unwrap_or("Review each source above · Cancel leaves the draft unchanged");
+                ui.paint_str(Rect::new(body.x, preview_y, body.width, 1), note, style);
+            } else if let Some(status) = &self.status {
+                ui.paint_str(
+                    Rect::new(body.x, footer_y, body.width, 1),
+                    status,
+                    ui.surface_style(),
+                );
+            }
+
+            if trust_controls {
+                Self::settings_trust_button(self.trusted).draw(
+                    ui,
+                    Rect::new(
+                        body.x,
+                        body.bottom().saturating_sub(2),
+                        body.width.min(36),
+                        1,
+                    ),
+                );
+            }
+            Self::settings_save_button().draw(
                 ui,
                 Rect::new(
-                    area.x.saturating_add(20),
-                    area.bottom().saturating_sub(2),
+                    body.right().saturating_sub(19),
+                    body.bottom().saturating_sub(1),
                     18,
                     1,
                 ),
             );
-        }
+            if self.settings_save_preview {
+                Self::settings_save_confirm_button().draw(
+                    ui,
+                    Rect::new(
+                        body.right().saturating_sub(39),
+                        body.bottom().saturating_sub(1),
+                        18,
+                        1,
+                    ),
+                );
+            }
+            let hint_y = body
+                .bottom()
+                .saturating_sub(if trust_controls { 3 } else { 2 });
+            ui.paint_str(
+                Rect::new(body.x, hint_y, body.width, 1),
+                "↑/↓ move · Enter choose · Space toggle trust · Esc return",
+                ui.surface_style(),
+            );
+        });
     }
 
     fn draw_launch(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -10974,6 +11932,10 @@ impl App {
         let _ = ui.layer(EDITOR_EXIT_DIALOG, |ui, area| {
             editor_exit.draw(ui, area, &self.editor_exit_state, |_, _| {})
         });
+        let settings_exit = Self::settings_exit_dialog();
+        let _ = ui.layer(SETTINGS_EXIT_DIALOG, |ui, area| {
+            settings_exit.draw(ui, area, &self.settings_exit_state, |_, _| {})
+        });
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
@@ -11087,6 +12049,20 @@ impl App {
                 }))
     }
 
+    fn close_manager_menu_after_route_change(
+        &mut self,
+        cx: &mut Cx<'_>,
+        manager_was_active: bool,
+    ) {
+        if !manager_was_active || self.route == Route::Manager {
+            return;
+        }
+        self.manager_menu_bar_state = MenuState::default();
+        if cx.is_open(MANAGER_MENU_BAR) {
+            cx.close_layer(MANAGER_MENU_BAR, None);
+        }
+    }
+
     fn update_parts(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
         self.screen = cx.viewport();
         if cx.update_cause() == UpdateCause::Bootstrap
@@ -11113,6 +12089,21 @@ impl App {
             return result;
         }
         if cx.update_cause() == UpdateCause::Settle {
+            let command_settle = cx.command().is_some();
+            if self.route != Route::Manager || command_settle {
+                result |= self.update_manager_list_focus_transition(cx);
+            }
+            if self.route != Route::Settings
+                || command_settle
+                || self.quit_open
+                || self.cancel_open
+                || self.editor_exit_open
+                || self.settings_exit_open
+                || self.about_open
+                || self.help_open
+            {
+                result |= self.update_settings_focus_transitions(cx);
+            }
             result |= accounts_page::settle_retired_detail_focus(self, cx);
             let editor_save = crate::screens::editor::SAVE;
             let editor_confirm = EDITOR_SAVE_CONFIRM;
@@ -11162,7 +12153,7 @@ impl App {
             result |= navigation;
         }
         self.ensure_manager_header();
-        if self.quit_open || self.cancel_open || self.editor_exit_open {
+        if self.quit_open || self.cancel_open || self.editor_exit_open || self.settings_exit_open {
             result |= self.update_overlays(cx);
             if self.route == Route::Manager {
                 self.ensure_manager_rows();
@@ -11229,6 +12220,7 @@ impl App {
             || cx.is_open(COCKPIT_INFO_DIALOG)
             || cx.is_open(LAUNCH_FAILURE_DIALOG)
             || cx.is_open(EDITOR_EXIT_DIALOG)
+            || cx.is_open(SETTINGS_EXIT_DIALOG)
         {
             self.sync_workspace_keymap();
             return result;
@@ -11237,11 +12229,20 @@ impl App {
             && let Some(route) = navigation_route
             && !self.account_form_owns_input(cx)
         {
-            self.pending_launch_context = None;
-            self.launch_picker_open = false;
-            self.route = route;
-            self.status = None;
-            manager_detail::close_off_route_state(self);
+            if self.route == Route::Settings && self.settings.dirty {
+                self.open_settings_exit(cx, SettingsExitTarget::Route(route));
+            } else {
+                self.pending_launch_context = None;
+                self.launch_picker_open = false;
+                self.route = route;
+                self.status = None;
+                manager_detail::close_off_route_state(self);
+                if self.route == Route::Settings {
+                    self.sync_settings_tabs();
+                    self.settings_list_focused = false;
+                    cx.focus(SETTINGS_TABS);
+                }
+            }
         }
         if self.route == Route::Intro && enter_chosen {
             self.enter_intro();
@@ -11898,7 +12899,9 @@ impl TuiApp for App {
         if product_tick {
             self.last_tick = Some(now);
         }
+        let manager_was_active = self.route == Route::Manager;
         let result = self.update_parts(cx, product_tick);
+        self.close_manager_menu_after_route_change(cx, manager_was_active);
         if self.motion != Motion::Paused {
             let next = self
                 .last_tick
@@ -11940,6 +12943,19 @@ impl TuiApp for App {
         }
         if self.route == Route::Accounts && !self.accounts.form_open {
             accounts_page::paint(self, ui, full);
+            self.draw_layers(ui);
+            return;
+        }
+        if self.route == Route::Settings {
+            self.draw_settings(ui, full);
+            HintBar::new(APP.sub("settings-hint"), &self.hint_layers.default).draw(
+                ui,
+                Rect {
+                    y: full.bottom().saturating_sub(1),
+                    height: 1,
+                    ..full
+                },
+            );
             self.draw_layers(ui);
             return;
         }
@@ -12037,65 +13053,6 @@ impl TuiApp for App {
             launch_cockpit::paint_failure(self, ui);
         }
         self.draw_layers(ui);
-        let manager_paused_120 = self.route == Route::Manager
-            && full.width >= 120
-            && matches!(
-                self.world.scenario,
-                Scenario::Returning | Scenario::HardCases
-            )
-            && self.motion == Motion::Paused
-            && (self.status.is_none()
-                || self.launch_picker_open
-                || self.manager_file_menu
-                || self.manager_inspect)
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.launch.is_none()
-            && self.picker_mode.is_none()
-            && (self.agent_options.is_empty() || self.launch_picker_open)
-            && self.active_instance.is_none()
-            && !self.manager.detail_open();
-        if manager_paused_120
-            && self
-                .manager_rows_cache
-                .first()
-                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
-        {
-            let detail_tab = self.world.scenario == Scenario::Returning
-                && ui.state(ACCOUNTS).contains(termrock::StateFlags::FOCUSED)
-                && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-                && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-            if detail_tab {
-                manager_detail_drawer_view::paint(self, ui, full);
-            } else {
-                self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Saved, true);
-            }
-        } else if manager_paused_120
-            && self.world.scenario == Scenario::Returning
-            && self
-                .manager_rows_cache
-                .get(1)
-                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
-        {
-            self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Expanded, true);
-        }
-        if self.route == Route::Manager
-            && full.width >= 120
-            && self.world.scenario == Scenario::FirstUse
-            && self.motion == Motion::Paused
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.launch.is_none()
-            && self.picker_mode.is_none()
-            && self.agent_options.is_empty()
-            && self.active_instance.is_none()
-            && !self.manager.detail_open()
-        {
-            self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Empty, true);
-        }
         if self.route == Route::Prelude
             && full.width >= 120
             && self.world.scenario == Scenario::FirstUse
@@ -12161,22 +13118,6 @@ impl TuiApp for App {
             self.paint_cockpit_trace(ui, full);
         }
         self.draw_accounts_add_form(ui, full);
-        if self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-        {
-            settings_view::paint(self, ui, full);
-        }
         self.draw_usage_overview_narrow(ui, full);
         self.draw_usage_detail_live(ui, full);
 
@@ -12225,6 +13166,15 @@ impl TuiApp for App {
         }
         if self.editor_exit_open {
             self.close_editor_exit(cx);
+            return self.route_changed();
+        }
+        if self.settings_exit_open {
+            self.close_settings_exit(cx);
+            cx.focus(if self.settings_list_focused {
+                SETTINGS_ROWS
+            } else {
+                SETTINGS_TABS
+            });
             return self.route_changed();
         }
         if self
@@ -12388,6 +13338,7 @@ impl TuiApp for App {
         if self.route == Route::Settings {
             if self.settings_save_preview {
                 self.settings_save_preview = false;
+                self.settings_exit_target = None;
                 self.status = None;
                 return self.route_changed();
             }
@@ -12396,11 +13347,20 @@ impl TuiApp for App {
                 self.status = None;
                 return self.route_changed();
             }
+            if !cx
+                .state(SETTINGS_TABS)
+                .contains(termrock::StateFlags::FOCUSED)
+            {
+                self.settings_list_focused = false;
+                cx.focus(SETTINGS_TABS);
+                return self.route_changed();
+            }
             if self.settings.dirty {
-                self.status = Some("Save settings before leaving?".into());
+                self.open_settings_exit(cx, SettingsExitTarget::Route(Route::Manager));
                 return self.route_changed();
             }
             self.route = Route::Manager;
+            cx.focus(MANAGER_LIST);
             return self.route_changed();
         }
         if self.route == Route::Manager {
