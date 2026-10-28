@@ -729,7 +729,7 @@
     "chunk_publication": {
       "expected_chunk_count": 97,
       "note": "Counts are per immutable commit tree. Ordered chunk batches are being pushed; later commits advance this field.",
-      "published_chunk_count_in_this_tree": 66
+      "published_chunk_count_in_this_tree": 82
     },
     "chunks": [
       {
