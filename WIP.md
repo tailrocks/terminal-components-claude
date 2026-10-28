@@ -344,3 +344,15 @@ this owner, branch/base, the exact seven-path scope, evidence status, and handof
 is coordination-only and separate from generated artifacts. Preserve the existing Termrock WIP
 prefix and all dirty application, suite, and expected-data files. Never force-push, rewrite
 history, or merge PR #26 or PR #38.
+
+
+## Holla successor11+12 publication — 2026-10-28
+
+This append supersedes earlier Holla `successor06` and `successor07` status statements above while preserving them as history. PR #38 is open at `a7f18903c9e49cacf39d4e090de2f54195bf60bd`, parent `d0e441665993c4993ae8b8e01d9b51a53ddb1e12`; the commit contains only the eight reviewed Holla paths. All eight source postimages match the run06 evidence receipt.
+
+- Independent review approved bounded partial integration and rejected visual-flow acceptance. Run06 reference: 1/1 selected case passed. Target: 7/7 checkpoints reached, all seven visual comparisons failed; lifecycle was clean (exit, output drain, terminal restoration). No target baseline was approved.
+- On the d0-based publisher, guarded `cargo check --locked --offline --jobs 1 -p holla -p holla-ui -p holla-sim` exited 0 with the pinned Rustup 1.99.1 compiler through MBX. Evidence directory: `/private/tmp/pr38-holla-successor12-publisher-check-20261028-d0e44166`. This is a focused check, not full-suite acceptance. The repository has no `hk.pkl`; that lookup failure is setup-only, and no hook was installed or bypassed.
+- PR #426 is open at `https://github.com/tailrocks/velnor-new/pull/426`, head `4923bee20d55b68cbaa5019e275b8a5214ada533`; at the last probe its CI was in progress with Plan and DCO checks passed. Native source has independent review. The native-only public-generation fixture belongs to earlier generator source `422ce5aab350ef8a12e7051f91f75d87be7e72a4` and binary `575a111ecda585f0f662a58c8385ba32494d2b21633a0c3206ba2cb9593feee6`; it does not establish current-v4 CLI generation or binary binding. Current-v4 binary/generation evidence remains unproved. Combined native-task plus RustSuite execution, hosted upload/retention and required-failure behavior, final-head CI/feedback, and release manifest/binary binding remain pending. PR #391 remains unchanged.
+- PR #38 CI for current head `a7f18903c9e49cacf39d4e090de2f54195bf60bd` has not been inspected; status is unknown.
+
+PR #26 remains read-only. PR #38 remains open and unmerged. No active dirty-worktree files were modified for this publication.

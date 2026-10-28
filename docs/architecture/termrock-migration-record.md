@@ -27,6 +27,13 @@ The target run selected the same four cases. It reached 16/30 checkpoints: two m
 
 GitHub run [40590016025](https://github.com/tailrocks/terminal-components-claude/actions/runs/40590016025), for head `7c9d173`, was `Queued` at the 2026-10-27 21:56:41 UTC probe; its Plan annotation said the operation was canceled because a higher-priority `velnor-CI-38` request was waiting. It has no completed result in this record. The older run `40587157121` used checkout `0f248e0ddaefbadc565b0d6754323a428a18297d` and failed with 50 jobs: one passed, three failed, and 46 were skipped. The external pre-discovery CI capability candidate is still under development and is not applied; DCO's older missing sign-offs remain a separate issue. The 84 legacy cases and Holla frame-1 case remain outside this evidence.
 
+
+### Holla successor11+12 focused result (2026-10-28)
+
+Commit `a7f18903c9e49cacf39d4e090de2f54195bf60bd` publishes the independently reviewed eight-path Holla source set. The source-bound run06 pair passed the reference first-use case (1/1). Target Nextest exited 100 after reaching all seven checkpoints and failing all seven exact visual comparisons; the target process exited cleanly, drained output, and restored terminal modes. The functional journey/lifecycle passed, while visual-flow acceptance was rejected. Review: `/private/tmp/holla-successor12-paired-independent-review-20261028/review.txt` (SHA-256 `81c28de71094b5d49b0f50ae1de5794bc9bdeaa313fb36363addd7ed94677388`); run06 evidence seal: `d76d9ab0f3fd4977fa53963bd53e939a394437f4230601377954cc51b078228d`.
+
+The d0-based publisher also passed guarded `cargo check --locked --offline --jobs 1 -p holla -p holla-ui -p holla-sim` using pinned Rust 1.99.1/LLVM 23.1.1. This focused check does not establish the full Holla feature set or visual parity. The earlier four-application target table above remains bound to its own binaries and run; this focused successor12 result does not replace that run.
+
 ## Delivery path
 
 | Item | Value |
