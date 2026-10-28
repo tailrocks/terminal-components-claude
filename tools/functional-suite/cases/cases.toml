@@ -10,12 +10,14 @@ crosswalk = [
     "Holla checkpoint name empty_results was renamed to empty to match the updated Section 6 contract; prior captures remain historical and results are not inherited.",
     "holla.first_use.frame1 repeats the full seven-checkpoint first-use journey at --frame 1, outside the first subset.",
     "The 0.2.0 capture backend is a new suite successor: no v1, v2, or 0.1.1 result is inherited; reference A/B and explicit approval are required before the new expected store is populated.",
-    "This revision registers 89 cases and 276 coverage IDs. Nine cases currently have native action plans and 80 are not-run until planned; those counts describe this revision and do not constrain future plan coverage.",
+    "Existing showcase_status_and_hints gains a five-checkpoint native plan; this adds no case or coverage ID and is outside the first-delivery subset.",
+    "Status & hints plan v2 corrects only the options_menu readiness oracle after independent review; v1 A/B failures remain immutable history and are not inherited.",
+    "This revision registers 89 cases and 276 coverage IDs. Ten cases currently have native action plans; the remaining 79 stay not-run or setup-failed until planned. These counts are descriptive and do not constrain future plan coverage.",
     "Runtime binary and output inputs are TERMROCK_PARITY_BIN_DIR and TERMROCK_PARITY_OUT_DIR."
 ]
 
 [suite]
-coverage_scope = "v3 retains all 84 v1 journeys and 271 v1 coverage IDs, adds four delivery cases and one Holla frame-1 variant for 89 registered cases and 276 coverage IDs. Nine cases currently have native action plans and 80 remain not-run; this is not a fixed coverage rule. The first four delivery cases contain 30 checkpoints, while coverage IDs are requirement identifiers rather than frame counts. Results are not inherited across the v1, v2, or 0.2.0 capture contracts."
+coverage_scope = "v3 retains all 84 v1 journeys and 271 v1 coverage IDs, adds four delivery cases and one Holla frame-1 variant, and adds a five-checkpoint plan to existing showcase_status_and_hints for 89 registered cases and 276 coverage IDs. Ten cases currently have native action plans; the remaining 79 stay not-run or setup-failed until planned. These counts are descriptive, not a fixed coverage rule. The first four delivery cases contain 30 checkpoints; the Status & hints plan is outside that subset. Coverage IDs are requirement identifiers rather than frame counts. Results are not inherited across the v1, v2, or 0.2.0 capture contracts."
 render_profile = "tuiscotti-pinned-v1"
 fixture_dataset = "fixtures/dataset.json"
 expected_store = "expected"
@@ -422,8 +424,78 @@ coverage_ids = ["suite.case.showcase_chrome", "showcase.nav.chrome"]
 [[cases]]
 name = "showcase_status_and_hints"
 binary = "showcase"
-arguments = []
+arguments = ["--page", "hints"]
+exit_key = "q"
 coverage_ids = ["suite.case.showcase_status_and_hints", "showcase.nav.status_and_hints", "showcase.title_only.status_and_hints"]
+
+[[cases.steps]]
+name = "initial"
+required_anchors = ["Status & hints", "Playground", "resolved", "Enter Open"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps]]
+name = "options_menu"
+required_anchors = ["Top layer", "menu"]
+forbidden_anchors = ["Keyboard & mouse", "modal"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Tab"
+
+[[cases.steps.actions]]
+kind = "key"
+key = "2"
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Tab"
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Enter"
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Down"
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Enter"
+
+[[cases.steps]]
+name = "resolved_menu"
+required_anchors = ["Status & hints", "resolved", "Enter Choose", "Esc Close"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps.actions]]
+kind = "key"
+key = "Shift+Tab"
+
+[[cases.steps.actions]]
+kind = "key"
+key = "1"
+
+[[cases.steps]]
+name = "small"
+expected_cols = 80
+expected_rows = 24
+required_anchors = ["Status & hints", "resolved"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 80
+rows = 24
+
+[[cases.steps]]
+name = "restored"
+required_anchors = ["Status & hints", "resolved", "Enter Choose", "Esc Close"]
+forbidden_anchors = ["Keyboard & mouse"]
+
+[[cases.steps.actions]]
+kind = "resize"
+cols = 120
+rows = 40
 
 [[cases]]
 name = "showcase_breadcrumbs_and_rails"

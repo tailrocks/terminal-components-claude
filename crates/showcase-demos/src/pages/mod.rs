@@ -371,6 +371,7 @@ pub mod scrolling;
 pub mod selectable;
 pub mod settings;
 pub mod sidebars;
+pub mod status_hints;
 pub mod tables;
 pub mod taskrunner;
 pub mod terminal;

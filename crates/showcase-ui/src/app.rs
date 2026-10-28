@@ -41,6 +41,7 @@ use showcase_demos::pages::{
     scrolling::ScrollingPage,
     settings::SettingsPage,
     sidebars::SidebarsPage,
+    status_hints::StatusHintsPage,
     tables::TablesPage,
     taskrunner::TaskRunnerPage,
     terminal::TerminalPage,
@@ -51,6 +52,7 @@ use showcase_demos::pages::{
 
 const NAV: Id = id!("navigation");
 const CHECKS_RADIOS_ENTRY: usize = 12;
+const STATUS_HINTS_ENTRY: usize = 2;
 const EMPTY_ERROR_ENTRY: usize = 31;
 const NOTICES_ENTRY: usize = 33;
 const DIFF_ENTRY: usize = 40;
@@ -311,6 +313,7 @@ impl NavTarget {
             Self::Live(_)
                 | Self::Selection
                 | Self::Placeholder(CHECKS_RADIOS_ENTRY)
+                | Self::Placeholder(STATUS_HINTS_ENTRY)
                 | Self::Placeholder(EMPTY_ERROR_ENTRY)
                 | Self::Placeholder(NOTICES_ENTRY)
                 | Self::Placeholder(DIFF_ENTRY)
@@ -1347,6 +1350,7 @@ pub struct App {
     nav_presentation: std::cell::Cell<Option<NavTreePresentation>>,
     pages: Vec<Box<dyn Page>>,
     checks_radios: ChecksRadiosPage,
+    status_hints: StatusHintsPage,
     empty_error: EmptyErrorPage,
     notices: NoticesPage,
     diff: DiffPage,
@@ -1397,6 +1401,7 @@ impl core::fmt::Debug for App {
             .field("nav_presentation", &self.nav_presentation.get())
             .field("pages", &self.pages.len())
             .field("checks_radios", &self.checks_radios)
+            .field("status_hints", &self.status_hints)
             .field("empty_error", &self.empty_error)
             .field("notices", &self.notices)
             .field("master_detail", &self.master_detail)
@@ -1459,6 +1464,10 @@ impl App {
         if paused {
             checks_radios.seek_paused(frame);
         }
+        let mut status_hints = StatusHintsPage::new();
+        if paused {
+            status_hints.seek_paused(frame);
+        }
         let mut diff = DiffPage::new();
         if paused {
             diff.seek_paused(frame);
@@ -1473,6 +1482,7 @@ impl App {
             nav_presentation: std::cell::Cell::new(None),
             pages,
             checks_radios,
+            status_hints,
             empty_error: EmptyErrorPage::new(),
             notices: NoticesPage::new(),
             diff,
@@ -1748,6 +1758,7 @@ impl App {
             self.nav_target,
             NavTarget::Live(_)
                 | NavTarget::Placeholder(CHECKS_RADIOS_ENTRY)
+                | NavTarget::Placeholder(STATUS_HINTS_ENTRY)
                 | NavTarget::Placeholder(EMPTY_ERROR_ENTRY)
                 | NavTarget::Placeholder(NOTICES_ENTRY)
                 | NavTarget::Placeholder(DIFF_ENTRY)
@@ -1766,6 +1777,8 @@ impl App {
     fn active(&self) -> Option<&dyn Page> {
         if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
             Some(&self.checks_radios)
+        } else if self.nav_target == NavTarget::Placeholder(STATUS_HINTS_ENTRY) {
+            Some(&self.status_hints)
         } else if self.nav_target == NavTarget::Placeholder(EMPTY_ERROR_ENTRY) {
             Some(&self.empty_error)
         } else if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
@@ -1784,6 +1797,8 @@ impl App {
     fn active_mut(&mut self) -> Option<&mut (dyn Page + 'static)> {
         if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
             Some(&mut self.checks_radios)
+        } else if self.nav_target == NavTarget::Placeholder(STATUS_HINTS_ENTRY) {
+            Some(&mut self.status_hints)
         } else if self.nav_target == NavTarget::Placeholder(EMPTY_ERROR_ENTRY) {
             Some(&mut self.empty_error)
         } else if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
@@ -2297,45 +2312,61 @@ fn paint_header_breadcrumb(
     let budget = inspector_x.saturating_sub(x).saturating_sub(2);
     let label = nav_display_label(label);
     let current = title.add_modifier(termrock::Modifier::BOLD);
+    if budget == 0 {
+        return x;
+    }
     if section.is_empty() {
-        let shown = clip_label(label, budget);
-        ui.paint_str(Rect::new(x, area.y, budget, 1), &shown, current);
+        let shown = termrock::truncate_middle(label, budget);
+        ui.paint_str(Rect::new(x, area.y, width(&shown), 1), &shown, current);
         return x.saturating_add(width(&shown));
     }
 
-    let separator_width = width("/ ").saturating_add(width(" / "));
-    if budget <= separator_width {
-        let crumb = format!("/ {section} / {label}");
-        let shown = clip_label(&crumb, budget);
-        ui.paint_str(Rect::new(x, area.y, budget, 1), &shown, secondary);
-        return x.saturating_add(width(&shown));
+    let separator = format!(" {} ", ui.glyph_str(GlyphRole::OverflowRight));
+    let separator_width = width(&separator);
+    let section_width = width(section);
+    let label_width = width(label);
+    let path_width = section_width
+        .saturating_add(separator_width)
+        .saturating_add(label_width);
+    if path_width <= budget {
+        ui.paint_str(Rect::new(x, area.y, section_width, 1), section, secondary);
+        x = x.saturating_add(section_width);
+        ui.paint_str(Rect::new(x, area.y, separator_width, 1), &separator, faint);
+        x = x.saturating_add(separator_width);
+        ui.paint_str(Rect::new(x, area.y, label_width, 1), label, current);
+        return x.saturating_add(label_width);
     }
-    let label_budget = width(label).min(budget.saturating_sub(separator_width));
-    let section_budget = budget
-        .saturating_sub(separator_width)
-        .saturating_sub(label_budget);
-    let shown_section = clip_label(section, section_budget);
-    let shown_label_budget = budget
-        .saturating_sub(separator_width)
-        .saturating_sub(width(&shown_section));
-    let shown_label = clip_label(label, shown_label_budget);
 
-    ui.paint_str(Rect::new(x, area.y, width("/ "), 1), "/ ", faint);
-    x = x.saturating_add(width("/ "));
+    let mut remaining = budget;
+    let ellipsis = ui.glyph_str(GlyphRole::Ellipsis);
+    let shown_ellipsis = termrock::truncate(ellipsis, remaining);
+    let ellipsis_width = width(&shown_ellipsis);
     ui.paint_str(
-        Rect::new(x, area.y, width(&shown_section), 1),
-        &shown_section,
-        secondary,
+        Rect::new(x, area.y, ellipsis_width, 1),
+        &shown_ellipsis,
+        faint,
     );
-    x = x.saturating_add(width(&shown_section));
-    ui.paint_str(Rect::new(x, area.y, width(" / "), 1), " / ", faint);
-    x = x.saturating_add(width(" / "));
+    x = x.saturating_add(ellipsis_width);
+    remaining = remaining.saturating_sub(ellipsis_width);
+
+    let shown_separator = termrock::truncate(&separator, remaining);
+    let shown_separator_width = width(&shown_separator);
     ui.paint_str(
-        Rect::new(x, area.y, width(&shown_label), 1),
+        Rect::new(x, area.y, shown_separator_width, 1),
+        &shown_separator,
+        faint,
+    );
+    x = x.saturating_add(shown_separator_width);
+    remaining = remaining.saturating_sub(shown_separator_width);
+
+    let shown_label = termrock::truncate_middle(label, remaining);
+    let shown_label_width = width(&shown_label);
+    ui.paint_str(
+        Rect::new(x, area.y, shown_label_width, 1),
         &shown_label,
         current,
     );
-    x.saturating_add(width(&shown_label))
+    x.saturating_add(shown_label_width)
 }
 
 fn header_action_origins(area: Rect, inspector: bool) -> (u16, u16) {
@@ -3191,8 +3222,8 @@ impl TuiApp for App {
         let modal_page_hints = match self.nav_target {
             NavTarget::Selection => self.selectable.hints(),
             NavTarget::Placeholder(
-                CHECKS_RADIOS_ENTRY | EMPTY_ERROR_ENTRY | NOTICES_ENTRY | DIFF_ENTRY
-                | MASTER_DETAIL_ENTRY | PANE_TREE_ENTRY,
+                CHECKS_RADIOS_ENTRY | STATUS_HINTS_ENTRY | EMPTY_ERROR_ENTRY | NOTICES_ENTRY
+                | DIFF_ENTRY | MASTER_DETAIL_ENTRY | PANE_TREE_ENTRY,
             ) => page_hints,
             NavTarget::Live(PageId::Pickers | PageId::DialogKinds | PageId::Toolbars) => page_hints,
             NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
@@ -3331,6 +3362,7 @@ impl App {
             page.seek_paused(self.paused_frame);
         }
         self.checks_radios.seek_paused(self.paused_frame);
+        self.status_hints.seek_paused(self.paused_frame);
         self.diff.seek_paused(self.paused_frame);
     }
 }
