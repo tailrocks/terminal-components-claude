@@ -2,7 +2,7 @@
 
 This standalone Cargo workspace runs real-process journeys for Showcase, Holla, Jackin Preview, and TablePro. It owns one case manifest, lockfile, `functional` Nextest target, and pinned patched engine sources. It does not build the application binaries or update expected samples.
 
-`cases/cases.toml` registers 89 cases and 276 checkpoint IDs: 84 retained legacy cases, four first-delivery journeys with 30 checkpoints, and a separate seven-checkpoint Holla frame-1 journey. The first-delivery subset is only part of the listed inventory and does not establish full project acceptance.
+`cases/cases.toml` registers 89 cases, 10 with plan availability and 79 without plans, plus 276 coverage IDs. Coverage IDs describe requirements; they are not frame checkpoints. The current expected store has 35 reference samples: the original 30 plus five Status & Hints samples. The first-delivery selection still covers four journeys and 30 checkpoints; that subset does not establish full project acceptance.
 
 ## Export and prepare
 
@@ -39,6 +39,14 @@ Use a different fresh `OUT_DIR` for the paired run. This exact filter selects fo
 
 ## Results at 2026-10-28
 
-The independently accepted reference run passed 30/30 exact state-and-pixel comparisons. All four selected application processes exited cleanly, drained output, and restored the terminal. The checked-in approval record is `expected/BASELINE-APPROVAL.json` (SHA-256 `f0b1d89d44829c88b54cf0b6686835b241e7cb5a7a97a7b18bafadad56e2b3a9`).
+The original four-case first-delivery reference run passed 30/30 exact state-and-pixel comparisons. All four selected processes exited cleanly, drained output, and restored the terminal. Its receipt is `97c6d1d58526adce64f487d7e3db5e27e1b000e37abbd75092ac690e40880845`; the independently accepted checks establish those 30 samples only.
 
-The target run reached 16 of those 30 checkpoints: two matched, 14 had visual differences, and 14 were not reached. It exited 100 and saved its evidence. The per-application results, exact receipt hashes, current CI probe, and scope limits are in the [migration record](../../docs/architecture/termrock-migration-record.md#common-functional-suite-current-results-2026-10-28). The registered legacy cases and Holla frame-1 case remain outside this result.
+The expected store now contains 35 samples: those original 30 plus five Status & Hints samples. The prior 30 hashes were preserved. The five additional samples passed the bounded reference check (5/5); receipt `96a0826447d3e0f812274ecaeac585320142069e5b9bb6e86c37ed8eab290bc5`, independent review `07840e9d1d6e4ac0d6c306c6d29979fa10c8f55b36b4b5f6192b5f84e89376b`. The current approval record is `expected/BASELINE-APPROVAL.json` (SHA-256 `d2472258c6f9f8ece6ee5a63795f9f303470c750bf8f2c553cdaace66607d41b`); its additive setup block retains the earlier `reference-check-pending` label despite the separate accepted check. The 35-sample inventory digest is `cdd7ec53ae25a1bf2685d69e187bbaf5b26159145f93be544792e4a186ba49d4`. The persistent empty approval lock is runtime-only and excluded from Git and source exports.
+
+The current Showcase pair covers two journeys and 12 checkpoints. The reference side matched 12/12. The target reached all 12 checkpoints and exited cleanly, drained output, and restored the terminal, but matched 0/12 exact state-and-pixel comparisons. All 24 header-row captures matched; full routes and visual parity remain open. Receipt `0b824f4225063f2b9d66439aa9ff433661e257c1783b3444e8cbdd262289bcd0` and correction addendum `a9324139b9de43995e470b2f0786642ad5b44d075db3d3b464142afa3197a4d9` bind the run; independent review `8117092a28481fcea12346ed29d3df286b115a1d7cefa26cdfb8d819929ea5dd` accepted the bounded evidence. This does not establish full Showcase parity.
+
+An earlier four-application target run reached 16/30 checkpoints: two matched, 14 differed visually, and 14 were not reached. Those results remain bound to the earlier binaries and are not replaced by the two-journey Showcase result. The registered suite still has 79 cases without plans; 276 coverage IDs are not the frame denominator, and full-suite parity is not established.
+
+The latest inspected PR #38 Actions run `40631500020` at head `6510719682d1020b5e634ca4d8589b732de11544` completed with failure. The Plan job checked out synthetic merge commit `4acf6dd779522f46c6f3834561049352c3ca4e19`, merging the head into base `a97e351df736b576904bc450619ca347ea64d65b`. The 50-job run had one Jactionlint success, three failures (Plan and two Required aggregates), and 46 skipped jobs. Plan failed before application Rust jobs on unresolved path edge `tools/functional-suite/forks/tui-test-upstream/crates/tui-test`; the aggregate failures add no application-level result. A prior DCO report of 38 historical missing sign-offs is not a fresh DCO readback for this head.
+
+The [migration record](../../docs/architecture/termrock-migration-record.md#current-evidence-update--pr-38-head-6510719682-2026-10-28) holds the source bindings and current Integration/Jackin diagnostic status.
