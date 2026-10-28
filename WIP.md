@@ -291,3 +291,56 @@ format-only records; it does not imply a task or lease transfer.
 
 Current-head DCO run `122564779310` reports 38 historical missing sign-offs; the latest commit is
 valid. No sign-off history will be rewritten. This remains a separate maintainer obligation.
+## Velnor native build-task artifact forward-port — 2026-10-28
+
+Owner: Integration, agent `/root/common_packaging_implementation`, session
+`cb840dd5-b4b4-42a9-a45a-b9384c14b186`. Root coordinator: `/root`.
+
+Target repository: `https://github.com/tailrocks/velnor-new.git`. The proposed temporary
+branch is `codex/native-build-task-artifacts-20261028-cb840dd5`; a local and remote collision
+check found no branch with this name. Create it only after this register update receives the
+bounded Sol-medium review and after verifying the server's current `main` again. Intended base:
+`4afd0a059ce19d03a3e88f5cdc03e7e533c20218` (v0.1.63). No branch or worktree has been created
+for this forward-port.
+
+The exact seven source/document paths owned for this bounded forward-port are:
+
+- `crates/velnor-actions-contract/src/config/build_task.rs`
+- `crates/velnor-actions-contract/src/config/rust_suites_validate.rs`
+- `crates/velnor-actions-workflow-renderer/src/build_task_jobs.rs`
+- `crates/velnor-actions-workflow-renderer/src/steps.rs`
+- `crates/velnor-actions-workflow-renderer/src/steps_artifact.rs`
+- `crates/velnor-actions-workflow-renderer/src/native_authority/inputs/graph.rs`
+- `docs/proposed/tooling-input-contract.md`
+
+Reuse the independently approved source packet. The five artifact-contract/source changes are
+bound by patch SHA-256
+`0cc871199bcf5d8c5a9fefb8ff18ee6a38d487b1599b235a491a8f223cf46805`; the native runner graph
+patch is `929c6e484ba1e4e2dfc87c85ec157efd3f795be61e00f46e144f1c2433f298bd`, with graph
+postimage SHA-256 `06e3bb79455208e464d56137c7f629806afa53abcba0017e02704130ae63446f`; the
+contract-document postimage SHA-256 is
+`bad560e7fb109d446838ccfb7fe69be15eb0ab2256ee56f9f65c4710dd53e15c`. Preserve the supported
+`marked_json` leading-comment manifest marker and its ownership. Do not hand-edit generated YAML.
+
+The read-only refresh at 2026-10-28 found all seven remote `main` blobs unchanged from base
+`422ce5aab350ef8a12e7051f91f75d87be7e72a4`. The intervening #420 release, #422 Jackin
+ordering/adoption, and #421 helper-Mise-runtime commits did not implement native build-task
+artifact upload. Open #419 and #415 concern GHCR runner-image distribution. Open #167 is a large
+older private Scale Set change; it shares `steps.rs` through unrelated cache-tar helpers and also
+changes `workflow_task_jobs.rs`. Preserve those additions if integration later requires resolving
+that same-file edit. PR #391 is merged and remains untouched; PR #26 and PR #38 remain open and
+unmerged.
+
+Independent Sol-high review accepted the native runner-graph source and public native generation
+evidence. The evidence is fixture-scoped; combined native-task and RustSuite generation, required
+CI membership, hosted artifact upload, and current-main CLI compilation are not established. The
+old CLI binary hash `575a111ecda585f0f662a58c8385ba32494d2b21633a0c3206ba2cb9593feee6` is bound to
+the earlier `422ce5a` proof worktree and is absent from its recorded MBX target and local
+`target/`; do not stage it or claim it proves the forward-port build. Rebuild and run the exact
+public proof only after a fresh disk/provider/process gate and compiler-slot coordination.
+
+When the temporary Velnor branch is created, add a Velnor-root `WIP.md` coordination record with
+this owner, branch/base, the exact seven-path scope, evidence status, and handoff. That register
+is coordination-only and separate from generated artifacts. Preserve the existing Termrock WIP
+prefix and all dirty application, suite, and expected-data files. Never force-push, rewrite
+history, or merge PR #26 or PR #38.
