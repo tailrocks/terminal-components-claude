@@ -187,3 +187,18 @@ The earlier candidate-era sentence that this register had not been applied descr
 - These eight postimages were applied to the fresh detached native workspace based on `c47412cc16e1fdc1201bef03847cfb5c99263d9c`; combined source receipt SHA `cf0ca3fb3d990dd86e12eb47d6d6fffdab5c565fd79a0efb1107d5b731291bb2` also binds the separate reviewed TablePro app overlay. Fresh native build/runtime proof is pending. A previous Cargo invocation reported `Fresh` and did not run rustc; do not treat its old tool metadata as proof.
 
 - **NO GO on Holla peer source transfer.** No peer install, write, or build authorization is active for Holla. Root sent the bounded `STOP_BEFORE_INSTALL` notice `2decf0ba-9f40-448b-b5f4-8409ace63bd0` (record SHA-256 `e798afc980e80b0be45038484f8b76b8c195a27d9856b55fc9cdbe259eaac033`; queue ID `01a17fd6-2b16-7251-8220-d5be0f1d0f58`); it is a queued notice, not peer acknowledgment. Resolve the stale-source report by comparing the exact realpath, observation time, HEAD, and opened-file hash. Preserve the frozen successor06 files and all peer candidates without attribution or replacement.
+
+
+## Ownership correction — Jackin route and Holla home successor07 (2026-10-28)
+
+### Jackin Settings route — exact sequence
+
+- The earlier shorthand about `]` opening Settings is superseded. The required route is Manager `s` → General, `]` → Mounts, `[` → General, and Esc → Manager. The assigned writer is `/root/jackin_settings_recovery`, limited to `crates/jackin-preview-app/src/app.rs`. Preserve the existing selected-editor behavior and keep `rain.rs`, broad bare-`q` handling, and unrelated routes outside this assignment. This is source-only; there is no Cargo lease.
+- Peer `codex-pr38-01a174de` confirmed its Jackin work is read-only complete and released its Jackin writer/compiler reservation. This records the bounded source-scope acknowledgment only; it does not authenticate the proposed mailbox protocol.
+
+### Holla home.rs successor07 — sole local writer
+
+- `/root/holla_native_recovery_implementation` is the sole writer for this successor, limited to `crates/holla-ui/src/screens/home.rs`, against the exact current preimage SHA-256 `aee51b19a25f1af4bb68831ea66bde3582b91499820798f0ac6838e94dcc934f`. The other seven Holla files remain frozen. This handoff grants no Cargo, build, or runtime lease.
+- Preserve current06 lifetimes, one native placeholder, visible-only selection restoration, and the non-empty branch layout. Keep the remembered action key through a temporary empty result while clearing live native selection; restore it only when it is visible after the result returns. Make the empty-state hint match current behavior: Ctrl-S cycles Scope, and Esc clears Scope first. Render the empty preview as a centered native seven-row card; retain the real viewport and master owner for non-empty results.
+- Preserve the current06 packet and the reviewed peer V3 candidate as separate evidence. The peer V3 candidate is at `/Users/donbeave/Downloads/termrock-live-results-20261027/streams/holla-native-recovery-implementation/candidate/v3/home.rs.candidate-v3` (SHA-256 `5e22c34b8d3fcf7521762bf2ba4df9ff54ec43381c685d944b91b493ab478fcd`); it is not the active source and must not replace current06 wholesale. The root-verified history is peer05 postimage `1d9a5ccc` followed by local current06 `aee51b19`; the new local07 edit must use the latter exact preimage.
+- Peer `codex-pr38-01a174de` has explicitly released Holla writes and now holds only read-only Query work. Its older Holla observations and candidates remain historical; no peer Holla write or build is active.
