@@ -16,6 +16,191 @@ const PLAYGROUND_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::bu
 const MATRIX: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.matrix");
 const MATRIX_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.matrix.panel");
 const PAGE_TABS: Id = termrock::Id::root("showcase_ui::pages::buttons.page_tabs");
+
+fn page_tabs_active_flags(
+    ui: &Ui<'_>,
+    layout: &termrock::navigation::tabs::TabLayout,
+) -> Option<StateFlags> {
+    let active = layout.active_key()?;
+    if !layout.rows().iter().any(|row| row.key == active) {
+        return None;
+    }
+    let live = ui.state(PAGE_TABS);
+    let hovered = ui.hovered_part(PAGE_TABS);
+    let pressed = ui.pressed_part(PAGE_TABS);
+    let part = PartRef::item(Part::TAB, active);
+    let mut flags = StateFlags::ACTIVE;
+
+    if layout.cursor_key() == Some(active) {
+        flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+        if pressed.is_none() {
+            flags |= live & StateFlags::PRESSED;
+        }
+    }
+    if hovered == Some(part) {
+        flags |= StateFlags::HOVERED;
+    }
+    if pressed == Some(part) {
+        flags |= StateFlags::PRESSED;
+    }
+
+    Some(flags)
+}
+
+fn page_tabs_style_snapshot(
+    ui: &Ui<'_>,
+    part: Part,
+    flags: StateFlags,
+) -> (termrock::Resolved, termrock::StylePatch) {
+    ui.style_defaults_with_fallback_ownership(
+        termrock::Family::TABS,
+        Variant::DEFAULT,
+        part,
+        flags,
+        termrock::theme::StyleDefaults::default(),
+        None,
+    )
+}
+
+fn page_tabs_owned_style_unchanged(
+    before: termrock::Resolved,
+    ownership: termrock::StylePatch,
+    after: termrock::Resolved,
+) -> bool {
+    let before_style = before.style.as_style();
+    let after_style = after.style.as_style();
+    (!ownership.fg.speaks() || before_style.fg == after_style.fg)
+        && (!ownership.bg.speaks() || before_style.bg == after_style.bg)
+        && ((ownership.add.is_empty() && ownership.remove.is_empty())
+            || (before_style.add_modifier == after_style.add_modifier
+                && before_style.sub_modifier == after_style.sub_modifier))
+        && (!ownership.underline.speaks()
+            || (before_style.underline_color == after_style.underline_color
+                && before.style.underline_role() == after.style.underline_role()
+                && before.style.underline_cleared() == after.style.underline_cleared()))
+        && (!ownership.glyph.speaks() || before.glyph == after.glyph)
+        && (!ownership.size.speaks() || before.size == after.size)
+        && (!ownership.align.speaks() || before.align == after.align)
+}
+
+fn page_tabs_snapshot_unchanged(
+    before: (termrock::Resolved, termrock::StylePatch),
+    after: (termrock::Resolved, termrock::StylePatch),
+) -> bool {
+    before.1 == after.1 && page_tabs_owned_style_unchanged(before.0, before.1, after.0)
+}
+
+fn page_tabs_fallback(ownership: termrock::StylePatch, plate: bool) -> termrock::StylePatch {
+    let mut patch = termrock::StylePatch::new();
+    if !ownership.fg.speaks() {
+        patch = patch.set_fg(termrock::Role::Fg(termrock::FgStep::Primary));
+    }
+    if plate && !ownership.bg.speaks() {
+        patch = patch.set_bg(termrock::Role::Surface(termrock::Surface::Overlay));
+    }
+    if ownership.add.is_empty() && ownership.remove.is_empty() {
+        patch = patch.add(termrock::Modifier::BOLD);
+    }
+    patch
+}
+
+fn insert_page_tabs_fallback(
+    recipe: &mut termrock::theme::Recipe,
+    part: Part,
+    patch: termrock::StylePatch,
+) {
+    if patch.is_empty() {
+        return;
+    }
+    let rules = &mut recipe.parts.entry(part).states;
+    let active = termrock::theme::StateRule {
+        when: StateFlags::ACTIVE,
+        patch,
+    };
+    let insertion = rules
+        .iter()
+        .position(|rule| rule.specificity() >= active.specificity())
+        .unwrap_or(rules.len());
+    rules.insert(insertion, active);
+}
+
+fn theme_with_page_tabs_fallbacks(
+    incoming: &termrock::Theme,
+    tab: termrock::StylePatch,
+    label: termrock::StylePatch,
+) -> termrock::Theme {
+    let mut theme = incoming.clone();
+    if tab.is_empty() && label.is_empty() {
+        return theme;
+    }
+    if theme.recipes.get(termrock::Family::TABS).is_none() {
+        let neutral_tabs = (*theme.recipes.get_or_neutral(termrock::Family::TABS)).clone();
+        *theme.recipes.get_mut(termrock::Family::TABS) = neutral_tabs;
+    }
+    let tabs = theme.recipes.get_mut(termrock::Family::TABS);
+    insert_page_tabs_fallback(tabs, Part::TAB, tab);
+    insert_page_tabs_fallback(tabs, Part::LABEL, label);
+    theme
+}
+
+fn page_tabs_theme(
+    ui: &mut Ui<'_>,
+    layout: &termrock::navigation::tabs::TabLayout,
+) -> Option<termrock::Theme> {
+    // This page uses default, non-passive Ready Tabs. Keep this predicate aligned with its
+    // Tabs::new(PAGE_TABS) configuration and the native per-item flag derivation.
+    let flags = page_tabs_active_flags(ui, layout)?;
+
+    // Query the incoming theme and overlays before changing a cloned recipe. Empty component
+    // defaults and no instance patch match this page's Tabs style path.
+    let tab_before = page_tabs_style_snapshot(ui, Part::TAB, flags);
+    let label_before = page_tabs_style_snapshot(ui, Part::LABEL, flags);
+    let tab_ownership = tab_before.1;
+    let label_ownership = label_before.1;
+    let tab_fallback = page_tabs_fallback(tab_ownership, true);
+    let label_fallback = page_tabs_fallback(label_ownership, false);
+    if tab_fallback.is_empty() && label_fallback.is_empty() {
+        return None;
+    }
+
+    let provisional =
+        theme_with_page_tabs_fallbacks(ui.theme_ref(), tab_fallback, label_fallback);
+
+    // A fallback can change eligibility for a previously inactive profile. If the effective
+    // ownership query changes in either part, omit that part's fallback instead of changing
+    // that profile's behavior. Re-query through the scoped public theme seam before drawing.
+    let (tab_after, label_after) = ui.with_theme(&provisional, |ui| {
+        (
+            page_tabs_style_snapshot(ui, Part::TAB, flags),
+            page_tabs_style_snapshot(ui, Part::LABEL, flags),
+        )
+    });
+    if page_tabs_snapshot_unchanged(tab_before, tab_after)
+        && page_tabs_snapshot_unchanged(label_before, label_after)
+    {
+        return Some(provisional);
+    }
+    let tab_fallback = if page_tabs_snapshot_unchanged(tab_before, tab_after) {
+        tab_fallback
+    } else {
+        termrock::StylePatch::new()
+    };
+    let label_fallback = if page_tabs_snapshot_unchanged(label_before, label_after) {
+        label_fallback
+    } else {
+        termrock::StylePatch::new()
+    };
+    if tab_fallback.is_empty() && label_fallback.is_empty() {
+        return None;
+    }
+
+    Some(theme_with_page_tabs_fallbacks(
+        ui.theme_ref(),
+        tab_fallback,
+        label_fallback,
+    ))
+}
+
 const OPTIONS_SCROLL: Id = termrock::Id::root("showcase_ui::pages::buttons.options_scroll");
 const STATES_SCROLL: Id = termrock::Id::root("showcase_ui::pages::buttons.states_scroll");
 const FOCUS_VISIBILITY: Id = termrock::Id::root("showcase_ui::pages::buttons.focus_visibility");
@@ -641,6 +826,7 @@ impl Page for ButtonsPage {
                 });
         let tabs_layout =
             tabs.layout_default(tabs_area, area, &self.page_tabs, PAGE_SECTIONS, previous);
+        let tabs_theme = page_tabs_theme(ui, &tabs_layout);
         let section = if tabs_layout.visible_area.is_empty() {
             0
         } else {
@@ -655,7 +841,13 @@ impl Page for ButtonsPage {
             PAGE_BODY_START_ROW,
             |ui, body| {
                 if !tabs_layout.visible_area.is_empty() {
-                    let _ = tabs.draw_layout(ui, &tabs_layout);
+                    if let Some(theme) = tabs_theme.as_ref() {
+                        ui.with_theme(theme, |ui| {
+                            let _ = tabs.draw_layout(ui, &tabs_layout);
+                        });
+                    } else {
+                        let _ = tabs.draw_layout(ui, &tabs_layout);
+                    }
                 }
                 match section {
                     1 => options_view = self.draw_options(ui, body),
