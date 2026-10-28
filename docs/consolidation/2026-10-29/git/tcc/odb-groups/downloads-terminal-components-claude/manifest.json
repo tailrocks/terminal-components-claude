@@ -1,0 +1,110 @@
+{
+  "canonical_dependency": {
+    "archive_relative_root": "../..",
+    "canonical_pack_external_reconstruction_review": "/private/tmp/pr38-tcc-remote-reconstruction-20261029-v1/decision.json",
+    "canonical_pack_review_sha256": "937657498f06cd140e9757604965f1a7684d11d00202b4e43b20c50505553e88",
+    "typed_oid_count": 257216,
+    "typed_oid_manifest_git_blob": "4d17cbc4dceac37b9b10ff01ec24ca5713a1b91d",
+    "typed_oid_manifest_relative_path": "../../inputs/physical-objects.tsv",
+    "typed_oid_manifest_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab"
+  },
+  "eligibility": {
+    "decision": "ELIGIBLE_PROJECT_OBJECT_TRANSPORT",
+    "review_path": "evidence/safety/downloads-odb-screen-v1-decision.json",
+    "review_scope": "3747 new ODB objects only; not full repository/worktree/all-work acceptance",
+    "review_sha256": "62741c0691cbe965afc0621738e2ed796ecf3e8e9fc3fa65a04a9aa8e935030b"
+  },
+  "limits": [
+    "This is not a standalone clone; it requires the canonical TCC archive payload at the relative dependency.",
+    "The 1265 OIDs already in the canonical typed set are not duplicated here; their semantic object bytes are supplied by the canonical group.",
+    "This group does not yet contain Downloads refs, reflogs, indexes, sparse patterns, worktree source files, or untracked/ignored content.",
+    "The 21 newly identified untracked/ignored payload groups are pending separate privacy review/publication.",
+    "No local source Git store was modified.",
+    "No cleanup/deletion or full-custody completion is claimed."
+  ],
+  "local_object_set": {
+    "canonical_overlap_count": 1265,
+    "local_loose_inventory_sha256": "38b46d8008c80f1cfaa82078fec913e1da132757540d4cecf99eeed0bdf038fd",
+    "local_loose_oid_count": 5012,
+    "missing_graph_links_against_canonical_plus_local": 0,
+    "new_oid_count": 3747,
+    "new_oid_map_source_sha256": "9340f7bb886247105a78dddf7ef8c28deddc585bbf740394d7255ccbe7063bbf",
+    "new_oids_all_type_size_checked_against_canonical": true,
+    "type_size_conflicts": 0
+  },
+  "payload": {
+    "chunk_count": 6,
+    "chunk_map": "objects/chunks/index.tsv",
+    "chunk_reassembly_hashes_verified": true,
+    "chunked_oids": [
+      {
+        "chunk_count": 2,
+        "oid": "5fcac5c99b39d4ae1ae4fc8a7020fca01e3d9256"
+      },
+      {
+        "chunk_count": 2,
+        "oid": "d66a0b86342b07cfdbc03891a579cd12bbba8bb2"
+      },
+      {
+        "chunk_count": 2,
+        "oid": "e7de60668ddf907e594e979116342e9f2539a1dd"
+      }
+    ],
+    "compressed_bytes": 527290548,
+    "large_object_chunk_threshold_bytes": 50331648,
+    "logical_object_bytes": 5077232674,
+    "portable_map": "portable-object-map.tsv",
+    "raw_new_loose_objects_preserved": 3747
+  },
+  "restoration": {
+    "procedure": "Start with this repository archive\u2019s canonical TCC object store at archive_relative_root; copy small objects to Git objects fanout path under objects/loose/, and reassemble chunked objects by ordered sequence from objects/chunks/index.tsv before installing them at the same OID fanout path.",
+    "raw_loose_encoding": "All preserved bytes are the exact source compressed loose-object bytes; no decoding or recompression occurred in the archived payload."
+  },
+  "schema": "pr38-downloads-tcc-new-odb-delta-v1",
+  "source_evidence": {
+    "README.md": {
+      "relative_path": "evidence/source-v2/README.md",
+      "sha256": "8c45e0071f8e39830f8ece57f572f5ba3c3f7e8a83693f16663e7bccb4ce4499"
+    },
+    "REPORT-SEAL.json": {
+      "relative_path": "evidence/source-v2/REPORT-SEAL.json",
+      "sha256": "5880b5b81dcf7b5cdd8130b2c458a475e74b062210b9dcd5e104c8de1346abc8"
+    },
+    "SHA256SUMS": {
+      "relative_path": "evidence/source-v2/SHA256SUMS",
+      "sha256": "ae8ce3c2d7512c780e3cc8de2b078ec110fc948f338cf6480db4cfe7a15903aa"
+    },
+    "downloads-local-loose-objects.tsv": {
+      "relative_path": "evidence/source-v2/downloads-local-loose-objects.tsv",
+      "sha256": "38b46d8008c80f1cfaa82078fec913e1da132757540d4cecf99eeed0bdf038fd"
+    },
+    "downloads-loose-file-errors.jsonl": {
+      "relative_path": "evidence/source-v2/downloads-loose-file-errors.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "downloads-new-vs-canonical.tsv": {
+      "relative_path": "evidence/source-v2/downloads-new-vs-canonical.tsv",
+      "sha256": "9340f7bb886247105a78dddf7ef8c28deddc585bbf740394d7255ccbe7063bbf"
+    },
+    "downloads-object-conflicts.jsonl": {
+      "relative_path": "evidence/source-v2/downloads-object-conflicts.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "downloads-odb-closure.json": {
+      "relative_path": "evidence/source-v2/downloads-odb-closure.json",
+      "sha256": "37ae2286c5376ecd792455728d290062b4f328a3fd68c8511cecbff1c2ce3b3e"
+    },
+    "source-alternates.raw": {
+      "relative_path": "evidence/source-v2/source-alternates.raw",
+      "sha256": "50dea5eee6a94e736f758b01c7aafc013a67cf57e67a2196f67cc9d9bf9673c8"
+    }
+  },
+  "source_identity": {
+    "branch": "parity/termrock-visual-baseline",
+    "common_dir": "/Users/donbeave/Downloads/terminal-components-claude/.git",
+    "head": "b9a6507e9894d32f0a2c10a819981e811e554b8e",
+    "object_format": "sha1",
+    "repository_root": "/Users/donbeave/Downloads/terminal-components-claude"
+  },
+  "status": "partial object-delta custody; worktree/ref/admin state and remaining untracked/ignored files are separate pending groups"
+}
