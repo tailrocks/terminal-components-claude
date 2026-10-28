@@ -17,6 +17,7 @@ from typing import NoReturn
 SUITE_ROOT = Path(__file__).resolve().parents[1]
 EXCLUDED_ROOT_DIRS = {"forks", "target"}
 EXCLUDED_DIRS = {".git", "__pycache__"}
+EXCLUDED_FILES = {Path("expected/.tuiscotti-approval.lock")}
 
 
 def fail(message: str) -> NoReturn:
@@ -51,6 +52,8 @@ def source_files() -> list[Path]:
                 continue
             if source.is_symlink():
                 fail(f"refusing symlink in source tree: {source}")
+            if source.relative_to(SUITE_ROOT) in EXCLUDED_FILES:
+                continue
             if source.is_file():
                 files.append(source)
     return sorted(files, key=lambda path: path.relative_to(SUITE_ROOT).as_posix())
