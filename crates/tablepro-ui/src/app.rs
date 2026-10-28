@@ -801,7 +801,6 @@ pub struct TableProApp {
     pub workbench: Workbench,
     connection_nodes: Vec<ConnectionNode>,
     connection_tree_state: TreeState,
-    connection_visual_tree_state: TreeState,
     connection_filter_input: TextInputState,
     connection_filter_editing: bool,
     explorer_nodes: Vec<ExplorerNode>,
@@ -857,10 +856,6 @@ impl core::fmt::Debug for TableProApp {
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
             .field("connection_tree_state", &self.connection_tree_state)
-            .field(
-                "connection_visual_tree_state",
-                &self.connection_visual_tree_state,
-            )
             .field("connection_filter_editing", &self.connection_filter_editing)
             .field(
                 "connection_filter_input",
@@ -972,7 +967,6 @@ impl TableProApp {
             .unwrap_or_else(|| fallback_connection(&catalog));
         let connection_nodes = build_connection_nodes(&connections);
         let connection_tree_state = initial_connection_tree_state(&connection_nodes);
-        let connection_visual_tree_state = initial_connection_visual_tree_state(&connection_nodes);
         let explorer_nodes = build_explorer_nodes(&catalog);
         let explorer_tree_state = initial_explorer_tree_state(&explorer_nodes, "public");
         let mut app = Self {
@@ -1009,7 +1003,6 @@ impl TableProApp {
             workbench: Workbench::new(connection, catalog),
             connection_nodes,
             connection_tree_state,
-            connection_visual_tree_state,
             connection_filter_input: TextInputState::default(),
             connection_filter_editing: false,
             explorer_nodes,
@@ -1324,8 +1317,6 @@ impl TableProApp {
     fn rebuild_connection_nodes(&mut self) {
         self.connection_nodes = build_connection_nodes(&self.connections);
         self.connection_tree_state = initial_connection_tree_state(&self.connection_nodes);
-        self.connection_visual_tree_state =
-            initial_connection_visual_tree_state(&self.connection_nodes);
     }
 
     fn paint_connection_browser(
@@ -1367,7 +1358,7 @@ impl TableProApp {
                 paint_connection_focus_bar(
                     ui,
                     tree_area,
-                    &self.connection_visual_tree_state,
+                    &self.connection_tree_state,
                     &self.connection_nodes,
                     query,
                 );
@@ -1375,7 +1366,7 @@ impl TableProApp {
             paint_connection_mark_plain(
                 ui,
                 tree_area,
-                &self.connection_visual_tree_state,
+                &self.connection_tree_state,
                 &self.connection_nodes,
                 query,
             );
@@ -1396,7 +1387,7 @@ impl TableProApp {
             connection_tree().draw(
                 ui,
                 area,
-                &self.connection_visual_tree_state,
+                &self.connection_tree_state,
                 &self.connection_nodes,
             );
             return;
@@ -1406,7 +1397,7 @@ impl TableProApp {
         connection_tree().query(revision, &matcher).draw(
             ui,
             area,
-            &self.connection_visual_tree_state,
+            &self.connection_tree_state,
             &self.connection_nodes,
         );
     }
@@ -3600,7 +3591,7 @@ impl TableProApp {
             field,
         );
         if let Some(row) = shown_connection_cursor_offset(
-            &self.connection_visual_tree_state,
+            &self.connection_tree_state,
             &self.connection_nodes,
             self.connections_screen.filter.as_str(),
         ) {
@@ -5548,19 +5539,6 @@ fn build_connection_nodes(connections: &[Connection]) -> Vec<ConnectionNode> {
 }
 
 fn initial_connection_tree_state(nodes: &[ConnectionNode]) -> TreeState {
-    let mut state = TreeState::default();
-    state.expand_all();
-    if let Some((index, node)) = nodes
-        .iter()
-        .enumerate()
-        .find(|(_, node)| matches!(node, ConnectionNode::Connection { .. }))
-    {
-        state.set_cursor(index, connection_node_key(node));
-    }
-    state
-}
-
-fn initial_connection_visual_tree_state(nodes: &[ConnectionNode]) -> TreeState {
     let mut state = TreeState::default();
     state.expand_all();
     if let Some((index, node)) = nodes
@@ -9141,9 +9119,6 @@ impl App for TableProApp {
 
             if !self.connection_filter_editing {
                 self.sync_connection_selection();
-            }
-            if tree_response.action_ref().is_some() {
-                self.connection_visual_tree_state = self.connection_tree_state.clone();
             }
             if let Some(action) = tree_response.action_ref()
                 && let TreeAction::Activated(key) | TreeAction::Chose(key) = action
