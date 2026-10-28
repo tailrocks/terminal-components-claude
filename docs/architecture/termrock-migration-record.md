@@ -1659,3 +1659,76 @@ The last observed CI run, `40558493194`, used `6717d835` before the external-con
 correction: 50 jobs, 2 passed, 46 failed, and 2 skipped. Its external-consumer formatting failure
 was corrected in `2fe3a04`; this is not a current post-fix CI result. No full CI rerun, common
 functional suite, or four-application runtime journey is claimed.
+
+
+### Renderer 0.2 reference qualification and first target results (2026-10-28)
+
+This entry supersedes earlier current-result statements in this record. PR #38 and
+`origin/parity/termrock-visual-baseline` were last observed at `777670f81558af9a4c6543600d830a61ec20fef6`; PR #38 remains open, PR #26 remains read-only, and PR #391 was not changed.
+
+The standalone functional suite registers 89 cases, including 9 plan-availability cases,
+with 276 coverage IDs. Those IDs are requirements, not frame counts. The selected first-delivery
+subset contains four application journeys and 30 frame checkpoints. The current engine pins are
+TuiScotti `0.4.0` (`4b3a5e49ea2e5dbaa913534ced91aa9e45337d67`) and backend package
+`tuiscotti-tui-test 0.2.0` (`59a8ded6d8f419f93aaf2c0edcf8253a6e6c7496`). The sole canonical
+expected store now has 30 approved renderer-0.2 samples, `README.md`, and
+`BASELINE-APPROVAL.json` (SHA-256
+`4613c2288a3a3e9c92fbfe3f4ec90ad6c7582012bddac3447a29c8fa08723038`). Its 32-file inventory
+manifest is `2501147a92f995aef5f3377ed4562b37d4fa2b5297952737af248a416a10c114`. The persistent
+empty `.tuiscotti-approval.lock` is runtime coordination state: it is ignored and excluded from
+source exports, and was not removed or committed. The prior V4/renderer-0.1.1 store and receipts
+remain preserved as history.
+
+The renderer-0.2 reference rerun (`eff66914-4386-45c9-b97b-b22b64793940`) passed all four
+selected cases, all 30 state-and-pixel comparisons, and all four clean-exit/drain/terminal-restore
+checks. Its receipt is
+[`reference-rerun-receipt.json`](</private/tmp/termrock-functional-suite-v02-approved-reference-rerun-20261028/run-final/reference-rerun-receipt.json>)
+(SHA-256 `97c6d1d58526adce64f487d7e3db5e27e1b000e37abbd75092ac690e40880845`). A zsh wrapper then
+failed while assigning its reserved read-only `status` variable, so the Cargo/Nextest process exit
+code was not retained. The independent Sol-high evidence review accepted the underlying 4/30
+reference evidence; the wrapper exit is not represented as a passing Cargo exit. Reference build
+provenance is bound to `BIN26` and rustc-info receipt SHA-256
+`bc9ed6d63cf26eca7286b342b545a4b7ab0bdbcef8e82497e059c7e4d3888fbf`.
+
+The target comparison used the same four journeys and 30 checkpoint slots, with expected data
+unchanged. Nextest run `80e1f66e-cc63-42c1-9474-bdb66cb4279e` exited 100: 25 checkpoints were
+reached, 6 matched exactly, 19 differed visually, and 5 were not reached. TablePro matched all
+6/6 checkpoints and exited, drained, and restored the terminal. Holla reached 7/7 but had seven
+visual differences and a clean exit. Showcase reached 7/7 but had seven visual differences and a
+clean exit. Jackin captured 5/10 with five visual differences; the `manager_return` readiness
+condition timed out, five dependent checkpoints were not run, and cleanup ended with Hangup and
+unrestored terminal modes. This was a four-case selection, not a full 89-case suite result; the
+85 filtered cases are not accepted or rejected by this run. The target receipt is
+[`target-rerun-receipt.json`](</private/tmp/termrock-functional-suite-v02-approved-target-rerun-20261028/run-final2/target-rerun-receipt.json>)
+(SHA-256 `8da5c058c4d1ab1f21cb0832d1d58e05dead3f87bc8c336c62fee60eb2d10bb9`), with a 199-file
+output inventory SHA-256 `e1bde00da21c825dbca5ebd3e6ef6aadafc5aa913dc6916af23e1beed553ddc6`. The target
+binary set is the one in the receipt; it includes the reviewed TablePro source SHA-256
+`e5044101f6feade4e4629a5cf689022cea935f5c8c1d6a0bc43c02f3be5227e6` and Jackin app source
+`79aa51fa610292055b6026aa91c6cf68cce18f9dc759272962ebce8c9ca6e40d`. These results do not
+claim full application parity.
+
+The one-file TablePro correction removes the duplicate visual tree selection state and uses the
+live connection selection identity. Its source was independently reviewed, and its matching
+production binary `f596f3d6676628b4b2fc3cc447e8c25ab585cc894bdb9a36bb23b3d83fe16c3d` was built under
+the pinned debug toolchain and accepted for the 6/6 target journey. Holla, Showcase, and Jackin
+visual/functional gaps remain open; their current in-progress sources do not inherit acceptance
+from this earlier target binary.
+
+GitHub Actions run `40611783232` at head `777670f81558af9a4c6543600d830a61ec20fef6` checked out
+commit `6b8ecd17108f666eddaccb184dd47c496243a86c` and completed with 50 jobs: 1 success, 3 failures
+(Plan plus 2 aggregate jobs), and 46 skipped. `Check generated files` failed before Rust tasks on the
+unresolved path edge `tools/functional-suite/forks/tui-test-upstream/crates/tui-test`; the aggregate
+failures are not additional application defects. No application Rust task ran.
+A separately source-reviewed native-artifact generator candidate compiles, but the bounded public
+generation attempt failed before workflow emission with
+`unpinned_label:macos-26`. A RustSuite-only generated workflow retained the existing upload
+contract (`if: always()`, `if-no-files-found: warn`, retention 7); it did not contain the native
+task and does not prove native upload, required-gate membership, or CI retention. See the bounded
+proof at `/private/tmp/velnor-native-artifacts-generation-proof-20261028-8a417c3d/` and its
+`generation-proof-summary.json` (SHA-256
+`390db748287c139eb55e79a578790f3e95115fd3f20a6899d0118627bcdaaf3b`). The generator gap remains
+open; generated YAML and PR #391 were left unchanged.
+
+The current-head DCO check `122564779310` reported 38 historic commits needing sign-off; the latest
+commit has a valid sign-off. No history rewrite or remediation commit is authorized by that report.
+This is a separate maintainer obligation, not an application result.
