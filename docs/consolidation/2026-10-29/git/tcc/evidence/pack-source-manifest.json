@@ -1,0 +1,923 @@
+{
+  "baseline_closure_list": {
+    "bytes": 4279949,
+    "count": 104389,
+    "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-closure.oids",
+    "sha256": "1568ba5671ec995483169332d4982e41993549e067a88ac3828274ebf7e7b8fe"
+  },
+  "baseline_closure_object_count": 104389,
+  "baseline_ref": "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+  "direct_blob_root_count": 94,
+  "direct_tree_closure_blob_count": 137360,
+  "direct_tree_closure_tree_count": 27433,
+  "direct_tree_root_count": 644,
+  "index_unique_oid_count": 75922,
+  "known_closure_list": {
+    "bytes": 10533843,
+    "count": 256923,
+    "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/known-preservation-closure.oids",
+    "sha256": "381783d4c980b7a1c35fd8be0947c7ba01823c36f18f94699f23a3dcc987959d"
+  },
+  "known_closure_present_object_count": 256923,
+  "known_root_and_closure_count": 256923,
+  "known_roots_missing_from_physical_count": 0,
+  "notes": [
+    "Pack input set is every physically stored object except exact f629 commit closure; conservatively preserves reachable and unclassified objects for external staging.",
+    "No origin/main or all-origin exclusion is used.",
+    "Known closure includes every ref, reflog, worktree HEAD, index blob OID, direct tree/blob ref and Git pseudoref OID.",
+    "No .git/config/hooks/credentials copied; no refs/worktrees/indexes changed; lazy fetch and optional locks disabled.",
+    "No archive object data uploaded or merged into canonical source at this stage."
+  ],
+  "pack_input_intersection_f629_count": 0,
+  "pack_input_list": {
+    "bytes": 6265907,
+    "count": 152827,
+    "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/pack-input-objects.oids",
+    "sha256": "42680f1f94d19a88a11a2e004893f7a4c2fd754bc0b92d7aaa9560af7580250d"
+  },
+  "pack_input_object_count": 152827,
+  "pack_input_type_counts": {
+    "blob": 88959,
+    "commit": 10198,
+    "tag": 6,
+    "tree": 53664
+  },
+  "pack_input_uncompressed_bytes_by_type": {
+    "blob": 26121712282,
+    "commit": 6777341,
+    "tag": 1329,
+    "tree": 40867293
+  },
+  "physical_object_count": 257216,
+  "physical_object_inventory": {
+    "bytes": 13222313,
+    "count": 257216,
+    "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/physical-objects.tsv",
+    "sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab"
+  },
+  "physical_type_counts": {
+    "blob": 168467,
+    "commit": 13337,
+    "tag": 6,
+    "tree": 75406
+  },
+  "physical_uncompressed_bytes_by_type": {
+    "blob": 43076762972,
+    "commit": 8109587,
+    "tag": 1329,
+    "tree": 66430504
+  },
+  "potential_orphan_list": {
+    "bytes": 12013,
+    "count": 293,
+    "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/potential-orphans.oids",
+    "sha256": "2675b5f86bef7f1bc2501cd48fa92df412b3931bae02a77e7b6771d1ce1bfbf4"
+  },
+  "potential_orphan_object_count": 293,
+  "potential_orphan_type_counts": {
+    "blob": 42,
+    "commit": 73,
+    "tree": 178
+  },
+  "potential_orphan_uncompressed_bytes_by_type": {
+    "blob": 3954491,
+    "commit": 121324,
+    "tree": 272228
+  },
+  "pseudoref_records": [
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "3e678eb2522bbf05156a49933f910f2832081353"
+      ],
+      "scope": "common",
+      "sha256": "2dfff4eec62b1527a64e3d2411e21881cddc49d505867b9488467786399f9f58",
+      "size": 41,
+      "worktree_path": null
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93"
+      ],
+      "scope": "common",
+      "sha256": "ff4f3f21a9f453dbac16fd32615814d86fc232ffe026b1ef3d925a6165dd0842",
+      "size": 142,
+      "worktree_path": null
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
+      ],
+      "scope": "worktree",
+      "sha256": "9edb5d09c44a8577f6aa5396e1c346e10468c7b826a753f220dbc17bf0a50fdc",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+        "a1255dfb567dd83b0132a22b7a42a2bda135ed2e",
+        "a97e351df736b576904bc450619ca347ea64d65b"
+      ],
+      "scope": "worktree",
+      "sha256": "f7f03243fc12f0363b7895aa443d0c0b8c1f656e6c43adf89a8bb261379ad096",
+      "size": 419,
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "f2f6eb716c4a512be3dc9423742fa06e86879b32"
+      ],
+      "scope": "worktree",
+      "sha256": "7430c7310d98a0b575eff52d9972079bba2a8f40fed2f3fd21499266b6a746a2",
+      "size": 41,
+      "worktree_path": "/private/tmp/base-design"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "a55c871475b85e7f0a3caff78dd9e8c5b4fed54d"
+      ],
+      "scope": "worktree",
+      "sha256": "1ba29450007134fe3ab17abfedca3ffcecfbb0ca7e6c3deb6ef3d7742f23d49c",
+      "size": 41,
+      "worktree_path": "/private/tmp/base-parity"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "78a0915176420f4068f2f1c43d4c4cecd3d84299"
+      ],
+      "scope": "worktree",
+      "sha256": "57261db4cc4d4f74d5fee8ae7eb834fe25aba285fe95fb8680b3529b7ff0c235",
+      "size": 41,
+      "worktree_path": "/private/tmp/base-parity2"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "f2f6eb716c4a512be3dc9423742fa06e86879b32"
+      ],
+      "scope": "worktree",
+      "sha256": "7430c7310d98a0b575eff52d9972079bba2a8f40fed2f3fd21499266b6a746a2",
+      "size": 41,
+      "worktree_path": "/private/tmp/integ-design"
+    },
+    {
+      "name": "AUTO_MERGE",
+      "object_oids": [
+        "08fc5b793152a97d16f0d4ccbaf2abba66097f7d"
+      ],
+      "scope": "worktree",
+      "sha256": "f47eb2d07d0e052692b9c894e2e4ea9896f895bfff31c9cb79273c64ef1511a1",
+      "size": 41,
+      "worktree_path": "/private/tmp/integ-design"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "33d7f1d591230aef14327a1fba88106a4ccee049"
+      ],
+      "scope": "worktree",
+      "sha256": "87c5b3b381a2fe93a1232053935d1c540d6cebbef3b62a2f838d60fd65a2e02a",
+      "size": 41,
+      "worktree_path": "/private/tmp/integ-parity"
+    },
+    {
+      "name": "AUTO_MERGE",
+      "object_oids": [
+        "66f06c615cdd5c8a76938d33fe1f3f842f3f38f6"
+      ],
+      "scope": "worktree",
+      "sha256": "280bb61e65c6f8fca4d69d0ac13ab0a85840201159b794b045ff3ced55ec972f",
+      "size": 41,
+      "worktree_path": "/private/tmp/integ-parity"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "3568d40f89e0b10f0f754f93cf8d6a7ee01ffd55"
+      ],
+      "scope": "worktree",
+      "sha256": "1a599c91626eb0b945c4117a4544a421be383893a3c4778569d039da8afd691f",
+      "size": 41,
+      "worktree_path": "/private/tmp/pr38-docs-integration-3568d40-20261028"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "cf4fd261249125d69de4cd9ca4b4c1d1deb7bc52"
+      ],
+      "scope": "worktree",
+      "sha256": "58e28e8e2937a6ebd059af9e7e52c817534f53bc63be85d8f118badd833f5ffc",
+      "size": 142,
+      "worktree_path": "/private/tmp/pr38-docs-integration-3568d40-20261028"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "d0e441665993c4993ae8b8e01d9b51a53ddb1e12"
+      ],
+      "scope": "worktree",
+      "sha256": "3d614040f1c21484d465ce4484475dac975ee851a6e3533cf4f13427011f28a5",
+      "size": 41,
+      "worktree_path": "/private/tmp/pr38-holla-successor12-publish-20261028-d0e44166"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "3e678eb2522bbf05156a49933f910f2832081353"
+      ],
+      "scope": "worktree",
+      "sha256": "548dab40333c929633377f63c765e678aff30137259fb6fdb307278b162be4ce",
+      "size": 142,
+      "worktree_path": "/private/tmp/pr38-holla-successor12-publish-20261028-d0e44166"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "c47412cc16e1fdc1201bef03847cfb5c99263d9c"
+      ],
+      "scope": "worktree",
+      "sha256": "65f8f165ecfe44629c78608232588e71646fdb35ea9786ffe4daf388f66db0a0",
+      "size": 41,
+      "worktree_path": "/private/tmp/termrock-pr38-native-paired-build-20261028-c47412cc"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "d0e441665993c4993ae8b8e01d9b51a53ddb1e12"
+      ],
+      "scope": "worktree",
+      "sha256": "3d614040f1c21484d465ce4484475dac975ee851a6e3533cf4f13427011f28a5",
+      "size": 41,
+      "worktree_path": "/private/tmp/termrock-pr38-status-hints-production-20261028-d0e44166"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93"
+      ],
+      "scope": "worktree",
+      "sha256": "be0e026ad4a6e8721ad68a13a4eacc57be430cbbdbb91a06e50e26e0f60ef320",
+      "size": 41,
+      "worktree_path": "/private/tmp/termrock-pr38-velnor-0168-candidate-preview-20261029"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "032e9faa3ab12e98fef3b3835757eba5f1feee43"
+      ],
+      "scope": "worktree",
+      "sha256": "a64153cfeaec8113596dec22ab79df4d96d48bda5246774b6c5b98e91923fc47",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/digest-base-20261021"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "0df53c8df6d58325349f3f665b1a8157b8e29c25"
+      ],
+      "scope": "worktree",
+      "sha256": "b760c86cb271dda23f02abe3f65ab9db36e0b37f1c1e3911c17b088f3bb4ba42",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/tabs-item-closability-20261023"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "88b3ef1aef45720bd4f3bbb07eb9672b78f5487f"
+      ],
+      "scope": "worktree",
+      "sha256": "3babe19cd9d5baebea35889fbc2e9b83f018f51fe8b964bdbd536eb52a07329a",
+      "size": 142,
+      "worktree_path": "/Users/donbeave/Projects/tabs-item-closability-20261023"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "73d1d69f0e7a1bc82fc915ae3cf433dd091a874d"
+      ],
+      "scope": "worktree",
+      "sha256": "2d482caad49bc4febbf01d895c091284b88ec73a4a72462bdee44fd607abff5c",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-ab7ed10be68472967"
+    },
+    {
+      "name": "AUTO_MERGE",
+      "object_oids": [
+        "fb3c9a9aafbd269df9b35be3a634753aa2dee0a5"
+      ],
+      "scope": "worktree",
+      "sha256": "358eac6e64844c5fb991931fbeebdc90acb0f352bcc7f28e9b200c1ae58bed56",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-ab7ed10be68472967"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "6f8a4b3af77c134092318b727cbecdf34fdc2c2a",
+        "77fc91a82aeb145be4efc4403b18380ff40d21fb",
+        "7982d64c6c0dc8518683a5ba4f7755ca16dafeff",
+        "81be99a79c5158a27713d4f6f0ed06f6f4e1faf0",
+        "95f62ca33eaf7b02fc5a2551572fa3258b81a880",
+        "b249a81be807879212bd4bf50a9246aff5c18d60",
+        "c1a49af0f6ade36838c6330ce8a034e8d589ea79",
+        "d1122f69e6b9c2364aa6ede8174e7d35b8cfff39",
+        "f5b538137bc06624762a5901ecf0a16f63b931a9"
+      ],
+      "scope": "worktree",
+      "sha256": "d21a5cbed1e3897e0918a4cb552a698a8cdc6bcd7153c1bc7e31263a1bf2e47c",
+      "size": 1231,
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-ab7ed10be68472967"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "03e97a78daa7de52b570c2e43d7bc52a82765261"
+      ],
+      "scope": "worktree",
+      "sha256": "e525707f393b5a62f44361395c6651058c18a51bf85c5296e3a44735343dc285",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-afe6ef9c21f4d29d6"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "77fc91a82aeb145be4efc4403b18380ff40d21fb",
+        "7982d64c6c0dc8518683a5ba4f7755ca16dafeff",
+        "d1122f69e6b9c2364aa6ede8174e7d35b8cfff39",
+        "eec3e2354203ba2f9738e823867969aee777121e"
+      ],
+      "scope": "worktree",
+      "sha256": "afe753eeb9c9e5c9c46dfd6da12e35b9ef8d59e0089a72a0618102f6c3b315a2",
+      "size": 574,
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-afe6ef9c21f4d29d6"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "05a703330be95565d07f55afaf8132eef727d87b"
+      ],
+      "scope": "worktree",
+      "sha256": "acdc099060a58050337783ff033867871d864d33d6975deba1a00617a14c9f35",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-recovery-verify-20261022"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "8d8051bad399b07136b60116a6b82bc0553aa994"
+      ],
+      "scope": "worktree",
+      "sha256": "6b4491f77515c213a4c20ac2951e640d8e7fe91d87a0bb51407910537ddb8878",
+      "size": 142,
+      "worktree_path": "/Users/donbeave/Projects/terminal-components-recovery-verify-20261022"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "0df53c8df6d58325349f3f665b1a8157b8e29c25"
+      ],
+      "scope": "worktree",
+      "sha256": "b760c86cb271dda23f02abe3f65ab9db36e0b37f1c1e3911c17b088f3bb4ba42",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/termrock-approved-integration-20261026"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "060c1312bed44f66025cf4cde17fee547e20d549"
+      ],
+      "scope": "worktree",
+      "sha256": "5a2129a718765e3597ec2313f3631fd067034a39d00ff0c379f1bd00fbffff52",
+      "size": 142,
+      "worktree_path": "/Users/donbeave/Projects/termrock-approved-integration-20261026"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "6c904af50a2a0b5de2c0b181ed9a9271489dce86"
+      ],
+      "scope": "worktree",
+      "sha256": "dbfd8a1a1f01e35ca9f3e5615bf11356c70eddfae8a0f56a778784aad74ec7b0",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/termrock-conformance-cleanup-20261022"
+    },
+    {
+      "name": "AUTO_MERGE",
+      "object_oids": [
+        "500e57928baaff875923f38882d3195766d64bd0"
+      ],
+      "scope": "worktree",
+      "sha256": "92bfc753761df7d76775f8649c37702b1229b56480b1dda0abf8b8cc577ac399",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/termrock-conformance-cleanup-20261022"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "4e5b3d3a0bc8368a7aac22df11a39194c7fb6c42"
+      ],
+      "scope": "worktree",
+      "sha256": "7b98ffbbb6f0c25c02a9bc0c53ae360dbb80b8cea6054b42c2b5fca760a52394",
+      "size": 142,
+      "worktree_path": "/Users/donbeave/Projects/termrock-conformance-cleanup-20261022"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "4169783ae883788186d161af09ba9c481bd84e5c"
+      ],
+      "scope": "worktree",
+      "sha256": "35116cabaee6cb521531e474dae249c098606f524c3cf566dea3ae090ae12edf",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/termrock-hidden-cursor-defect-20261020"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "063fce54ba9f15992118c64104ba60ad1187cdd2"
+      ],
+      "scope": "worktree",
+      "sha256": "84c02dc128b33f28a8692878fc1f236dd48636d1b4b8fb302b99208da104a8bf",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/termrock-integration"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "032e9faa3ab12e98fef3b3835757eba5f1feee43"
+      ],
+      "scope": "worktree",
+      "sha256": "3c7040c3d92430d7c4fc0bca9ddf10d7fcfebea0728cc50f95eeb65f6de8725b",
+      "size": 107,
+      "worktree_path": "/Users/donbeave/Projects/termrock-integration"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "404c2356b228b62041b7ea69d90b4a9c8a2a4597"
+      ],
+      "scope": "worktree",
+      "sha256": "76b8b55d21b6624c3e2ecd9223886ce9b0a37a7b94255009f54ea51dafb5c357",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/termrock-lib-20261022"
+    },
+    {
+      "name": "AUTO_MERGE",
+      "object_oids": [
+        "b2ada89b9532f450d8ef4eef3eddc2d94c3dbf58"
+      ],
+      "scope": "worktree",
+      "sha256": "bd316e9031b196477a83aadd0a584ccc1f405846c958d844fe264fff55a7a8b3",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/termrock-lib-20261022"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "45b8a8020663df109d71d84f39f553836d1a0b82"
+      ],
+      "scope": "worktree",
+      "sha256": "8b37c30bebc35144fa4969a131fecd3c045935a9cd73044a61f122cf4b5b0368",
+      "size": 142,
+      "worktree_path": "/Users/donbeave/Projects/termrock-lib-20261022"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "3e678eb2522bbf05156a49933f910f2832081353"
+      ],
+      "scope": "worktree",
+      "sha256": "2dfff4eec62b1527a64e3d2411e21881cddc49d505867b9488467786399f9f58",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/termrock-pr38-shared-20261028"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93"
+      ],
+      "scope": "worktree",
+      "sha256": "ff4f3f21a9f453dbac16fd32615814d86fc232ffe026b1ef3d925a6165dd0842",
+      "size": 142,
+      "worktree_path": "/Users/donbeave/Projects/termrock-pr38-shared-20261028"
+    },
+    {
+      "name": "ORIG_HEAD",
+      "object_oids": [
+        "0989397d96776c3bf6a650ae566b3da56bb0a2f5"
+      ],
+      "scope": "worktree",
+      "sha256": "f19c241a1d90e2c53443673082b2b536767f6f4d513aa593dbb68517d7be40c4",
+      "size": 41,
+      "worktree_path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027"
+    },
+    {
+      "name": "FETCH_HEAD",
+      "object_oids": [
+        "3e678eb2522bbf05156a49933f910f2832081353",
+        "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
+      ],
+      "scope": "worktree",
+      "sha256": "4eb5a0dc0dbb2d55030dcb65bd95d8232d16e039f54c25ce8996e0015d9a0923",
+      "size": 242,
+      "worktree_path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027"
+    }
+  ],
+  "ref_count": 1598,
+  "ref_reflog_worktree_commit_object_count": 256923,
+  "refs_raw_sha256": "0bdafef62833597dc8901bcab8729d4b8a05182e172483fe4fb8b0983cb10b20",
+  "repo": "/Users/donbeave/Projects/termrock-pr38-shared-20261028",
+  "rev_list_args": [
+    "rev-list",
+    "--objects",
+    "--all",
+    "--reflog",
+    "026ac39f01fbf9c6b673cf982feb51f71e5dfcfc",
+    "032e9faa3ab12e98fef3b3835757eba5f1feee43",
+    "03e97a78daa7de52b570c2e43d7bc52a82765261",
+    "045801f3f4fce84c4880085cf40ee783e0ae06bf",
+    "05a703330be95565d07f55afaf8132eef727d87b",
+    "060c1312bed44f66025cf4cde17fee547e20d549",
+    "063fce54ba9f15992118c64104ba60ad1187cdd2",
+    "08fc5b793152a97d16f0d4ccbaf2abba66097f7d",
+    "0989397d96776c3bf6a650ae566b3da56bb0a2f5",
+    "0df53c8df6d58325349f3f665b1a8157b8e29c25",
+    "13a64608cd0ab62fc62c5b20679e7dc614ab0540",
+    "14d45f8bc3f1612bf6549f5e415343124f9d203e",
+    "195cfb65a010cd2b52f03dad5e807dc0d8964fdf",
+    "267a8d08575765f4e77a732eaa87aeec27986719",
+    "2ca2c7ad33e699cb5ce3edd78e2264ac42b67fb8",
+    "33d7f1d591230aef14327a1fba88106a4ccee049",
+    "3568d40f89e0b10f0f754f93cf8d6a7ee01ffd55",
+    "3e678eb2522bbf05156a49933f910f2832081353",
+    "404c2356b228b62041b7ea69d90b4a9c8a2a4597",
+    "4169783ae883788186d161af09ba9c481bd84e5c",
+    "45b8a8020663df109d71d84f39f553836d1a0b82",
+    "4e5b3d3a0bc8368a7aac22df11a39194c7fb6c42",
+    "4f8d17c2a1c7642d3b90e77dd74a55e2566f234a",
+    "500e57928baaff875923f38882d3195766d64bd0",
+    "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+    "5f4bca1279b017b91f476a7b944cc4710015c648",
+    "66f06c615cdd5c8a76938d33fe1f3f842f3f38f6",
+    "6c904af50a2a0b5de2c0b181ed9a9271489dce86",
+    "6e471f142166d5df82bec7cb4b2dc419346ac640",
+    "6f8a4b3af77c134092318b727cbecdf34fdc2c2a",
+    "7013df32a8aeb041d0f7459b0357a1a0693f35c5",
+    "73d1d69f0e7a1bc82fc915ae3cf433dd091a874d",
+    "77fc91a82aeb145be4efc4403b18380ff40d21fb",
+    "78a0915176420f4068f2f1c43d4c4cecd3d84299",
+    "7982d64c6c0dc8518683a5ba4f7755ca16dafeff",
+    "81be99a79c5158a27713d4f6f0ed06f6f4e1faf0",
+    "88b3ef1aef45720bd4f3bbb07eb9672b78f5487f",
+    "8d8051bad399b07136b60116a6b82bc0553aa994",
+    "95f62ca33eaf7b02fc5a2551572fa3258b81a880",
+    "972dc301916bc2c295d2f5d9a601ab892de3d83e",
+    "a1255dfb567dd83b0132a22b7a42a2bda135ed2e",
+    "a55c871475b85e7f0a3caff78dd9e8c5b4fed54d",
+    "a97e351df736b576904bc450619ca347ea64d65b",
+    "b249a81be807879212bd4bf50a9246aff5c18d60",
+    "b2ada89b9532f450d8ef4eef3eddc2d94c3dbf58",
+    "c1a49af0f6ade36838c6330ce8a034e8d589ea79",
+    "c47412cc16e1fdc1201bef03847cfb5c99263d9c",
+    "cf4fd261249125d69de4cd9ca4b4c1d1deb7bc52",
+    "d0e441665993c4993ae8b8e01d9b51a53ddb1e12",
+    "d1122f69e6b9c2364aa6ede8174e7d35b8cfff39",
+    "d7d8b750a799b4e2f8c607cb1cd7d263c7b35565",
+    "eec3e2354203ba2f9738e823867969aee777121e",
+    "f08d20e0f3780c54796414a1ec1bceb3d0054593",
+    "f1fbd446a12e7861fad29f304760b5cf137ba06c",
+    "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+    "f5b538137bc06624762a5901ecf0a16f63b931a9",
+    "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+    "fb3c9a9aafbd269df9b35be3a634753aa2dee0a5"
+  ],
+  "worktree_count": 29,
+  "worktree_index_summary": [
+    {
+      "branch": "refs/heads/design/interaction-polish",
+      "exists": true,
+      "head": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+      "index_entry_count": 13795,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/index",
+      "index_sha256": "57536517800d59d057d5d25380ef9313b8a74e4694bc8b843878f0056b446ac8",
+      "index_unique_oid_count": 12489,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/terminal-components-claude"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+      "index_entry_count": 13795,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/base-design/index",
+      "index_sha256": "87c4f643c207acb6ae751407d816b63b71ca50d2fb5b2940cf1406572bbc267a",
+      "index_unique_oid_count": 12489,
+      "is_git_worktree": true,
+      "path": "/private/tmp/base-design"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "a55c871475b85e7f0a3caff78dd9e8c5b4fed54d",
+      "index_entry_count": 94874,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/base-parity/index",
+      "index_sha256": "26b2df86bb4430da861696b6e1e9dcd67409cac13bcf04a72bb2ea8b629f00f2",
+      "index_unique_oid_count": 69383,
+      "is_git_worktree": true,
+      "path": "/private/tmp/base-parity"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "78a0915176420f4068f2f1c43d4c4cecd3d84299",
+      "index_entry_count": 94876,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/base-parity2/index",
+      "index_sha256": "4c300ec34f11901f3553aa7f9df43d126c99422ca280be8a1a3b934f714c296a",
+      "index_unique_oid_count": 69385,
+      "is_git_worktree": true,
+      "path": "/private/tmp/base-parity2"
+    },
+    {
+      "branch": "refs/heads/recovery/button-gutter-author-style-20261023",
+      "exists": true,
+      "head": "f1fbd446a12e7861fad29f304760b5cf137ba06c",
+      "index_entry_count": 0,
+      "index_path": null,
+      "index_sha256": null,
+      "index_unique_oid_count": 0,
+      "is_git_worktree": false,
+      "path": "/private/tmp/empty-diagnostic-20261022-approved-tests"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "195cfb65a010cd2b52f03dad5e807dc0d8964fdf",
+      "index_entry_count": 0,
+      "index_path": null,
+      "index_sha256": null,
+      "index_unique_oid_count": 0,
+      "is_git_worktree": false,
+      "path": "/private/tmp/empty-diagnostic-20261022-current"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "f08d20e0f3780c54796414a1ec1bceb3d0054593",
+      "index_entry_count": 0,
+      "index_path": null,
+      "index_sha256": null,
+      "index_unique_oid_count": 0,
+      "is_git_worktree": false,
+      "path": "/private/tmp/empty-diagnostic-20261022-f08"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "2ca2c7ad33e699cb5ce3edd78e2264ac42b67fb8",
+      "index_entry_count": 0,
+      "index_path": null,
+      "index_sha256": null,
+      "index_unique_oid_count": 0,
+      "is_git_worktree": false,
+      "path": "/private/tmp/empty-diagnostic-20261022-historical"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948",
+      "index_entry_count": 13795,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/integ-design/index",
+      "index_sha256": "a2fdd9cc31fa4fdc8d0025878cf25c8fb0b9cd98919f56e7a9a39722fb0c87de",
+      "index_unique_oid_count": 12489,
+      "is_git_worktree": true,
+      "path": "/private/tmp/integ-design"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "026ac39f01fbf9c6b673cf982feb51f71e5dfcfc",
+      "index_entry_count": 94880,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/integ-parity/index",
+      "index_sha256": "108c6232d9977253ffca5ef0eae51b9421796acf191acfd9bed5e7324d0cf0d9",
+      "index_unique_oid_count": 69389,
+      "is_git_worktree": true,
+      "path": "/private/tmp/integ-parity"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "d0e441665993c4993ae8b8e01d9b51a53ddb1e12",
+      "index_entry_count": 3579,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/pr38-docs-integration-3568d40-20261028/index",
+      "index_sha256": "b4886a15860ae45af75541be946594087c328101861a593a285140088e4969e0",
+      "index_unique_oid_count": 3084,
+      "is_git_worktree": true,
+      "path": "/private/tmp/pr38-docs-integration-3568d40-20261028"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "3e678eb2522bbf05156a49933f910f2832081353",
+      "index_entry_count": 3592,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/pr38-holla-successor12-publish-20261028-d0e44166/index",
+      "index_sha256": "0091abbdad31bf89217eae02f1ee2b2034194bf9fb870beb045eaffe25442a1a",
+      "index_unique_oid_count": 3097,
+      "is_git_worktree": true,
+      "path": "/private/tmp/pr38-holla-successor12-publish-20261028-d0e44166"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "c47412cc16e1fdc1201bef03847cfb5c99263d9c",
+      "index_entry_count": 3579,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-pr38-native-paired-build-20261028-c47412cc/index",
+      "index_sha256": "f013ab2612e8fd40f78d6ccee632765608d93c2248d8a15b2f4f982b289a8159",
+      "index_unique_oid_count": 3084,
+      "is_git_worktree": true,
+      "path": "/private/tmp/termrock-pr38-native-paired-build-20261028-c47412cc"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "d0e441665993c4993ae8b8e01d9b51a53ddb1e12",
+      "index_entry_count": 3579,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-pr38-status-hints-production-20261028-d0e44166/index",
+      "index_sha256": "d4512d0a6e5bca4237c949bea3b3f1683c459c5eba2f8a08c25901e4d1c288f4",
+      "index_unique_oid_count": 3084,
+      "is_git_worktree": true,
+      "path": "/private/tmp/termrock-pr38-status-hints-production-20261028-d0e44166"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+      "index_entry_count": 3592,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-pr38-velnor-0168-candidate-preview-20261029/index",
+      "index_sha256": "8c6ab8ade0321043083891644c2a9b253bcccaa6149beb5e7617998fca446023",
+      "index_unique_oid_count": 3097,
+      "is_git_worktree": true,
+      "path": "/private/tmp/termrock-pr38-velnor-0168-candidate-preview-20261029"
+    },
+    {
+      "branch": null,
+      "exists": false,
+      "head": "972dc301916bc2c295d2f5d9a601ab892de3d83e",
+      "index_entry_count": 0,
+      "index_path": null,
+      "index_sha256": null,
+      "index_unique_oid_count": 0,
+      "is_git_worktree": false,
+      "path": "/private/tmp/termrock-push-audit.xeKwtF"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "6e471f142166d5df82bec7cb4b2dc419346ac640",
+      "index_entry_count": 0,
+      "index_path": null,
+      "index_sha256": null,
+      "index_unique_oid_count": 0,
+      "is_git_worktree": false,
+      "path": "/private/tmp/termrock-settings-old-control-20261022"
+    },
+    {
+      "branch": "refs/heads/wip/digest-base-20261021",
+      "exists": true,
+      "head": "032e9faa3ab12e98fef3b3835757eba5f1feee43",
+      "index_entry_count": 82143,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/digest-base-20261021/index",
+      "index_sha256": "545052ce1c2d3a075947eacd61ed1eb6be7564de828280e8d19475dc99cfe3ef",
+      "index_unique_oid_count": 59179,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/digest-base-20261021"
+    },
+    {
+      "branch": "refs/heads/recovery/list-fade-20261023",
+      "exists": true,
+      "head": "14d45f8bc3f1612bf6549f5e415343124f9d203e",
+      "index_entry_count": 94906,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/tabs-item-closability-20261023/index",
+      "index_sha256": "0807199e1da456611a9a4791c8285bcff26a89a799ce945a1e397dd51357d339",
+      "index_unique_oid_count": 69416,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/tabs-item-closability-20261023"
+    },
+    {
+      "branch": "refs/heads/reach-r34-r44",
+      "exists": true,
+      "head": "267a8d08575765f4e77a732eaa87aeec27986719",
+      "index_entry_count": 14324,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/agent-ab7ed10be68472967/index",
+      "index_sha256": "3ff520141e1db8ead5250740ae65aa6440666546cc466aeb9f4dbe6f6adf6576",
+      "index_unique_oid_count": 12928,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-ab7ed10be68472967"
+    },
+    {
+      "branch": "refs/heads/reach-b",
+      "exists": true,
+      "head": "13a64608cd0ab62fc62c5b20679e7dc614ab0540",
+      "index_entry_count": 14322,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/agent-afe6ef9c21f4d29d6/index",
+      "index_sha256": "ffa5d176274a66924bfadd387a90b74218b8afc7b875b7cdd6d0f316e6d7cfff",
+      "index_unique_oid_count": 12926,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/terminal-components-claude/.claude/worktrees/agent-afe6ef9c21f4d29d6"
+    },
+    {
+      "branch": "refs/heads/recovery/accounts-inspector-click-stage2-20261023",
+      "exists": true,
+      "head": "d7d8b750a799b4e2f8c607cb1cd7d263c7b35565",
+      "index_entry_count": 94790,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/terminal-components-recovery-verify-20261022/index",
+      "index_sha256": "6bee0027bef35912c6da6abdf5249fced4baae43dbbe86fefea4ca7b2668f069",
+      "index_unique_oid_count": 69299,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/terminal-components-recovery-verify-20261022"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "0989397d96776c3bf6a650ae566b3da56bb0a2f5",
+      "index_entry_count": 94918,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-approved-integration-20261026/index",
+      "index_sha256": "982c2adfe2ee453bcfd4f824f0c13df00e826e3a0670200fa94e23d9e4e52ebf",
+      "index_unique_oid_count": 69429,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/termrock-approved-integration-20261026"
+    },
+    {
+      "branch": "refs/heads/wip/conformance-cleanup-20261022",
+      "exists": true,
+      "head": "5f4bca1279b017b91f476a7b944cc4710015c648",
+      "index_entry_count": 96018,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-conformance-cleanup-20261022/index",
+      "index_sha256": "a7f8d17d0c2854cd3d66310f7c09547e92bd842c859af1dd7d9a6eee5e09b977",
+      "index_unique_oid_count": 69390,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/termrock-conformance-cleanup-20261022"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "index_entry_count": 13777,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-hidden-cursor-defect-20261020/index",
+      "index_sha256": "cff29594dd6873f153ebe72971a7c6686a82d425ffb07c39fe1b1b9e04d54705",
+      "index_unique_oid_count": 12471,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/termrock-hidden-cursor-defect-20261020"
+    },
+    {
+      "branch": "refs/heads/integrate/unique-0722f4f9",
+      "exists": true,
+      "head": "7013df32a8aeb041d0f7459b0357a1a0693f35c5",
+      "index_entry_count": 82143,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-integration/index",
+      "index_sha256": "530b6b4de8e1a255f1d7cc305613800208fd8e377c65f284de6b089160f6bab9",
+      "index_unique_oid_count": 59179,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/termrock-integration"
+    },
+    {
+      "branch": "refs/heads/wip/termrock-library-gaps-20261022",
+      "exists": true,
+      "head": "045801f3f4fce84c4880085cf40ee783e0ae06bf",
+      "index_entry_count": 96008,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-lib-20261022/index",
+      "index_sha256": "4139b267147334e7ce397083696dbb48bb8431af476cbe5f1a22d5c21752cb4f",
+      "index_unique_oid_count": 69380,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/termrock-lib-20261022"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+      "index_entry_count": 3592,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-pr38-shared-20261028/index",
+      "index_sha256": "bcb9ad67052dd62216941d7a124dc03b3243348a060dcb4d6246c26762cca34f",
+      "index_unique_oid_count": 3097,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/termrock-pr38-shared-20261028"
+    },
+    {
+      "branch": null,
+      "exists": true,
+      "head": "4f8d17c2a1c7642d3b90e77dd74a55e2566f234a",
+      "index_entry_count": 3579,
+      "index_path": "/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/termrock-recovery-verify-20261027/index",
+      "index_sha256": "4e92bc50541e4d893938dac43bd19f20b122eaa1b9cd790749bf5666ac496aa5",
+      "index_unique_oid_count": 3084,
+      "is_git_worktree": true,
+      "path": "/Users/donbeave/Projects/termrock-recovery-verify-20261027"
+    }
+  ]
+}

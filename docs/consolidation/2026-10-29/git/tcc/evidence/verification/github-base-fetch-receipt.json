@@ -1,0 +1,36 @@
+{
+  "init_command": [
+    "git",
+    "init",
+    "--bare",
+    "--template=/dev/null",
+    "--object-format=sha1",
+    "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base"
+  ],
+  "fetch_command": [
+    "git",
+    "-C",
+    "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+    "fetch",
+    "--no-tags",
+    "--no-write-fetch-head",
+    "<public-url-redacted>",
+    "refs/heads/parity/termrock-visual-baseline"
+  ],
+  "source_url_sanitized": "https://github.com/tailrocks/terminal-components-claude.git",
+  "source_ref": "refs/heads/parity/termrock-visual-baseline",
+  "expected_commit": "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+  "started_at_utc": "2026-10-28T19:51:33Z",
+  "fetch_started_at_utc": "2026-10-28T19:51:33Z",
+  "fetch_ended_at_utc": "2026-10-28T19:55:18Z",
+  "fetch_exit_code": 0,
+  "fetch_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "fetch_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "refs_count_after_fetch": 0,
+  "refs_sha256_after_fetch": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "fetch_head_present": false,
+  "expected_commit_object_present": true,
+  "alternates_disabled": true,
+  "no_tags_requested": true,
+  "no_fetch_head_requested": true
+}

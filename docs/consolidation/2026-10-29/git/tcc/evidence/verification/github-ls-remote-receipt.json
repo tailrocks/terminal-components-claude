@@ -1,0 +1,19 @@
+{
+  "command": [
+    "git",
+    "ls-remote",
+    "<public-url-redacted>",
+    "refs/heads/parity/termrock-visual-baseline"
+  ],
+  "started_at_utc": "2026-10-28T20:02:24Z",
+  "ended_at_utc": "2026-10-28T20:02:25Z",
+  "exit_code": 0,
+  "expected_oid": "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+  "observed_fields": [
+    "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93",
+    "refs/heads/parity/termrock-visual-baseline"
+  ],
+  "matches_expected": true,
+  "stdout_sha256": "710f1c19ced6ea7aa05b86ab5033ab3736b61ea4a8f0be4fcc2a7343368c0c79",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

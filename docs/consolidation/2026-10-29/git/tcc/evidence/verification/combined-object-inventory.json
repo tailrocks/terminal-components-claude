@@ -1,0 +1,36 @@
+{
+  "command": [
+    "git",
+    "--git-dir=/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+    "cat-file",
+    "--batch-all-objects",
+    "--batch-check=%(objectname) %(objecttype) %(objectsize)"
+  ],
+  "repository": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+  "started_at_utc": "2026-10-28T19:58:16Z",
+  "ended_at_utc": "2026-10-28T19:58:18Z",
+  "exit_code": 0,
+  "alternates_disabled": true,
+  "expected_count": 257216,
+  "actual_count": 257216,
+  "expected_type_counts": {
+    "tree": 75406,
+    "blob": 168467,
+    "commit": 13337,
+    "tag": 6
+  },
+  "missing_count": 0,
+  "missing_first": [],
+  "extra_count": 0,
+  "extra_first": [],
+  "type_size_mismatch_count": 0,
+  "type_size_mismatch_first": [],
+  "malformed_duplicate_count": 0,
+  "malformed_first": [],
+  "stdout_bytes": 13222313,
+  "stdout_sha256": "3d1b9980b8f5c758377c6ea88ea19b464c55e0b3ca7e327279c472b845ef1ccd",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "physical_inventory_sha256": "1e1094407122bfe6814f028cc360101490093ae7a3c4d5af589c808ff887beab",
+  "exact_typed_union": true
+}

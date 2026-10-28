@@ -1,0 +1,27 @@
+{
+  "command": [
+    "git",
+    "-C",
+    "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+    "index-pack",
+    "--stdin",
+    "--strict",
+    "--threads=1"
+  ],
+  "cwd": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+  "started_at_utc": "2026-10-28T19:56:15Z",
+  "ended_at_utc": "2026-10-28T19:57:29Z",
+  "exit_code": 0,
+  "strict": true,
+  "threads": 1,
+  "alternates": "disabled",
+  "fix_thin": false,
+  "promisor": false,
+  "streamed_pack_bytes": 4847685238,
+  "streamed_pack_sha256": "3524526d4accf5bb689fb2ab5b4896728802c25a59c7fc5864756239d9133c85",
+  "expected_pack_bytes": 4847685238,
+  "expected_pack_sha256": "3524526d4accf5bb689fb2ab5b4896728802c25a59c7fc5864756239d9133c85",
+  "chunk_manifest_sha256": "240c0e287653c9b4abee5e11893e7fa53d9feb29b2dbb9ade7a9154a01d63319",
+  "stdout_sha256": "a3f7cacfece021a186c5ea60f27aff8cf38c0804739609ca7cb1acf6157ade4b",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

@@ -1,0 +1,690 @@
+{
+  "all_chunk_sizes_and_hashes_independently_verified": true,
+  "archive_pack_bytes": 4847685238,
+  "archive_pack_sha256": "3524526d4accf5bb689fb2ab5b4896728802c25a59c7fc5864756239d9133c85",
+  "chunk_count": 97,
+  "chunk_manifest_sha256": "240c0e287653c9b4abee5e11893e7fa53d9feb29b2dbb9ade7a9154a01d63319",
+  "decision": "ELIGIBLE_FOR_USER_AUTHORIZED_SAME_PR_TRANSPORT_PUBLICATION",
+  "graph_review": {
+    "archive_objects": 152827,
+    "combined_objects": 257216,
+    "fresh_github_f629_only_baseline_objects": 104389,
+    "full_strict_fsck_exit": 0,
+    "initial_empty_odb_strict_failure_retained_as_declared_base_graph_dependency": true,
+    "missing_or_broken_links": 0,
+    "preserved_dangling_blob_notices": 14,
+    "strict_import_exit": 0
+  },
+  "independent_verified_odb_metadata_check": {
+    "alternates_shallow_grafts_replace_promisor_or_fsck_overrides_found": false,
+    "exact_oid_type_size_match_to_frozen_physical_inventory": true,
+    "lazy_fetch_disabled": true,
+    "physical_typed_object_count": 257216,
+    "repo": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/f629-github-base",
+    "source_object_database_borrowing": false
+  },
+  "limits": [
+    "Known project provenance, exact object/graph recovery proof, and bounded static checks support this transport decision; they are not a universal no-secret guarantee.",
+    "The remaining historical code/blob payloads were not manually semantically reviewed; arbitrary archive existence and auth terminology alone are not blockers.",
+    "No actual sensitive or unrelated finding was identified in this scoped review. A later concrete finding must be resolved before publishing the affected bytes.",
+    "Exact branch/ref/stash/dirty-state mapping and archive remote readback are separate preservation gates.",
+    "This is publication eligibility only, not remote custody, runtime/parity acceptance, or cleanup approval. All-work remote custody and deletion remain HOLD."
+  ],
+  "orphan_static_screen": {
+    "blob_bytes": 3954491,
+    "blob_count": 42,
+    "blobs": [
+      {
+        "bytes": 7254,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "01328d7b75f7c019f8601ae3e611fca3cffb630b",
+        "orphan_tree_links": [
+          {
+            "entry_name": "shell_chrome.rs",
+            "git_mode": "100644",
+            "tree_oid": "14520d6143ff126f2583c5b014eec9808085bb8e"
+          }
+        ],
+        "sha256": "3b0cbf4431bc73737bfcc6046c46e9ba4513a78f56de2700bf47d775164cf972"
+      },
+      {
+        "bytes": 50188,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "04d019d32fc7bc6b3a772d7e3e3123c4de6e621e",
+        "orphan_tree_links": [],
+        "sha256": "99fe734c2fa5676b85a53ae9e3b8ffaca7ee58b1d256c5e9bfe3a970ffc29fdf"
+      },
+      {
+        "bytes": 13519,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "0699d22d0a9025722ba16f38ede0921afa53cdac",
+        "orphan_tree_links": [
+          {
+            "entry_name": "esc_bridge.rs",
+            "git_mode": "100644",
+            "tree_oid": "830f5a87f62d4aecc96fbdda2bb8daae0470efdd"
+          }
+        ],
+        "sha256": "455045ae101dad596d3135efdc5e4ab7ef0ee7c05ab5f2ff6d961abc0a1ba2f0"
+      },
+      {
+        "bytes": 3579,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "0e5f0ff41aeb895b770447e1f68f3a2d2affca29",
+        "orphan_tree_links": [],
+        "sha256": "239ac1f1d58134af4ed3060632c6257a1321794ef86954accf3b920c5adda2c8"
+      },
+      {
+        "bytes": 597308,
+        "classification": "project_reference_inventory_jsonl",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "196be953084d96a1b563e5b668ae00e5398c4cbd",
+        "orphan_tree_links": [
+          {
+            "entry_name": "standalone-refs.jsonl",
+            "git_mode": "100644",
+            "tree_oid": "36d2a53967d797f9b45f23f4a564f7c175e22ec8"
+          }
+        ],
+        "sha256": "4c7b0aa0a3e94857c7dbd59576c7ec3a41c5f86afbd4ba3aad1db950e2443a04"
+      },
+      {
+        "bytes": 30016,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "1c4a67cf189a6b7425579404ab2bafe7ba33a2a9",
+        "orphan_tree_links": [],
+        "sha256": "2eec353dc798f644017ee3b43110f2ea31b903da71de37e75002f5ccbfadef99"
+      },
+      {
+        "bytes": 3584,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "243b1a7f8061f2f1296546d45cb4e57ced2e4adb",
+        "orphan_tree_links": [],
+        "sha256": "ff2d444e062c23afda46d0fe31710892884295bc6f4b8fcc1a9bd237f718f8cc"
+      },
+      {
+        "bytes": 17919,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "3c5029c1a01262a252a7126e7b7e0a23eb8ba189",
+        "orphan_tree_links": [
+          {
+            "entry_name": "app_tests_context_screens.rs",
+            "git_mode": "100644",
+            "tree_oid": "d65e3b61804bba542896f1fcf8d6865a185b34ad"
+          }
+        ],
+        "sha256": "15be7f83456e6bc3d196880afa39db5341dfdc7b55e0da929a76f8a1c6fe758c"
+      },
+      {
+        "bytes": 9823,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "42132212e83060630ff05374f1a63911dc64ffdd",
+        "orphan_tree_links": [
+          {
+            "entry_name": "author.rs",
+            "git_mode": "100644",
+            "tree_oid": "45ed33aaaf8033a36fd535cb17c271f40a68634a"
+          }
+        ],
+        "sha256": "d09a86ae935f73a271403ae4e7d75c5ecfc6513aa610b226bc9bb7d647e141be"
+      },
+      {
+        "bytes": 660,
+        "classification": "project_toml_manifest_or_evidence",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "46c826a49c5d002d5b6a3608c032cbbf93cf34e6",
+        "orphan_tree_links": [],
+        "sha256": "8e1102bd643eef0aa1532925337c59fb36ebacd79846f3770af091cb240e891a"
+      },
+      {
+        "bytes": 124367,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "49e86b808d3d8d61828be162f4c51f8a5f6fb586",
+        "orphan_tree_links": [
+          {
+            "entry_name": "app_tests.rs",
+            "git_mode": "100644",
+            "tree_oid": "f29d2754f812fe333f1fe33894d87c82276a6344"
+          }
+        ],
+        "sha256": "247a4cd7762b30eea27bbde7a778c2bc53964cf16eefa4594330609e6cab4a41"
+      },
+      {
+        "bytes": 5578,
+        "classification": "project_documentation",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "4f061674657a111d53d7972fc1abce4ce90c0d1e",
+        "orphan_tree_links": [],
+        "sha256": "e1ba1c8ffe03fb3642d3a9eaaedaba4ce59297825a23b2e87124059040b068e5"
+      },
+      {
+        "bytes": 2620,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "51f0a28b08f0b7eb2355fde643dc824e4f1bfa8b",
+        "orphan_tree_links": [
+          {
+            "entry_name": "main.rs",
+            "git_mode": "100644",
+            "tree_oid": "66ca5581c003cb826caa40d7c98376b22e04c01f"
+          }
+        ],
+        "sha256": "2838e5b1629c1c0de56916034e08bdb098eccc0f928966b124a6e184d176d934"
+      },
+      {
+        "bytes": 4506,
+        "classification": "project_static_python_tool_source",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "54f2ff414eb51b618cbc5e8862b9aea961d30887",
+        "orphan_tree_links": [],
+        "sha256": "4b9c005e34c990e9d98094e08b5b6e362f8de4af18ddc134c5fbb8645d3b51e2"
+      },
+      {
+        "bytes": 360452,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "54f9b44ab607b49c7144fcb2cc894d02dab20dac",
+        "orphan_tree_links": [
+          {
+            "entry_name": "app.rs",
+            "git_mode": "100644",
+            "tree_oid": "fad736af133ada0735a679dcdd80b2ab3e720823"
+          }
+        ],
+        "sha256": "095f14d9749c69c0e44b94477ab862c71566d9bace507900fdadc0de1d57eb60"
+      },
+      {
+        "bytes": 103227,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "586b1436e3641b090f043bb831e06514ffd7376e",
+        "orphan_tree_links": [
+          {
+            "entry_name": "editor_view.rs",
+            "git_mode": "100644",
+            "tree_oid": "23af6916877e94bd8636b561f899c72fae73e373"
+          }
+        ],
+        "sha256": "a1201273a435f9adcb20d68528c36036a56890f0a387d1722e86d442457a3379"
+      },
+      {
+        "bytes": 61527,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "5fb90346a98d2f10869ce199da27ea0b0aeabeb6",
+        "orphan_tree_links": [
+          {
+            "entry_name": "launch_cockpit.rs",
+            "git_mode": "100644",
+            "tree_oid": "23af6916877e94bd8636b561f899c72fae73e373"
+          }
+        ],
+        "sha256": "acfa9c1c9564629eac9c0eb2e41c748bc64bc77d9de0de29bfbc3129ae8c7ba5"
+      },
+      {
+        "bytes": 5563,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "6c9f4b310e2e8b9f815ac4136c2dea6d55431824",
+        "orphan_tree_links": [],
+        "sha256": "8ab1885585831d60d50c883e894fcce5d741f5708ffbd62f3da33301b8610346"
+      },
+      {
+        "bytes": 138008,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "84f67d216fe144ddf5b2540387c7b27b78db2397",
+        "orphan_tree_links": [
+          {
+            "entry_name": "app.rs",
+            "git_mode": "100644",
+            "tree_oid": "7538b2d6077f6171aaea03ccf794277d8cc3e4fa"
+          }
+        ],
+        "sha256": "4a83759b183089b103a4acc658be15227609a44c9a8e5e66dfda9b3fd76a818e"
+      },
+      {
+        "bytes": 80556,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "85acbbdfa359364069c37cc36ad931039b3cb126",
+        "orphan_tree_links": [
+          {
+            "entry_name": "session.rs",
+            "git_mode": "100644",
+            "tree_oid": "93e2b2d9166cc68daf9a1915d48332d4e60719e3"
+          }
+        ],
+        "sha256": "a5ee84227d2dda2b39c53fa6e368b8c826306a1dd7f42ffc327d429937dd71f6"
+      },
+      {
+        "bytes": 76894,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "9bf8123209ee17e160e494adfa973f9b69f51ba6",
+        "orphan_tree_links": [
+          {
+            "entry_name": "app.rs",
+            "git_mode": "100644",
+            "tree_oid": "5792c70bf127d741d135ba67cbafa735a3a32d16"
+          }
+        ],
+        "sha256": "5d7d0d44544bfa75ae06e669b7acf77be78842fcd8255149f100993b5b1966d6"
+      },
+      {
+        "bytes": 7829,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "9ced6b778f628cd0bc761c5447fd69aeed58894c",
+        "orphan_tree_links": [
+          {
+            "entry_name": "app_tests_copy.rs",
+            "git_mode": "100644",
+            "tree_oid": "5792c70bf127d741d135ba67cbafa735a3a32d16"
+          }
+        ],
+        "sha256": "20baf0a75e2ce13ca48bbc4a28b1b483cd712789603e05c8824a41af6125de8c"
+      },
+      {
+        "bytes": 10620,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "9e4542222ecac9bccd8a8f98c40c353b9fd21ca2",
+        "orphan_tree_links": [
+          {
+            "entry_name": "lib.rs",
+            "git_mode": "100644",
+            "tree_oid": "80efb9f06fbf2ad646d78fc03ccb930e88e6f440"
+          }
+        ],
+        "sha256": "22402e83c2d1ea10e19d00b262563d173557d18aa7a39d7e0bb24d2295d1665e"
+      },
+      {
+        "bytes": 637821,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "9f6d76df7247c5801fd024a64a5e180410a06917",
+        "orphan_tree_links": [
+          {
+            "entry_name": "app.rs",
+            "git_mode": "100644",
+            "tree_oid": "8f1efa4eaf68f0a68c3314975eec3b439f0d0392"
+          }
+        ],
+        "sha256": "7f306375e089154edd28fbcdd12d75c0d4560b69718bc4296fed80b508eefa5c"
+      },
+      {
+        "bytes": 60387,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "a1dd7fca3fbb0c7d901ff07eed1e519f978ae0d2",
+        "orphan_tree_links": [
+          {
+            "entry_name": "driver.rs",
+            "git_mode": "100644",
+            "tree_oid": "fda4227e9f673b1f64666d6ee71846f1c0fb8405"
+          }
+        ],
+        "sha256": "f5750ef24862bcd675919cd600b801f81fd3209d9e42a0176124f1efef8969dd"
+      },
+      {
+        "bytes": 6696,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "abc45503c132558a02d24fedf07193ca43ae5593",
+        "orphan_tree_links": [],
+        "sha256": "17029e0b1d75bae54315bf727f151ce23b767e9901f9782362da6840feeca92a"
+      },
+      {
+        "bytes": 5639,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "abf00e8f53367542912592544c258289e7776fd9",
+        "orphan_tree_links": [
+          {
+            "entry_name": "mod.rs",
+            "git_mode": "100644",
+            "tree_oid": "d1b03e6cfb1dd14164d541be077a8f78013bda5e"
+          }
+        ],
+        "sha256": "b426871555dfb0bbd615ee508252f51e370a3df060a36f6fb20e7f7aa6b1610c"
+      },
+      {
+        "bytes": 266065,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "b2effe6815b597e4e7371e6ec2906e74b8f65df9",
+        "orphan_tree_links": [
+          {
+            "entry_name": "runtime.rs",
+            "git_mode": "100644",
+            "tree_oid": "cbd9067436b4c41dc099d57c47929d76f6dcda5c"
+          }
+        ],
+        "sha256": "8fcda985632a46bd800e1b117f8feb2f41b85da6a0826912cf956ad282fc25aa"
+      },
+      {
+        "bytes": 5225,
+        "classification": "project_documentation",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "c0bfb457338ed1e7d00028e985f68fdc77d01967",
+        "orphan_tree_links": [],
+        "sha256": "ce79e6ef18420a2d76910c214e8f595163fa48f8a42daafb855d50b2acf6605d"
+      },
+      {
+        "bytes": 146338,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "c1db5f72fb5a7ff845005083121802535384f15e",
+        "orphan_tree_links": [],
+        "sha256": "7f8c5c4f36d2f13e0eccba18d414889efbd00dba41114550e55263a2d483ace8"
+      },
+      {
+        "bytes": 312885,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "c434ad1aa56fdabf2649a2f752f03e02a226c9ca",
+        "orphan_tree_links": [
+          {
+            "entry_name": "tabs.rs",
+            "git_mode": "100644",
+            "tree_oid": "09829abef6aa7fd0cabf651bf0b7de37238bb169"
+          }
+        ],
+        "sha256": "2c1b7cdb99ff6a39a6591a97707780aef5515baeabfd06f805b4c23d9c41057b"
+      },
+      {
+        "bytes": 184580,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "ca4a8d0e8fc49be8dd2bca4cce749b7064ff3a8e",
+        "orphan_tree_links": [
+          {
+            "entry_name": "form.rs",
+            "git_mode": "100644",
+            "tree_oid": "f2c15ffa5195b713938b01b790abf614eaac9434"
+          }
+        ],
+        "sha256": "fc963c36b4f4e5f95aa9ea2e3548545488117d29deaba46dc10b63a10b241e96"
+      },
+      {
+        "bytes": 14714,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "d6848c5d413bb7e1cfb3299a77f8490b7d14a4e8",
+        "orphan_tree_links": [],
+        "sha256": "2c1d3e84276501c96241a6423a62e4ee5123284edf28a9a605611adba26190e0"
+      },
+      {
+        "bytes": 120517,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "d77ab745e5b4fff34d9e62b17ed9b1ecba3a2fa7",
+        "orphan_tree_links": [
+          {
+            "entry_name": "app.rs",
+            "git_mode": "100644",
+            "tree_oid": "d65e3b61804bba542896f1fcf8d6865a185b34ad"
+          }
+        ],
+        "sha256": "dd5bca0af2e2cd4b5a00699049d743e2f4e198d44ef58a205f5b63f04118ac9a"
+      },
+      {
+        "bytes": 7377,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "dc12a3b1a75765f0ba3c66da928f1b3ffb21e770",
+        "orphan_tree_links": [
+          {
+            "entry_name": "picker_title.rs",
+            "git_mode": "100644",
+            "tree_oid": "188852b32b4b6f0175a7900c3ae0fc03605896e2"
+          }
+        ],
+        "sha256": "f9bda2b52d6e74f8820564c43fbb65bf565c85964f207be150bf5e8281933c0d"
+      },
+      {
+        "bytes": 47903,
+        "classification": "project_toml_manifest_or_evidence",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "dcdd38685d5a13470d855304ebe4ef5336634964",
+        "orphan_tree_links": [],
+        "sha256": "3546e8a3a1130da6bb21722114245dff630c7511eef98c7b04aa3cfd053979a9"
+      },
+      {
+        "bytes": 172112,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "e27799308dedbfbd244ee1f48d623195f7dab955",
+        "orphan_tree_links": [
+          {
+            "entry_name": "conformance.rs",
+            "git_mode": "100644",
+            "tree_oid": "03ed9b250ecc1b50a95bd8ebf1ee304f6c8aa07d"
+          }
+        ],
+        "sha256": "6b34833e9f3c573bd5f8050cafcf33a9939a0c34595b8c255652695a825a68f1"
+      },
+      {
+        "bytes": 25268,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "e3429c44ad49e76779ab4277937501a81dfd1d49",
+        "orphan_tree_links": [
+          {
+            "entry_name": "composition.rs",
+            "git_mode": "100644",
+            "tree_oid": "707091041c403fbb5e0a1e96882bf986fb5bd51c"
+          }
+        ],
+        "sha256": "aee0902acf24ba141a9213f9c013a16be5c31eaee13e3109f29f5d577fc3f8c8"
+      },
+      {
+        "bytes": 53176,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "edbff94ca6c263b14c407e0353f4ce6b6a61284e",
+        "orphan_tree_links": [
+          {
+            "entry_name": "settings_view.rs",
+            "git_mode": "100644",
+            "tree_oid": "23af6916877e94bd8636b561f899c72fae73e373"
+          }
+        ],
+        "sha256": "30186d3a50f9581f2510e358ce593edc1d96b3beb94e6b3cfcf5ba662428372a"
+      },
+      {
+        "bytes": 125878,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "f4b6266d661ade23dff130dacde51e2fa1f8e4b7",
+        "orphan_tree_links": [],
+        "sha256": "0108545b5dd6f1d81e4a783de611df6761aaa133743ea825b93238f169b991ee"
+      },
+      {
+        "bytes": 6240,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "f6c06759036432c5a21b4132bcea729ca388642a",
+        "orphan_tree_links": [
+          {
+            "entry_name": "shell_chrome.rs",
+            "git_mode": "100644",
+            "tree_oid": "3d4416a749ed60e39062ebd6f16fc93783adb0d0"
+          }
+        ],
+        "sha256": "0a84837a91db22cb131fdc6d9373ee2564bb3915f21f5363d4f47da0125effbc"
+      },
+      {
+        "bytes": 40073,
+        "classification": "project_rust_source_or_tests",
+        "decision": "ORDINARY_PROJECT_DATA",
+        "high_confidence_findings": [],
+        "oid": "fafa78eda56fa75032dce43fcb212055b60815a5",
+        "orphan_tree_links": [
+          {
+            "entry_name": "history_rows.rs",
+            "git_mode": "100644",
+            "tree_oid": "e219c4a4596da33201cfa7ac996b5ae4d7d2531b"
+          }
+        ],
+        "sha256": "f3c03d708d133d0bc57f3e689d6994b7f058e866b9a5be85fe71492ccf60e610"
+      }
+    ],
+    "blobs_with_orphan_tree_links": 28,
+    "classification_counts": {
+      "project_documentation": 2,
+      "project_reference_inventory_jsonl": 1,
+      "project_rust_source_or_tests": 36,
+      "project_static_python_tool_source": 1,
+      "project_toml_manifest_or_evidence": 2
+    },
+    "confirmed_sensitive_or_unrelated_findings": 0,
+    "high_confidence_detector_rule_names": [
+      "private_key_pem",
+      "github_token",
+      "openai_token",
+      "aws_access_key",
+      "jwt",
+      "credential_url",
+      "bearer_literal"
+    ],
+    "orphan_tree_records_inspected": 178,
+    "scope": "Every potential-orphan blob, plus orphan tree-entry provenance; no payload values printed or persisted.",
+    "unlinked_dangling_blobs": 14,
+    "unresolved_concrete_candidates": 0
+  },
+  "pack_header_object_count": 152827,
+  "positive_provenance": "Exact all-physical-minus-f629 input partition from the user-designated TCC project Git object database; known refs, history, index and orphan state preserved under explicit user request. Raw .git/config, hooks and credential stores are outside this object-transport input by design.",
+  "prior_scoped_path_review": {
+    "decision": "69 exact path-flagged content groups cleared",
+    "path": "/private/tmp/pr38-consolidation-inventory-20261029/sol-high-sensitive-path-review-v1.json",
+    "sha256": "e67f37bc0bff8f2bb90ac98a4ebbb87a5b8d26cf4a251516b8133448a4fba7c1"
+  },
+  "receipt_hash_checks": [
+    {
+      "hash_match": true,
+      "name": "github-base-fetch-receipt.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/github-base-fetch-receipt.json",
+      "sha256": "2fdb7ce4c720ba8279acf09cb211e521f6a2e8d57b224311cb782f79c68691bc"
+    },
+    {
+      "hash_match": true,
+      "name": "github-base-object-reconciliation.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/github-base-object-reconciliation.json",
+      "sha256": "386446ed87405b9a806353d0aa88726544845101d68f263159e9d90bcea734f4"
+    },
+    {
+      "hash_match": true,
+      "name": "github-ls-remote-receipt.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/github-ls-remote-receipt.json",
+      "sha256": "7b8b545d327b0bd0b02658754af9ad559931cd718a138bdeefcb1bcc949654b3"
+    },
+    {
+      "hash_match": true,
+      "name": "combined-strict-index-pack-result.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/combined-strict-index-pack-result.json",
+      "sha256": "49e30caa05ec0e1fce7adc5719192db25314beac56da9c2c7fdf3f67734b5e66"
+    },
+    {
+      "hash_match": true,
+      "name": "combined-object-inventory.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/combined-object-inventory.json",
+      "sha256": "586c121d6fcc850ccf02f922e9c3581d624eab1f1fedc10562d7a831181b6b1f"
+    },
+    {
+      "hash_match": true,
+      "name": "combined-full-strict-fsck-result.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/combined-full-strict-fsck-result.json",
+      "sha256": "8835c60e6b24b8ae62794297660c4614d6e939b232275f1d3efa5765aa19bece"
+    },
+    {
+      "hash_match": true,
+      "name": "cat-file-reconciliation.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/cat-file-reconciliation.json",
+      "sha256": "38f9c0c528b43cec669530639fb5377f203e5a69e6a576c6a159fb2c81d3dfd3"
+    },
+    {
+      "hash_match": true,
+      "name": "dangling-object-classification.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/dangling-object-classification.json",
+      "sha256": "9deeadde943feff74c04d1d561f02bfaa9c8832d2d4d9881d0b15b4c95abf7e1"
+    },
+    {
+      "hash_match": true,
+      "name": "verification-root-setup.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verification-root-setup.json",
+      "sha256": "983baaf9ddffa3845909ebed1e0d7734a271d2d618c19d9ceb15f74a959c40d5"
+    },
+    {
+      "hash_match": true,
+      "name": "index-pack-result.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/index-pack-result.json",
+      "sha256": "86d7c58b3ac29312fc887926a628bdf9ca3ab135a95233f02b7c69c3a189509f"
+    },
+    {
+      "hash_match": true,
+      "name": "verify-pack-reconciliation.json",
+      "path": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/verified-object-store-payload-only/verify-pack-reconciliation.json",
+      "sha256": "ffe431b8868f4c6b8a0958cefacfa9a72d44ec871154d057bde15f521f96f4c3"
+    }
+  ],
+  "review_id": "PR38-TCC-PACK-PUBLICATION-REVIEW-v1",
+  "reviewed_utc": "2026-10-28T20:35:46.595158+00:00",
+  "reviewer": "/root/consolidate_safety_and_remote_review",
+  "scope": "Exact TCC archive pack and its 97 unchanged chunks only. No upload, source edits, candidate execution, or deletion performed.",
+  "validation_summary": {
+    "path": 43,
+    "sha256": "049e6932d5eca2e71415c017d57eea7e1635feb76c49752432fa41b2763b02e1"
+  }
+}

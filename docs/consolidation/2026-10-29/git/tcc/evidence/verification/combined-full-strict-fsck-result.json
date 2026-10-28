@@ -1,0 +1,39 @@
+{
+  "command": [
+    "git",
+    "-C",
+    "/private/tmp/pr38-consolidation-staging-20261029/git-objects/combined-fsck-verification",
+    "fsck",
+    "--full",
+    "--strict",
+    "--no-reflogs",
+    "--no-progress"
+  ],
+  "cwd": "/private/tmp/pr38-consolidation-staging-20261029/git-objects/combined-fsck-verification",
+  "started_at_utc": "2026-10-28T19:59:52Z",
+  "ended_at_utc": "2026-10-28T20:02:01Z",
+  "exit_code": 0,
+  "alternates_disabled": true,
+  "verification_root_ref_count": 88749,
+  "verification_root_ref_sha256": "4f05962abf811ee8357f7e57814f49b9f657679288d69f5980d70cbbb8a8f865",
+  "stdout_bytes": 770,
+  "stdout_sha256": "463e51f1f4c1288797f3f6b7ac1d512d42a3a52421681517b6221a0686a3b411",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "output_tail": [
+    "dangling blob dcdd38685d5a13470d855304ebe4ef5336634964",
+    "dangling blob 04d019d32fc7bc6b3a772d7e3e3123c4de6e621e",
+    "dangling blob 243b1a7f8061f2f1296546d45cb4e57ced2e4adb",
+    "dangling blob 6c9f4b310e2e8b9f815ac4136c2dea6d55431824",
+    "dangling blob d6848c5d413bb7e1cfb3299a77f8490b7d14a4e8",
+    "dangling blob c0bfb457338ed1e7d00028e985f68fdc77d01967",
+    "dangling blob abc45503c132558a02d24fedf07193ca43ae5593",
+    "dangling blob 4f061674657a111d53d7972fc1abce4ce90c0d1e",
+    "dangling blob f4b6266d661ade23dff130dacde51e2fa1f8e4b7",
+    "dangling blob 46c826a49c5d002d5b6a3608c032cbbf93cf34e6",
+    "dangling blob 1c4a67cf189a6b7425579404ab2bafe7ba33a2a9",
+    "dangling blob 0e5f0ff41aeb895b770447e1f68f3a2d2affca29",
+    "dangling blob c1db5f72fb5a7ff845005083121802535384f15e",
+    "dangling blob 54f2ff414eb51b618cbc5e8862b9aea961d30887"
+  ]
+}
