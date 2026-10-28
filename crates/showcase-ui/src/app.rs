@@ -11,11 +11,13 @@ use termrock::{
     TreeAction, TreeNode, TreeState, Ui, Variant, id, width,
 };
 
+use showcase_demos::pages::breadcrumbs_rails::TOGGLE_RAIL_ACTION;
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
 use showcase_demos::pages::query_workbench::RUN_QUERY;
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
     Page, PageStatus,
+    breadcrumbs_rails::BreadcrumbsRailsPage,
     buttons::ButtonsPage,
     celleditors::CellEditorsPage,
     checks_radios::ChecksRadiosPage,
@@ -29,6 +31,7 @@ use showcase_demos::pages::{
     empty_error::EmptyErrorPage,
     forms::FormsPage,
     grid::GridPage,
+    help_keys::HelpKeysPage,
     inputs::InputsPage,
     lists::ListsPage,
     master_detail::MasterDetailPage,
@@ -38,6 +41,7 @@ use showcase_demos::pages::{
     pickers::PickersPage,
     progress::ProgressPage,
     query_workbench::QueryWorkbenchPage,
+    quit_leave::QuitLeavePage,
     scrolling::ScrollingPage,
     settings::SettingsPage,
     sidebars::SidebarsPage,
@@ -162,10 +166,13 @@ pub enum PageId {
     CellEditors,
     Toolbars,
     QueryWorkbench,
+    BreadcrumbsRails,
+    HelpKeys,
+    QuitLeave,
 }
 
 impl PageId {
-    pub const ALL: [Self; 26] = [
+    pub const ALL: [Self; 29] = [
         Self::Overview,
         Self::Buttons,
         Self::Inputs,
@@ -192,6 +199,9 @@ impl PageId {
         Self::CellEditors,
         Self::Toolbars,
         Self::QueryWorkbench,
+        Self::BreadcrumbsRails,
+        Self::HelpKeys,
+        Self::QuitLeave,
     ];
 
     pub const fn title(self) -> &'static str {
@@ -222,6 +232,9 @@ impl PageId {
             Self::CellEditors => "Cell editors",
             Self::Toolbars => "Toolbars",
             Self::QueryWorkbench => "Query workbench",
+            Self::BreadcrumbsRails => "Breadcrumbs & rails",
+            Self::HelpKeys => "Help & keys",
+            Self::QuitLeave => "Quit & leave",
         }
     }
 
@@ -253,6 +266,9 @@ impl PageId {
             Self::CellEditors => "celleditors",
             Self::Toolbars => "toolbars",
             Self::QueryWorkbench => "queryworkbench",
+            Self::BreadcrumbsRails => "breadcrumbsrails",
+            Self::HelpKeys => "helpkeys",
+            Self::QuitLeave => "quitleave",
         }
     }
 
@@ -349,19 +365,19 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        id: PageId::BreadcrumbsRails,
         label: "Breadcrumbs & rails",
         section: "App shell",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        id: PageId::HelpKeys,
         label: "Help & keys",
         section: "App shell",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        id: PageId::QuitLeave,
         label: "Quit & leave",
         section: "App shell",
         icon: "•",
@@ -1292,11 +1308,19 @@ fn page(kind: PageId) -> Box<dyn Page> {
         PageId::CellEditors => Box::new(CellEditorsPage::new()),
         PageId::Toolbars => Box::new(ToolbarsPage::new()),
         PageId::QueryWorkbench => Box::new(QueryWorkbenchPage::new()),
+        PageId::BreadcrumbsRails => Box::new(BreadcrumbsRailsPage::new()),
+        PageId::HelpKeys => Box::new(HelpKeysPage::new()),
+        PageId::QuitLeave => Box::new(QuitLeavePage::new()),
     }
 }
 
 fn keymap() -> KeyMap {
     KeyMap::new()
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('b'), termrock::KeyModifiers::CONTROL),
+            TOGGLE_RAIL_ACTION,
+        )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('q')), QUIT)
         .bind(
             KeyPhase::Capture,
@@ -1332,11 +1356,18 @@ fn keymap() -> KeyMap {
         )
 }
 
-fn query_workbench_keymap() -> KeyMap {
-    keymap().bind(
-        KeyPhase::Capture,
-        Chord::with(KeyCode::Char('r'), termrock::KeyModifiers::CONTROL),
-        RUN_QUERY,
+fn is_shell_command(action: ActionKey) -> bool {
+    matches!(
+        action,
+        QUIT | QUIT_CTRL
+            | HELP_COMMAND
+            | INSPECTOR_COMMAND
+            | NEXT_PAGE
+            | PREV_PAGE
+            | TOGGLE_RAIL_ACTION
+            | RUN_COMMAND
+            | RUN_QUERY
+            | FORM_SUBMIT
     )
 }
 
@@ -1369,6 +1400,7 @@ pub struct App {
     inspector_programmatic_close: Option<LayerOpening>,
     selectable: showcase_demos::pages::selectable::Model,
     keymap: KeyMap,
+    page_keymap: KeyMap,
     query_workbench_keymap: KeyMap,
     query_workbench_capture_enabled: std::cell::Cell<bool>,
     inspector: bool,
@@ -1421,6 +1453,7 @@ impl core::fmt::Debug for App {
             )
             .field("selectable", &self.selectable)
             .field("keymap", &self.keymap)
+            .field("page_keymap", &self.page_keymap)
             .field("inspector", &self.inspector)
             .field("motion_paused", &self.motion_paused)
             .field("paused_frame", &self.paused_frame)
@@ -1455,6 +1488,8 @@ impl App {
         let nodes = nav_nodes(&nav_state, 0);
         reveal_nav(&mut nav_state, &nodes, nav_index);
         let mut pages: Vec<Box<dyn Page>> = PageId::ALL.into_iter().map(page).collect();
+        let mut query_workbench_keymap = keymap();
+        pages[PageId::QueryWorkbench.index()].keymap(&mut query_workbench_keymap);
         if paused {
             for page in &mut pages {
                 page.seek_paused(frame);
@@ -1503,7 +1538,8 @@ impl App {
             inspector_programmatic_close: None,
             selectable: showcase_demos::pages::selectable::Model::default(),
             keymap: keymap(),
-            query_workbench_keymap: query_workbench_keymap(),
+            page_keymap: keymap(),
+            query_workbench_keymap,
             query_workbench_capture_enabled: std::cell::Cell::new(false),
             inspector: false,
             shell_layout_cache: std::cell::Cell::new(None),
@@ -2914,6 +2950,11 @@ impl TuiApp for App {
         let _ = missing_page_panel();
         let _ = inspector_panel();
         let command = cx.command();
+        let page_shell_command_barrier = self.show_live_page()
+            && self
+                .active()
+                .is_some_and(|page| page.blocks_shell_commands(cx));
+        let shell_command = command.is_some_and(is_shell_command);
         let inspector_modal_active = self.inspector_modal_active(cx);
         let pending_quit_at_start = self.pending_quit_reason.is_some();
         let consume_nav_tree_key = match nav_query_input(cx, self.nav_query.is_some()) {
@@ -2938,37 +2979,46 @@ impl TuiApp for App {
             None => false,
         };
         self.update_header(cx, &mut response);
-        match command {
-            Some(QUIT | QUIT_CTRL) => self.request_quit(cx, &mut response),
-            Some(NEXT_PAGE) if !inspector_modal_active && self.pending_quit_reason.is_none() => {
-                let count = NAV_ENTRIES.len();
-                if count > 0 {
-                    let current = nav_index_for_target(self.nav_target).unwrap_or(0);
-                    response |= self.goto_entry_with_cx(cx, current.saturating_add(1) % count);
+        if page_shell_command_barrier && shell_command {
+            response |= Response::consumed();
+        } else {
+            match command {
+                Some(QUIT | QUIT_CTRL) => self.request_quit(cx, &mut response),
+                Some(NEXT_PAGE)
+                    if !inspector_modal_active && self.pending_quit_reason.is_none() =>
+                {
+                    let count = NAV_ENTRIES.len();
+                    if count > 0 {
+                        let current = nav_index_for_target(self.nav_target).unwrap_or(0);
+                        response |= self.goto_entry_with_cx(cx, current.saturating_add(1) % count);
+                    }
                 }
-            }
-            Some(PREV_PAGE) if !inspector_modal_active && self.pending_quit_reason.is_none() => {
-                let count = NAV_ENTRIES.len();
-                if count > 0 {
-                    let current = nav_index_for_target(self.nav_target).unwrap_or(0);
-                    let previous = current.checked_sub(1).unwrap_or(count.saturating_sub(1));
-                    response |= self.goto_entry_with_cx(cx, previous);
+                Some(PREV_PAGE)
+                    if !inspector_modal_active && self.pending_quit_reason.is_none() =>
+                {
+                    let count = NAV_ENTRIES.len();
+                    if count > 0 {
+                        let current = nav_index_for_target(self.nav_target).unwrap_or(0);
+                        let previous = current.checked_sub(1).unwrap_or(count.saturating_sub(1));
+                        response |= self.goto_entry_with_cx(cx, previous);
+                    }
                 }
+                Some(NEXT_PAGE | PREV_PAGE) => {}
+                Some(HELP_COMMAND) if !cx.is_open(HELP) && self.pending_quit_reason.is_none() => {
+                    self.open_help(cx);
+                }
+                Some(INSPECTOR_COMMAND)
+                    if cx.update_cause() == termrock::UpdateCause::Event
+                        && self.pending_quit_reason.is_none() =>
+                {
+                    self.toggle_inspector(&mut response);
+                }
+                _ => {}
             }
-            Some(NEXT_PAGE | PREV_PAGE) => {}
-            Some(HELP_COMMAND) if !cx.is_open(HELP) && self.pending_quit_reason.is_none() => {
-                self.open_help(cx);
-            }
-            Some(INSPECTOR_COMMAND)
-                if cx.update_cause() == termrock::UpdateCause::Event
-                    && self.pending_quit_reason.is_none() =>
-            {
-                self.toggle_inspector(&mut response);
-            }
-            _ => {}
         }
         if self.show_live_page()
             && let Some(action) = command
+            && !(page_shell_command_barrier && shell_command)
             && !matches!(
                 action,
                 QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND | INSPECTOR_COMMAND
@@ -3088,6 +3138,16 @@ impl TuiApp for App {
             response |= self.pane_tree.prepare_for_presentation(cx, page_area);
         }
         self.update_notice_reveals(cx, &mut response);
+        self.page_keymap.clone_from(&self.keymap);
+        if let NavTarget::Live(page) = self.nav_target
+            && page != PageId::QueryWorkbench
+            && !self.help_open
+            && !self.inspector
+            && self.pending_quit_reason.is_none()
+            && let Some(active) = self.pages.get(page.index())
+        {
+            active.keymap(&mut self.page_keymap);
+        }
         if !self.motion_paused
             && let Some((_, since)) = &self.status
         {
@@ -3225,7 +3285,14 @@ impl TuiApp for App {
                 CHECKS_RADIOS_ENTRY | STATUS_HINTS_ENTRY | EMPTY_ERROR_ENTRY | NOTICES_ENTRY
                 | DIFF_ENTRY | MASTER_DETAIL_ENTRY | PANE_TREE_ENTRY,
             ) => page_hints,
-            NavTarget::Live(PageId::Pickers | PageId::DialogKinds | PageId::Toolbars) => page_hints,
+            NavTarget::Live(
+                PageId::Pickers
+                | PageId::DialogKinds
+                | PageId::Toolbars
+                | PageId::BreadcrumbsRails
+                | PageId::HelpKeys
+                | PageId::QuitLeave,
+            ) => page_hints,
             NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
         };
         let (footer_hints, tab_hint) = if self.overlay_open {
@@ -3322,7 +3389,7 @@ impl TuiApp for App {
         {
             &self.query_workbench_keymap
         } else {
-            &self.keymap
+            &self.page_keymap
         }
     }
 

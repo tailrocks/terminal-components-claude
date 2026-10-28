@@ -1,7 +1,3 @@
-//! The application shell: routing, navigation, chrome, quit guard, status and
-//! footer ownership, ported from the PR #26 shell layer onto the parity
-//! runtime contracts (`App`/`Cx`/`Ui`/`Response`).
-
 pub mod chrome;
 pub mod footer;
 pub mod keyboard;

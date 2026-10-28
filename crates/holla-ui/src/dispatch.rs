@@ -142,6 +142,9 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
         Some("system.resources") => {
             return Destination::Snapshot(crate::screens::snapshot::Kind::Resources);
         }
+        Some("system.processes") => {
+            return Destination::Snapshot(crate::screens::snapshot::Kind::Processes);
+        }
         Some("disk.usage") => return Destination::DiskScan,
         Some("scope.system") => return Destination::HostScope,
         Some("system.monitor") => {}

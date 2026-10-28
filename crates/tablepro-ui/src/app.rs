@@ -1,6 +1,8 @@
 use core::fmt::Write as _;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Range;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use termrock::author::{PaintStyle, StyleDefaults};
@@ -15,17 +17,20 @@ use termrock::{
     GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers,
     KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier, Moment, Panel, PanelKind, Part,
     Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowUi, ScreenAlign, Size,
-    SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction,
-    TabsState, TextAction, TextInput, TextInputState, TextViewport, Theme, Tree, TreeAction,
-    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, ViewportLine, ViewportState,
-    truncate, width, wrap,
+    SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, TabMarks, Tabs,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, Theme, Tree,
+    TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, ViewportLine,
+    ViewportState, truncate, width, wrap,
 };
 
 use crate::footer::{self, Hint};
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::safe_mode::SafeModePicker;
 use crate::tab_list::{self, TabList};
-use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
+use crate::tabs::{
+    ApplicationMutation, ExplorerItem, GridView, QueryOutputBody, QueryOutputId, QueryOutputInfo,
+    QueryOutputInput, QueryOutputKind, QueryOutputState, QueryRunFinish, Tab, TabKey, TabRecord,
+};
 use crate::workbench::Workbench;
 
 mod connection_form_focus;
@@ -61,6 +66,12 @@ use tablepro_domain::{highlight_sql, segment_sql};
 pub const MIN_WIDTH: u16 = 72;
 
 pub const MIN_HEIGHT: u16 = 20;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GridSortOwner {
+    Table(TabKey),
+    QueryOutput(TabKey, Option<QueryOutputId>),
+}
 const CONNECTIONS: Id = Id::root("tablepro.connections.list");
 const CONNECTION_FILTER: Id = Id::root("tablepro.connections.filter");
 const CONNECTIONS_PANEL: Id = Id::root("tablepro.connections.panel");
@@ -73,6 +84,8 @@ const FILTER_LAYER: Id = Id::root("tablepro.filter.layer");
 const FILTER_STEP: Id = Id::root("tablepro.filter.step");
 const FILTER_VALUE: Id = Id::root("tablepro.filter.value");
 const RUN: ActionKey = ActionKey::application("tablepro.run");
+const RUN_ALL: ActionKey = ActionKey::application("tablepro.run-all");
+const PIN_QUERY_OUTPUT: ActionKey = ActionKey::application("tablepro.query-output.pin");
 const UNDO: ActionKey = ActionKey::application("tablepro.undo");
 const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
 const DUPLICATE_ROW: ActionKey = ActionKey::application("tablepro.duplicate-row");
@@ -175,6 +188,7 @@ struct DestructiveRequest {
 struct PendingCommit {
     key: TabKey,
     generation: u64,
+    output_state: Option<QueryOutputState>,
     connection: Connection,
     schema: String,
     target: String,
@@ -188,6 +202,302 @@ struct PendingCommit {
     acknowledgement: String,
     acknowledgement_label: String,
     changes: usize,
+}
+
+const QUERY_START_TICKS: u8 = 6;
+const QUERY_NEXT_STATEMENT_TICKS: u8 = 4;
+const QUERY_TICK_INTERVAL: Duration = Duration::from_millis(80);
+const QUERY_RUN_FINALIZATION_CURRENCY_STEPS: u64 = 4;
+const QUERY_RUN_PREPARATION_CURRENCY_STEPS: u64 = 1;
+
+#[derive(Clone, PartialEq)]
+struct QueryResultSnapshot {
+    columns: Vec<(String, ColType)>,
+    model: ResultGrid,
+    state: termrock::GridState,
+}
+
+impl From<&GridView> for QueryResultSnapshot {
+    fn from(grid: &GridView) -> Self {
+        Self {
+            columns: grid.columns.clone(),
+            model: grid.model.clone(),
+            state: grid.state.clone(),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq)]
+struct QueryOutputSnapshot {
+    id: QueryOutputId,
+    label: String,
+    source_range: Option<Range<usize>>,
+    duration_ms: u32,
+    kind: QueryOutputKind,
+    pinned: bool,
+    closable: bool,
+}
+
+impl From<&QueryOutputInfo> for QueryOutputSnapshot {
+    fn from(output: &QueryOutputInfo) -> Self {
+        Self {
+            id: output.id(),
+            label: output.label().to_owned(),
+            source_range: output.source_range(),
+            duration_ms: output.duration_ms(),
+            kind: output.kind(),
+            pinned: output.is_pinned(),
+            closable: output.can_close(),
+        }
+    }
+}
+
+struct QueryExecutionSnapshot {
+    key: TabKey,
+    generation: u64,
+    output_state: QueryOutputState,
+    owner: std::sync::Weak<()>,
+    connection: Connection,
+    app_connection: Connection,
+    schema: String,
+    safe_mode: SafeMode,
+    stored_text: String,
+    editor_text: String,
+    observed_editor_text: String,
+    saved_text: String,
+    error: Option<String>,
+    last_status: Option<(String, bool, u32)>,
+    result: Option<QueryResultSnapshot>,
+    outputs: Vec<QueryOutputSnapshot>,
+    running: bool,
+}
+
+impl QueryExecutionSnapshot {
+    fn capture(app: &TableProApp, key: TabKey) -> Option<Self> {
+        let Tab::Query(tab) = app.workbench.tab(key)? else {
+            return None;
+        };
+        let editor_text = tab.editor_state.editor().text().to_owned();
+        let outputs = app
+            .workbench
+            .query_outputs(key)?
+            .iter()
+            .map(QueryOutputSnapshot::from)
+            .collect();
+        Some(Self {
+            key,
+            generation: app.workbench.generation(key)?,
+            output_state: app.workbench.query_output_state(key)?,
+            owner: app.workbench.owner_token(),
+            connection: app.workbench.connection.clone(),
+            app_connection: app.connection.clone(),
+            schema: app.workbench.current_schema().to_owned(),
+            safe_mode: app.safe_mode,
+            stored_text: tab.query.clone(),
+            editor_text: editor_text.clone(),
+            observed_editor_text: editor_text,
+            saved_text: tab.saved_text.clone(),
+            error: tab.error.clone(),
+            last_status: tab
+                .last_status
+                .as_ref()
+                .map(|status| (status.summary.clone(), status.is_error, status.duration_ms)),
+            result: tab.result.as_ref().map(QueryResultSnapshot::from),
+            outputs,
+            running: tab.running,
+        })
+    }
+
+    fn is_current(&self, app: &TableProApp) -> bool {
+        if !app.workbench.matches_owner(&self.owner)
+            || app.workbench.generation(self.key) != Some(self.generation)
+            || app.workbench.query_output_state(self.key) != Some(self.output_state)
+            || app.workbench.connection != self.connection
+            || app.connection != self.app_connection
+            || app.workbench.current_schema() != self.schema
+            || app.safe_mode != self.safe_mode
+        {
+            return false;
+        }
+        let Some(Tab::Query(tab)) = app.workbench.tab(self.key) else {
+            return false;
+        };
+        self.stored_text == tab.query
+            && self.observed_editor_text == tab.editor_state.editor().text()
+            && self.saved_text == tab.saved_text
+            && self.error == tab.error
+            && self.last_status
+                == tab
+                    .last_status
+                    .as_ref()
+                    .map(|status| (status.summary.clone(), status.is_error, status.duration_ms))
+            && self.result == tab.result.as_ref().map(QueryResultSnapshot::from)
+            && app
+                .workbench
+                .query_outputs(self.key)
+                .is_some_and(|outputs| {
+                    self.outputs
+                        == outputs
+                            .iter()
+                            .map(QueryOutputSnapshot::from)
+                            .collect::<Vec<_>>()
+                })
+            && self.running == tab.running
+    }
+
+    fn refresh_after_editor_edit(&self, app: &TableProApp, run: &Arc<()>) -> Option<Self> {
+        let mut refreshed = Self::capture(app, self.key)?;
+        if !app.workbench.matches_owner(&self.owner)
+            || !app.workbench.query_run_matches(self.key, run)
+            || self.generation.checked_add(1) != Some(refreshed.generation)
+            || self.output_state.revision().checked_add(1)
+                != Some(refreshed.output_state.revision())
+            || refreshed.connection != self.connection
+            || refreshed.app_connection != self.app_connection
+            || refreshed.schema != self.schema
+            || refreshed.safe_mode != self.safe_mode
+            || refreshed.observed_editor_text == self.observed_editor_text
+            || refreshed.stored_text != refreshed.observed_editor_text
+            || refreshed.saved_text != self.saved_text
+            || refreshed.error != self.error
+            || refreshed.last_status != self.last_status
+            || refreshed.result != self.result
+            || refreshed.running != self.running
+            || refreshed.output_state.selected() != self.output_state.selected()
+            || !same_outputs_after_sql_edit(&self.outputs, &refreshed.outputs)
+        {
+            return None;
+        }
+        refreshed.editor_text.clone_from(&self.editor_text);
+        Some(refreshed)
+    }
+
+    fn refresh_after_progress(
+        &self,
+        app: &TableProApp,
+        run: &Arc<()>,
+        expected_status: &str,
+    ) -> Option<Self> {
+        let mut refreshed = Self::capture(app, self.key)?;
+        if !app.workbench.matches_owner(&self.owner)
+            || !app.workbench.query_run_matches(self.key, run)
+            || self.generation.checked_add(1) != Some(refreshed.generation)
+            || self.output_state.revision().checked_add(1)
+                != Some(refreshed.output_state.revision())
+            || refreshed.connection != self.connection
+            || refreshed.app_connection != self.app_connection
+            || refreshed.schema != self.schema
+            || refreshed.safe_mode != self.safe_mode
+            || refreshed.stored_text != self.stored_text
+            || refreshed.observed_editor_text != self.observed_editor_text
+            || refreshed.saved_text != self.saved_text
+            || refreshed.error != self.error
+            || refreshed
+                .last_status
+                .as_ref()
+                .map(|(summary, error, duration)| (summary.as_str(), *error, *duration))
+                != Some((expected_status, false, 0))
+            || refreshed.result != self.result
+            || refreshed.running != self.running
+            || refreshed.output_state.selected() != self.output_state.selected()
+            || refreshed.outputs != self.outputs
+        {
+            return None;
+        }
+        refreshed.editor_text.clone_from(&self.editor_text);
+        Some(refreshed)
+    }
+}
+
+fn same_outputs_after_sql_edit(
+    before: &[QueryOutputSnapshot],
+    after: &[QueryOutputSnapshot],
+) -> bool {
+    before.len() == after.len()
+        && before.iter().zip(after).all(|(before, after)| {
+            before.id == after.id
+                && before.label == after.label
+                && (before.source_range == after.source_range || after.source_range.is_none())
+                && before.duration_ms == after.duration_ms
+                && before.kind == after.kind
+                && before.pinned == after.pinned
+                && before.closable == after.closable
+        })
+}
+
+#[derive(Clone)]
+struct PlannedQueryStatement {
+    range: Range<usize>,
+}
+
+struct PreparedQueryRun {
+    snapshot: QueryExecutionSnapshot,
+    submitted_range: Range<usize>,
+    review_sql: String,
+    statements: Vec<PlannedQueryStatement>,
+    review_range: Option<Range<usize>>,
+    confirm_indices: Vec<usize>,
+    authorized_statements: Vec<usize>,
+    run_all: bool,
+    review_statement_index: usize,
+}
+
+struct PendingQueryExecution {
+    snapshot: QueryExecutionSnapshot,
+    run_token: Arc<()>,
+    submitted_range: Range<usize>,
+    statements: Vec<PlannedQueryStatement>,
+    current_statement: usize,
+    ticks_left: u8,
+    next_tick: Moment,
+    timer: QueryTimer,
+    authorized_statements: Vec<usize>,
+    run_all: bool,
+    completed_outputs: Vec<PendingQueryOutput>,
+}
+
+#[must_use = "handle whether a query run was absent, cancelled, or left unavailable"]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum QueryCancelOutcome {
+    NoPendingRun,
+    Cancelled,
+    PublicationUnavailable,
+}
+
+struct PendingQueryOutput {
+    range: Range<usize>,
+    duration_ms: u32,
+    body: QueryOutputBody,
+    outcome: QueryOutcome,
+    error_at: Option<usize>,
+}
+
+#[derive(Default)]
+struct QueryResultTabsState {
+    owner: Option<TabKey>,
+    state: TabsState,
+}
+
+impl QueryResultTabsState {
+    fn sync(
+        &mut self,
+        owner: TabKey,
+        outputs: &[QueryOutputInfo],
+        selected: Option<QueryOutputId>,
+    ) {
+        if self.owner != Some(owner) {
+            self.owner = Some(owner);
+            self.state = TabsState::default();
+        }
+        if let Some(id) = selected
+            && let Some((index, _)) = outputs
+                .iter()
+                .enumerate()
+                .find(|(_, output)| output.id() == id)
+        {
+            self.state.set_active(index, ItemKey::num(id.get()));
+        }
+    }
 }
 
 enum DestructiveIntent {
@@ -210,7 +520,7 @@ enum DestructiveIntent {
         question: String,
     },
     ReplaceResult {
-        request: Box<query_safety::QuerySafetyRequest>,
+        plan: Box<PreparedQueryRun>,
     },
     Commit(Box<PendingCommit>),
 }
@@ -225,9 +535,9 @@ impl core::fmt::Debug for DestructiveIntent {
                 .field("tabs", &scope.len())
                 .finish_non_exhaustive(),
             Self::DiscardRows { key, .. } => f.debug_tuple("DiscardRows").field(key).finish(),
-            Self::ReplaceResult { request } => f
+            Self::ReplaceResult { plan } => f
                 .debug_struct("ReplaceResult")
-                .field("key", &request.key())
+                .field("key", &plan.snapshot.key)
                 .finish_non_exhaustive(),
             Self::Commit(request) => f.debug_tuple("Commit").field(&request.key).finish(),
         }
@@ -258,8 +568,8 @@ impl DestructiveIntent {
             }
             Self::ReplaceResult { .. } => Dialog::destructive(
                 QUIT_DIALOG,
-                "Replace results with unsaved edits?",
-                "Pending row edits in this query result will be lost.",
+                "Run with edited results?",
+                "Pending row edits will stay in retained result tabs while the new run is added.",
             )
             .actions(&REPLACE_ACTIONS),
             Self::Commit(request) => {
@@ -632,6 +942,19 @@ fn keymap() -> KeyMap {
             )
             .bind(
                 KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('r'), KeyModifiers::ALT),
+                RUN_ALL,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(
+                    KeyCode::Char('p'),
+                    KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+                ),
+                PIN_QUERY_OUTPUT,
+            )
+            .bind(
+                KeyPhase::Bubble,
                 Chord::with(KeyCode::Char('o'), KeyModifiers::CONTROL),
                 OPEN,
             )
@@ -769,6 +1092,8 @@ pub struct TableProApp {
     safe_mode: SafeMode,
     empty_result: ResultGrid,
     status: String,
+    pending_queries: HashMap<TabKey, PendingQueryExecution>,
+    pending_query_plan: Option<PreparedQueryRun>,
 
     connection_status_at: Option<Moment>,
 
@@ -782,6 +1107,7 @@ pub struct TableProApp {
     query_safety: query_safety::QuerySafetyController,
     history_detail: HistoryDetailController,
     query_panes: RefCell<QueryPaneState>,
+    query_result_tabs: RefCell<QueryResultTabsState>,
     explain_contexts: RefCell<ExplainContextState>,
     switcher: QuickSwitcher,
     tab_list: TabList,
@@ -819,7 +1145,7 @@ pub struct TableProApp {
     query_timing: QueryTiming,
     tick: u64,
     explorer_pin: u8,
-    grid_sort: Option<(TabKey, u16, SortDir)>,
+    grid_sort: Option<(GridSortOwner, u16, SortDir)>,
     filter_editor: Option<FilterEditor>,
 
     filter_value_focused: bool,
@@ -841,6 +1167,8 @@ impl core::fmt::Debug for TableProApp {
             .field("empty_result", &self.empty_result)
             .field("grid_state", &"<grid state>")
             .field("status", &self.status)
+            .field("pending_queries", &self.pending_queries.len())
+            .field("pending_query_plan", &self.pending_query_plan.is_some())
             .field("quit", &self.quit)
             .field("destructive_intent", &self.destructive_intent)
             .field("has_destructive_notice", &self.destructive_notice.is_some())
@@ -848,6 +1176,7 @@ impl core::fmt::Debug for TableProApp {
             .field("query_safety", &self.query_safety)
             .field("history_detail", &self.history_detail)
             .field("query_panes", &self.query_panes.borrow())
+            .field("query_result_tabs", &"<result tabs state>")
             .field("switcher", &"<query and target snapshot>")
             .field("tab_list", &self.tab_list.rows.len())
             .field("safe_mode_picker", &self.safe_mode_picker.rows.len())
@@ -888,7 +1217,7 @@ struct CapturedExplainContext {
 #[derive(Default)]
 struct ExplainContextState {
     owner: Option<std::sync::Weak<()>>,
-    statements: HashMap<TabKey, CapturedExplainContext>,
+    statements: HashMap<(TabKey, QueryOutputId), CapturedExplainContext>,
 }
 
 impl ExplainContextState {
@@ -901,33 +1230,40 @@ impl ExplainContextState {
             self.owner = Some(workbench.owner_token());
             self.statements.clear();
         }
-        self.statements.retain(|key, context| {
-            matches!(
-                workbench.tab(*key),
-                Some(Tab::Query(query))
-                    if query.error.is_none()
-                        && query.result.is_none()
-                        && query.plan.as_ref() == Some(&context.plan)
-            )
+        self.statements.retain(|(key, output_id), _| {
+            workbench.query_outputs(*key).is_some_and(|outputs| {
+                outputs.iter().any(|output| {
+                    output.id() == *output_id && output.kind() == QueryOutputKind::Plan
+                })
+            })
         });
     }
 
-    fn capture(&mut self, workbench: &Workbench, key: TabKey, statement_sql: String) {
+    fn capture(
+        &mut self,
+        workbench: &Workbench,
+        key: TabKey,
+        output_id: QueryOutputId,
+        statement_sql: String,
+    ) {
         self.sync(workbench);
         let Some(Tab::Query(query)) = workbench.tab(key) else {
-            self.statements.remove(&key);
+            self.statements.remove(&(key, output_id));
             return;
         };
-        if query.error.is_some() || query.result.is_some() {
-            self.statements.remove(&key);
+        if workbench.selected_query_output(key) != Some(output_id)
+            || query.error.is_some()
+            || query.result.is_some()
+        {
+            self.statements.remove(&(key, output_id));
             return;
         }
         let Some(plan) = query.plan.as_ref() else {
-            self.statements.remove(&key);
+            self.statements.remove(&(key, output_id));
             return;
         };
         self.statements.insert(
-            key,
+            (key, output_id),
             CapturedExplainContext {
                 statement_sql,
                 plan: plan.clone(),
@@ -935,9 +1271,14 @@ impl ExplainContextState {
         );
     }
 
-    fn matching_sql(&self, key: TabKey, plan: &tablepro_sql::sql::PlanNode) -> Option<&str> {
+    fn matching_sql(
+        &self,
+        key: TabKey,
+        output_id: QueryOutputId,
+        plan: &tablepro_sql::sql::PlanNode,
+    ) -> Option<&str> {
         self.statements
-            .get(&key)
+            .get(&(key, output_id))
             .filter(|context| &context.plan == plan)
             .map(|context| context.statement_sql.as_str())
     }
@@ -977,6 +1318,8 @@ impl TableProApp {
             keymap: keymap(),
             empty_result: ResultGrid::empty(),
             status: "Ready · Ctrl+R runs · Ctrl+Q quits".to_owned(),
+            pending_queries: HashMap::new(),
+            pending_query_plan: None,
             connection_status_at: None,
             connection_status_arm: false,
             quit: false,
@@ -988,6 +1331,7 @@ impl TableProApp {
             query_safety: query_safety::QuerySafetyController::default(),
             history_detail: HistoryDetailController::default(),
             query_panes: RefCell::new(QueryPaneState::default()),
+            query_result_tabs: RefCell::new(QueryResultTabsState::default()),
             explain_contexts: RefCell::new(ExplainContextState::default()),
             switcher: QuickSwitcher::default(),
             tab_list: TabList::default(),
@@ -1202,10 +1546,9 @@ impl TableProApp {
             Surface::ExplainPlan => {
                 self.reset_visual_workbench();
                 self.set_visual_query("SELECT * FROM orders LIMIT 10");
-                if let Some(Tab::Query(query)) = self.workbench.active_mut() {
-                    let _ = query.explain(&self.catalog);
+                if let Some(key) = self.workbench.active_key() {
+                    let _ = self.explain_query(key, false);
                 }
-                "Explain plan ready".clone_into(&mut self.status);
                 self.surface = surface;
             }
             Surface::HistoryTab => {
@@ -1482,8 +1825,10 @@ impl TableProApp {
     }
 
     fn set_visual_query(&mut self, query: &str) {
-        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
-            tab.replace_query(query);
+        if let Some(key) = self.workbench.active_key() {
+            let _ = self
+                .workbench
+                .application_update_query(key, |tab| tab.replace_query(query));
         }
     }
 
@@ -1551,6 +1896,7 @@ impl TableProApp {
             self.surface = Surface::ConnectionsFailed;
             return false;
         }
+        self.cancel_pending_queries();
         self.safe_mode = connection.safe_mode;
         self.connection = connection.clone();
         self.connections_screen.error = None;
@@ -1632,12 +1978,6 @@ impl TableProApp {
         }
     }
 
-    fn commit_query_edit(&mut self) {
-        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
-            tab.commit_query_edit();
-        }
-    }
-
     fn sync_active_tab(&mut self) {
         self.surface = match self.workbench.active() {
             Some(Tab::Table(tab)) if tab.is_structure() => Surface::StructureView,
@@ -1658,7 +1998,17 @@ impl TableProApp {
 
     pub fn run_query(&mut self, query: impl Into<String>) -> QueryOutcome {
         let query = query.into();
-        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
+        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.running) {
+            return QueryOutcome::Rejected {
+                message: "Query is already running".to_owned(),
+            };
+        }
+        if self
+            .workbench
+            .active_key()
+            .and_then(|key| self.workbench.query_has_pending_result(key))
+            .unwrap_or(false)
+        {
             return QueryOutcome::Rejected {
                 message: "Pending result edits require confirmation".to_owned(),
             };
@@ -1676,7 +2026,17 @@ impl TableProApp {
     }
 
     pub fn execute_query(&mut self) -> QueryOutcome {
-        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
+        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.running) {
+            return QueryOutcome::Rejected {
+                message: "Query is already running".to_owned(),
+            };
+        }
+        if self
+            .workbench
+            .active_key()
+            .and_then(|key| self.workbench.query_has_pending_result(key))
+            .unwrap_or(false)
+        {
             return QueryOutcome::Rejected {
                 message: "Pending result edits require confirmation".to_owned(),
             };
@@ -1686,49 +2046,161 @@ impl TableProApp {
                 message: "Active tab is not a query".to_owned(),
             };
         };
-        let query = self.query().to_owned();
-        self.execute_snapshot(key, &query)
-    }
-
-    fn execute_snapshot(&mut self, key: TabKey, query: &str) -> QueryOutcome {
-        self.execute_snapshot_inner(key, query, false)
-    }
-
-    fn execute_authorized_query(
-        &mut self,
-        authorization: query_safety::AuthorizedExecution,
-    ) -> QueryOutcome {
-        let request = authorization.into_request();
-        if !request.is_current(self) {
-            self.status = "Work changed; request again".to_owned();
+        let plan = match self.prepare_query_run(key, false) {
+            Ok(plan) => plan,
+            Err(outcome) => {
+                self.status = outcome_message(&outcome);
+                return outcome;
+            }
+        };
+        if let Some(range) = plan.review_range.as_ref() {
+            let Some(query) = plan.snapshot.editor_text.get(range.clone()) else {
+                return QueryOutcome::Rejected {
+                    message: "Query selection is no longer available".to_owned(),
+                };
+            };
+            let (outcome, _, _) = self.execute_query_statement(query, false);
+            self.status = outcome_message(&outcome);
+            return outcome;
+        }
+        if !plan.snapshot.is_current(self) {
             return QueryOutcome::Rejected {
                 message: "Work changed; request again".to_owned(),
             };
         }
-        self.execute_snapshot_inner(request.key(), request.query(), true)
+        let mut outcome = QueryOutcome::Rejected {
+            message: "Nothing to run".to_owned(),
+        };
+        let mut outputs = Vec::with_capacity(plan.statements.len());
+        let mut diagnostic = None;
+        let mut total_elapsed = Duration::ZERO;
+        for (index, statement) in plan.statements.iter().enumerate() {
+            let Some(query) = plan.snapshot.editor_text.get(statement.range.clone()) else {
+                outcome = QueryOutcome::Rejected {
+                    message: "Query selection is no longer available".to_owned(),
+                };
+                break;
+            };
+            let started = self.query_timing.start();
+            let (statement_outcome, body, error_at) = self.execute_query_statement(query, false);
+            let duration_ms = duration_millis(started.elapsed());
+            total_elapsed = total_elapsed.saturating_add(started.elapsed());
+            outcome = statement_outcome;
+            if matches!(
+                outcome,
+                QueryOutcome::ConfirmationRequired { .. } | QueryOutcome::Denied { .. }
+            ) {
+                self.status = outcome_message(&outcome);
+                return outcome;
+            }
+            self.record_statement_history(query, &outcome, duration_ms);
+            if matches!(body.kind(), QueryOutputKind::Error) {
+                let message = match &outcome {
+                    QueryOutcome::Rejected { message } => message.clone(),
+                    _ => outcome_message(&outcome),
+                };
+                diagnostic = Some((statement.range.clone(), query.to_owned(), error_at, message));
+            }
+            outputs.push(QueryOutputInput::new(
+                format!("Statement {}", index.saturating_add(1)),
+                Some(statement.range.clone()),
+                duration_ms,
+                body,
+            ));
+            if !matches!(&outcome, QueryOutcome::Executed { .. }) {
+                break;
+            }
+        }
+        if !outputs.is_empty() {
+            if !self.workbench.prepare_query_outputs_for_run(key)
+                || self.workbench.append_query_outputs(key, outputs).is_none()
+            {
+                self.status = "Query result state is unavailable".to_owned();
+                return QueryOutcome::Rejected {
+                    message: "Query result state is unavailable".to_owned(),
+                };
+            }
+            let diagnostics_published = if let Some((range, query, error_at, message)) = diagnostic
+            {
+                self.apply_query_diagnostic(key, &query, range, error_at, &message)
+            } else {
+                self.workbench
+                    .application_update_query(key, |tab| {
+                        tab.editor_state.editor_mut().set_diagnostics(Vec::new());
+                    })
+                    .is_some()
+            };
+            if !diagnostics_published {
+                self.status = "Query result state is unavailable".to_owned();
+                return QueryOutcome::Rejected {
+                    message: "Query result state is unavailable".to_owned(),
+                };
+            }
+            if self
+                .workbench
+                .application_update_query(key, |tab| {
+                    tab.commit_query_edit();
+                    tab.record_execution_status(
+                        matches!(outcome, QueryOutcome::Executed { .. }),
+                        total_elapsed,
+                    );
+                })
+                .is_none()
+            {
+                self.status = "Query result state is unavailable".to_owned();
+                return QueryOutcome::Rejected {
+                    message: "Query result state is unavailable".to_owned(),
+                };
+            }
+        }
+        self.status = outcome_message(&outcome);
+        outcome
     }
 
-    fn execute_snapshot_inner(
-        &mut self,
-        key: TabKey,
+    fn execute_authorized_query(&mut self, authorization: query_safety::AuthorizedExecution) {
+        let request = authorization.into_request();
+        let Some(mut plan) = self.pending_query_plan.take() else {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        };
+        let key = plan.snapshot.key;
+        let index = plan.review_statement_index;
+        let review_is_current = plan.confirm_indices.contains(&index)
+            && plan
+                .statements
+                .get(index)
+                .is_some_and(|statement| plan.review_range.as_ref() == Some(&statement.range));
+        if !request.is_current(self)
+            || request.key() != key
+            || request.query() != plan.review_sql
+            || !plan.snapshot.is_current(self)
+            || !review_is_current
+        {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        }
+        if !plan.authorized_statements.contains(&index) {
+            plan.authorized_statements.push(index);
+        }
+        self.pending_query_plan = Some(plan);
+    }
+
+    fn execute_query_statement(
+        &self,
         query: &str,
         authorized: bool,
-    ) -> QueryOutcome {
-        if !matches!(self.workbench.tab(key), Some(Tab::Query(_))) {
-            return QueryOutcome::Rejected {
-                message: "Query tab is no longer available".to_owned(),
-            };
-        }
-        let started = self.query_timing.start();
+    ) -> (QueryOutcome, QueryOutputBody, Option<usize>) {
         let statement = match tablepro_sql::sql::parse(query.trim()) {
             Ok(statement) => statement,
             Err(error) => {
-                let out = QueryOutcome::Rejected {
-                    message: error.message,
+                let outcome = QueryOutcome::Rejected {
+                    message: error.message.clone(),
                 };
-                self.status = outcome_message(&out);
-                self.record_query_status(key, &out, started.elapsed());
-                return out;
+                return (
+                    outcome,
+                    QueryOutputBody::error(error.message),
+                    Some(error.at),
+                );
             }
         };
         let table = match &statement {
@@ -1740,102 +2212,1007 @@ impl TableProApp {
         match tablepro_sql::sql::gate(self.safe_mode, &statement) {
             tablepro_sql::sql::Decision::Deny => {
                 let risk = tablepro_sql::sql::assess(&statement, table);
-                let out = QueryOutcome::Denied {
-                    summary: format!("{} is denied in Read-Only mode", risk.action),
-                };
-                self.status = outcome_message(&out);
-                out
+                let summary = format!("{} is denied in Read-Only mode", risk.action);
+                let outcome = QueryOutcome::Denied { summary };
+                let body = QueryOutputBody::error(outcome_message(&outcome));
+                (outcome, body, None)
             }
             tablepro_sql::sql::Decision::Confirm { deliberate } if !authorized => {
                 let risk = tablepro_sql::sql::assess(&statement, table);
-                let out = QueryOutcome::ConfirmationRequired {
+                let outcome = QueryOutcome::ConfirmationRequired {
                     deliberate,
                     summary: format!("{} · {}", risk.action, risk.scope),
                 };
-                self.status = outcome_message(&out);
-                out
+                let body = QueryOutputBody::error(outcome_message(&outcome));
+                (outcome, body, None)
             }
             tablepro_sql::sql::Decision::Confirm { .. } | tablepro_sql::sql::Decision::Run => {
-                self.execute_accepted_snapshot(key, query, statement, started)
+                let tablepro_sql::sql::Statement::Select(select) = statement else {
+                    let outcome = QueryOutcome::Rejected {
+                        message: "The demo executor only runs SELECT statements".to_owned(),
+                    };
+                    let body = QueryOutputBody::error(outcome_message(&outcome));
+                    return (outcome, body, None);
+                };
+                match tablepro_sql::sql::run_select(&self.catalog, &select) {
+                    Ok(result) => {
+                        let outcome = QueryOutcome::Executed {
+                            rows: result.rows.len(),
+                            editable: result.editable,
+                        };
+                        (
+                            outcome,
+                            QueryOutputBody::rows(GridView::from_result(&result)),
+                            None,
+                        )
+                    }
+                    Err(error) => {
+                        let outcome = QueryOutcome::Rejected {
+                            message: error.message.clone(),
+                        };
+                        (outcome, QueryOutputBody::error(error.message), error.at)
+                    }
+                }
             }
         }
     }
 
-    fn execute_accepted_snapshot(
+    fn record_statement_history(&mut self, query: &str, outcome: &QueryOutcome, duration_ms: u32) {
+        let (rows, error) = match outcome {
+            QueryOutcome::Executed { rows, .. } => (Some(*rows), None),
+            QueryOutcome::Rejected { message } => (None, Some(message.clone())),
+            QueryOutcome::ConfirmationRequired { .. } | QueryOutcome::Denied { .. } => return,
+        };
+        self.workbench.history.push(HistoryEntry {
+            id: 0,
+            sql: query.to_owned(),
+            connection: self.workbench.connection.name.clone(),
+            database: self.workbench.connection.database.clone(),
+            schema: self.workbench.current_schema().to_owned(),
+            minutes_ago: 0,
+            duration_ms: Some(duration_ms),
+            rows,
+            error,
+            source: HistorySource::Editor,
+        });
+    }
+
+    fn apply_query_diagnostic(
         &mut self,
         key: TabKey,
         query: &str,
-        statement: tablepro_sql::sql::Statement,
-        started: QueryTimer,
-    ) -> QueryOutcome {
-        if let tablepro_sql::sql::Statement::Select(select) = statement {
-            match tablepro_sql::sql::run_select(&self.catalog, &select) {
-                Ok(result) => {
-                    let out = QueryOutcome::Executed {
-                        rows: result.rows.len(),
-                        editable: result.editable,
-                    };
-                    if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
-                        tab.result = Some(GridView::from_result(&result));
-                        tab.error = None;
-                        tab.editor_state.editor_mut().set_diagnostics(Vec::new());
-                        if tab.editor_state.editor().text() == query {
-                            tab.commit_query_edit();
-                        }
-                    }
-                    self.status = outcome_message(&out);
-                    self.record_query_status(key, &out, started.elapsed());
-                    out
+        diagnostic_range: Range<usize>,
+        error_at: Option<usize>,
+        message: &str,
+    ) -> bool {
+        self.workbench
+            .application_update_query(key, |tab| {
+                let text_len = tab.editor_state.editor().text().len();
+                let statement_start = diagnostic_range.start.min(text_len);
+                let leading = query.len().saturating_sub(query.trim_start().len());
+                let range = if let Some(at) = error_at {
+                    let start = statement_start
+                        .saturating_add(leading)
+                        .saturating_add(at)
+                        .min(text_len);
+                    start..start.saturating_add(8).min(text_len)
+                } else {
+                    statement_start..diagnostic_range.end.min(text_len)
+                };
+                tab.editor_state
+                    .editor_mut()
+                    .set_diagnostics(vec![CodeDiagnostic::new(
+                        range,
+                        CodeSeverity::Error,
+                        message.to_owned(),
+                    )]);
+            })
+            .is_some()
+    }
+
+    fn explain_query(&mut self, key: TabKey, analyze: bool) -> Option<Result<String, String>> {
+        let running = matches!(
+            self.workbench.tab(key),
+            Some(Tab::Query(query)) if query.running
+        ) || self.pending_queries.contains_key(&key);
+        if running {
+            match self.cancel_query(key) {
+                QueryCancelOutcome::Cancelled => {}
+                QueryCancelOutcome::NoPendingRun => {
+                    self.status = "Running query could not be cancelled".to_owned();
+                    return Some(Err("Running query could not be cancelled".to_owned()));
                 }
-                Err(error) => {
-                    let out = QueryOutcome::Rejected {
-                        message: error.message.clone(),
-                    };
-                    if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
-                        tab.result = None;
-                        tab.plan = None;
-                        let text_len = tab.editor_state.editor().text().len();
-                        let range = match error.at {
-                            Some(at) => {
-                                let start = at.min(text_len);
-                                start..start.saturating_add(8).min(text_len)
-                            }
-                            None => 0..text_len,
-                        };
-                        tab.editor_state
-                            .editor_mut()
-                            .set_diagnostics(vec![CodeDiagnostic::new(
-                                range,
-                                CodeSeverity::Error,
-                                error.message.clone(),
-                            )]);
-                        tab.error = Some(error.message);
-                    }
-                    self.status = outcome_message(&out);
-                    self.record_query_status(key, &out, started.elapsed());
-                    out
+                QueryCancelOutcome::PublicationUnavailable => {
+                    return Some(Err("Query result state is unavailable".to_owned()));
                 }
             }
-        } else {
-            let out = QueryOutcome::Rejected {
-                message: "The demo executor only runs SELECT statements".to_owned(),
+        }
+        let catalog = &self.catalog;
+        let evaluated = self.workbench.application_update_query(key, |query| {
+            query.editor_state.editor_mut().set_diagnostics(Vec::new());
+            let previous_result = query.result.take();
+            let previous_error = query.error.take();
+            let previous_plan = query.plan.take();
+            let result = query.explain_statement(catalog, analyze);
+            let plan = query.plan.take();
+            query.result = previous_result;
+            query.error = previous_error;
+            query.plan = previous_plan;
+            (result, plan)
+        })?;
+        let (result, plan) = evaluated;
+        if let (Ok(statement_sql), Some(plan)) = (&result, plan) {
+            let label = if analyze {
+                "Explain Analyze"
+            } else {
+                "Explain"
             };
-            self.status = outcome_message(&out);
-            self.record_query_status(key, &out, started.elapsed());
-            out
+            let output = QueryOutputInput::new(label, None, 0, QueryOutputBody::plan(plan));
+            let Some(ids) = self.workbench.append_query_outputs(key, vec![output]) else {
+                self.status = "Query result state is unavailable".to_owned();
+                return Some(Err("Query result state is unavailable".to_owned()));
+            };
+            let Some(output_id) = ids.last().copied() else {
+                self.status = "Query result state is unavailable".to_owned();
+                return Some(Err("Query result state is unavailable".to_owned()));
+            };
+            self.explain_contexts.get_mut().capture(
+                &self.workbench,
+                key,
+                output_id,
+                statement_sql.clone(),
+            );
+            let _ = self.workbench.application_update_query(key, |query| {
+                query.record_status("Explain plan ready", false, 0);
+            });
+            self.status = "Explain plan ready".to_owned();
+        } else if let Err(error) = &result {
+            self.status = error.clone();
+        }
+        Some(result)
+    }
+
+    fn prepare_query_run(
+        &self,
+        key: TabKey,
+        run_all: bool,
+    ) -> Result<PreparedQueryRun, QueryOutcome> {
+        let snapshot =
+            QueryExecutionSnapshot::capture(self, key).ok_or_else(|| QueryOutcome::Rejected {
+                message: "Query tab is no longer available".to_owned(),
+            })?;
+        if snapshot.running {
+            return Err(QueryOutcome::Rejected {
+                message: "Query is already running".to_owned(),
+            });
+        }
+        let Some(Tab::Query(tab)) = self.workbench.tab(key) else {
+            return Err(QueryOutcome::Rejected {
+                message: "Query tab is no longer available".to_owned(),
+            });
+        };
+        let editor = tab.editor_state.editor();
+        let mut ranges = Vec::new();
+        let submitted_range = if run_all {
+            ranges.extend(
+                tablepro_sql::sql::split_statements(&snapshot.editor_text)
+                    .into_iter()
+                    .map(|(start, end)| start..end),
+            );
+            0..snapshot.editor_text.len()
+        } else {
+            let selection =
+                CodeEditor::new(Id::root("tablepro.query.run-selection"), QUERY_EDITOR_ROWS)
+                    .segmenter(&segment_sql)
+                    .selection_or_block(editor);
+            let Some((selected, range)) = selection else {
+                return Err(QueryOutcome::Rejected {
+                    message: "No SQL statement at cursor".to_owned(),
+                });
+            };
+            if snapshot.editor_text.get(range.clone()) != Some(selected.as_str()) {
+                return Err(QueryOutcome::Rejected {
+                    message: "Query selection is no longer available".to_owned(),
+                });
+            }
+            let selected_statements = tablepro_sql::sql::split_statements(&selected);
+            if selected_statements.len() > 1 {
+                ranges.extend(selected_statements.into_iter().map(|(start, end)| {
+                    range.start.saturating_add(start)..range.start.saturating_add(end)
+                }));
+            } else if !selected_statements.is_empty() {
+                ranges.push(range.clone());
+            }
+            range
+        };
+        if ranges.is_empty() {
+            return Err(QueryOutcome::Rejected {
+                message: "Nothing to run".to_owned(),
+            });
+        }
+
+        let statements: Vec<_> = ranges
+            .into_iter()
+            .map(|range| PlannedQueryStatement { range })
+            .collect();
+        if statements.iter().any(|planned| {
+            planned.range.start < submitted_range.start || planned.range.end > submitted_range.end
+        }) {
+            return Err(QueryOutcome::Rejected {
+                message: "Query selection is no longer available".to_owned(),
+            });
+        }
+        let mut review_range = None;
+        let mut review_statement_index = 0;
+        let mut confirm_indices = Vec::new();
+        for (index, planned) in statements.iter().enumerate() {
+            let Some(query) = snapshot.editor_text.get(planned.range.clone()) else {
+                return Err(QueryOutcome::Rejected {
+                    message: "Query selection is no longer available".to_owned(),
+                });
+            };
+            let Ok(statement) = tablepro_sql::sql::parse(query.trim()) else {
+                continue;
+            };
+            let table = match &statement {
+                tablepro_sql::sql::Statement::Select(select) => {
+                    self.catalog.find(select.schema.as_deref(), &select.table)
+                }
+                _ => None,
+            };
+            match tablepro_sql::sql::gate(self.safe_mode, &statement) {
+                tablepro_sql::sql::Decision::Deny => {
+                    let risk = tablepro_sql::sql::assess(&statement, table);
+                    return Err(QueryOutcome::Denied {
+                        summary: format!("{} is denied in Read-Only mode", risk.action),
+                    });
+                }
+                tablepro_sql::sql::Decision::Confirm { .. } => {
+                    confirm_indices.push(index);
+                    if review_range.is_none() {
+                        review_range = Some(planned.range.clone());
+                        review_statement_index = index;
+                    }
+                }
+                tablepro_sql::sql::Decision::Run => {}
+            }
+        }
+
+        let review_sql = review_range
+            .as_ref()
+            .and_then(|range| snapshot.editor_text.get(range.clone()))
+            .unwrap_or("")
+            .to_owned();
+
+        Ok(PreparedQueryRun {
+            snapshot,
+            submitted_range,
+            review_sql,
+            statements,
+            review_range,
+            confirm_indices,
+            authorized_statements: Vec::new(),
+            run_all,
+            review_statement_index,
+        })
+    }
+
+    fn open_query_review(&mut self, cx: &mut Cx<'_>, mut plan: PreparedQueryRun, index: usize) {
+        let key = plan.snapshot.key;
+        if !plan.snapshot.is_current(self) {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        }
+        let Some(statement) = plan.statements.get(index) else {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        };
+        let range = statement.range.clone();
+        if range.start < plan.submitted_range.start || range.end > plan.submitted_range.end {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        }
+        let Some(review_sql) = plan
+            .snapshot
+            .editor_text
+            .get(range.clone())
+            .map(str::to_owned)
+        else {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        };
+        let Some(snapshot) = QueryExecutionSnapshot::capture(self, key) else {
+            self.status = "Query tab is no longer available".to_owned();
+            return;
+        };
+        let Some(request) =
+            query_safety::QuerySafetyRequest::capture(self, key, review_sql.clone())
+        else {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        };
+        if !request.needs_review() || !request.valid_acknowledgement_target() {
+            self.status = "Query review could not be verified".to_owned();
+            return;
+        }
+        plan.snapshot = snapshot;
+        plan.review_sql = review_sql;
+        plan.review_range = Some(range);
+        plan.review_statement_index = index;
+        self.pending_query_plan = Some(plan);
+        if self.query_safety.open(cx, request) {
+            self.surface = Surface::SafetyDialogTypedAck;
+            self.query_safety.install_escape_capture(&mut self.keymap);
+        } else {
+            self.pending_query_plan = None;
+            self.status = "Could not open query review".to_owned();
         }
     }
 
-    fn record_query_status(&mut self, key: TabKey, outcome: &QueryOutcome, elapsed: Duration) {
-        let succeeded = match outcome {
-            QueryOutcome::Executed { .. } => true,
-            QueryOutcome::Rejected { .. } => false,
-            QueryOutcome::ConfirmationRequired { .. } | QueryOutcome::Denied { .. } => return,
+    fn start_pending_query(&mut self, cx: &mut Cx<'_>, plan: PreparedQueryRun) {
+        if !plan.snapshot.is_current(self) {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        }
+        let key = plan.snapshot.key;
+        if self.pending_queries.contains_key(&key) {
+            self.status = "Query is already running".to_owned();
+            return;
+        }
+        if let Some(index) = plan
+            .confirm_indices
+            .iter()
+            .copied()
+            .find(|index| !plan.authorized_statements.contains(index))
+        {
+            self.open_query_review(cx, plan, index);
+            return;
+        }
+        let Some(first) = plan.statements.first() else {
+            self.status = "Nothing to run".to_owned();
+            return;
         };
-        if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
-            tab.record_execution_status(succeeded, elapsed);
+        let statement_count = plan.statements.len();
+        let Some(required_currency_steps) = u64::try_from(statement_count)
+            .ok()
+            .and_then(|count| count.checked_add(QUERY_RUN_FINALIZATION_CURRENCY_STEPS))
+            .and_then(|steps| steps.checked_add(QUERY_RUN_PREPARATION_CURRENCY_STEPS))
+        else {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        };
+        if !self
+            .workbench
+            .can_advance_query_currency(key, required_currency_steps)
+        {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        if !self.workbench.prepare_query_outputs_for_run(key) {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        let first_range = first.range.clone();
+        let timer = self.query_timing.start();
+        let run_token = Arc::new(());
+        let name = self.workbench.begin_query_run(key, &run_token, |tab| {
+            tab.commit_query_edit();
+            tab.running = true;
+            tab.editor_state.editor_mut().set_diagnostics(Vec::new());
+            tab.editor_state.editor_mut().set_running(Some(first_range));
+            tab.record_status(format!("running 1 of {statement_count}"), false, 0);
+            tab.name.clone()
+        });
+        let Some(name) = name else {
+            self.status = "Query tab is no longer available".to_owned();
+            return;
+        };
+        let Some(snapshot) = QueryExecutionSnapshot::capture(self, key) else {
+            self.status = "Query tab is no longer available".to_owned();
+            return;
+        };
+        let pending = PendingQueryExecution {
+            snapshot,
+            run_token,
+            submitted_range: plan.submitted_range,
+            statements: plan.statements,
+            current_statement: 0,
+            ticks_left: QUERY_START_TICKS,
+            next_tick: cx.now().saturating_add(QUERY_TICK_INTERVAL),
+            timer,
+            authorized_statements: plan.authorized_statements,
+            run_all: plan.run_all,
+            completed_outputs: Vec::with_capacity(statement_count),
+        };
+        self.pending_queries.insert(key, pending);
+        self.status = if plan.run_all {
+            format!("Running all in {name} · Esc cancels")
+        } else {
+            format!("Running query in {name} · Esc cancels")
+        };
+        self.schedule_pending_query_tick(cx);
+    }
+
+    fn schedule_pending_query_tick(&self, cx: &mut Cx<'_>) {
+        if self.motion.is_paused() {
+            return;
+        }
+        if let Some(next_tick) = self
+            .pending_queries
+            .values()
+            .map(|pending| pending.next_tick)
+            .min()
+        {
+            cx.request_repaint_at(next_tick);
         }
     }
+
+    fn advance_pending_queries(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.motion.is_paused() {
+            return Response::ignored();
+        }
+        let now = cx.now();
+        let mut pending_keys: Vec<_> = self.pending_queries.keys().copied().collect();
+        pending_keys.sort_unstable();
+        let stale: Vec<_> = pending_keys
+            .iter()
+            .filter_map(|key| {
+                self.pending_queries
+                    .get(key)
+                    .filter(|pending| {
+                        !pending.snapshot.is_current(self)
+                            || !self.workbench.query_run_matches(*key, &pending.run_token)
+                    })
+                    .map(|_| *key)
+            })
+            .collect();
+        for key in stale {
+            self.cancel_stale_query(key);
+        }
+        if self.pending_queries.is_empty() {
+            return Response::ignored();
+        }
+        if self.query_safety.is_open() {
+            for pending in self.pending_queries.values_mut() {
+                if pending.next_tick <= now {
+                    pending.next_tick = now.saturating_add(QUERY_TICK_INTERVAL);
+                }
+            }
+            self.schedule_pending_query_tick(cx);
+            return Response::ignored();
+        }
+        let tab_order: Vec<_> = self
+            .workbench
+            .tabs()
+            .iter()
+            .map(|record| record.key())
+            .collect();
+        let mut ready = Vec::new();
+        for key in tab_order {
+            if let Some(pending) = self.pending_queries.get_mut(&key) {
+                if pending.next_tick <= now {
+                    pending.next_tick = now.saturating_add(QUERY_TICK_INTERVAL);
+                    if pending.ticks_left > 0 {
+                        pending.ticks_left = pending.ticks_left.saturating_sub(1);
+                    }
+                    if pending.ticks_left == 0 {
+                        ready.push(key);
+                    }
+                }
+            }
+        }
+        for key in ready {
+            if self.query_safety.is_open() {
+                break;
+            }
+            self.advance_query(key);
+        }
+        self.schedule_pending_query_tick(cx);
+        Response::changed()
+    }
+
+    fn advance_query(&mut self, key: TabKey) {
+        let Some(mut pending) = self.pending_queries.remove(&key) else {
+            return;
+        };
+        if !pending.snapshot.is_current(self)
+            || !self.workbench.query_run_matches(key, &pending.run_token)
+        {
+            let _ = self.cancel_stale_query_with(key, pending);
+            return;
+        }
+        let current_statement = pending.current_statement;
+        let Some(statement) = pending.statements.get(current_statement) else {
+            self.finish_pending_query(key, pending, None);
+            return;
+        };
+        let range = statement.range.clone();
+        if range.start < pending.submitted_range.start || range.end > pending.submitted_range.end {
+            let _ = self.cancel_stale_query_with(key, pending);
+            return;
+        }
+        let Some(query) = pending
+            .snapshot
+            .editor_text
+            .get(range.clone())
+            .map(str::to_owned)
+        else {
+            let _ = self.cancel_stale_query_with(key, pending);
+            return;
+        };
+        let started = self.query_timing.start();
+        let (outcome, body, error_at) = self.execute_query_statement(
+            &query,
+            pending.authorized_statements.contains(&current_statement),
+        );
+        let duration_ms = duration_millis(started.elapsed());
+        self.record_statement_history(&query, &outcome, duration_ms);
+        pending.completed_outputs.push(PendingQueryOutput {
+            range,
+            duration_ms,
+            body,
+            outcome: outcome.clone(),
+            error_at,
+        });
+        if matches!(&outcome, QueryOutcome::Executed { .. })
+            && current_statement.saturating_add(1) < pending.statements.len()
+        {
+            pending.current_statement = current_statement.saturating_add(1);
+            pending.ticks_left = QUERY_NEXT_STATEMENT_TICKS;
+            let next_range = pending.statements[pending.current_statement].range.clone();
+            let next_index = pending.current_statement.saturating_add(1);
+            let statement_count = pending.statements.len();
+            let show_running_range =
+                pending.snapshot.editor_text == pending.snapshot.observed_editor_text;
+            let next_status = format!("running {next_index} of {statement_count}");
+            if self
+                .workbench
+                .application_update_query_run(key, &pending.run_token, |tab| {
+                    tab.editor_state
+                        .editor_mut()
+                        .set_running(show_running_range.then_some(next_range));
+                    tab.record_status(next_status.clone(), false, 0);
+                })
+                .is_none()
+            {
+                let _ = self.cancel_stale_query_with(key, pending);
+                return;
+            }
+            if let Some(snapshot) =
+                pending
+                    .snapshot
+                    .refresh_after_progress(self, &pending.run_token, &next_status)
+            {
+                pending.snapshot = snapshot;
+                self.pending_queries.insert(key, pending);
+            } else {
+                let _ = self.cancel_stale_query_with(key, pending);
+            }
+            return;
+        }
+        self.finish_pending_query(key, pending, Some(outcome));
+    }
+
+    fn finish_pending_query(
+        &mut self,
+        key: TabKey,
+        pending: PendingQueryExecution,
+        outcome: Option<QueryOutcome>,
+    ) {
+        let elapsed = pending.timer.elapsed();
+        let duration_ms = duration_millis(elapsed);
+        let succeeded = matches!(outcome.as_ref(), Some(QueryOutcome::Executed { .. }));
+        let submitted_editor_is_current =
+            self.live_editor_matches(key, &pending.snapshot.editor_text);
+        let (summary, is_error) = match outcome.as_ref() {
+            Some(QueryOutcome::Executed { .. }) if pending.run_all => (
+                format!("completed all {} statements", pending.statements.len()),
+                false,
+            ),
+            Some(QueryOutcome::Executed { .. }) if pending.statements.len() > 1 => (
+                format!("completed {} statements", pending.statements.len()),
+                false,
+            ),
+            Some(QueryOutcome::Executed { .. }) => ("success".to_owned(), false),
+            None => ("cancelled".to_owned(), false),
+            Some(QueryOutcome::Rejected { .. }) => (
+                format!(
+                    "failed {} of {}",
+                    pending.current_statement.saturating_add(1),
+                    pending.statements.len()
+                ),
+                true,
+            ),
+            Some(QueryOutcome::Denied { .. } | QueryOutcome::ConfirmationRequired { .. }) => {
+                ("denied".to_owned(), true)
+            }
+        };
+        if !self.workbench.matches_owner(&pending.snapshot.owner)
+            || self.workbench.generation(key) != Some(pending.snapshot.generation)
+            || !self.workbench.query_run_matches(key, &pending.run_token)
+            || !matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running)
+        {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        }
+        let mut diagnostic = None;
+        let mut outputs = Vec::with_capacity(pending.completed_outputs.len().max(1));
+        if outcome.is_none() {
+            let range = submitted_editor_is_current
+                .then(|| {
+                    pending
+                        .statements
+                        .get(pending.current_statement)
+                        .map(|statement| statement.range.clone())
+                })
+                .flatten();
+            outputs.push(QueryOutputInput::new(
+                "Cancelled",
+                range,
+                duration_millis(elapsed),
+                QueryOutputBody::cancelled(),
+            ));
+        } else {
+            for (index, output) in pending.completed_outputs.into_iter().enumerate() {
+                if submitted_editor_is_current
+                    && matches!(&output.outcome, QueryOutcome::Rejected { .. })
+                {
+                    let query = pending.snapshot.editor_text.get(output.range.clone());
+                    let message = match &output.outcome {
+                        QueryOutcome::Rejected { message } => message.clone(),
+                        _ => String::new(),
+                    };
+                    if let Some(query) = query {
+                        diagnostic = Some((
+                            output.range.clone(),
+                            query.to_owned(),
+                            output.error_at,
+                            message,
+                        ));
+                    }
+                }
+                outputs.push(QueryOutputInput::new(
+                    format!("Statement {}", index.saturating_add(1)),
+                    submitted_editor_is_current.then_some(output.range),
+                    output.duration_ms,
+                    output.body,
+                ));
+            }
+        }
+        match self.workbench.finish_query_run(
+            key,
+            &pending.run_token,
+            "finishing query",
+            false,
+            duration_ms,
+        ) {
+            QueryRunFinish::Finished => {}
+            QueryRunFinish::StoppedWithoutCurrency => {
+                self.status =
+                    "Query result state is unavailable; run stopped fail-closed".to_owned();
+                return;
+            }
+            QueryRunFinish::AlreadyStopped => {
+                self.status = "Query run already stopped".to_owned();
+                return;
+            }
+            QueryRunFinish::NotOwned => {
+                self.status = "Query run is no longer owned".to_owned();
+                return;
+            }
+        }
+        let finalized_generation = self.workbench.generation(key);
+        if !outputs.is_empty() && self.workbench.append_query_outputs(key, outputs).is_none() {
+            let current_generation = self.workbench.generation(key);
+            let failure_generation_matches = current_generation == finalized_generation
+                || finalized_generation
+                    .and_then(|generation| generation.checked_add(1))
+                    .is_some_and(|expected| current_generation == Some(expected))
+                || finalized_generation == Some(u64::MAX)
+                    && current_generation.is_none()
+                    && self.workbench.query_output_state(key).is_none();
+            if self.workbench.matches_owner(&pending.snapshot.owner)
+                && failure_generation_matches
+                && !self.pending_queries.contains_key(&key)
+                && matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if !tab.running)
+            {
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status("result state unavailable", true, duration_ms);
+                });
+            }
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        let diagnostic_published = if let Some((range, query, error_at, message)) = diagnostic
+            && self.live_editor_matches(key, &pending.snapshot.editor_text)
+        {
+            self.apply_query_diagnostic(key, &query, range, error_at, &message)
+        } else {
+            true
+        };
+        if !diagnostic_published {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        if self
+            .workbench
+            .application_update_query(key, |tab| {
+                tab.record_status(summary, is_error, duration_ms);
+            })
+            .is_none()
+        {
+            self.status = "Query result state is unavailable".to_owned();
+            return;
+        }
+        if outcome.is_none() {
+            self.status = "Query cancelled".to_owned();
+        } else if let Some(outcome) = outcome.as_ref() {
+            self.status = outcome_message(outcome);
+            if succeeded && pending.run_all {
+                self.status = format!("Completed all {} statements", pending.statements.len());
+            } else if succeeded && pending.statements.len() > 1 {
+                self.status = format!("Completed {} statements", pending.statements.len());
+            }
+        }
+    }
+
+    fn live_editor_matches(&self, key: TabKey, submitted_sql: &str) -> bool {
+        matches!(
+            self.workbench.tab(key),
+            Some(Tab::Query(tab)) if tab.editor_state.editor().text() == submitted_sql
+        )
+    }
+
+    fn cancel_query(&mut self, key: TabKey) -> QueryCancelOutcome {
+        let cancelled_review = self
+            .pending_query_plan
+            .as_ref()
+            .is_some_and(|plan| plan.snapshot.key == key);
+        if cancelled_review {
+            if let Some(plan) = self.pending_query_plan.take()
+                && plan.snapshot.is_current(self)
+            {
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status("cancelled", false, 0);
+                });
+            }
+        }
+        let Some(pending) = self.pending_queries.remove(&key) else {
+            if cancelled_review {
+                self.status = "Query review cancelled".to_owned();
+                return QueryCancelOutcome::Cancelled;
+            }
+            return QueryCancelOutcome::NoPendingRun;
+        };
+        let duration_ms = duration_millis(pending.timer.elapsed());
+        if !self.workbench.matches_owner(&pending.snapshot.owner) {
+            self.status = "Work changed; request again".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        if self.workbench.generation(key) != Some(pending.snapshot.generation)
+            || !matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running)
+        {
+            self.status = "Work changed; request again".to_owned();
+            return self.cancel_stale_query_with(key, pending);
+        }
+        let range = self
+            .live_editor_matches(key, &pending.snapshot.editor_text)
+            .then(|| {
+                pending
+                    .statements
+                    .get(pending.current_statement)
+                    .map(|statement| statement.range.clone())
+            })
+            .flatten();
+        match self.workbench.finish_query_run(
+            key,
+            &pending.run_token,
+            "finishing cancellation",
+            false,
+            duration_ms,
+        ) {
+            QueryRunFinish::Finished => {}
+            QueryRunFinish::StoppedWithoutCurrency => {
+                self.status =
+                    "Query cancellation state is unavailable; run stopped fail-closed".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+            QueryRunFinish::AlreadyStopped => {
+                self.status = "Query already stopped".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+            QueryRunFinish::NotOwned => {
+                self.status = "Query run is no longer owned".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+        }
+        let finalized_generation = self.workbench.generation(key);
+        let cancelled_output = QueryOutputInput::new(
+            "Cancelled",
+            range,
+            duration_ms,
+            QueryOutputBody::cancelled(),
+        );
+        if self
+            .workbench
+            .append_query_outputs(key, vec![cancelled_output])
+            .is_none()
+        {
+            let current_generation = self.workbench.generation(key);
+            let failure_generation_matches = current_generation == finalized_generation
+                || finalized_generation
+                    .and_then(|generation| generation.checked_add(1))
+                    .is_some_and(|expected| current_generation == Some(expected))
+                || finalized_generation == Some(u64::MAX)
+                    && current_generation.is_none()
+                    && self.workbench.query_output_state(key).is_none();
+            if self.workbench.matches_owner(&pending.snapshot.owner)
+                && failure_generation_matches
+                && !self.pending_queries.contains_key(&key)
+                && matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if !tab.running)
+            {
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status("cancelled; result state unavailable", true, duration_ms);
+                });
+            }
+            self.status = "Query cancellation result state is unavailable".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        if self
+            .workbench
+            .application_update_query(key, |tab| {
+                tab.record_status("cancelled", false, duration_ms);
+            })
+            .is_none()
+        {
+            self.status = "Query cancellation result state is unavailable".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        self.status = "Query cancelled".to_owned();
+        QueryCancelOutcome::Cancelled
+    }
+
+    fn cancel_running_query(&mut self) -> QueryCancelOutcome {
+        let Some(key) = self.workbench.active_key() else {
+            return QueryCancelOutcome::NoPendingRun;
+        };
+        let run_exists = self.pending_queries.contains_key(&key)
+            || matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running);
+        if !run_exists {
+            return QueryCancelOutcome::NoPendingRun;
+        }
+        match self.cancel_query(key) {
+            QueryCancelOutcome::NoPendingRun => {
+                self.status = "Query cancellation state is unavailable".to_owned();
+                QueryCancelOutcome::PublicationUnavailable
+            }
+            outcome => outcome,
+        }
+    }
+
+    fn cancel_stale_query(&mut self, key: TabKey) {
+        let Some(pending) = self.pending_queries.remove(&key) else {
+            return;
+        };
+        let _ = self.cancel_stale_query_with(key, pending);
+    }
+
+    fn refresh_pending_query_after_editor_edit(&mut self, key: TabKey) {
+        let refreshed = self.pending_queries.get(&key).and_then(|pending| {
+            pending
+                .snapshot
+                .refresh_after_editor_edit(self, &pending.run_token)
+        });
+        if let Some(snapshot) = refreshed
+            && let Some(pending) = self.pending_queries.get_mut(&key)
+        {
+            pending.snapshot = snapshot;
+        }
+    }
+
+    fn cancel_stale_query_with(
+        &mut self,
+        key: TabKey,
+        pending: PendingQueryExecution,
+    ) -> QueryCancelOutcome {
+        if !self.workbench.matches_owner(&pending.snapshot.owner)
+            || self.pending_queries.contains_key(&key)
+        {
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        let duration_ms = duration_millis(pending.timer.elapsed());
+        let range = self
+            .live_editor_matches(key, &pending.snapshot.editor_text)
+            .then(|| {
+                pending
+                    .statements
+                    .get(pending.current_statement)
+                    .map(|statement| statement.range.clone())
+            })
+            .flatten();
+        match self.workbench.finish_query_run(
+            key,
+            &pending.run_token,
+            "finishing cancellation",
+            false,
+            duration_ms,
+        ) {
+            QueryRunFinish::Finished => {}
+            QueryRunFinish::StoppedWithoutCurrency => {
+                self.status = "Query state unavailable; stale run stopped fail-closed".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+            QueryRunFinish::AlreadyStopped => {
+                self.status = "Stale query run already stopped".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+            QueryRunFinish::NotOwned => {
+                self.status = "Stale query run is no longer owned".to_owned();
+                return QueryCancelOutcome::PublicationUnavailable;
+            }
+        }
+        let finalized_generation = self.workbench.generation(key);
+        if self
+            .workbench
+            .append_query_outputs(
+                key,
+                vec![QueryOutputInput::new(
+                    "Cancelled",
+                    range,
+                    duration_ms,
+                    QueryOutputBody::cancelled(),
+                )],
+            )
+            .is_none()
+        {
+            let current_generation = self.workbench.generation(key);
+            let failure_generation_matches = current_generation == finalized_generation
+                || finalized_generation
+                    .and_then(|generation| generation.checked_add(1))
+                    .is_some_and(|expected| current_generation == Some(expected))
+                || finalized_generation == Some(u64::MAX)
+                    && current_generation.is_none()
+                    && self.workbench.query_output_state(key).is_none();
+            if self.workbench.matches_owner(&pending.snapshot.owner)
+                && failure_generation_matches
+                && !self.pending_queries.contains_key(&key)
+                && matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if !tab.running)
+            {
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status("cancelled; result state unavailable", true, duration_ms);
+                });
+            }
+            self.status = "Query cancellation result state is unavailable".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        if self
+            .workbench
+            .application_update_query(key, |tab| {
+                tab.record_status("cancelled", false, duration_ms);
+            })
+            .is_none()
+        {
+            self.status = "Query cancellation result state is unavailable".to_owned();
+            return QueryCancelOutcome::PublicationUnavailable;
+        }
+        self.status = "Query cancelled because work changed".to_owned();
+        QueryCancelOutcome::Cancelled
+    }
+
+    fn cancel_pending_queries(&mut self) {
+        let keys: Vec<_> = self
+            .workbench
+            .tabs()
+            .iter()
+            .map(|record| record.key())
+            .filter(|key| self.pending_queries.contains_key(key))
+            .collect();
+        for key in keys {
+            let _ = self.cancel_query(key);
+        }
+        self.pending_query_plan = None;
+    }
+
     fn column_specs(
         columns: &[(String, ColType)],
         editable: bool,
@@ -1912,14 +3289,13 @@ impl TableProApp {
                 Tab::Table(tab) => pending = pending.saturating_add(tab.result.pending_total()),
                 Tab::Query(tab) => {
                     dirty_queries = dirty_queries.saturating_add(usize::from(tab.dirty()));
-                    if let Some(grid) = &tab.result {
-                        pending = pending.saturating_add(grid.pending_total());
-                    }
+                    pending = pending.saturating_add(record.pending_query_result_total());
                 }
                 Tab::History(_) => {}
             }
         }
         if pending == 0 && dirty_queries == 0 {
+            self.cancel_pending_queries();
             self.quit = true;
             cx.quit();
             return Response::consumed();
@@ -1995,61 +3371,41 @@ impl TableProApp {
         }
     }
 
-    fn request_query(&mut self, cx: &mut Cx<'_>) {
+    fn request_query(&mut self, cx: &mut Cx<'_>, run_all: bool) {
         let Some(key) = self.workbench.active_key() else {
             return;
         };
         let Some(Tab::Query(tab)) = self.workbench.tab(key) else {
             return;
         };
-        let pending_result = tab.has_pending_result();
-        if !pending_result {
-            self.commit_query_edit();
+        if tab.running || self.pending_queries.contains_key(&key) {
+            self.status = "Query is already running".to_owned();
+            return;
         }
-        let Some(Tab::Query(tab)) = self.workbench.tab(key) else {
-            self.stale_destructive();
-            return;
-        };
-        let query = tab.editor_state.editor().text().to_owned();
-        let Some(request) = query_safety::QuerySafetyRequest::capture(self, key, query) else {
-            self.stale_destructive();
-            return;
+        let pending_result = self
+            .workbench
+            .query_has_pending_result(key)
+            .unwrap_or(false);
+        let plan = match self.prepare_query_run(key, run_all) {
+            Ok(plan) => plan,
+            Err(outcome) => {
+                let message = outcome_message(&outcome);
+                let _ = self.workbench.application_update_query(key, |tab| {
+                    tab.record_status(message.clone(), true, 0);
+                });
+                self.status = message;
+                return;
+            }
         };
         if pending_result {
             self.open_destructive(
                 cx,
                 DestructiveIntent::ReplaceResult {
-                    request: Box::new(request),
+                    plan: Box::new(plan),
                 },
             );
         } else {
-            self.prepare_query_request(cx, request);
-        }
-    }
-
-    fn prepare_query_request(
-        &mut self,
-        cx: &mut Cx<'_>,
-        request: query_safety::QuerySafetyRequest,
-    ) {
-        if !request.is_current(self) {
-            self.status = "Work changed; request again".to_owned();
-            return;
-        }
-        if request.needs_review() {
-            if !request.valid_acknowledgement_target() {
-                self.status =
-                    "Query rejected: target cannot be verified for acknowledgement".to_owned();
-                return;
-            }
-            if self.query_safety.open(cx, request) {
-                self.surface = Surface::SafetyDialogTypedAck;
-                self.query_safety.install_escape_capture(&mut self.keymap);
-            } else {
-                self.status = "Could not open query review".to_owned();
-            }
-        } else {
-            let _ = self.execute_snapshot(request.key(), request.query());
+            self.start_pending_query(cx, plan);
         }
     }
 
@@ -2134,6 +3490,7 @@ impl TableProApp {
         Ok(PendingCommit {
             key,
             generation,
+            output_state: self.workbench.query_output_state(key),
             connection,
             schema: table.schema.clone(),
             target: target.clone(),
@@ -2156,13 +3513,12 @@ impl TableProApp {
             || self.workbench.connection != request.connection
             || self.workbench.active_key() != Some(request.key)
             || self.workbench.generation(request.key) != Some(request.generation)
+            || self.workbench.query_output_state(request.key) != request.output_state
         {
             self.stale_destructive();
             return;
         }
-        let result = if let Some(tab) = self.workbench.tab_mut(request.key)
-            && let Some((id, grid)) = tab.grid_mut(request.key)
-        {
+        let result = if let Some((id, grid)) = self.workbench.application_grid_mut(request.key) {
             let cursor_matches =
                 grid.state.cursor() == request.cursor.map(|(key, column, _)| (key, column));
             if !grid.model.is_editable()
@@ -2251,7 +3607,9 @@ impl TableProApp {
             };
             self.open_destructive(cx, DestructiveIntent::CloseTab { key, generation });
         } else {
-            let _ = self.workbench.close_tab_confirmed(key);
+            if self.workbench.close_tab_confirmed(key) {
+                let _ = self.cancel_query(key);
+            }
             self.sync_active_tab();
         }
     }
@@ -2286,7 +3644,7 @@ impl TableProApp {
             return;
         };
         let column = defaults.iter().position(|default| !default).unwrap_or(0);
-        let Some((id, grid)) = self.workbench.active_grid_mut() else {
+        let Some((id, grid)) = self.workbench.application_active_grid_mut() else {
             return;
         };
         let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
@@ -2336,7 +3694,7 @@ impl TableProApp {
         let Some(defaults) = self.insert_defaults() else {
             return;
         };
-        let Some((id, grid)) = self.workbench.active_grid_mut() else {
+        let Some((id, grid)) = self.workbench.application_active_grid_mut() else {
             return;
         };
         let Some((source_key, column)) = grid.state.cursor() else {
@@ -2363,7 +3721,7 @@ impl TableProApp {
     }
 
     fn toggle_active_row(&mut self) {
-        let Some((_, grid)) = self.workbench.active_grid_mut() else {
+        let Some((_, grid)) = self.workbench.application_active_grid_mut() else {
             return;
         };
         let Some((key, _)) = grid.state.cursor() else {
@@ -2813,6 +4171,7 @@ impl TableProApp {
                     DestructiveIntent::Quit { scope, .. } => {
                         if self.workbench.matches_scope(&scope) {
                             if !self.quit {
+                                self.cancel_pending_queries();
                                 self.quit = true;
                                 cx.quit();
                             }
@@ -2824,6 +4183,7 @@ impl TableProApp {
                         if self.workbench.generation(key) != Some(generation) {
                             self.stale_destructive();
                         } else if self.workbench.close_tab_confirmed(key) {
+                            let _ = self.cancel_query(key);
                             if cx.is_open(tab_list::ID) {
                                 cx.close_layer(tab_list::ID, None);
                                 self.tab_list = TabList::default();
@@ -2854,16 +4214,14 @@ impl TableProApp {
                     } => {
                         if self.workbench.generation(key) != Some(generation) {
                             self.stale_destructive();
-                        } else if let Some(tab) = self.workbench.tab_mut(key)
-                            && let Some((_, grid)) = tab.grid_mut(key)
-                        {
+                        } else if let Some((_, grid)) = self.workbench.application_grid_mut(key) {
                             let _ = grid.state.cancel_edit();
                             grid.model.discard();
                         }
                     }
-                    DestructiveIntent::ReplaceResult { request } => {
-                        if request.is_current(self) {
-                            self.prepare_query_request(cx, *request);
+                    DestructiveIntent::ReplaceResult { plan } => {
+                        if plan.snapshot.is_current(self) {
+                            self.start_pending_query(cx, *plan);
                         } else {
                             self.status = "Work changed; request again".to_owned();
                             self.stale_destructive();
@@ -2878,8 +4236,36 @@ impl TableProApp {
 
     fn update_query_safety(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut controller = core::mem::take(&mut self.query_safety);
+        let was_open = controller.is_open();
         let response = controller.update(self, cx);
         self.query_safety = controller;
+        if was_open
+            && !self.query_safety.is_open()
+            && let Some(plan) = self.pending_query_plan.take()
+        {
+            let reviewed_index = plan.review_statement_index;
+            if plan.authorized_statements.contains(&reviewed_index) {
+                if let Some(next_index) = plan
+                    .confirm_indices
+                    .iter()
+                    .copied()
+                    .find(|index| !plan.authorized_statements.contains(index))
+                {
+                    self.open_query_review(cx, plan, next_index);
+                } else {
+                    self.start_pending_query(cx, plan);
+                }
+            } else if self.status != "Work changed; request again" {
+                if plan.snapshot.is_current(self) {
+                    let _ = self
+                        .workbench
+                        .application_update_query(plan.snapshot.key, |tab| {
+                            tab.record_status("cancelled", false, 0);
+                        });
+                }
+                self.status = "Query review cancelled".to_owned();
+            }
+        }
         response
     }
 
@@ -2930,23 +4316,41 @@ impl TableProApp {
         {
             let workbench = &mut self.workbench;
             let controls_by_key = &mut self.history_controls;
-            for (key, tab) in workbench.payloads_mut() {
-                let Tab::History(history) = tab else {
+            let keys: Vec<_> = workbench.tabs().iter().map(TabRecord::key).collect();
+            for key in keys {
+                let update = workbench.application_update_payload(key, |tab| {
+                    let Tab::History(history) = tab else {
+                        return (None, ApplicationMutation::Unchanged);
+                    };
+                    let old_search = history.search.clone();
+                    let controls = controls_by_key.entry(key).or_default();
+                    let active = history_visible && active_key == Some(key);
+                    let (control_response, refresh, _) =
+                        controls.update(cx, key, &mut history.search, &current_connection, active);
+                    let mutation = if history.search != old_search {
+                        ApplicationMutation::Changed
+                    } else {
+                        ApplicationMutation::Unchanged
+                    };
+                    (
+                        Some((
+                            control_response,
+                            refresh,
+                            history.search.clone(),
+                            controls.scope(),
+                            controls.failed_only(),
+                        )),
+                        mutation,
+                    )
+                });
+                let Some(Some((control_response, refresh, search, scope, failed_only))) = update
+                else {
                     continue;
                 };
                 live_history_keys.push(key);
-                let controls = controls_by_key.entry(key).or_default();
-                let active = history_visible && active_key == Some(key);
-                let (control_response, refresh, _) =
-                    controls.update(cx, key, &mut history.search, &current_connection, active);
                 response |= control_response;
-                if active && refresh {
-                    refreshes.push((
-                        key,
-                        history.search.clone(),
-                        controls.scope(),
-                        controls.failed_only(),
-                    ));
+                if history_visible && active_key == Some(key) && refresh {
+                    refreshes.push((key, search, scope, failed_only));
                 }
             }
         }
@@ -3021,63 +4425,252 @@ impl TableProApp {
         let active_key = self.workbench.active_key();
         let active_pane = self.visible_query_pane_mode();
         let query_visible = self.screen == Screen::Workbench;
+        let query_requests_locked =
+            self.query_safety.is_open() || self.pending_query_plan.is_some();
         let provider = SqlCompletionProvider {
             catalog: &self.catalog,
         };
-        for (key, tab) in self.workbench.payloads_mut() {
-            if let Tab::Query(query) = tab {
-                let id = key.control("query");
-                let active_editor = query_visible && active_key == Some(key);
-                if !active_editor || active_pane != QueryPaneMode::Results {
-                    let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider, active_editor);
-                    let editor_response = editor.update(cx, &mut query.editor_state);
-                    if matches!(
-                        editor_response.action_ref(),
-                        Some(
-                            CodeAction::Changed | CodeAction::Committed | CodeAction::Leave { .. }
-                        )
-                    ) {
-                        query.sync_query_text();
-                    }
-                    response |= editor_response.erase();
-                }
-
-                if !active_editor {
-                    continue;
-                }
-                if active_pane == QueryPaneMode::Editor {
-                    continue;
-                }
-            }
-            match tab {
-                Tab::Table(table) => {
-                    let grid_response =
-                        Self::update_grid_view(cx, key.control("data"), &mut table.result);
-                    if let Some(action) = grid_response.action_ref() {
-                        Self::handle_grid(&mut self.status, action);
-                    }
-                    response |= grid_response.erase();
-                    let grid_response =
-                        Self::update_grid_view(cx, key.control("structure"), &mut table.structure);
-                    if let Some(action) = grid_response.action_ref() {
-                        Self::handle_grid(&mut self.status, action);
-                    }
-                    response |= grid_response.erase();
-                }
-                Tab::Query(query) => {
-                    if let Some(grid) = &mut query.result {
-                        let grid_response =
-                            Self::update_grid_view(cx, key.control("results"), grid);
-                        if let Some(action) = grid_response.action_ref() {
-                            Self::handle_grid(&mut self.status, action);
+        let keys: Vec<_> = self.workbench.tabs().iter().map(TabRecord::key).collect();
+        let workbench = &mut self.workbench;
+        let status = &mut self.status;
+        let mut changed_editor_sql = Vec::new();
+        for key in keys {
+            let mut editor_sql_changed = false;
+            let tab_response = workbench.application_update_payload(key, |tab| {
+                let mut mutation = ApplicationMutation::Unchanged;
+                let mut tab_response = Response::ignored();
+                if let Tab::Query(query) = tab {
+                    let id = key.control("query");
+                    let active_editor = query_visible && active_key == Some(key);
+                    if !query_requests_locked
+                        && (!active_editor || active_pane != QueryPaneMode::Results)
+                    {
+                        let previous_text = query.editor_state.editor().text().to_owned();
+                        let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider, active_editor);
+                        let editor_response = editor.update(cx, &mut query.editor_state);
+                        if matches!(
+                            editor_response.action_ref(),
+                            Some(
+                                CodeAction::Changed
+                                    | CodeAction::Committed
+                                    | CodeAction::Leave { .. }
+                            )
+                        ) {
+                            query.sync_query_text();
                         }
-                        response |= grid_response.erase();
+                        editor_sql_changed = previous_text != query.editor_state.editor().text();
+                        if editor_sql_changed && query.running {
+                            query.editor_state.editor_mut().set_running(None);
+                        }
+                        tab_response |= editor_response.erase();
+                    }
+
+                    if query_requests_locked
+                        || !active_editor
+                        || active_pane == QueryPaneMode::Editor
+                    {
+                        return (tab_response, mutation);
                     }
                 }
-                Tab::History(_) => {}
+                match tab {
+                    Tab::Table(table) => {
+                        let grid_response =
+                            Self::update_grid_view(cx, key.control("data"), &mut table.result);
+                        if let Some(action) = grid_response.action_ref() {
+                            Self::handle_grid(status, action);
+                            mutation = ApplicationMutation::Changed;
+                        }
+                        tab_response |= grid_response.erase();
+                        let grid_response = Self::update_grid_view(
+                            cx,
+                            key.control("structure"),
+                            &mut table.structure,
+                        );
+                        if let Some(action) = grid_response.action_ref() {
+                            Self::handle_grid(status, action);
+                            mutation = ApplicationMutation::Changed;
+                        }
+                        tab_response |= grid_response.erase();
+                    }
+                    Tab::Query(query) => {
+                        if let Some(grid) = &mut query.result {
+                            let grid_id = key.control("results");
+                            let grid_response = Self::update_grid_view(cx, grid_id, grid);
+                            if let Some(action) = grid_response.action_ref() {
+                                Self::handle_grid(status, action);
+                            }
+                            if grid_response.action_ref().is_some()
+                                || cx.update_cause() == UpdateCause::Event
+                                    && cx.state(grid_id).contains(StateFlags::FOCUSED)
+                            {
+                                mutation = ApplicationMutation::Changed;
+                            }
+                            tab_response |= grid_response.erase();
+                        }
+                    }
+                    Tab::History(_) => {}
+                }
+                (tab_response, mutation)
+            });
+            if let Some(tab_response) = tab_response {
+                response |= tab_response;
+            }
+            if editor_sql_changed {
+                changed_editor_sql.push(key);
             }
         }
+        for key in changed_editor_sql {
+            self.refresh_pending_query_after_editor_edit(key);
+        }
+        if !query_requests_locked
+            && query_visible
+            && let Some(key) = active_key
+            && matches!(self.workbench.tab(key), Some(Tab::Query(_)))
+        {
+            response |= self.update_query_result_tabs(cx, key);
+        }
         response
+    }
+
+    fn update_query_result_tabs(&mut self, cx: &mut Cx<'_>, key: TabKey) -> Response<()> {
+        let Some(outputs) = self.workbench.query_outputs(key) else {
+            return Response::ignored();
+        };
+        if outputs.is_empty() {
+            return Response::ignored();
+        }
+        let closable: Vec<_> = outputs
+            .iter()
+            .filter(|output| output.can_close())
+            .map(query_output_key)
+            .collect();
+        let tabs = query_output_tabs(key.control("query-output-tabs"), &closable);
+        let mut result_tabs = self.query_result_tabs.borrow_mut();
+        result_tabs.sync(key, &outputs, self.workbench.selected_query_output(key));
+        let response = tabs.update(cx, &mut result_tabs.state, &outputs);
+        let action = response.action_ref().copied();
+        drop(result_tabs);
+        match action {
+            Some(TabsAction::Activated(item)) => {
+                if let Some(output) = outputs
+                    .iter()
+                    .find(|output| query_output_key(output) == item)
+                {
+                    let changing_output =
+                        self.workbench.selected_query_output(key) != Some(output.id());
+                    let run_exists = self.pending_queries.contains_key(&key)
+                        || matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running);
+                    let cancellation =
+                        (changing_output && run_exists).then(|| self.cancel_query(key));
+                    let can_change = cancellation
+                        .map(|outcome| matches!(outcome, QueryCancelOutcome::Cancelled))
+                        .unwrap_or(true);
+                    if can_change && self.workbench.select_query_output(key, output.id()) {
+                        self.grid_sort = None;
+                        self.focus_selected_query_output(cx, key);
+                    } else if matches!(cancellation, Some(QueryCancelOutcome::NoPendingRun)) {
+                        self.status = "Running query could not be cancelled".to_owned();
+                    }
+                }
+            }
+            Some(TabsAction::Close(item)) => {
+                if let Some(output) = outputs
+                    .iter()
+                    .find(|output| query_output_key(output) == item)
+                {
+                    let run_exists = self.pending_queries.contains_key(&key)
+                        || matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running);
+                    let cancellation = run_exists.then(|| self.cancel_query(key));
+                    let can_change = cancellation
+                        .map(|outcome| matches!(outcome, QueryCancelOutcome::Cancelled))
+                        .unwrap_or(true);
+                    if can_change && self.workbench.close_query_output(key, output.id()) {
+                        self.focus_selected_query_output(cx, key);
+                    } else if can_change {
+                        self.status = "Pinned or edited results cannot be closed".to_owned();
+                    } else if matches!(cancellation, Some(QueryCancelOutcome::NoPendingRun)) {
+                        self.status = "Running query could not be cancelled".to_owned();
+                    }
+                }
+            }
+            Some(TabsAction::New) | None => {}
+        }
+        if let Some(updated) = self.workbench.query_outputs(key) {
+            self.query_result_tabs.borrow_mut().sync(
+                key,
+                &updated,
+                self.workbench.selected_query_output(key),
+            );
+        }
+        response.erase()
+    }
+
+    fn focus_selected_query_output(&mut self, cx: &mut Cx<'_>, key: TabKey) {
+        let selected_kind = self
+            .workbench
+            .selected_query_output(key)
+            .and_then(|selected| {
+                self.workbench
+                    .query_outputs(key)?
+                    .into_iter()
+                    .find(|output| output.id() == selected)
+                    .map(|output| output.kind())
+            });
+        let pane_mode = self.visible_query_pane_mode();
+        let has_outputs = self
+            .workbench
+            .query_outputs(key)
+            .is_some_and(|outputs| !outputs.is_empty());
+        let running = matches!(self.workbench.tab(key), Some(Tab::Query(tab)) if tab.running);
+        if running {
+            if pane_mode == QueryPaneMode::Results && !has_outputs {
+                self.query_panes.get_mut().set(key, QueryPaneMode::Editor);
+                cx.focus(key.control("query"));
+                return;
+            }
+            let destination = match pane_mode {
+                QueryPaneMode::Editor => "query",
+                QueryPaneMode::Results => "query-output-tabs",
+                QueryPaneMode::None if has_outputs => "query-output-tabs",
+                QueryPaneMode::None => "query",
+            };
+            cx.focus(key.control(destination));
+            return;
+        }
+        if pane_mode == QueryPaneMode::Results && !has_outputs {
+            self.query_panes.get_mut().set(key, QueryPaneMode::Editor);
+            cx.focus(key.control("query"));
+            return;
+        }
+        let destination = match (pane_mode, selected_kind) {
+            (QueryPaneMode::Editor, _) => "query",
+            (QueryPaneMode::Results, Some(QueryOutputKind::Rows)) => "results",
+            (QueryPaneMode::Results, _) => "query-output-tabs",
+            (QueryPaneMode::None, Some(QueryOutputKind::Rows)) => "results",
+            (QueryPaneMode::None, _) => "query",
+        };
+        cx.focus(key.control(destination));
+    }
+
+    fn draw_query_result_tabs(
+        &self,
+        ui: &mut Ui<'_>,
+        key: TabKey,
+        area: termrock::Rect,
+        outputs: &[QueryOutputInfo],
+    ) {
+        if outputs.is_empty() || area.width == 0 || area.height == 0 {
+            return;
+        }
+        let closable: Vec<_> = outputs
+            .iter()
+            .filter(|output| output.can_close())
+            .map(query_output_key)
+            .collect();
+        let tabs = query_output_tabs(key.control("query-output-tabs"), &closable);
+        let mut result_tabs = self.query_result_tabs.borrow_mut();
+        result_tabs.sync(key, outputs, self.workbench.selected_query_output(key));
+        tabs.draw(ui, area, &result_tabs.state, outputs);
     }
 
     fn update_grid_view(cx: &mut Cx<'_>, id: Id, view: &mut GridView) -> Response<GridAction> {
@@ -3110,7 +4703,7 @@ impl TableProApp {
         {
             return false;
         }
-        let Some(tab) = self.workbench.active_key() else {
+        let Some(owner) = self.active_grid_sort_owner() else {
             return false;
         };
         let table = self
@@ -3123,7 +4716,7 @@ impl TableProApp {
             .active_table()
             .is_some_and(|table| table.filters.iter().any(|filter| filter.enabled));
         let direction = {
-            let Some((id, grid)) = self.workbench.active_grid_mut() else {
+            let Some((id, grid)) = self.workbench.application_active_grid_mut() else {
                 return false;
             };
             if !cx.state(id).contains(StateFlags::FOCUSED) || grid.state.is_editing() {
@@ -3143,8 +4736,8 @@ impl TableProApp {
                 return false;
             }
             let direction = match self.grid_sort {
-                Some((sorted_tab, sorted_column, SortDir::Asc))
-                    if sorted_tab == tab && sorted_column == column.raw() =>
+                Some((sorted_owner, sorted_column, SortDir::Asc))
+                    if sorted_owner == owner && sorted_column == column.raw() =>
                 {
                     SortDir::Desc
                 }
@@ -3171,7 +4764,7 @@ impl TableProApp {
         else {
             return false;
         };
-        self.grid_sort = Some((tab, column.raw(), direction));
+        self.grid_sort = Some((owner, column.raw(), direction));
         true
     }
 
@@ -3350,14 +4943,26 @@ impl TableProApp {
     }
 
     fn sort_status_prefix(&self) -> Option<String> {
-        let (tab, column, direction) = self.grid_sort?;
-        if self.workbench.active_key()? != tab {
+        let (owner, column, direction) = self.grid_sort?;
+        if self.active_grid_sort_owner()? != owner {
             return None;
         }
         let (_, grid) = self.workbench.active_grid()?;
         let index = usize::from(column).checked_sub(1)?;
         let name = grid.columns.get(index)?.0.as_str();
         Some(format!("sort {name} {}", sort_mark(direction)))
+    }
+
+    fn active_grid_sort_owner(&self) -> Option<GridSortOwner> {
+        let key = self.workbench.active_key()?;
+        match self.workbench.tab(key)? {
+            Tab::Table(_) => Some(GridSortOwner::Table(key)),
+            Tab::Query(_) => Some(GridSortOwner::QueryOutput(
+                key,
+                self.workbench.selected_query_output(key),
+            )),
+            Tab::History(_) => None,
+        }
     }
 
     fn draw_table_data(&self, ui: &mut Ui<'_>, inner: termrock::Rect) {
@@ -3919,7 +5524,66 @@ impl TableProApp {
             self.draw_query_pane(ui, area, inner, query, pane_mode);
             return;
         }
+        let active_key = self.workbench.active_key();
+        let outputs = active_key
+            .and_then(|key| self.workbench.query_outputs(key))
+            .unwrap_or_default();
+        let selected_output_kind = active_key
+            .and_then(|key| self.workbench.selected_query_output(key))
+            .and_then(|selected| outputs.iter().find(|output| output.id() == selected))
+            .map(QueryOutputInfo::kind);
         match self.workbench.active() {
+            Some(Tab::Query(query)) if query.running => {
+                let detail = query
+                    .last_status
+                    .as_ref()
+                    .map_or("running".to_owned(), |status| status.summary.clone());
+                let title = if detail.starts_with("pending") {
+                    "Query pending"
+                } else {
+                    "Query running"
+                };
+                let (editor_area, strip) = paint_query_run_state(
+                    ui,
+                    area,
+                    inner,
+                    title,
+                    &format!("{detail} · Esc cancels"),
+                    !outputs.is_empty(),
+                );
+                if let Some(key) = active_key {
+                    self.draw_query_result_tabs(ui, key, strip, &outputs);
+                }
+                if let Some(id) = self.query_id() {
+                    self.draw_query_editor(ui, id, editor_area, &query.editor_state);
+                }
+            }
+            Some(Tab::Query(query))
+                if query.result.is_none()
+                    && query.error.is_none()
+                    && query.plan.is_none()
+                    && (selected_output_kind == Some(QueryOutputKind::Cancelled)
+                        || selected_output_kind.is_none()
+                            && query
+                                .last_status
+                                .as_ref()
+                                .is_some_and(|status| status.summary == "cancelled")) =>
+            {
+                let (editor_area, strip) = paint_query_run_state(
+                    ui,
+                    area,
+                    inner,
+                    "Query cancelled",
+                    "Ctrl+R runs the statement under the cursor",
+                    !outputs.is_empty(),
+                );
+                if let Some(key) = active_key {
+                    self.draw_query_result_tabs(ui, key, strip, &outputs);
+                }
+                if let Some(id) = self.query_id() {
+                    self.draw_query_editor(ui, id, editor_area, &query.editor_state);
+                }
+            }
             Some(Tab::Query(query)) if explorer_focused && query.result.is_none() => {
                 let editor_area = paint_idle_query(ui, area, inner);
                 if let Some(id) = self.query_id() {
@@ -3934,9 +5598,16 @@ impl TableProApp {
                     let statement_sql = self
                         .workbench
                         .active_key()
-                        .and_then(|key| contexts.matching_sql(key, plan))
+                        .and_then(|key| {
+                            let output_id = self.workbench.selected_query_output(key)?;
+                            contexts.matching_sql(key, output_id, plan)
+                        })
                         .unwrap_or(query.query.as_str());
-                    let editor_area = paint_query_plan(ui, area, inner, statement_sql, plan);
+                    let (editor_area, strip) =
+                        paint_query_plan(ui, area, inner, statement_sql, plan, !outputs.is_empty());
+                    if let Some(key) = active_key {
+                        self.draw_query_result_tabs(ui, key, strip, &outputs);
+                    }
                     if let Some(id) = self.query_id() {
                         self.draw_query_editor(ui, id, editor_area, &query.editor_state);
                     }
@@ -3944,7 +5615,11 @@ impl TableProApp {
             }
             Some(Tab::Query(query)) if query.error.is_some() && query.plan.is_none() => {
                 if let Some(message) = query.error.as_deref() {
-                    let editor_area = paint_query_error(ui, area, inner, message);
+                    let (editor_area, strip) =
+                        paint_query_error(ui, area, inner, message, !outputs.is_empty());
+                    if let Some(key) = active_key {
+                        self.draw_query_result_tabs(ui, key, strip, &outputs);
+                    }
                     if let Some(id) = self.query_id() {
                         self.draw_query_editor(ui, id, editor_area, &query.editor_state);
                     }
@@ -3954,14 +5629,18 @@ impl TableProApp {
                 if query.result.is_some() && query.plan.is_none() && query.error.is_none() =>
             {
                 if let Some(result) = query.result.as_ref() {
-                    let (editor_area, grid_area) = paint_query_results_chrome(
+                    let (editor_area, grid_area, strip) = paint_query_results_chrome(
                         ui,
                         area,
                         inner,
                         result.model.row_count(),
                         result.model.duration_ms(),
                         result.model.source(),
+                        !outputs.is_empty(),
                     );
+                    if let Some(key) = active_key {
+                        self.draw_query_result_tabs(ui, key, strip, &outputs);
+                    }
                     if let Some(id) = self.query_id() {
                         self.draw_query_editor(ui, id, editor_area, &query.editor_state);
                     }
@@ -4031,6 +5710,13 @@ impl TableProApp {
         query: &crate::tabs::QueryTab,
         mode: QueryPaneMode,
     ) {
+        let key = self.workbench.active_key();
+        let outputs = key
+            .and_then(|key| self.workbench.query_outputs(key))
+            .unwrap_or_default();
+        let selected_output = key
+            .and_then(|key| self.workbench.selected_query_output(key))
+            .and_then(|selected| outputs.iter().find(|output| output.id() == selected));
         let content_kind = if query.plan.is_some() {
             QueryContent::Plan
         } else if query.error.is_some() {
@@ -4050,14 +5736,67 @@ impl TableProApp {
             return;
         };
         paint_query_toolbar(ui, layout.toolbar);
+        let mut content = layout.content;
+        let mut editor_area = layout.editor;
+        if mode == QueryPaneMode::Results && !outputs.is_empty() && content.height > 0 {
+            let strip = termrock::Rect {
+                height: 1,
+                ..content
+            };
+            if let Some(key) = key {
+                self.draw_query_result_tabs(ui, key, strip, &outputs);
+            }
+            content.y = content.y.saturating_add(1);
+            content.height = content.height.saturating_sub(1);
+        } else if mode == QueryPaneMode::Editor
+            && !outputs.is_empty()
+            && let Some(editor) = editor_area.as_mut()
+            && editor.height > 0
+        {
+            let strip = termrock::Rect {
+                height: 1,
+                ..*editor
+            };
+            if let Some(key) = key {
+                self.draw_query_result_tabs(ui, key, strip, &outputs);
+            }
+            editor.y = editor.y.saturating_add(1);
+            editor.height = editor.height.saturating_sub(1);
+        }
         match mode {
             QueryPaneMode::Editor => {
-                if let (Some(id), Some(editor)) = (self.query_id(), layout.editor) {
+                if let (Some(id), Some(editor)) = (self.query_id(), editor_area) {
                     self.draw_query_editor(ui, id, editor, &query.editor_state);
                 }
             }
             QueryPaneMode::Results => {
-                if let Some(plan) = query.plan.as_ref()
+                if query.running {
+                    let detail = query
+                        .last_status
+                        .as_ref()
+                        .map_or("running".to_owned(), |status| status.summary.clone());
+                    let title = if detail.starts_with("pending") {
+                        "Query pending"
+                    } else {
+                        "Query running"
+                    };
+                    paint_query_run_label(ui, content, title, &format!("{detail} · Esc cancels"));
+                } else if selected_output
+                    .is_some_and(|output| output.kind() == QueryOutputKind::Cancelled)
+                    || (query.error.is_none()
+                        && query.result.is_none()
+                        && query
+                            .last_status
+                            .as_ref()
+                            .is_some_and(|status| status.summary == "cancelled"))
+                {
+                    paint_query_run_label(
+                        ui,
+                        content,
+                        "Query cancelled",
+                        "Ctrl+R runs the statement under the cursor",
+                    );
+                } else if let Some(plan) = query.plan.as_ref()
                     && query.error.is_none()
                     && query.result.is_none()
                 {
@@ -4065,22 +5804,25 @@ impl TableProApp {
                     let statement_sql = self
                         .workbench
                         .active_key()
-                        .and_then(|key| contexts.matching_sql(key, plan))
+                        .and_then(|key| {
+                            let output_id = self.workbench.selected_query_output(key)?;
+                            contexts.matching_sql(key, output_id, plan)
+                        })
                         .unwrap_or(query.query.as_str());
-                    paint_plan_results(ui, layout.content, statement_sql, plan, inner.right());
+                    paint_plan_results(ui, content, statement_sql, plan, inner.right());
                 } else if let Some(message) = query.error.as_deref() {
-                    paint_query_error_results(ui, layout.content, message);
+                    paint_query_error_results(ui, content, message);
                 } else if let Some(result) = query.result.as_ref() {
                     let grid_area = paint_query_result_summary(
                         ui,
-                        layout.content,
+                        content,
                         result.model.row_count(),
                         result.model.duration_ms(),
                         result.model.source(),
                     );
                     self.draw_result_grid(ui, grid_area);
                 } else {
-                    paint_query_empty(ui, layout.content);
+                    paint_query_empty(ui, content);
                 }
             }
             QueryPaneMode::None => {}
@@ -4172,6 +5914,10 @@ fn outcome_message(outcome: &QueryOutcome) -> String {
     }
 }
 
+fn duration_millis(duration: Duration) -> u32 {
+    u32::try_from(duration.as_millis()).unwrap_or(u32::MAX)
+}
+
 fn paint_idle_query(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
@@ -4202,19 +5948,21 @@ fn paint_query_plan(
     inner: termrock::Rect,
     sql: &str,
     plan: &tablepro_sql::sql::PlanNode,
-) -> termrock::Rect {
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect) {
     let inset = ui.design().space.frame_inset;
     let Some(layout) =
         QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Plan)
     else {
-        return termrock::Rect::ZERO;
+        return (termrock::Rect::ZERO, termrock::Rect::ZERO);
     };
     paint_query_toolbar(ui, layout.toolbar);
     if let Some(seam) = layout.seam {
         paint_query_seam(ui, seam);
     }
-    paint_plan_results(ui, layout.content, sql, plan, inner.right());
-    layout.editor.unwrap_or(termrock::Rect::ZERO)
+    let (content, strip) = query_output_strip(layout.content, show_output_tabs);
+    paint_plan_results(ui, content, sql, plan, inner.right());
+    (layout.editor.unwrap_or(termrock::Rect::ZERO), strip)
 }
 
 const PLAN_COLS_W: u16 = 40;
@@ -4594,7 +6342,8 @@ fn paint_query_results_chrome(
     rows: usize,
     duration_ms: u32,
     source: Option<&str>,
-) -> (termrock::Rect, termrock::Rect) {
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect, termrock::Rect) {
     let inset = ui.design().space.frame_inset;
     let Some(layout) = QueryLayout::new(
         area,
@@ -4603,14 +6352,34 @@ fn paint_query_results_chrome(
         QueryPaneMode::None,
         QueryContent::Results,
     ) else {
-        return (termrock::Rect::ZERO, inner);
+        return (termrock::Rect::ZERO, inner, termrock::Rect::ZERO);
     };
     paint_query_toolbar(ui, layout.toolbar);
     if let Some(seam) = layout.seam {
         paint_query_seam(ui, seam);
     }
-    let grid = paint_query_result_summary(ui, layout.content, rows, duration_ms, source);
-    (layout.editor.unwrap_or(termrock::Rect::ZERO), grid)
+    let (content, strip) = query_output_strip(layout.content, show_output_tabs);
+    let grid = paint_query_result_summary(ui, content, rows, duration_ms, source);
+    (layout.editor.unwrap_or(termrock::Rect::ZERO), grid, strip)
+}
+
+fn query_output_strip(
+    content: termrock::Rect,
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect) {
+    if !show_output_tabs || content.height == 0 {
+        return (content, termrock::Rect::ZERO);
+    }
+    let strip = termrock::Rect {
+        height: 1,
+        ..content
+    };
+    let body = termrock::Rect {
+        y: content.y.saturating_add(1),
+        height: content.height.saturating_sub(1),
+        ..content
+    };
+    (body, strip)
 }
 
 fn paint_query_result_summary(
@@ -4713,19 +6482,21 @@ fn paint_query_error(
     area: termrock::Rect,
     inner: termrock::Rect,
     message: &str,
-) -> termrock::Rect {
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect) {
     let inset = ui.design().space.frame_inset;
     let Some(layout) =
         QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Error)
     else {
-        return termrock::Rect::ZERO;
+        return (termrock::Rect::ZERO, termrock::Rect::ZERO);
     };
     paint_query_toolbar(ui, layout.toolbar);
     if let Some(seam) = layout.seam {
         paint_query_seam(ui, seam);
     }
-    paint_query_error_results(ui, layout.content, message);
-    layout.editor.unwrap_or(termrock::Rect::ZERO)
+    let (content, strip) = query_output_strip(layout.content, show_output_tabs);
+    paint_query_error_results(ui, content, message);
+    (layout.editor.unwrap_or(termrock::Rect::ZERO), strip)
 }
 
 fn relation_error_detail(message: &str) -> Option<&'static str> {
@@ -5411,8 +7182,67 @@ fn query_pane_footer_hints() -> Vec<Hint> {
         Hint::new("0", "Explorer"),
         Hint::new("z", "Zoom"),
         Hint::new("Ctrl+R", "Run"),
+        Hint::new("Ctrl+Shift+P", "Pin result"),
         Hint::new("Tab", "Next"),
     ]
+}
+
+fn paint_query_run_state(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    title: &str,
+    detail: &str,
+    show_output_tabs: bool,
+) -> (termrock::Rect, termrock::Rect) {
+    let inset = ui.design().space.frame_inset;
+    let Some(layout) =
+        QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Idle)
+    else {
+        return (termrock::Rect::ZERO, termrock::Rect::ZERO);
+    };
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
+    }
+    let (content, strip) = query_output_strip(layout.content, show_output_tabs);
+    paint_query_run_label(ui, content, title, detail);
+    (layout.editor.unwrap_or(termrock::Rect::ZERO), strip)
+}
+
+fn paint_query_run_label(ui: &mut Ui<'_>, area: termrock::Rect, title: &str, detail: &str) {
+    if area.height < 3 || area.width == 0 {
+        return;
+    }
+    let top = area.y.saturating_add(area.height.saturating_sub(3) / 2);
+    let title_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    let detail_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
+    paint_centered(
+        ui,
+        termrock::Rect {
+            y: top,
+            height: 1,
+            ..area
+        },
+        title,
+        width(title),
+        title_style,
+    );
+    paint_centered(
+        ui,
+        termrock::Rect {
+            y: top.saturating_add(2),
+            height: 1,
+            ..area
+        },
+        detail,
+        width(detail),
+        detail_style,
+    );
 }
 
 fn paint_query_empty(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -6062,6 +7892,36 @@ fn tab_strip()
         .patch_part(&TAB_STRIP_PATCH)
 }
 
+fn query_output_key(output: &QueryOutputInfo) -> ItemKey {
+    ItemKey::num(output.id().get())
+}
+
+fn query_output_row(output: &QueryOutputInfo, row: &mut RowUi<'_>) {
+    let pin = if output.is_pinned() { "* " } else { "" };
+    row.label_fmt(format_args!("{pin}{}", output.label()));
+}
+
+fn query_output_mark(output: &QueryOutputInfo) -> TabMarks {
+    TabMarks::default().error(output.kind() == QueryOutputKind::Error)
+}
+
+fn query_output_tabs<'a>(
+    id: Id,
+    closable: &'a [ItemKey],
+) -> Tabs<
+    'a,
+    QueryOutputInfo,
+    impl Fn(&QueryOutputInfo) -> ItemKey,
+    impl Fn(&QueryOutputInfo, &mut RowUi<'_>),
+> {
+    Tabs::new(id)
+        .key(query_output_key)
+        .row(query_output_row)
+        .closable(true)
+        .closable_keys(closable)
+        .item_marks(query_output_mark)
+}
+
 fn legacy_tree_body(inner: termrock::Rect) -> termrock::Rect {
     termrock::Rect {
         x: inner.x.saturating_sub(1),
@@ -6468,8 +8328,8 @@ fn filter_footer(app: &TableProApp) -> Option<String> {
 }
 
 fn sort_footer(app: &TableProApp) -> Option<String> {
-    let (tab, column, direction) = app.grid_sort?;
-    if app.workbench.active_key()? != tab {
+    let (owner, column, direction) = app.grid_sort?;
+    if app.active_grid_sort_owner()? != owner {
         return None;
     }
     let (_, grid) = app.workbench.active_grid()?;
@@ -8087,6 +9947,9 @@ fn with_footer_hints(app: &TableProApp, explorer_focused: bool) -> Vec<Hint> {
     if app.screen == Screen::Connections {
         return connection_footer_hints().to_vec();
     }
+    if matches!(app.workbench.active(), Some(Tab::Query(query)) if query.running) {
+        return vec![Hint::new("Esc", "Cancel query"), Hint::new("Tab", "Next")];
+    }
     if explorer_focused {
         return explorer_footer_hints().to_vec();
     }
@@ -8318,6 +10181,28 @@ fn footer_status(app: &TableProApp) -> Option<footer::Status> {
             notice.to_owned(),
             Role::Fg(FgStep::Muted),
         ));
+    }
+    if let Some(Tab::Query(query)) = app.workbench.active() {
+        if query.running {
+            let summary = query
+                .last_status
+                .as_ref()
+                .map_or("Query running".to_owned(), |status| status.summary.clone());
+            return Some(footer::Status::new(summary, Role::Fg(FgStep::Muted)));
+        }
+        if let Some(status) = query.last_status.as_ref()
+            && status.is_error
+        {
+            return Some(footer::Status::new(status.summary.clone(), SQL_ERROR));
+        }
+        if let Some(status) = query.last_status.as_ref()
+            && (status.summary.starts_with("completed ") || status.summary == "cancelled")
+        {
+            return Some(footer::Status::new(
+                status.summary.clone(),
+                Role::Fg(FgStep::Muted),
+            ));
+        }
     }
     if let Some(sorted) = sort_footer(app) {
         return Some(footer::Status::new(sorted, TAG_PATH_FG));
@@ -8672,8 +10557,8 @@ impl TableProApp {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
-        let shown_sort = self.grid_sort.and_then(|(tab, column, direction)| {
-            if self.workbench.active_key()? != tab {
+        let shown_sort = self.grid_sort.and_then(|(owner, column, direction)| {
+            if self.active_grid_sort_owner()? != owner {
                 return None;
             }
             usize::from(column)
@@ -8715,6 +10600,7 @@ impl App for TableProApp {
             if self.query_safety.is_open() || cx.is_open(query_safety::ID) {
                 response |= self.update_query_safety(cx);
             }
+            response |= self.advance_pending_queries(cx);
             return response;
         }
         response |= self.update_filter_editor(cx);
@@ -8725,11 +10611,14 @@ impl App for TableProApp {
             self.open_switcher(cx);
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
+        let query_safety_was_open = self.query_safety.is_open() || cx.is_open(query_safety::ID);
         let modal_was_open = self.destructive_intent.is_some()
             || self.query_safety.is_open()
             || history_detail_was_open;
         response |= self.update_destructive_dialog(cx);
-        response |= self.update_query_safety(cx);
+        if query_safety_was_open {
+            response |= self.update_query_safety(cx);
+        }
         response |= self.update_tab_controls(cx);
         if self.form_open || self.screen != Screen::Connections {
             response |= connection_tree()
@@ -8787,15 +10676,13 @@ impl App for TableProApp {
                     if cx.top_layer() != LayerId::PAGE {
                         return Response::consumed();
                     }
-                    if let Some(Tab::Query(query)) = self.workbench.active_mut()
-                        && query.running
-                    {
-                        query.running = false;
-                        query.record_status("cancelled", false, 0);
-                        "Query cancelled".clone_into(&mut self.status);
-                        return Response::changed();
+                    match self.cancel_running_query() {
+                        QueryCancelOutcome::Cancelled
+                        | QueryCancelOutcome::PublicationUnavailable => {
+                            return Response::changed();
+                        }
+                        QueryCancelOutcome::NoPendingRun => return self.request_quit(cx),
                     }
-                    return self.request_quit(cx);
                 }
                 c if c == DUPLICATE_ROW => {
                     if self.screen == Screen::Connections && !self.form_open {
@@ -8819,7 +10706,7 @@ impl App for TableProApp {
                     }
                 }
                 c if c == UNDO => {
-                    if let Some((id, grid)) = self.workbench.active_grid_mut()
+                    if let Some((id, grid)) = self.workbench.application_active_grid_mut()
                         && cx.state(id).contains(StateFlags::FOCUSED)
                         && !grid.state.is_editing()
                     {
@@ -8828,7 +10715,58 @@ impl App for TableProApp {
                     }
                 }
                 c if c == RUN => {
-                    self.request_query(cx);
+                    self.request_query(cx, false);
+                    response |= Response::changed();
+                }
+                c if c == RUN_ALL => {
+                    self.request_query(cx, true);
+                    response |= Response::changed();
+                }
+                c if c == PIN_QUERY_OUTPUT => {
+                    let selected = self.workbench.active_key().and_then(|key| {
+                        let id = self.workbench.selected_query_output(key)?;
+                        let was_pinned = self
+                            .workbench
+                            .query_outputs(key)?
+                            .iter()
+                            .find(|output| output.id() == id)?
+                            .is_pinned();
+                        Some((key, id, was_pinned))
+                    });
+                    let mut cancellation_failed = None;
+                    let result = selected.and_then(|(key, id, was_pinned)| {
+                        let running = matches!(
+                            self.workbench.tab(key),
+                            Some(Tab::Query(query)) if query.running
+                        );
+                        let run_pending = self.pending_queries.contains_key(&key);
+                        if running || run_pending {
+                            let outcome = if run_pending {
+                                self.cancel_query(key)
+                            } else {
+                                self.status = "Query cancellation state is unavailable".to_owned();
+                                QueryCancelOutcome::PublicationUnavailable
+                            };
+                            if !matches!(outcome, QueryCancelOutcome::Cancelled) {
+                                cancellation_failed = Some(outcome);
+                                if matches!(outcome, QueryCancelOutcome::NoPendingRun) {
+                                    self.status =
+                                        "Query cancellation state is unavailable".to_owned();
+                                }
+                                return None;
+                            }
+                        }
+                        self.workbench
+                            .toggle_query_output_pin(key, id)
+                            .then_some(was_pinned)
+                    });
+                    if cancellation_failed.is_none() {
+                        self.status = match result {
+                            Some(true) => "Result unpinned".to_owned(),
+                            Some(false) => "Result pinned".to_owned(),
+                            None => "No query result selected".to_owned(),
+                        };
+                    }
                     response |= Response::changed();
                 }
                 c if c == SAVE && self.screen == Screen::Workbench && !self.form_open => {
@@ -8840,21 +10778,8 @@ impl App for TableProApp {
                         cx.focus(id);
                     }
                     let key = self.workbench.active_key();
-                    let result = if let Some(Tab::Query(query)) = self.workbench.active_mut() {
-                        query.editor_state.editor_mut().set_diagnostics(Vec::new());
-                        Some(query.explain_statement(&self.catalog, false))
-                    } else {
-                        None
-                    };
-                    if let Some(Ok(statement_sql)) = result {
-                        if let Some(key) = key {
-                            self.explain_contexts.get_mut().capture(
-                                &self.workbench,
-                                key,
-                                statement_sql,
-                            );
-                        }
-                        "Explain plan ready".clone_into(&mut self.status);
+                    if let Some(key) = key {
+                        let _ = self.explain_query(key, false);
                     }
                     response |= Response::changed();
                 }
@@ -8863,25 +10788,8 @@ impl App for TableProApp {
                         cx.focus(id);
                     }
                     let key = self.workbench.active_key();
-                    let result = if let Some(Tab::Query(query)) = self.workbench.active_mut() {
-                        query.editor_state.editor_mut().set_diagnostics(Vec::new());
-                        let result = query.explain_statement(&self.catalog, true);
-                        if result.is_ok() {
-                            query.error = None;
-                        }
-                        Some(result)
-                    } else {
-                        None
-                    };
-                    if let Some(Ok(statement_sql)) = result {
-                        if let Some(key) = key {
-                            self.explain_contexts.get_mut().capture(
-                                &self.workbench,
-                                key,
-                                statement_sql,
-                            );
-                        }
-                        "Explain plan ready".clone_into(&mut self.status);
+                    if let Some(key) = key {
+                        let _ = self.explain_query(key, true);
                     }
                     response |= Response::changed();
                 }
@@ -9242,6 +11150,12 @@ impl App for TableProApp {
             )
         {
             return Response::ignored();
+        }
+        match self.cancel_running_query() {
+            QueryCancelOutcome::Cancelled | QueryCancelOutcome::PublicationUnavailable => {
+                return Response::changed();
+            }
+            QueryCancelOutcome::NoPendingRun => {}
         }
         if !self.workbench.maximized {
             return Response::ignored();

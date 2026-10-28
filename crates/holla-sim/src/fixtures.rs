@@ -14,7 +14,7 @@ use crate::domain::ranking::{Alias, Memory, Pin, Usage};
 use crate::domain::ssh::{HostKeyPolicy, SshHost};
 use crate::listeners::{ListenerModel, ListenerModelError, ListenerRecord, PortConflict};
 use crate::scenario::Scenario;
-use crate::world::{Discovery, Domain, SystemFacts, World};
+use crate::world::{Discovery, Domain, ProcessFact, SystemFacts, World};
 
 pub const HOME: &str = "/home/dev";
 
@@ -365,6 +365,40 @@ fn seed_first_use(world: &mut World) {
         pressure_minutes: 4,
         btm_installed: true,
         network: vec![("en0".into(), "rx 1.2 MB/s · tx 240 KB/s".into())],
+        processes: vec![
+            ProcessFact {
+                pid: 4812,
+                name: "rust-analyzer".into(),
+                cpu_percent: 41,
+                memory_mb: 2_900,
+                state: "running".into(),
+                port: None,
+            },
+            ProcessFact {
+                pid: 9120,
+                name: "cargo".into(),
+                cpu_percent: 32,
+                memory_mb: 1_100,
+                state: "running".into(),
+                port: None,
+            },
+            ProcessFact {
+                pid: 2201,
+                name: "Docker".into(),
+                cpu_percent: 9,
+                memory_mb: 3_800,
+                state: "sleeping".into(),
+                port: None,
+            },
+            ProcessFact {
+                pid: 7731,
+                name: "node (vite)".into(),
+                cpu_percent: 6,
+                memory_mb: 420,
+                state: "sleeping".into(),
+                port: Some(5173),
+            },
+        ],
     });
     world.memory.usage.push(Usage {
         path: world.cwd.clone(),

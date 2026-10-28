@@ -2926,6 +2926,10 @@ impl App {
 
     fn build_manager_rows(&self) -> Vec<ManagerRow> {
         let mut rows = Vec::new();
+        rows.push(ManagerRow::new(
+            ManagerRowKey::CurrentDirectory,
+            format!("Current directory · {}", self.world.home),
+        ));
         for workspace in &self.world.workspaces {
             let expanded = self.manager.is_expanded(workspace.id);
             let marker = if expanded { "▾" } else { "▸" };
@@ -2953,10 +2957,6 @@ impl App {
                 }
             }
         }
-        rows.push(ManagerRow::new(
-            ManagerRowKey::CurrentDirectory,
-            format!("Current directory · {}", self.world.home),
-        ));
         rows.extend(self.manager_instances(None).map(|instance| {
             ManagerRow::new(
                 ManagerRowKey::Instance(instance.id.clone()),
@@ -4801,6 +4801,9 @@ impl App {
         if closed || (was_open && !is_open) {
             self.help_open = false;
             self.status = None;
+            if self.route == Route::Manager {
+                cx.focus(MANAGER_LIST);
+            }
         } else if is_open {
             self.help_open = true;
         }
@@ -5402,6 +5405,17 @@ impl App {
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.ensure_manager_rows();
+        if self.manager.list.cursor().is_none()
+            && let Some((index, key)) =
+                self.manager_rows_cache
+                    .iter()
+                    .enumerate()
+                    .find_map(|(index, row)| {
+                        (&row.domain == self.manager.selected_row()).then_some((index, row.key))
+                    })
+        {
+            self.manager.list.set_cursor(index, key);
+        }
         let mut result = manager_detail::update(self, cx);
         let menu_response = Self::manager_menu_bar().update(cx, &mut self.manager_menu_bar_state);
         match menu_response.action_ref().copied() {
@@ -12900,7 +12914,11 @@ impl TuiApp for App {
             self.last_tick = Some(now);
         }
         let manager_was_active = self.route == Route::Manager;
+        let manager_needs_focus = cx.update_cause() == UpdateCause::Bootstrap || !manager_was_active;
         let result = self.update_parts(cx, product_tick);
+        if manager_needs_focus && self.route == Route::Manager {
+            cx.focus(MANAGER_LIST);
+        }
         self.close_manager_menu_after_route_change(cx, manager_was_active);
         if self.motion != Motion::Paused {
             let next = self

@@ -86,12 +86,23 @@ pub enum Msg {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProcessFact {
+    pub pid: u32,
+    pub name: String,
+    pub cpu_percent: u32,
+    pub memory_mb: u32,
+    pub state: String,
+    pub port: Option<u16>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SystemFacts {
     pub cpu_percent: u32,
     pub swap_used_mb: u32,
     pub pressure_minutes: u32,
     pub btm_installed: bool,
     pub network: Vec<(String, String)>,
+    pub processes: Vec<ProcessFact>,
 }
 
 pub struct World {

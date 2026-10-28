@@ -2650,7 +2650,11 @@ impl App {
                 }
             }
             ACTIONS if self.route == Route::Home => {
-                if let Some(action) = self.home.subject(&self.world, cx) {
+                if self.overlay.is_none()
+                    && !self.menu.is_open()
+                    && cx.top_layer() == termrock::LayerId::PAGE
+                    && let Some(action) = self.home.subject(&self.world, cx)
+                {
                     self.pending_task_run_return = Some(self.capture_return_location(cx));
                     let picker = Actions::new(action, &self.world);
                     picker.open(cx);
@@ -2710,7 +2714,10 @@ impl App {
         action: crate::domain::action::Action,
         cx: &mut Cx<'_>,
     ) {
-        if !matches!(choice, Choice::Run | Choice::Preview) {
+        if !matches!(
+            &choice,
+            Choice::Run | Choice::Preview | Choice::Alternative(_)
+        ) {
             self.pending_task_run_return = None;
         }
         match choice {
@@ -2723,6 +2730,36 @@ impl App {
                 self.destination(destination, cx);
             }
             Choice::Copy => self.copy_osc52(&action.command),
+            Choice::Insert => {
+                if action.command.is_empty() {
+                    self.set_status("No command to insert".into());
+                } else {
+                    self.set_status(format!(
+                        "Inserted into the shell: {} · holla returns to the prompt",
+                        action.command
+                    ));
+                }
+            }
+            Choice::Alternative(key) => {
+                let Some(action_id) = action
+                    .alternatives
+                    .iter()
+                    .find(|alternative| alternative.key == key)
+                    .map(|alternative| alternative.action_id.clone())
+                else {
+                    self.set_status("Alternative no longer available".into());
+                    return;
+                };
+                let Some(alternative) = catalogue::catalogue(&self.world)
+                    .into_iter()
+                    .find(|candidate| candidate.id == action_id)
+                else {
+                    self.set_status("Not in this preview".into());
+                    return;
+                };
+                let destination = dispatch::invoke(&mut self.world, &alternative);
+                self.destination(destination, cx);
+            }
             Choice::Alias => self.open_dialog(dialogs::Intent::Alias(action), cx),
             Choice::Pin => {
                 if self.world.memory.pin_at(&self.world.cwd, &action.command) {
@@ -2749,7 +2786,7 @@ impl App {
                         .memory
                         .hides
                         .retain(|pin| pin.path != self.world.cwd || pin.command != action.command);
-                    self.set_status(format!("Unhidden {} here", action.command));
+                    self.set_status(format!("Restored {} here", action.command));
                 } else {
                     self.world.memory.hides.push(Pin {
                         path: self.world.cwd.clone(),
@@ -3531,6 +3568,17 @@ impl App {
             && !self.menu.is_open()
         {
             self.keymap.add(KeyPhase::Capture, escape, QUERY_ESCAPE);
+        }
+        let alt_enter = Chord::with(KeyCode::Enter, termrock::KeyModifiers::ALT);
+        self.keymap.remove(KeyPhase::Capture, alt_enter);
+        if self.route == Route::Home
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && !too_small(cx.viewport())
+            && self.home.subject(&self.world, cx).is_some()
+        {
+            self.keymap.add(KeyPhase::Capture, alt_enter, ACTIONS);
         }
     }
     fn set_status(&mut self, message: String) {

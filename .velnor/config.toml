@@ -12,6 +12,20 @@ dependency_seed_timeout_minutes = 15
 pull_request_cache_policy = "read-only"
 runner_label = "ubuntu-26.04"
 
+[[workflow.tasks]]
+kind = "build"
+id = "functional-suite"
+mise_task = "functional-suite-ci-native"
+source = { mise_config = "mise.toml", working_directory = "." }
+tools = ["aqua:nextest-rs/nextest/cargo-nextest", "mr-boxington", "rust"]
+runner = "macos-26-arm64"
+timeout_minutes = 60
+cargo_build_jobs = 1
+nextest_test_threads = 1
+artifacts = [
+  { name = "termrock-functional-suite-ci", paths = ["target/termrock-functional-suite-ci/**"], when = "always", retention_days = 14 },
+]
+
 [resources]
 compiler_process_budget = 2
 
@@ -70,12 +84,12 @@ enabled = false
 environment = "release"
 
 [discovery]
-exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**", "docs/audits/evidence/**"]
+exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools/functional-suite/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**", "docs/audits/evidence/**"]
 
 [actions.overrides]
 
 [tools]
-gh = "2.102.0"
+gh = "2.103.3"
 mr-boxington = "1.28.0"
 
 [agents]

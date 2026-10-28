@@ -14,7 +14,8 @@ crosswalk = [
     "Status & hints plan v2 corrects only the options_menu readiness oracle after independent review; v1 A/B failures remain immutable history and are not inherited.",
     "This revision registers 89 cases and 276 coverage IDs. Twelve cases currently have native action plans; the remaining 77 stay not-run or setup-failed until planned. These counts are descriptive and do not constrain future plan coverage.",
     "Existing tablepro_query_execution adds an ordered paused/full two-phase plan with 16 globally unique checkpoints; its nine coverage IDs and the 89-case/276-ID denominators stay unchanged.",
-    "Runtime binary and output inputs are TERMROCK_PARITY_BIN_DIR and TERMROCK_PARITY_OUT_DIR."
+    "Runtime binary and output inputs are TERMROCK_PARITY_BIN_DIR and TERMROCK_PARITY_OUT_DIR.",
+    "Source metadata crosswalk binds the PR26 reference navigation inventory and the current target source seals; route source classification changes only, with all executable case rows and IDs preserved."
 ]
 
 [suite]
@@ -40,21 +41,39 @@ color_mode_arguments = ["--color", "truecolor"]
 motion_arguments = ["--motion", "paused", "--frame", "0"]
 
 [engine_pins]
-tuiscotti-tui-test = "59a8ded6d8f419f93aaf2c0edcf8253a6e6c7496"
-tuiscotti = "4b3a5e49ea2e5dbaa913534ced91aa9e45337d67"
+tuiscotti-tui-test = "7abeac8478aa9c05ec7bef93afb10209cc348bec"
+tuiscotti = "d8d54155947f6303a41dfd6079b53c0abc16f29a"
 
 [required_coverage]
 journey_ids = ["first_showcase", "first_holla", "first_jackin", "first_tablepro", "showcase_overview", "showcase_chrome", "showcase_status_and_hints", "showcase_breadcrumbs_and_rails", "showcase_help_and_keys", "showcase_quit_and_leave", "showcase_focus_and_navigation", "showcase_buttons", "showcase_inputs", "showcase_text_areas", "showcase_chips_and_selects", "showcase_forms", "showcase_checks_and_radios", "showcase_toolbars", "showcase_basic_table", "showcase_editable", "showcase_data_grid", "showcase_selection", "showcase_cell_editors", "showcase_columns", "showcase_lists", "showcase_trees", "showcase_sidebars", "showcase_tabs", "showcase_menus", "showcase_dialogs", "showcase_pickers", "showcase_dialog_kinds", "showcase_popups_and_tooltips", "showcase_file_browser", "showcase_progress", "showcase_empty_and_error", "showcase_meters", "showcase_notices", "showcase_panels", "showcase_scrolling", "showcase_splits_and_stacks", "showcase_master_detail", "showcase_pane_tree", "showcase_code_editor", "showcase_diff", "showcase_terminal", "showcase_text_utilities", "showcase_settings", "showcase_task_runner", "showcase_query_workbench", "showcase_connections", "showcase_finder", "showcase_disk_cleanup", "showcase_activity", "showcase_workspaces", "showcase_accounts_and_usage", "showcase_launch_cockpit", "showcase_read_only_report", "showcase_explorer", "showcase_orders", "showcase_query_edit_while_running", "showcase_query_tab_switching", "holla_home_actions", "holla_plan_args_gate", "holla_activity_stop", "holla_disk_cleanup_review", "holla_files_clone", "holla_taskrun_args_cancel", "holla_database_blockers", "jackin_intro_prelude", "jackin_editor_save_cancel_leave", "jackin_accounts_usage", "jackin_settings", "jackin_launch_cancel_failure", "jackin_handoff_capsule", "jackin_capsule_controls", "jackin_protected_quit_outro", "tablepro_connection_retry", "tablepro_explorer_structure_grid", "tablepro_edit_transaction", "tablepro_query_execution", "tablepro_safety_ack", "tablepro_history_filter_reconnect", "tablepro_switchers_dirty_close", "first_delivery_showcase_buttons", "first_delivery_holla_first_use", "first_delivery_jackin_settings", "first_delivery_tablepro_connections", "full_holla_first_use_frame1"]
 
 [required_coverage.source_binding]
-repository_revision = "6717d83557897d4888532fb0f549f4d6fb2d1266"
-showcase_nav_entries_path = "crates/showcase-ui/src/app.rs:329"
+repository_revision = "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
+showcase_nav_entries_path = "src/bin/showcase/app.rs::NAV_ENTRIES"
 showcase_nav_entries_count = 54
+showcase_nav_entries_sha256 = "d4c95b87d76320a94bf8fef3d5810014d7027ce4b5649b9875a60be925926bb1"
+target_repository_revision = "f629e9fabde2c9fb7f1ae4fd8f8d9a98cd07ba93"
+target_showcase_nav_entries_path = "crates/showcase-ui/src/app.rs::NAV_ENTRIES"
+target_showcase_nav_entries_count = 54
+target_showcase_nav_entries_sha256 = "7daf0dea2e915384be7158a7b98fe70a8667088f211b296989f24365ff911f6d"
+target_source_seals = [
+    { path = "crates/showcase-ui/src/app.rs", sha256 = "7daf0dea2e915384be7158a7b98fe70a8667088f211b296989f24365ff911f6d", worktree_state = "modified" },
+    { path = "crates/showcase-demos/src/pages/status_hints.rs", sha256 = "0b31dd4613a9a6529ecd6885a2a13a3600632bebb49283add1c12e8f2b6b2757", worktree_state = "tracked" },
+    { path = "crates/showcase-demos/src/pages/breadcrumbs_rails.rs", sha256 = "094875057e80e69193c72abdca0718534d2a56b7f9053e5839066362f1832f72", worktree_state = "untracked" },
+    { path = "crates/showcase-demos/src/pages/help_keys.rs", sha256 = "4d3f4f0677c8b3a02c75813c8ae3e860acbf4ab515a67f7248a919a34e44a541", worktree_state = "untracked" },
+    { path = "crates/showcase-demos/src/pages/quit_leave.rs", sha256 = "a67000b03ec8339690d2565249ae53bf129d34eb25a208dd59e431c5af408285", worktree_state = "untracked" },
+]
+reference_route_source_seals = [
+    { path = "src/bin/showcase/pages/status_hints.rs", sha256 = "976c64237e57e495880099888da4ec2a085cd0a8402eed2c7f9f3d440930ae1b" },
+    { path = "src/bin/showcase/pages/breadcrumbs_rails.rs", sha256 = "a7708eef4876e060dd3193c672610997cfc8830a31eb64d84b7354491c898b25" },
+    { path = "src/bin/showcase/pages/help_keys.rs", sha256 = "a440cbd932dd58d97222a75e0fadc45b67fd5c1318695f596cd3ba6d0b5aadf0" },
+    { path = "src/bin/showcase/pages/quit_leave.rs", sha256 = "e8a01a30f68add97d9048e79000b2d2c9c31ff60dadc862078fd42ed86fb0b8b" },
+]
 full_inventory_policy = "The 89 case rows define the case denominator and the 276 coverage_id_owners define the coverage denominator; coverage IDs are not frame counts. Cases without executable plans remain explicitly not-run or setup-failed, never ignored, xfail, placeholders, or passes. Current plan availability is descriptive and does not constrain future plan coverage."
 
 [required_coverage.showcase]
 nav_entries = ["Overview", "Chrome", "Status & hints", "Breadcrumbs & rails", "Help & keys", "Quit & leave", "Focus & navigation", "Buttons", "Inputs", "Text areas", "Chips & selects", "Forms", "Checks & radios", "Toolbars", "Basic table", "Editable", "Data grid", "Selection", "Cell editors", "Columns", "Lists", "Trees", "Sidebars", "Tabs", "Menus", "Dialogs", "Pickers", "Dialog kinds", "Popups & tooltips", "File browser", "Progress", "Empty & error", "Meters", "Notices", "Panels", "Scrolling", "Splits & stacks", "Master-detail", "Pane tree", "Code editor", "Diff", "Terminal", "Text utilities", "Settings", "Task runner", "Query workbench", "Connections", "Finder", "Disk cleanup", "Activity", "Workspaces", "Accounts & usage", "Launch cockpit", "Read-only report"]
-title_only_routes = ["Status & hints", "Breadcrumbs & rails", "Help & keys", "Quit & leave", "Focus & navigation", "Columns", "Tabs", "Menus", "Popups & tooltips", "File browser", "Meters", "Splits & stacks", "Text utilities", "Connections", "Finder", "Disk cleanup", "Activity", "Workspaces", "Accounts & usage", "Launch cockpit", "Read-only report"]
+title_only_routes = ["Focus & navigation", "Columns", "Tabs", "Menus", "Popups & tooltips", "File browser", "Meters", "Splits & stacks", "Text utilities", "Connections", "Finder", "Disk cleanup", "Activity", "Workspaces", "Accounts & usage", "Launch cockpit", "Read-only report"]
 additional_pages_when_present = ["Playground", "Options", "States"]
 explorer_and_query_workbench_behaviors = ["Explorer filtering", "lazy loading", "table activation", "tabs", "edit", "run", "explain", "stop", "clear", "diagnostics", "options", "both splits", "results", "Orders columns", "customer data", "status colors", "horizontal movement"]
 
@@ -1306,13 +1325,21 @@ coverage_ids = ["delivery.case.jackin.settings"]
 
 [[cases.steps]]
 name = "initial"
-required_anchors = ["jackin❯", "Workspaces", "Current directory"]
+required_anchors = ["jackin❯", "Workspaces"]
 forbidden_anchors = ["Keyboard shortcuts"]
+selection_observations = [
+    { label = "Current directory", x = 7, y = 3, selected = true },
+    { label = "payments-platform", x = 7, y = 4, selected = false },
+]
 
 [[cases.steps]]
 name = "selected"
-required_anchors = ["jackin❯", "Workspaces", "payments-platform"]
+required_anchors = ["jackin❯", "Workspaces"]
 forbidden_anchors = ["Keyboard shortcuts"]
+selection_observations = [
+    { label = "Current directory", x = 7, y = 3, selected = false },
+    { label = "payments-platform", x = 7, y = 4, selected = true },
+]
 
 [[cases.steps.actions]]
 kind = "key"

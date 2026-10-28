@@ -1,0 +1,9 @@
+[profile.ci]
+fail-fast = false
+retries = 0
+test-threads = 1
+
+[profile.ci.junit]
+path = "junit.xml"
+report-name = "termrock-functional-suite"
+report-skipped = "all"

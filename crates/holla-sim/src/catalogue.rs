@@ -1,4 +1,6 @@
-use crate::domain::action::{Action, ActionIntent, ActionKind, Availability, Risk, Scope};
+use crate::domain::action::{
+    Action, ActionAlternative, ActionIntent, ActionKind, Availability, Risk, Scope,
+};
 use crate::domain::docker::Health;
 use crate::domain::human_bytes;
 use crate::domain::mise::Trust;
@@ -607,12 +609,31 @@ fn first_use_actions(w: &World, out: &mut Vec<Action>) {
         Risk::ReadOnly,
         host,
         "holla snapshot system",
-    );
+    )
+    .with_alternatives([
+        ActionAlternative::new("system.monitor", "Open btm", "system.monitor"),
+        ActionAlternative::new("system.processes", "Show process tree", "system.processes"),
+    ]);
     resources.scope_label = host.to_owned();
     resources.workdir.clone_from(&w.cwd);
     resources.keywords =
         "system resources cpu memory load pressure what uses cpu what uses memory slow".into();
     out.push(resources);
+
+    let mut processes = Action::new(
+        "system.processes",
+        "Show process tree",
+        ActionKind::System,
+        Scope::Host,
+        &format!("{} noted processes", system.processes.len()),
+        Risk::ReadOnly,
+        host,
+        "holla snapshot processes",
+    );
+    processes.scope_label = host.to_owned();
+    processes.workdir.clone_from(&w.cwd);
+    processes.keywords = "process processes tree ps pid".into();
+    out.push(processes);
 
     if system.btm_installed {
         let mut monitor = Action::new(

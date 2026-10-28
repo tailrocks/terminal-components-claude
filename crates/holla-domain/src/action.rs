@@ -79,6 +79,23 @@ pub enum ActionIntent {
     Unavailable,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionAlternative {
+    pub key: String,
+    pub label: String,
+    pub action_id: String,
+}
+
+impl ActionAlternative {
+    pub fn new(key: &str, label: &str, action_id: &str) -> Self {
+        Self {
+            key: key.into(),
+            label: label.into(),
+            action_id: action_id.into(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FixtureCommand {
     MakeTest,
@@ -116,6 +133,7 @@ pub struct Action {
     pub workdir: String,
     pub long_running: bool,
     pub keywords: String,
+    pub alternatives: Vec<ActionAlternative>,
 }
 
 impl Action {
@@ -148,7 +166,16 @@ impl Action {
             workdir: String::new(),
             long_running: false,
             keywords: String::new(),
+            alternatives: Vec::new(),
         }
+    }
+
+    pub fn with_alternatives(
+        mut self,
+        alternatives: impl IntoIterator<Item = ActionAlternative>,
+    ) -> Self {
+        self.alternatives = alternatives.into_iter().collect();
+        self
     }
 
     pub fn intent(&self) -> &ActionIntent {

@@ -2,7 +2,7 @@ use std::sync::Weak;
 
 use tablepro_demo::db::{Connection, Environment, SafeMode, Table};
 use tablepro_domain::domain::ResultGrid;
-use tablepro_domain::tabs::{GridView, QueryTab, Tab, TabKey};
+use tablepro_domain::tabs::{GridView, QueryOutputState, QueryTab, Tab, TabKey};
 use tablepro_sql::sql::{self, Decision, Risk, Statement};
 use termrock::{
     Action, ActionKey, Chord, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, KeyCode,
@@ -41,6 +41,7 @@ impl From<&GridView> for ResultSnapshot {
 
 #[derive(Clone, PartialEq)]
 struct QuerySnapshot {
+    output_state: QueryOutputState,
     stored_text: String,
     editor_text: String,
     saved_text: String,
@@ -49,9 +50,10 @@ struct QuerySnapshot {
     result: Option<ResultSnapshot>,
 }
 
-impl From<&QueryTab> for QuerySnapshot {
-    fn from(tab: &QueryTab) -> Self {
+impl QuerySnapshot {
+    fn capture(tab: &QueryTab, output_state: QueryOutputState) -> Self {
         Self {
+            output_state,
             stored_text: tab.query.clone(),
             editor_text: tab.editor_state.editor().text().to_owned(),
             saved_text: tab.saved_text.clone(),
@@ -105,6 +107,7 @@ impl QuerySafetyRequest {
         let Tab::Query(tab) = app.workbench.tab(key)? else {
             return None;
         };
+        let output_state = app.workbench.query_output_state(key)?;
         let evaluation = evaluate(app, &query);
         Some(Self {
             key,
@@ -115,7 +118,7 @@ impl QuerySafetyRequest {
             schema: app.workbench.current_schema().to_owned(),
             safe_mode: app.safe_mode,
             query,
-            snapshot: QuerySnapshot::from(tab),
+            snapshot: QuerySnapshot::capture(tab, output_state),
             evaluation,
             return_surface: app.surface,
         })
@@ -168,7 +171,10 @@ impl QuerySafetyRequest {
         let Some(Tab::Query(tab)) = app.workbench.tab(self.key) else {
             return false;
         };
-        if QuerySnapshot::from(tab) != self.snapshot {
+        let Some(output_state) = app.workbench.query_output_state(self.key) else {
+            return false;
+        };
+        if QuerySnapshot::capture(tab, output_state) != self.snapshot {
             return false;
         }
         let evaluation = evaluate(app, &self.query);

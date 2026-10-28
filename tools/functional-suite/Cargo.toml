@@ -20,7 +20,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "=0.9.12"
 sha2 = "0.10"
-tui_test = { package = "tuiscotti-tui-test", version = "=0.2.0", path = "forks/tui-test-upstream/crates/tui-test", features = ["recording-raster", "recording-font-jetbrains-mono-styles"] }
+tui_test = { package = "tuiscotti-tui-test", version = "=0.2.1", path = "forks/tui-test-upstream/crates/tui-test", features = ["recording-raster", "recording-font-jetbrains-mono-styles"] }
 tuiscotti = { path = "forks/tuiscotti-upstream/crates/tuiscotti", version = "=0.4.0" }
 
 [patch.crates-io]

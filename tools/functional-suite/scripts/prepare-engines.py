@@ -264,7 +264,7 @@ def main() -> None:
     ensure_checkout(tui_test["repository"], tui_test["base_commit"], tui_test_path)
     verify_tui_test(tui_test_path, tui_test, patch_path)
 
-    print("prepared pinned tuiscotti-tui-test 0.2.0 and tuiscotti 0.4.0 engine sources")
+    print("prepared pinned tuiscotti-tui-test 0.2.1 and tuiscotti 0.4.0 engine sources")
 
 
 if __name__ == "__main__":

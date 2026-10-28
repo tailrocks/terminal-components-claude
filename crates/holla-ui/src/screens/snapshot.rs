@@ -5,6 +5,7 @@ use termrock::{FgStep, Rect, Role, StylePatch, TextSection, Ui};
 pub(crate) enum Kind {
     Overview,
     Resources,
+    Processes,
 }
 
 pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect, kind: Kind) {
@@ -15,12 +16,39 @@ pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect, kind: Kind) {
     let (title, subtitle) = match kind {
         Kind::Overview => ("Snapshot", frame.as_str()),
         Kind::Resources => ("System resources", frame.as_str()),
+        Kind::Processes => ("Processes", frame.as_str()),
     };
     TextSection::new(title).subtitle(subtitle).render(
         ui,
         Rect::new(area.x, area.y, area.width, area.height.min(2)),
     );
     if kind == Kind::Overview {
+        return;
+    }
+    if kind == Kind::Processes {
+        let lines = match &world.system {
+            Some(system) if !system.processes.is_empty() => system
+                .processes
+                .iter()
+                .map(|process| {
+                    let port = process
+                        .port
+                        .map_or_else(String::new, |port| format!(" · port {port}"));
+                    format!(
+                        "PID {} · {} · CPU {}% · memory {} MB · {}{}",
+                        process.pid,
+                        process.name,
+                        process.cpu_percent,
+                        process.memory_mb,
+                        process.state,
+                        port,
+                    )
+                })
+                .collect::<Vec<_>>(),
+            Some(_) => vec!["No process facts available".into()],
+            None => vec!["Process snapshot unavailable".into()],
+        };
+        paint_lines(ui, area, &lines);
         return;
     }
 

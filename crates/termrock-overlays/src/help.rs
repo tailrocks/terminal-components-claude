@@ -102,6 +102,10 @@ impl HelpOverlayState {
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
+
+    pub fn scroll_mut(&mut self) -> &mut ScrollState {
+        &mut self.scroll
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -302,7 +306,7 @@ impl<'a> HelpOverlay<'a> {
         self.id.part(Part::ACTIONS)
     }
 
-    fn command_id(&self) -> Id {
+    pub fn command_id(&self) -> Id {
         self.id.sub("commands")
     }
 

@@ -1,17 +1,16 @@
 {
   "ci_integration": {
     "constraints": [
-      "The generator supports this named standalone Rust suite.",
-      "The generator does not emit --locked or --offline; generated Cargo invocation still needs lock-enforcement review.",
-      "Build-group entries emit cargo nextest list only; they do not execute the suite.",
-      "CI must export the source, prepare both pinned engine checkouts, and build both pinned binaries before invoking Nextest.",
-      "Generated Linux action does not yet support the required pre-Cargo setup hook; any generator extension remains pending review.",
-      "No generated CI run or Common-suite acceptance is claimed."
+      "The CI ledger/reporting architecture has independent test-plan ACCEPT at R4; implementation and runtime proof remain pending.",
+      "The native required BuildTask, Mise task, discovery exclusion, and generated workflow are not yet configured or verified.",
+      "The paired adapter must export once, prepare pinned patched engines, build both application sides, and run matching Nextest selections; this is a plan, not a completed CI result.",
+      "The suite Cargo.lock still records the pre-refresh engine graph for tui-test 0.2.1; locked metadata verification must pass before execution.",
+      "No export, engine preparation, paired build, Nextest listing/run, hosted workflow, or Common-suite acceptance is currently claimed."
     ],
     "export_command_template": "python3 tools/functional-suite/scripts/export-source.py <absolute-suite-export> --forbid-root <app-worktree-1> --forbid-root <app-worktree-2>",
     "export_destination": "caller-supplied new absolute path outside both app worktrees",
     "export_helper": "tools/functional-suite/scripts/export-source.py",
-    "generator": "Velnor Actions 0.1.48",
+    "generator": "Velnor Actions 0.1.67",
     "integration_target": "functional",
     "lockfile_sha256": "88822e5c44bf9660fb3586a8a8c52eed861fb46386b8cb99f40bdde88a9d9d76",
     "required_setup": "python3 <exported-suite>/scripts/prepare-engines.py",
@@ -20,16 +19,18 @@
       "TERMROCK_PARITY_OUT_DIR"
     ],
     "status": "pending",
-    "suite_manifest_path": "tools/functional-suite/Cargo.toml"
+    "suite_manifest_path": "tools/functional-suite/Cargo.toml",
+    "adapter_plan": "PR38-CI-RUN-LEDGER-TP1-R4",
+    "adapter_plan_sha256": "578da771c7080481a51c1ef5ab84d653bdbb093a2cedfdc8e4bf1d2056cb095d"
   },
   "schema_version": 2,
   "tuiscotti": {
     "checkout": "complete_non_sparse_tracked_tree",
-    "commit": "4b3a5e49ea2e5dbaa913534ced91aa9e45337d67",
+    "commit": "d8d54155947f6303a41dfd6079b53c0abc16f29a",
     "pixel_gap_patch_file": "engine-patches/tuiscotti-ac5f70d-to-pixel-gap.patch",
     "pixel_gap_patch_sha256": "ed4c9ac1d03b6aac8347e7018311aebad100d37a1a8fea400378ee434038955d",
     "pixel_gap_review_artifact": "/private/tmp/pr38-tuiscotti-pixel-gap-review-20261028-ac5f70d",
-    "pixel_gap_review_status": "approved_source_on_ac5f70d; exact_4b3a5e49_patch_apply_check_and_postimages_verified; new_base_source_review_pending",
+    "pixel_gap_review_status": "required 40-character pin corrected from truncated value; exact preimage verification and retained patch application at this base are pending",
     "preimage_sha256": {
       "crates/tuiscotti/docs/check.md": "942547de7dde6cf55381b98b5add5cd2d2c814a48a25e9ab9b08d55211acde6f",
       "crates/tuiscotti/docs/report.md": "2ec26a547a229d22253f46d3bc302931855203db41dcc852245d023a72e75a15",
@@ -44,11 +45,11 @@
       "crates/tuiscotti/src/report.rs": "4b5e256a601a75ded80d684795e200d93148ddaea7d736dc5d6294955a80d6bb"
     },
     "package_version": "0.4.0",
-    "package_manifest_sha256": "d32333492569332ed1f0fec33ea626a1fff6195dc5d40ec5196870f956bebd48",
-    "workspace_manifest_sha256": "f07be9c5f17be78f5cf7f40e8ff7b72442b02ceb70d9e6b8cb48cb2eb3336a5f"
+    "package_manifest_sha256": "dfc1de82a84ef528ac0f5f1e83f0401556633fa6b7ab4c6aeb617b296b4f8f45",
+    "workspace_manifest_sha256": "e999ca1e347e598dc79e13f8f86ef84d73c020638334a79819b0b5b528e7b86a"
   },
   "tuiscotti_tui_test": {
-    "base_commit": "59a8ded6d8f419f93aaf2c0edcf8253a6e6c7496",
+    "base_commit": "7abeac8478aa9c05ec7bef93afb10209cc348bec",
     "checkout": "complete_non_sparse_tracked_tree",
     "draft_manifest_sha256": "c892539e25095f65b4e3509c3272d5f00ae1ae036f8d1e2d83e4b55142441d15",
     "draft_packet": "tui-test-capture-v7",
@@ -83,10 +84,10 @@
       "crates/tui-test/src/terminal/pty.rs": "22be21b2219882d35cc0b82264be1accd7dcff9edd745f3116d56fb61f194309"
     },
     "package_name": "tuiscotti-tui-test",
-    "package_version": "0.2.0",
+    "package_version": "0.2.1",
     "library_name": "tui_test",
-    "registry_archive_sha256": "0e1e3dcd3f914c6b71af120cfac0d82aade62c1b145c58b409685f277980b76a",
+    "registry_archive_sha256": "abf5d46cc52d4337da1e141a5abd0175c461be323b6f0b4068644089d565f8b9",
     "package_manifest_sha256": "3b8f4766bd4d0933cdb1b157332783f003749f6a7d694643876ccbc78deff031",
-    "workspace_manifest_sha256": "fc36917b2b254863923b1d921a80dbedf9a605714831e350dac9d2c1e75e2c35"
+    "workspace_manifest_sha256": "13fd343284f7cf73745c1c109aec5c25e2a6a5b5fe8ff3eeec4756ce36d7278a"
   }
 }

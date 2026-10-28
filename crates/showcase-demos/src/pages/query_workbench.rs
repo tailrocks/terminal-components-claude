@@ -3,11 +3,11 @@ use std::time::Duration;
 
 use termrock::grid::{Column, ColumnKey, Table, TableColumn, TableState};
 use termrock::{
-    ActionKey, Align, CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx,
-    FrameRead, GridModel, Id, ItemKey, Maximized, Panel, PanelKind, Rect, ResetPolicy, Response,
-    Role, SplitAxis, SplitFallback, SplitPane, SplitPaneState, StateFlags, StatusBar, StatusItem,
-    Tabs, TabsAction, TabsState, ToolItem, Toolbar, ToolbarAction, ToolbarState, TreeAction, Ui,
-    UpdateCause, layout,
+    ActionKey, Align, Chord, CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity,
+    Cx, FrameRead, GridModel, Id, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, Maximized, Panel,
+    PanelKind, Rect, ResetPolicy, Response, Role, SplitAxis, SplitFallback, SplitPane,
+    SplitPaneState, StateFlags, StatusBar, StatusItem, Tabs, TabsAction, TabsState, ToolItem, Toolbar,
+    ToolbarAction, ToolbarState, TreeAction, Ui, UpdateCause, layout,
 };
 
 mod explorer;
@@ -309,11 +309,25 @@ impl std::fmt::Display for Document {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct PendingRun {
     owner: ItemKey,
+    sql: String,
     explain: bool,
     remaining_ticks: u8,
+}
+
+impl std::fmt::Debug for PendingRun {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("PendingRun")
+            .field("owner", &self.owner)
+            .field("sql", &"[redacted]")
+            .field("sql_len", &self.sql.len())
+            .field("explain", &self.explain)
+            .field("remaining_ticks", &self.remaining_ticks)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -679,7 +693,8 @@ impl QueryWorkbenchPage {
             self.status = "No query is open.".to_owned();
             return PageStatus(self.status.clone());
         };
-        if document.editor.text().trim().is_empty() {
+        let sql = document.editor.text().to_owned();
+        if sql.trim().is_empty() {
             document.result = ResultView::Empty;
             self.status = "Nothing to run · the SQL editor is empty.".to_owned();
             return PageStatus(self.status.clone());
@@ -687,6 +702,7 @@ impl QueryWorkbenchPage {
         let owner = document.key;
         self.run = Some(PendingRun {
             owner,
+            sql,
             explain,
             remaining_ticks: RUN_TICKS,
         });
@@ -787,10 +803,12 @@ impl QueryWorkbenchPage {
             .iter_mut()
             .find(|document| document.key == run.owner)
         {
-            let evaluation = evaluate_query(document.editor.text(), run.explain);
+            let evaluation = evaluate_query(&run.sql, run.explain);
             let status = evaluation.result.summary();
             document.result = evaluation.result;
-            document.editor.set_diagnostics(evaluation.diagnostics);
+            if document.editor.text() == run.sql.as_str() {
+                document.editor.set_diagnostics(evaluation.diagnostics);
+            }
             self.status = status;
         } else {
             self.status = "Run cancelled · its query tab was closed.".to_owned();
@@ -831,6 +849,14 @@ pub fn page() -> Box<dyn Page> {
 impl Page for QueryWorkbenchPage {
     fn title(&self) -> &'static str {
         "Query workbench"
+    }
+
+    fn keymap(&self, keymap: &mut KeyMap) {
+        keymap.add(
+            KeyPhase::Capture,
+            Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
+            RUN_QUERY,
+        );
     }
 
     fn quit_confirmation(&self) -> Option<&'static str> {

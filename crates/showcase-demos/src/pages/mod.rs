@@ -32,6 +32,12 @@ pub trait Page: Send {
     }
     fn set_option(&mut self, _key: &str, _value: usize) {}
 
+    fn keymap(&self, _keymap: &mut termrock::KeyMap) {}
+
+    fn blocks_shell_commands(&self, _cx: &termrock::Cx<'_>) -> bool {
+        false
+    }
+
     fn global_capture_owners(&self, _action: ActionKey) -> &'static [Id] {
         &[]
     }
@@ -345,6 +351,7 @@ pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
 }
 
 pub mod author;
+pub mod breadcrumbs_rails;
 pub mod buttons;
 pub mod celleditors;
 pub mod checks_radios;
@@ -358,6 +365,7 @@ pub mod editor;
 pub mod empty_error;
 pub mod forms;
 pub mod grid;
+pub mod help_keys;
 pub mod inputs;
 pub mod lists;
 pub mod master_detail;
@@ -367,6 +375,7 @@ pub mod panels;
 pub mod pickers;
 pub mod progress;
 pub mod query_workbench;
+pub mod quit_leave;
 pub mod scrolling;
 pub mod selectable;
 pub mod settings;

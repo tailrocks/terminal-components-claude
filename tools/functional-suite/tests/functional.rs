@@ -219,6 +219,16 @@ struct CheckpointPlan {
     expected_rows: u16,
     #[serde(default)]
     actions: Vec<NativeAction>,
+    #[serde(default)]
+    selection_observations: Vec<SelectionObservationPlan>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct SelectionObservationPlan {
+    label: String,
+    x: u16,
+    y: u16,
+    selected: bool,
 }
 
 fn default_terminal_cols() -> u16 {
@@ -360,8 +370,14 @@ impl std::error::Error for StoreCheckFailure {}
 struct CaseResultEvidence {
     schema_version: u32,
     suite_id: Option<String>,
+    run_id: Option<String>,
+    case_started_at: String,
+    case_ended_at: Option<String>,
     test_name: String,
     case_id: Option<String>,
+    engine_pins: BTreeMap<String, String>,
+    fault_control: FaultControlEvidence,
+    actions: Vec<ActionEventEvidence>,
     planned_checkpoint_names: Vec<String>,
     not_run_checkpoints: Vec<NotReachedCheckpointEvidence>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -374,11 +390,114 @@ struct CaseResultEvidence {
     error: Option<String>,
 }
 
+#[derive(Debug, Serialize, Clone)]
+struct FaultControlEvidence {
+    active: bool,
+    spec: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum ActionDispatchState {
+    Attempted,
+    Dispatched,
+    Failed,
+    SuppressedByControl,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct ActionEventEvidence {
+    action_id: String,
+    case_id: String,
+    phase_name: Option<String>,
+    checkpoint_name: String,
+    sequence: usize,
+    action_kind: String,
+    attempted_at: String,
+    dispatch_completed_at: Option<String>,
+    dispatch_state: ActionDispatchState,
+    observation_at: Option<String>,
+    observation_state: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SelectionSample {
+    test_id: String,
+    snapshot: SelectionSnapshot,
+}
+
+#[derive(Debug, Deserialize)]
+struct SelectionSnapshot {
+    cols: u16,
+    rows: u16,
+    cells: Vec<SelectionCell>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SelectionCell {
+    text: String,
+    fg: String,
+    bg: String,
+    bold: bool,
+    inverse: bool,
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+struct SelectionStyleEvidence {
+    fg: String,
+    bg: String,
+    bold: bool,
+    inverse: bool,
+}
+
+struct SelectionLabelMatch {
+    occurrences: usize,
+    x: Option<u16>,
+    y: Option<u16>,
+    style: Option<SelectionStyleEvidence>,
+    attribute_uniform: bool,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct SelectionObservationEvidence {
+    label: String,
+    x: u16,
+    y: u16,
+    expected_selected: bool,
+    observed_selected: Option<bool>,
+    matched: bool,
+    occurrences: usize,
+    actual_x: Option<u16>,
+    actual_y: Option<u16>,
+    attribute_uniform: bool,
+    expected_style: SelectionStyleEvidence,
+    actual_style: Option<SelectionStyleEvidence>,
+    reference_files: BTreeMap<String, String>,
+    problem: Option<String>,
+}
+
 struct CaseResultWriter {
     root: PathBuf,
     file_name: String,
     persist_to_disk: bool,
     evidence: CaseResultEvidence,
+}
+
+fn fault_control_evidence_from_env() -> FaultControlEvidence {
+    match env::var("TERMROCK_PARITY_INPUT_CONTROL") {
+        Ok(spec) => FaultControlEvidence {
+            active: true,
+            spec: Some(spec),
+        },
+        Err(env::VarError::NotPresent) => FaultControlEvidence {
+            active: false,
+            spec: None,
+        },
+        Err(env::VarError::NotUnicode(_)) => FaultControlEvidence {
+            active: true,
+            spec: Some("<non-utf8>".to_string()),
+        },
+    }
 }
 
 impl CaseResultWriter {
@@ -391,10 +510,18 @@ impl CaseResultWriter {
             file_name: format!("{test_name}.json"),
             persist_to_disk: true,
             evidence: CaseResultEvidence {
-                schema_version: 1,
+                schema_version: 2,
                 suite_id: None,
+                run_id: env::var("TERMROCK_PARITY_RUN_ID")
+                    .ok()
+                    .and_then(|value| validate_run_id(&value)),
+                case_started_at: utc_timestamp(),
+                case_ended_at: None,
                 test_name: test_name.to_string(),
                 case_id: None,
+                engine_pins: BTreeMap::new(),
+                fault_control: fault_control_evidence_from_env(),
+                actions: Vec::new(),
                 planned_checkpoint_names: Vec::new(),
                 not_run_checkpoints: Vec::new(),
                 phases: Vec::new(),
@@ -410,6 +537,106 @@ impl CaseResultWriter {
         Ok(writer)
     }
 
+    fn begin_action(
+        &mut self,
+        case_id: &str,
+        phase_name: Option<&str>,
+        checkpoint_name: &str,
+        action_kind: &str,
+    ) -> Result<usize> {
+        let run_id = self
+            .evidence
+            .run_id
+            .as_deref()
+            .context("action evidence requires a valid invocation run ID")?;
+        let sequence = self.evidence.actions.len() + 1;
+        let phase_segment = phase_name.unwrap_or("null");
+        let action_id = format!(
+            "{run_id}/{case_id}/{phase_segment}/{checkpoint_name}/{sequence:04}"
+        );
+        self.evidence.actions.push(ActionEventEvidence {
+            action_id,
+            case_id: case_id.to_string(),
+            phase_name: phase_name.map(str::to_string),
+            checkpoint_name: checkpoint_name.to_string(),
+            sequence,
+            action_kind: action_kind.to_string(),
+            attempted_at: utc_timestamp(),
+            dispatch_completed_at: None,
+            dispatch_state: ActionDispatchState::Attempted,
+            observation_at: None,
+            observation_state: None,
+        });
+        let index = self.evidence.actions.len() - 1;
+        self.persist()?;
+        Ok(index)
+    }
+
+    fn complete_action_dispatch(
+        &mut self,
+        index: usize,
+        state: ActionDispatchState,
+    ) -> Result<()> {
+        let event = self
+            .evidence
+            .actions
+            .get_mut(index)
+            .context("action event disappeared before dispatch completion")?;
+        event.dispatch_state = state;
+        if state == ActionDispatchState::Dispatched {
+            event.dispatch_completed_at = Some(utc_timestamp());
+        }
+        self.persist()
+    }
+
+    fn observe_checkpoint_actions(
+        &mut self,
+        phase_name: Option<&str>,
+        checkpoint_name: &str,
+        observation_state: &str,
+    ) -> Result<()> {
+        let observed_at = utc_timestamp();
+        let mut changed = false;
+        for event in &mut self.evidence.actions {
+            if event.phase_name.as_deref() == phase_name
+                && event.checkpoint_name == checkpoint_name
+                && event.observation_state.is_none()
+            {
+                event.observation_at = Some(observed_at.clone());
+                event.observation_state = Some(observation_state.to_string());
+                changed = true;
+            }
+        }
+        if changed {
+            self.persist()?;
+        }
+        Ok(())
+    }
+
+    fn observe_exit(&mut self, phase_name: Option<&str>, matched: bool) -> Result<()> {
+        let observed_at = utc_timestamp();
+        let mut changed = false;
+        for event in &mut self.evidence.actions {
+            if event.phase_name.as_deref() == phase_name
+                && event.checkpoint_name == "exit"
+                && event.observation_state.is_none()
+            {
+                event.observation_at = Some(observed_at.clone());
+                event.observation_state = Some(if matched {
+                    "matched"
+                } else {
+                    "mismatched"
+                }
+                .to_string());
+                changed = true;
+            }
+        }
+        if changed {
+            self.persist()?;
+        }
+        Ok(())
+    }
+
     fn persist(&self) -> Result<()> {
         if !self.persist_to_disk {
             return Ok(());
@@ -417,6 +644,66 @@ impl CaseResultWriter {
         let bytes = serde_json::to_vec_pretty(&self.evidence)
             .context("serialize structured case result")?;
         write_atomic(&self.root, &self.file_name, &bytes).context("write structured case result")
+    }
+}
+
+fn with_action_writer<T>(
+    local_writer: &mut CaseResultWriter,
+    invocation_writer: &mut Option<&mut CaseResultWriter>,
+    write: impl FnOnce(&mut CaseResultWriter) -> Result<T>,
+) -> Result<T> {
+    match invocation_writer.as_deref_mut() {
+        Some(writer) => write(writer),
+        None => write(local_writer),
+    }
+}
+
+fn dispatch_recorded_action(
+    local_writer: &mut CaseResultWriter,
+    invocation_writer: &mut Option<&mut CaseResultWriter>,
+    session: &Session,
+    case_id: &str,
+    phase_name: Option<&str>,
+    checkpoint_name: &str,
+    action: &NativeAction,
+    suppressed_by_control: bool,
+) -> Result<(Result<()>, Result<()>)> {
+    let event_index = with_action_writer(local_writer, invocation_writer, |writer| {
+        writer.begin_action(
+            case_id,
+            phase_name,
+            checkpoint_name,
+            native_action_kind(action),
+        )
+    })?;
+    let dispatch_result = if suppressed_by_control {
+        Ok(())
+    } else {
+        execute_native_action(session, action)
+    };
+    let dispatch_state = if suppressed_by_control {
+        ActionDispatchState::SuppressedByControl
+    } else if dispatch_result.is_ok() {
+        ActionDispatchState::Dispatched
+    } else {
+        ActionDispatchState::Failed
+    };
+    let evidence_result = with_action_writer(local_writer, invocation_writer, |writer| {
+        writer.complete_action_dispatch(event_index, dispatch_state)
+    });
+    Ok((dispatch_result, evidence_result))
+}
+
+fn checkpoint_observation_state(checkpoint: &CheckpointEvidence) -> &'static str {
+    if checkpoint.comparison.passed
+        && checkpoint
+            .selection_observations
+            .iter()
+            .all(|observation| observation.matched)
+    {
+        "matched"
+    } else {
+        "mismatched"
     }
 }
 
@@ -589,6 +876,8 @@ struct NotReachedCheckpointEvidence {
 struct CheckpointEvidence {
     name: String,
     test_id: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    selection_observations: Vec<SelectionObservationEvidence>,
     source_revision: u64,
     raw_prefix_offset: usize,
     raw_prefix_sha256: Option<String>,
@@ -808,6 +1097,7 @@ fn run_case(case_name: &str) -> Result<()> {
     let run_result = run_case_with_result(case_name, &output_root, &mut result);
     match run_result {
         Ok(()) => {
+            result.evidence.case_ended_at = Some(utc_timestamp());
             result.evidence.status = CaseResultStatus::Passed;
             result.evidence.failure_kind = None;
             result.evidence.error = None;
@@ -816,6 +1106,7 @@ fn run_case(case_name: &str) -> Result<()> {
             Ok(())
         }
         Err(error) => {
+            result.evidence.case_ended_at = Some(utc_timestamp());
             result.evidence.status = CaseResultStatus::Failed;
             if result.evidence.failure_kind.is_none() {
                 result.evidence.failure_kind = Some(if result.evidence.launched {
@@ -857,6 +1148,12 @@ fn run_case_with_result(
         .iter()
         .find(|case| case.name == case_name)
         .with_context(|| format!("manifest has no case named {case_name}"))?;
+    ensure!(
+        result.evidence.run_id.is_some(),
+        "setup failure: TERMROCK_PARITY_RUN_ID must be a safe non-empty invocation ID"
+    );
+    result.evidence.engine_pins = manifest.engine_pins.clone();
+    validate_fault_control(&result.evidence.fault_control, journey)?;
     result.evidence.case_id = Some(case_id(journey).to_string());
     result.evidence.planned_checkpoint_names = checkpoint_names(journey);
     result.evidence.not_run_checkpoints = result
@@ -976,6 +1273,7 @@ fn run_case_with_result(
         &args,
         case_name,
         result,
+        None,
         None,
         None,
     );
@@ -1130,10 +1428,18 @@ fn phase_case_result_writer(
         file_name: "phase-result.json".to_string(),
         persist_to_disk: false,
         evidence: CaseResultEvidence {
-            schema_version: 1,
+            schema_version: 2,
             suite_id: Some(manifest.version.suite_id.clone()),
+            run_id: env::var("TERMROCK_PARITY_RUN_ID")
+                .ok()
+                .and_then(|value| validate_run_id(&value)),
+            case_started_at: utc_timestamp(),
+            case_ended_at: None,
             test_name: journey.name.clone(),
             case_id: Some(case_id(journey).to_string()),
+            engine_pins: manifest.engine_pins.clone(),
+            fault_control: fault_control_evidence_from_env(),
+            actions: Vec::new(),
             planned_checkpoint_names: planned_checkpoint_names.clone(),
             not_run_checkpoints: planned_checkpoint_names
                 .iter()
@@ -1312,7 +1618,8 @@ fn run_phased_case_with_result(
             case_name,
             &mut phase_writer,
             Some(phase),
-            Some(&mut result.evidence.phases[phase_index]),
+            Some(&mut *result),
+            Some(phase_index),
         );
         let close_result = session
             .close()
@@ -1729,6 +2036,7 @@ fn legacy_checkpoint_plans(journey: &Journey) -> Result<Vec<CheckpointPlan>> {
                 expected_cols: 120,
                 expected_rows: 40,
                 actions,
+                selection_observations: Vec::new(),
             })
         })
         .collect()
@@ -1775,8 +2083,10 @@ fn run_unified_journey(
     case_name: &str,
     result_writer: &mut CaseResultWriter,
     phase: Option<&JourneyPhase>,
-    mut phase_result: Option<&mut PhaseResultEvidence>,
+    action_evidence_writer: Option<&mut CaseResultWriter>,
+    phase_result_index: Option<usize>,
 ) -> Result<()> {
+    let expected_root = Path::new(&evidence_roots.expected_store_root);
     let mut attempts = plans
         .iter()
         .map(|step| CheckpointAttemptEvidence {
@@ -1804,6 +2114,7 @@ fn run_unified_journey(
     let mut quit_dialog_readiness_attempted = false;
     let mut cleanup_actions = Vec::new();
     let mut cleanup_selection = None;
+    let mut action_evidence_writer = action_evidence_writer;
 
     for (index, step) in plans.iter().enumerate() {
         if !is_delivery && step.name == "exited" {
@@ -1812,17 +2123,51 @@ fn run_unified_journey(
         if !journey_active {
             continue;
         }
-        for action in &step.actions {
+        for (action_index, action) in step.actions.iter().enumerate() {
             if phase.is_some_and(|phase| {
                 step.name == phase.dialog_checkpoint
                     && matches!(action, NativeAction::Key { key } if key == "Ctrl+Q")
             }) {
                 quit_action_attempted = true;
             }
+            let fault_control_active = action_evidence_writer
+                .as_deref()
+                .map(|writer| writer.evidence.fault_control.active)
+                .unwrap_or(result_writer.evidence.fault_control.active);
+            let suppressed_by_control = fault_control_active
+                && journey.name == "first_delivery_jackin_settings"
+                && step.name == "selected"
+                && action_index == 0;
+            let (action_result, evidence_result) = match dispatch_recorded_action(
+                result_writer,
+                &mut action_evidence_writer,
+                session,
+                case_id(journey),
+                phase.map(|phase| phase.name.as_str()),
+                &step.name,
+                action,
+                suppressed_by_control,
+            ) {
+                Ok(outcome) => outcome,
+                Err(error) => {
+                    execution_errors.push(format!(
+                        "persist {} action attempt for {} failed: {error:#}",
+                        step.name, journey.name
+                    ));
+                    journey_active = false;
+                    break;
+                }
+            };
+            if let Err(error) = evidence_result {
+                capture_errors.push(format!(
+                    "persist {} action dispatch result failed: {error:#}",
+                    step.name
+                ));
+            }
             if !record_execution_step(
                 &mut execution_errors,
                 &format!("execute {} action for {}", step.name, journey.name),
-                execute_native_action(session, action),
+                action_result,
             ) {
                 journey_active = false;
                 break;
@@ -1851,12 +2196,40 @@ fn run_unified_journey(
                         journey,
                         pixel_profile,
                         store,
+                        expected_root,
                         samples_dir,
                         &mut checkpoints,
                         &mut capture_errors,
                         &mut application_errors,
                         &mut setup_errors,
                     );
+                }
+                let observation_state = checkpoints
+                    .iter()
+                    .rev()
+                    .find(|checkpoint| {
+                        checkpoint.name == step.name
+                            && checkpoint
+                                .test_id
+                                .starts_with(&format!("termrock/{}/", journey.name))
+                    })
+                    .map(checkpoint_observation_state)
+                    .unwrap_or("mismatched");
+                if let Err(error) = with_action_writer(
+                    result_writer,
+                    &mut action_evidence_writer,
+                    |writer| {
+                        writer.observe_checkpoint_actions(
+                            phase.map(|phase| phase.name.as_str()),
+                            &step.name,
+                            observation_state,
+                        )
+                    },
+                ) {
+                    capture_errors.push(format!(
+                        "persist {} readiness observation failed: {error:#}",
+                        step.name
+                    ));
                 }
                 attempts[index].reason = Some(message);
                 false
@@ -1887,12 +2260,57 @@ fn run_unified_journey(
             journey,
             pixel_profile,
             store,
+            expected_root,
             samples_dir,
             &mut checkpoints,
             &mut capture_errors,
             &mut application_errors,
             &mut setup_errors,
         );
+        let checkpoint = checkpoints.iter().rev().find(|checkpoint| {
+            checkpoint.name == step.name
+                && checkpoint.test_id.starts_with(&format!("termrock/{}/", journey.name))
+        });
+        if let Some(checkpoint) = checkpoint {
+            for observation in checkpoint
+                .selection_observations
+                .iter()
+                .filter(|observation| !observation.matched)
+            {
+                application_errors.push(format!(
+                    "{}/{} selection assertion failed: {}",
+                    case_id(journey),
+                    step.name,
+                    observation
+                        .problem
+                        .as_deref()
+                        .unwrap_or("selected-row observation did not match the reference")
+                ));
+            }
+        }
+        let action_observation = checkpoint
+            .map(checkpoint_observation_state)
+            .or_else(|| {
+                (attempts[index].outcome == "application-failure").then_some("mismatched")
+            });
+        if let Some(action_observation) = action_observation {
+            if let Err(error) = with_action_writer(
+                result_writer,
+                &mut action_evidence_writer,
+                |writer| {
+                    writer.observe_checkpoint_actions(
+                        phase.map(|phase| phase.name.as_str()),
+                        &step.name,
+                        action_observation,
+                    )
+                },
+            ) {
+                capture_errors.push(format!(
+                    "persist {} action observation failed: {error:#}",
+                    step.name
+                ));
+            }
+        }
     }
 
     let (exit_key, exit_key_attempted, exit_key_error) = if let Some(phase) = phase {
@@ -1903,10 +2321,36 @@ fn run_unified_journey(
         let mut cleanup_errors = Vec::new();
         cleanup_actions.push("Ctrl+Q".to_string());
         if !quit_action_attempted {
-            if let Err(error) = press(session, "Ctrl+Q") {
-                let message = format!("send cleanup Ctrl+Q failed: {error:#}");
-                execution_errors.push(message.clone());
-                cleanup_errors.push(message);
+            let action = NativeAction::Key {
+                key: "Ctrl+Q".to_string(),
+            };
+            match dispatch_recorded_action(
+                result_writer,
+                &mut action_evidence_writer,
+                session,
+                case_id(journey),
+                Some(phase.name.as_str()),
+                "cleanup_dialog",
+                &action,
+                false,
+            ) {
+                Ok((dispatch_result, evidence_result)) => {
+                    if let Err(error) = evidence_result {
+                        capture_errors.push(format!(
+                            "persist cleanup Ctrl+Q dispatch result failed: {error:#}"
+                        ));
+                    }
+                    if let Err(error) = dispatch_result {
+                        let message = format!("send cleanup Ctrl+Q failed: {error:#}");
+                        execution_errors.push(message.clone());
+                        cleanup_errors.push(message);
+                    }
+                }
+                Err(error) => {
+                    let message = format!("persist cleanup Ctrl+Q action attempt failed: {error:#}");
+                    execution_errors.push(message.clone());
+                    cleanup_errors.push(message);
+                }
             }
         }
         if !quit_dialog_ready && !quit_dialog_readiness_attempted {
@@ -1919,10 +2363,36 @@ fn run_unified_journey(
             }
         }
         cleanup_actions.push("Right".to_string());
-        if let Err(error) = press(session, "Right") {
-            let message = format!("send cleanup Right failed: {error:#}");
-            execution_errors.push(message.clone());
-            cleanup_errors.push(message);
+        let right_action = NativeAction::Key {
+            key: "Right".to_string(),
+        };
+        match dispatch_recorded_action(
+            result_writer,
+            &mut action_evidence_writer,
+            session,
+            case_id(journey),
+            Some(phase.name.as_str()),
+            "cleanup_selected_quit",
+            &right_action,
+            false,
+        ) {
+            Ok((dispatch_result, evidence_result)) => {
+                if let Err(error) = evidence_result {
+                    capture_errors.push(format!(
+                        "persist cleanup Right dispatch result failed: {error:#}"
+                    ));
+                }
+                if let Err(error) = dispatch_result {
+                    let message = format!("send cleanup Right failed: {error:#}");
+                    execution_errors.push(message.clone());
+                    cleanup_errors.push(message);
+                }
+            }
+            Err(error) => {
+                let message = format!("persist cleanup Right action attempt failed: {error:#}");
+                execution_errors.push(message.clone());
+                cleanup_errors.push(message);
+            }
         }
         if quit_dialog_ready {
             if let Err(error) = settle(session) {
@@ -1971,16 +2441,69 @@ fn run_unified_journey(
             }
         }
         cleanup_actions.push("Enter".to_string());
-        if let Err(error) = press(session, "Enter") {
-            let message = format!("send cleanup Enter failed: {error:#}");
-            execution_errors.push(message.clone());
-            cleanup_errors.push(message);
+        let enter_action = NativeAction::Key {
+            key: "Enter".to_string(),
+        };
+        match dispatch_recorded_action(
+            result_writer,
+            &mut action_evidence_writer,
+            session,
+            case_id(journey),
+            Some(phase.name.as_str()),
+            "exit",
+            &enter_action,
+            false,
+        ) {
+            Ok((dispatch_result, evidence_result)) => {
+                if let Err(error) = evidence_result {
+                    capture_errors.push(format!(
+                        "persist cleanup Enter dispatch result failed: {error:#}"
+                    ));
+                }
+                if let Err(error) = dispatch_result {
+                    let message = format!("send cleanup Enter failed: {error:#}");
+                    execution_errors.push(message.clone());
+                    cleanup_errors.push(message);
+                }
+            }
+            Err(error) => {
+                let message = format!("persist cleanup Enter action attempt failed: {error:#}");
+                execution_errors.push(message.clone());
+                cleanup_errors.push(message);
+            }
         }
         (None, true, cleanup_errors.first().cloned())
     } else {
         let exit_key = journey.exit_key.clone();
-        let exit_key_attempted = is_delivery || journey_active;
-        let exit_key_error = if exit_key_attempted {
+        let exit_intended = is_delivery || journey_active;
+        let exit_event = if exit_intended {
+            match with_action_writer(
+                result_writer,
+                &mut action_evidence_writer,
+                |writer| {
+                    writer.begin_action(
+                        case_id(journey),
+                        phase.map(|phase| phase.name.as_str()),
+                        "exit",
+                        "key",
+                    )
+                },
+            ) {
+                Ok(index) => Some(index),
+                Err(error) => {
+                    execution_errors.push(format!(
+                        "persist application exit action attempt failed: {error:#}"
+                    ));
+                    None
+                }
+            }
+        } else {
+            None
+        };
+        let exit_key_attempted = exit_intended && exit_event.is_some();
+        let exit_key_error = if exit_intended && !exit_key_attempted {
+            Some("exit action attempt was not persisted".to_string())
+        } else if exit_key_attempted {
             match press_required(session, journey.exit_key.as_deref(), "exit") {
                 Ok(()) => None,
                 Err(error) => {
@@ -1991,6 +2514,22 @@ fn run_unified_journey(
         } else {
             None
         };
+        if let Some(exit_event) = exit_event {
+            let dispatch_state = if exit_key_error.is_none() {
+                ActionDispatchState::Dispatched
+            } else {
+                ActionDispatchState::Failed
+            };
+            if let Err(error) = with_action_writer(
+                result_writer,
+                &mut action_evidence_writer,
+                |writer| writer.complete_action_dispatch(exit_event, dispatch_state),
+            ) {
+                capture_errors.push(format!(
+                    "persist application exit action dispatch result failed: {error:#}"
+                ));
+            }
+        }
         (exit_key, exit_key_attempted, exit_key_error)
     };
     let wait_exit_succeeded = match session.execute(Operation::WaitExit {
@@ -2077,6 +2616,22 @@ fn run_unified_journey(
         )),
     }
 
+    let exit_observed = wait_exit_succeeded
+        && drain_succeeded
+        && post_drain_exit_confirmed
+        && terminal_restoration
+            .as_ref()
+            .is_some_and(|restoration| restoration.restored);
+    if let Err(error) = with_action_writer(
+        result_writer,
+        &mut action_evidence_writer,
+        |writer| {
+            writer.observe_exit(phase.map(|phase| phase.name.as_str()), exit_observed)
+        },
+    ) {
+        capture_errors.push(format!("persist exit action observation failed: {error:#}"));
+    }
+
     if !is_delivery {
         let exit_index = plans
             .iter()
@@ -2096,6 +2651,7 @@ fn run_unified_journey(
                 journey,
                 pixel_profile,
                 store,
+                expected_root,
                 samples_dir,
                 &mut checkpoints,
                 &mut capture_errors,
@@ -2373,7 +2929,14 @@ fn run_unified_journey(
         && terminal_restored
         && all_prefixes_bound
         && cleanup_capture_complete;
-    if let Some(phase_result) = phase_result.as_deref_mut() {
+    if let Some(phase_result_index) = phase_result_index {
+        let phase_result = action_evidence_writer
+            .as_deref_mut()
+            .context("phase summary writer is missing")?
+            .evidence
+            .phases
+            .get_mut(phase_result_index)
+            .context("phase summary index is out of range")?;
         phase_result.status = if phase_passed {
             PhaseRunStatus::Passed
         } else {
@@ -2727,6 +3290,7 @@ fn try_capture_checkpoint(
     journey: &Journey,
     pixel_profile: &PixelProfile,
     store: &FrozenStore,
+    expected_root: &Path,
     samples_dir: &Path,
     checkpoints: &mut Vec<CheckpointEvidence>,
     capture_errors: &mut Vec<String>,
@@ -2744,6 +3308,7 @@ fn try_capture_checkpoint(
         journey,
         pixel_profile,
         store,
+        expected_root,
         samples_dir,
     ) {
         Ok(checkpoint) => {
@@ -2803,6 +3368,7 @@ fn capture_checkpoint(
     journey: &Journey,
     pixel_profile: &PixelProfile,
     store: &FrozenStore,
+    expected_root: &Path,
     samples_dir: &Path,
 ) -> Result<CheckpointEvidence> {
     let captured = session
@@ -2853,9 +3419,17 @@ fn capture_checkpoint(
         &sample_hash,
         compared_pixels,
     )?;
+    let selection_observations = selection_observation_evidence(
+        expected_root,
+        journey,
+        step,
+        &sample_bytes,
+        &platform,
+    )?;
     Ok(CheckpointEvidence {
         name: step.name.clone(),
         test_id,
+        selection_observations,
         source_revision: snapshot.metadata().revision,
         raw_prefix_offset: raw_offset,
         raw_prefix_sha256: None,
@@ -2871,6 +3445,270 @@ fn capture_checkpoint(
         render_contract: render_contract_evidence(contract),
         comparison,
     })
+}
+
+fn selection_observation_evidence(
+    expected_root: &Path,
+    journey: &Journey,
+    step: &CheckpointPlan,
+    candidate_bytes: &[u8],
+    platform: &str,
+) -> Result<Vec<SelectionObservationEvidence>> {
+    if step.selection_observations.is_empty() {
+        return Ok(Vec::new());
+    }
+    ensure!(
+        journey.name == "first_delivery_jackin_settings"
+            && matches!(step.name.as_str(), "initial" | "selected")
+            && step.expected_cols == 120
+            && step.expected_rows == 40,
+        "selection observations are only approved for Jackin's 120x40 initial/selected checkpoints"
+    );
+
+    let (initial_file, initial_sha256, initial) =
+        read_selection_reference(expected_root, journey, "initial", platform)?;
+    let (selected_file, selected_sha256, selected) =
+        read_selection_reference(expected_root, journey, "selected", platform)?;
+    let initial_current = require_reference_label(&initial.snapshot, "Current directory", 7, 3)?;
+    let initial_workspace =
+        require_reference_label(&initial.snapshot, "payments-platform", 7, 4)?;
+    let selected_current =
+        require_reference_label(&selected.snapshot, "Current directory", 7, 3)?;
+    let selected_workspace =
+        require_reference_label(&selected.snapshot, "payments-platform", 7, 4)?;
+    let active_style = selected_workspace.clone();
+    let inactive_style = initial_workspace.clone();
+    let approved_active_style = SelectionStyleEvidence {
+        fg: "#48e054".to_string(),
+        bg: "#173f1c".to_string(),
+        bold: true,
+        inverse: false,
+    };
+    let approved_inactive_style = SelectionStyleEvidence {
+        fg: "#ffffff".to_string(),
+        bg: "#000000".to_string(),
+        bold: false,
+        inverse: false,
+    };
+    ensure!(
+        initial_current == active_style
+            && selected_current == inactive_style
+            && initial_workspace == inactive_style
+            && selected_workspace == active_style
+            && active_style == approved_active_style
+            && inactive_style == approved_inactive_style,
+        "approved Jackin reference selection signature changed; independent review is required"
+    );
+
+    let actual: SelectionSample =
+        serde_json::from_slice(candidate_bytes).context("parse captured selection sample")?;
+    ensure!(
+        actual.snapshot.cols == 120
+            && actual.snapshot.rows == 40
+            && actual.snapshot.cells.len() == 120 * 40,
+        "captured Jackin selection sample has an unexpected terminal shape"
+    );
+
+    let mut reference_files = BTreeMap::new();
+    reference_files.insert(initial_file, initial_sha256);
+    reference_files.insert(selected_file, selected_sha256);
+    let mut observations = Vec::with_capacity(step.selection_observations.len());
+    for plan in &step.selection_observations {
+        let expected_style = if plan.selected {
+            active_style.clone()
+        } else {
+            inactive_style.clone()
+        };
+        let found = locate_selection_label(&actual.snapshot, &plan.label);
+        let actual_style = found.style.clone();
+        let observed_selected = actual_style.as_ref().and_then(|style| {
+            if style == &active_style {
+                Some(true)
+            } else if style == &inactive_style {
+                Some(false)
+            } else {
+                None
+            }
+        });
+        let matched = found.occurrences == 1
+            && found.x == Some(plan.x)
+            && found.y == Some(plan.y)
+            && found.attribute_uniform
+            && observed_selected == Some(plan.selected)
+            && actual_style.as_ref() == Some(&expected_style);
+        let problem = if found.occurrences == 0 {
+            Some(format!("label {:?} is missing from the workspace list", plan.label))
+        } else if found.occurrences != 1 {
+            Some(format!(
+                "label {:?} is ambiguous in the workspace list ({} occurrences)",
+                plan.label, found.occurrences
+            ))
+        } else if found.x != Some(plan.x) || found.y != Some(plan.y) {
+            Some(format!(
+                "label {:?} moved to {:?}, expected ({}, {})",
+                plan.label, (found.x, found.y), plan.x, plan.y
+            ))
+        } else if !found.attribute_uniform {
+            Some(format!("label {:?} has mixed cell attributes", plan.label))
+        } else if !matched {
+            Some(format!(
+                "label {:?} selected state was {:?}, expected {}",
+                plan.label,
+                observed_selected,
+                if plan.selected { "selected" } else { "unselected" }
+            ))
+        } else {
+            None
+        };
+        observations.push(SelectionObservationEvidence {
+            label: plan.label.clone(),
+            x: plan.x,
+            y: plan.y,
+            expected_selected: plan.selected,
+            observed_selected,
+            matched,
+            occurrences: found.occurrences,
+            actual_x: found.x,
+            actual_y: found.y,
+            attribute_uniform: found.attribute_uniform,
+            expected_style,
+            actual_style,
+            reference_files: reference_files.clone(),
+            problem,
+        });
+    }
+    Ok(observations)
+}
+
+fn read_selection_reference(
+    expected_root: &Path,
+    journey: &Journey,
+    checkpoint: &str,
+    platform: &str,
+) -> Result<(String, String, SelectionSample)> {
+    ensure!(
+        is_safe_single_component(&journey.name)
+            && is_safe_single_component(checkpoint)
+            && is_safe_single_component(platform),
+        "unsafe selection reference path component"
+    );
+    let relative = PathBuf::from("termrock")
+        .join(&journey.name)
+        .join(checkpoint)
+        .join(format!("pixels-{platform}.tui.json"));
+    let path = expected_root.join(&relative);
+    let metadata = fs::symlink_metadata(&path)
+        .with_context(|| format!("inspect frozen selection reference {}", path.display()))?;
+    ensure!(
+        !metadata.file_type().is_symlink() && metadata.is_file(),
+        "selection reference is not a regular file: {}",
+        path.display()
+    );
+    let bytes = fs::read(&path)
+        .with_context(|| format!("read frozen selection reference {}", path.display()))?;
+    let sample: SelectionSample = serde_json::from_slice(&bytes)
+        .with_context(|| format!("parse frozen selection reference {}", path.display()))?;
+    let expected_test_id = format!(
+        "termrock/{}/{}/pixels-{platform}",
+        journey.name, checkpoint
+    );
+    ensure!(
+        sample.test_id == expected_test_id,
+        "selection reference test ID mismatch: expected {expected_test_id:?}, found {:?}",
+        sample.test_id
+    );
+    let relative = relative.to_string_lossy().replace('\\', "/");
+    Ok((relative, sha256_hex(&bytes), sample))
+}
+
+fn require_reference_label(
+    snapshot: &SelectionSnapshot,
+    label: &str,
+    expected_x: u16,
+    expected_y: u16,
+) -> Result<SelectionStyleEvidence> {
+    ensure!(
+        snapshot.cols == 120
+            && snapshot.rows == 40
+            && snapshot.cells.len() == usize::from(snapshot.cols) * usize::from(snapshot.rows),
+        "frozen selection reference has an unexpected terminal shape"
+    );
+    let found = locate_selection_label(snapshot, label);
+    ensure!(
+        found.occurrences == 1
+            && found.x == Some(expected_x)
+            && found.y == Some(expected_y)
+            && found.attribute_uniform,
+        "frozen selection reference label {label:?} is missing, ambiguous, misplaced, or has mixed attributes"
+    );
+    found
+        .style
+        .context("frozen selection reference label has no cell style")
+}
+
+fn locate_selection_label(snapshot: &SelectionSnapshot, label: &str) -> SelectionLabelMatch {
+    const WORKSPACE_LIST_COLUMNS: usize = 40;
+    let empty = SelectionLabelMatch {
+        occurrences: 0,
+        x: None,
+        y: None,
+        style: None,
+        attribute_uniform: false,
+    };
+    if label.is_empty()
+        || !label.is_ascii()
+        || snapshot.cols == 0
+        || snapshot.rows == 0
+        || snapshot.cells.len() != usize::from(snapshot.cols) * usize::from(snapshot.rows)
+    {
+        return empty;
+    }
+    let label_chars = label.chars().map(|character| character.to_string()).collect::<Vec<_>>();
+    let columns = usize::from(snapshot.cols);
+    let region_columns = columns.min(WORKSPACE_LIST_COLUMNS);
+    if label_chars.len() > region_columns {
+        return empty;
+    }
+    let mut found = empty;
+    for y in 0..usize::from(snapshot.rows) {
+        for x in 0..=region_columns - label_chars.len() {
+            let start = y * columns + x;
+            let span = &snapshot.cells[start..start + label_chars.len()];
+            if !span
+                .iter()
+                .zip(&label_chars)
+                .all(|(cell, character)| cell.text == *character)
+            {
+                continue;
+            }
+            found.occurrences += 1;
+            if found.occurrences == 1 {
+                let style = selection_style(&span[0]);
+                found.x = Some(x as u16);
+                found.y = Some(y as u16);
+                found.attribute_uniform = span
+                    .iter()
+                    .all(|cell| selection_style(cell) == style);
+                found.style = Some(style);
+            }
+        }
+    }
+    if found.occurrences != 1 {
+        found.x = None;
+        found.y = None;
+        found.style = None;
+        found.attribute_uniform = false;
+    }
+    found
+}
+
+fn selection_style(cell: &SelectionCell) -> SelectionStyleEvidence {
+    SelectionStyleEvidence {
+        fg: cell.fg.clone(),
+        bg: cell.bg.clone(),
+        bold: cell.bold,
+        inverse: cell.inverse,
+    }
 }
 
 fn partial_sample_evidence(samples_dir: &Path, phase: &str) -> Result<Option<(String, String)>> {
@@ -3166,6 +4004,15 @@ fn record_execution_step(errors: &mut Vec<String>, label: &str, result: Result<(
 fn press_required(session: &Session, key: Option<&str>, label: &str) -> Result<()> {
     let key = key.ok_or_else(|| anyhow::anyhow!("validated {label} key is missing"))?;
     press(session, key)
+}
+
+fn native_action_kind(action: &NativeAction) -> &'static str {
+    match action {
+        NativeAction::Key { .. } => "key",
+        NativeAction::Write { .. } => "write",
+        NativeAction::Resize { .. } => "resize",
+        NativeAction::MouseClick { .. } => "mouse_click",
+    }
 }
 
 fn settle(session: &Session) -> Result<()> {
@@ -3541,6 +4388,32 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
                 "native action sequence changed for {name}/{}",
                 step.name
             );
+            let expected_selection: &[(&str, u16, u16, bool)] = match (name, step.name.as_str()) {
+                ("first_delivery_jackin_settings", "initial") => &[
+                    ("Current directory", 7, 3, true),
+                    ("payments-platform", 7, 4, false),
+                ],
+                ("first_delivery_jackin_settings", "selected") => &[
+                    ("Current directory", 7, 3, false),
+                    ("payments-platform", 7, 4, true),
+                ],
+                _ => &[],
+            };
+            ensure!(
+                step.selection_observations.len() == expected_selection.len()
+                    && step
+                        .selection_observations
+                        .iter()
+                        .zip(expected_selection)
+                        .all(|(actual, (label, x, y, selected))| {
+                            actual.label == *label
+                                && actual.x == *x
+                                && actual.y == *y
+                                && actual.selected == *selected
+                        }),
+                "selection observation plan changed for {name}/{}",
+                step.name
+            );
             if step.name == "help" {
                 ensure!(
                     step.required_anchors
@@ -3579,16 +4452,23 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
             }
             if step.name == "selected" {
                 let selected_anchor = match case.binary.as_str() {
-                    "jackin-preview" => "payments-platform",
-                    "tablepro" => "Local PostgreSQL",
+                    "jackin-preview" => None,
+                    "tablepro" => Some("Local PostgreSQL"),
                     _ => bail!("unexpected selected checkpoint for {}", case.binary),
                 };
-                ensure!(
-                    step.required_anchors
-                        .iter()
-                        .any(|anchor| anchor == selected_anchor),
-                    "selected checkpoint lacks visible row content for {name}"
-                );
+                if let Some(selected_anchor) = selected_anchor {
+                    ensure!(
+                        step.required_anchors
+                            .iter()
+                            .any(|anchor| anchor == selected_anchor),
+                        "selected checkpoint lacks visible row content for {name}"
+                    );
+                } else {
+                    ensure!(
+                        step.selection_observations.len() == 2,
+                        "Jackin selected row must be asserted after capture for {name}"
+                    );
+                }
             }
             ensure!(
                 (step.name == "small" && step.expected_cols == 80 && step.expected_rows == 24)
@@ -3827,9 +4707,9 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
             .engine_pins
             .get("tuiscotti-tui-test")
             .map(String::as_str)
-            == Some("59a8ded6d8f419f93aaf2c0edcf8253a6e6c7496")
+            == Some("7abeac8478aa9c05ec7bef93afb10209cc348bec")
             && manifest.engine_pins.get("tuiscotti").map(String::as_str)
-                == Some("4b3a5e49ea2e5dbaa913534ced91aa9e45337d67"),
+                == Some("d8d54155947f6303a41dfd6079b53c0abc16f29a"),
         "pinned native capture engine revisions changed"
     );
     ensure!(
@@ -3857,6 +4737,42 @@ fn validate_manifest(manifest: &SuiteManifest, dataset: &FixtureDataset) -> Resu
         );
     }
     Ok(())
+}
+
+fn validate_fault_control(
+    fault_control: &FaultControlEvidence,
+    journey: &Journey,
+) -> Result<bool> {
+    if !fault_control.active {
+        ensure!(
+            fault_control.spec.is_none(),
+            "inactive input control must not carry a specification"
+        );
+        return Ok(false);
+    }
+
+    ensure!(
+        fault_control.spec.as_deref()
+            == Some("drop:jackin.settings:selected:1"),
+        "setup failure: malformed or unsupported TERMROCK_PARITY_INPUT_CONTROL"
+    );
+    ensure!(
+        journey.name == "first_delivery_jackin_settings"
+            && case_id(journey) == "jackin.settings"
+            && journey.phases.is_none(),
+        "setup failure: Jackin selection control is only valid for first_delivery_jackin_settings"
+    );
+    let selected = journey
+        .steps
+        .as_deref()
+        .and_then(|steps| steps.iter().find(|step| step.name == "selected"))
+        .context("setup failure: controlled Jackin case lacks selected checkpoint")?;
+    ensure!(
+        selected.actions.len() == 1
+            && matches!(selected.actions.first(), Some(NativeAction::Key { key }) if key == "Down"),
+        "setup failure: controlled Jackin selected checkpoint must have exactly one Down action"
+    );
+    Ok(true)
 }
 
 fn same_strings(actual: &[String], expected: &[&str]) -> bool {
@@ -4369,6 +5285,43 @@ fn is_safe_single_component(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
+}
+
+fn validate_run_id(value: &str) -> Option<String> {
+    (value.len() <= 128 && is_safe_single_component(value)).then(|| value.to_string())
+}
+
+fn utc_timestamp() -> String {
+    let elapsed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    let seconds = i64::try_from(elapsed.as_secs()).unwrap_or(i64::MAX);
+    let days = seconds.div_euclid(86_400);
+    let seconds_of_day = seconds.rem_euclid(86_400);
+    let shifted_days = days + 719_468;
+    let era = if shifted_days >= 0 {
+        shifted_days
+    } else {
+        shifted_days - 146_096
+    }
+    .div_euclid(146_097);
+    let day_of_era = shifted_days - era * 146_097;
+    let year_of_era = (day_of_era - day_of_era / 1_460 + day_of_era / 36_524
+        - day_of_era / 146_096)
+        / 365;
+    let mut year = year_of_era + era * 400;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let month_prime = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
+    let month = month_prime + if month_prime < 10 { 3 } else { -9 };
+    year += if month <= 2 { 1 } else { 0 };
+    let hour = seconds_of_day / 3_600;
+    let minute = (seconds_of_day % 3_600) / 60;
+    let second = seconds_of_day % 60;
+    format!(
+        "{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}.{:09}Z",
+        elapsed.subsec_nanos()
+    )
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
