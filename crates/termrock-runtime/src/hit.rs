@@ -43,8 +43,6 @@ pub enum RegionKind {
     Backdrop,
 }
 
-/// A scrollbar bar registered by its owning widget (ported from PR #26
-/// `src/core/hit.rs::Bar`, commit f4867e9b5).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Bar {
     pub id: Id,
@@ -56,9 +54,6 @@ pub struct Bar {
     pub track: Rect,
 }
 
-/// Whose release a widget accepts (ported from PR #26 `src/core/hit.rs::ReleaseFrom`,
-/// commit f4867e9b5): a drag that started on a widget keeps receiving
-/// releases, and a secondary-button release may be accepted while pressed.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ReleaseFrom {
     Press(Id),
@@ -77,10 +72,6 @@ pub struct Hit {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Region {
-    /// The region's own control id (ported from PR #26
-    /// `HitRegion::id`, commit f4867e9b5): equal to `owner` except where a
-    /// registration splits the two — a thumb keeps its bar's id and a
-    /// backdrop keeps the id it was hit-tested as.
     pub id: Id,
     pub owner: Id,
     pub part: PartRef,
@@ -1439,9 +1430,6 @@ impl Registry {
             .map(|(_, r)| r)
     }
 
-    /// Register a scrollbar bar: the track becomes a part region of the
-    /// owning widget (ported from PR #26 `src/core/hit.rs::register_bar`,
-    /// commit f4867e9b5).
     pub fn register_bar(&mut self, bar: Bar, layer: LayerId) {
         if bar.track.is_empty() {
             return;
@@ -1474,8 +1462,6 @@ impl Registry {
         self.bars.iter().rev().find(|b| b.id == id).copied()
     }
 
-    /// Accept a release for `id` from `from` this frame (ported from PR #26
-    /// `src/core/hit.rs::accept_release`, commit f4867e9b5).
     pub fn accept_release(&mut self, id: Id, from: ReleaseFrom) {
         self.releases.push((id, from));
     }
@@ -1484,8 +1470,6 @@ impl Registry {
         self.releases.contains(&(id, from))
     }
 
-    /// Register a light-dismiss backdrop owned by `id` (ported from PR #26
-    /// `src/core/hit.rs::register_backdrop`, commit f4867e9b5).
     pub fn register_backdrop(&mut self, id: Id, area: Rect, layer: LayerId, pass_through: bool) {
         self.register_backdrop_of(id, id, area, layer, pass_through);
     }

@@ -1,6 +1,3 @@
-//! Client platform detection (ported from PR #26 `src/core/event.rs`,
-//! `ClientPlatform` at commit f4867e9b5).
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClientPlatform {
     MacOs,

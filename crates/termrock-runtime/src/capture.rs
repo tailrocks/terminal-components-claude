@@ -88,8 +88,6 @@ impl CaptureSlot {
     }
 }
 
-/// What a right-button click outside a popup does (ported from PR #26
-/// `src/core/pointer.rs::SecondaryOutside`, commit f4867e9b5).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SecondaryOutside {
     #[default]
@@ -100,8 +98,6 @@ pub enum SecondaryOutside {
     Ignore,
 }
 
-/// Where a secondary (right button) press is routed (ported from PR #26
-/// `src/core/pointer.rs::SecondaryRoute`, commit f4867e9b5).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SecondaryRoute {
     Nothing,
@@ -113,9 +109,6 @@ pub enum SecondaryRoute {
     Swallowed,
 }
 
-/// Tracks the secondary button across a press-drag-release so a drag that
-/// leaves a row can still deliver its release (ported from PR #26
-/// `src/core/pointer.rs` secondary handling, commit f4867e9b5).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SecondaryTracker {
     hover: Option<Hit>,
@@ -187,9 +180,6 @@ impl SecondaryTracker {
     }
 }
 
-/// The topmost backdrop at `pos` and the target beneath it (ported from
-/// PR #26 `src/core/hit.rs::backdrop_at`, commit f4867e9b5; adapted to
-/// parity's layers instead of a barrier stack).
 pub(crate) fn backdrop_at(hits: &Registry, pos: Position) -> Option<(Id, Option<Hit>)> {
     let top = hits.region_at(pos)?;
     if top.kind != RegionKind::Backdrop {
@@ -217,8 +207,6 @@ pub(crate) fn backdrop_at(hits: &Registry, pos: Position) -> Option<(Id, Option<
     Some((top.owner, beneath))
 }
 
-/// What a scrollbar bar should do for a pointer phase (ported from PR #26
-/// `src/core/pointer.rs::scroll_input`, commit f4867e9b5).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BarInput {
     Press,

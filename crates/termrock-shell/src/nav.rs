@@ -1,5 +1,3 @@
-//! Ported from PR #26 `src/shell/nav.rs` (commit `f4867e9b5`).
-
 use std::hash;
 
 use termrock_core::id::{Id, ItemKey};

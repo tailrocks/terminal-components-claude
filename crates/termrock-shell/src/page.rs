@@ -1,5 +1,3 @@
-//! Ported from PR #26 `src/shell/page.rs` (commit `f4867e9b5`).
-
 use ratatui_core::layout::Rect;
 use termrock_runtime::author::{CompositionLeaf, Constraints, Measure, Size, composition_leaf};
 use termrock_runtime::cx::Cx;
@@ -44,7 +42,6 @@ pub trait Page {
     }
 }
 
-/// Ported from PR #26 `page.rs::replay_key`.
 #[must_use]
 pub fn replay_key(c: char) -> Key {
     let code = match c {
@@ -60,7 +57,6 @@ pub fn replay_key(c: char) -> Key {
     }
 }
 
-/// Ported from PR #26 `page.rs::rebuild_on_tick`.
 pub fn rebuild_on_tick<P, V: PartialEq>(
     page: &mut P,
     view: impl Fn(&P) -> V,

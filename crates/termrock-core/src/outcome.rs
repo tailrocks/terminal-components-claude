@@ -1,6 +1,3 @@
-//! Input outcome (ported from PR #26 `src/core/event.rs::Outcome`,
-//! commit f4867e9b5).
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Outcome {
     #[default]

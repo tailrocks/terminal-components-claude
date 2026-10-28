@@ -1,6 +1,3 @@
-//! Type-ahead prefix matching (ported from PR #26 `src/core/typeahead.rs`,
-//! commit f4867e9b5).
-
 use std::time::{Duration, Instant};
 
 use crate::event::Key;

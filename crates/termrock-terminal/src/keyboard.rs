@@ -1,6 +1,3 @@
-//! Ported from PR #26 `src/core/keyboard.rs` session plumbing (commit
-//! `f4867e9b5`).
-
 use std::io::{self, Write};
 
 pub use termrock_core::keys::keyboard::{

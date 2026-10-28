@@ -233,7 +233,6 @@ pub fn render_with_policy_once(width: u16, height: u16, policy: MasterDetailPoli
         .expect("acknowledge frame");
 }
 
-#[cfg(not(test))]
 fn main() {
     let policy = MasterDetailPolicy::default()
         .resizable_master(45, 18, 22)
