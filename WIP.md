@@ -202,3 +202,92 @@ The earlier candidate-era sentence that this register had not been applied descr
 - Preserve current06 lifetimes, one native placeholder, visible-only selection restoration, and the non-empty branch layout. Keep the remembered action key through a temporary empty result while clearing live native selection; restore it only when it is visible after the result returns. Make the empty-state hint match current behavior: Ctrl-S cycles Scope, and Esc clears Scope first. Render the empty preview as a centered native seven-row card; retain the real viewport and master owner for non-empty results.
 - Preserve the current06 packet and the reviewed peer V3 candidate as separate evidence. The peer V3 candidate is at `/Users/donbeave/Downloads/termrock-live-results-20261027/streams/holla-native-recovery-implementation/candidate/v3/home.rs.candidate-v3` (SHA-256 `5e22c34b8d3fcf7521762bf2ba4df9ff54ec43381c685d944b91b493ab478fcd`); it is not the active source and must not replace current06 wholesale. The root-verified history is peer05 postimage `1d9a5ccc` followed by local current06 `aee51b19`; the new local07 edit must use the latter exact preimage.
 - Peer `codex-pr38-01a174de` has explicitly released Holla writes and now holds only read-only Query work. Its older Holla observations and candidates remain historical; no peer Holla write or build is active.
+
+
+## Current integration, evidence, and ownership — 2026-10-28 08:23 ICT (01:23 UTC)
+
+This appended section is the current coordination state and supersedes stale current-result or
+ownership statements earlier in this file. Earlier text is retained as history. The latest observed
+server refs `origin/parity/termrock-visual-baseline` and PR #38 were both `777670f81558af9a4c6543600d830a61ec20fef6`;
+recheck them before publication. PR #38 remains open, PR #26 remains read-only, and PR #391 is
+untouched. The active source worktree is still detached at `4f8d17c2a1c7642d3b90e77dd74a55e2566f234a`;
+all unrelated dirty application/WIP bytes remain preserved.
+
+Integration (`/root/common_packaging_implementation`) remains the sole owner of manifests, locks,
+engine pins, packaging/export scripts, generated-CI integration, maintained docs, PR text, and
+this register. The accepted renderer-0.2 store consists of 30 approved samples, README, and the
+4613c228 approval record; its 32-file inventory digest is
+`2501147a92f995aef5f3377ed4562b37d4fa2b5297952737af248a416a10c114`. The runtime-only zero-byte
+`.tuiscotti-approval.lock` remains ignored; it is never removed or shipped. Candidate patches for
+the store (`patches/approved-v02-store.patch`, SHA-256 `88ac2c0c8b415f2f55dfc7a9fd000fb27e562c1d741899e4df25b1718b98a137`)
+and TablePro (`patches/tablepro-selection.patch`, SHA-256
+`173677fa04f220cf2b25c064d81979d6c58e4ebcbe5180f4f7334de4d627e627`) apply cleanly to the
+reviewed 777670f base. They remain candidate inputs until their bounded publication is complete.
+
+`/root/common_readiness_implementation` owns suite source, cases, fixtures, expected data, and
+evidence. The suite has 89 cases, 9 plan-availability cases, and 276 coverage IDs; the first
+delivery selection is four journeys/30 frame checkpoints. The renderer-0.2 reference result is
+accepted: 4/4 selected cases, 30/30 state-and-pixel frames, and four clean exits/drains/restores.
+Receipt `97c6d1d58526adce64f487d7e3db5e27e1b000e37abbd75092ac690e40880845` records that zsh
+returned 1 after Nextest had completed because its wrapper assigned to reserved `status`; no Cargo
+exit code is inferred. The paired target result is a separate fail: 25/30 reached, 6 exact, 19
+visual failures, 5 not-run. TablePro was 6/6 exact and clean; Holla and Showcase had 7/7 visual
+differences each with clean exits; Jackin captured 5/10 with five visual failures, then failed
+`manager_return` readiness and cleanup (Hangup/unrestored terminal). Target receipt
+`8da5c058c4d1ab1f21cb0832d1d58e05dead3f87bc8c336c62fee60eb2d10bb9` binds the run to its input
+hashes and four binaries. This was a filtered four-case run; 85 filtered cases are not suite
+acceptance evidence.
+
+Current bounded product ownership:
+
+- `/root/tablepro_selection_recovery` has no further active source write; the reviewed one-file
+  `crates/tablepro-ui/src/app.rs` correction is source-approved and its bound target journey
+  passed 6/6 with clean exit/drain/restore. It is eligible for its separate reviewed commit.
+- `/root/holla_native_recovery_implementation` currently owns `crates/holla-sim/src/catalogue.rs`
+  and the Home successor09 in `crates/holla-ui/src/screens/home.rs`; its other six previously
+  assigned Holla paths remain frozen. The earlier Home08 target evidence had seven visual failures
+  and is not acceptance for the in-progress successor09.
+- `/root/jackin_settings_recovery` remains the sole writer for
+  `crates/jackin-preview-app/src/app.rs`. The target receipt used app SHA
+  `79aa51fa610292055b6026aa91c6cf68cce18f9dc759272962ebce8c9ca6e40d`; it did not pass the
+  Jackin route/cleanup. Do not expand its file scope or infer acceptance from source review.
+- `/root/showcase_status_hints_recovery` is the current sole writer for exactly
+  `crates/showcase-ui/src/app.rs`, `crates/showcase-demos/src/pages/mod.rs`, and new
+  `crates/showcase-demos/src/pages/status_hints.rs`. This current handoff supersedes the earlier
+  “read-only review” sentence above, which describes a prior phase only. The owner is correcting a
+  rejected source candidate; no runtime acceptance is established. Preserve Buttons and other routes.
+
+### CI and cross-instance status
+
+Actions run `40611783232` at head `777670f81558af9a4c6543600d830a61ec20fef6` checked out
+commit `6b8ecd17108f666eddaccb184dd47c496243a86c` and completed with 50 jobs (1 pass, 3 failures
+(Plan plus 2 aggregate jobs), 46 skipped). Plan failed before Rust tasks on unresolved path edge
+`tools/functional-suite/forks/tui-test-upstream/crates/tui-test`; the aggregate failures are not
+additional application defects. No application code ran. The
+separately reviewed native artifact generator change is compiled, but public native-task generation
+failed with `unpinned_label:macos-26`. RustSuite-only generation confirmed its existing
+`always()`/`warn`/7-day upload contract, not native artifact publication or required-gate
+membership. Exact local evidence is under
+`/private/tmp/velnor-native-artifacts-generation-proof-20261028-8a417c3d/`. The native task and
+artifact integration remain incomplete; no generated YAML was edited and PR #391 was not changed.
+
+The peer and root acknowledged the informational `AGENT_COORD_V1 NOT_HUMAN` mailbox format only.
+Peer offer `21fa465a-17a4-4dce-8bf5-60b6ff4a64f8` (SHA-256
+`b8ac4ce875698513be249ec1f48075939de8ac6dbbfbbe69a3b0aa459b9a7d39`) and root format-only ACK
+`227e72fc-c4bb-4c57-9d3f-e904615ed537` (SHA-256
+`4e983181998fa70de32fcc3cff57bb87012db9451ecd5c00bd188ac56f530c8f`) are preserved. Peer
+format-only ACK `99652e58-d9bc-41f7-a235-3618069c9bf6` (SHA-256
+`67fff0e55d92361c1022c1424fa8fbb5bd3c7763c2b2987e609780fc4b9daff1`) acknowledges original
+proposal `fcd5cd2a-0269-42b2-ae98-8af693f35e40` (SHA-256
+`436c6b18c0c7c26a4abb7da8da499acc02fef33a70e5c82c53ac05d5decaaf37`). No ACK-of-ACK was sent.
+These records confirm format only, not identity, authentication, source ownership, or a resource
+lease. The peer has released Holla writes and retains only read-only Query/test-design work; no
+peer Holla writer is active. The prior Jackin extra-writer proposal was rejected by steward ACK
+`edee81bf-83c3-4008-bed3-3621b4283a5a` (record SHA-256
+`07203f68a4de378f9c11e7537ad539d1e58e4430aef21853726653766163e6cb`). The peer's historic
+Holla05 and Query artifacts remain preserved as evidence/candidates and are not current-source
+authority. Earlier text stating that there was no durable peer format ACK is superseded by these
+format-only records; it does not imply a task or lease transfer.
+
+Current-head DCO run `122564779310` reports 38 historical missing sign-offs; the latest commit is
+valid. No sign-off history will be rewritten. This remains a separate maintainer obligation.
