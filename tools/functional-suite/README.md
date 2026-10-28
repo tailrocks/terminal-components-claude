@@ -49,6 +49,25 @@ An earlier four-application target run reached 16/30 checkpoints: two matched, 1
 
 The PR #38 Actions run `40631500020` at previous head `6510719682d1020b5e634ca4d8589b732de11544` completed with failure. The Plan job checked out synthetic merge commit `4acf6dd779522f46c6f3834561049352c3ca4e19`, merging the head into base `a97e351df736b576904bc450619ca347ea64d65b`. The 50-job run had one Jactionlint success, three failures (Plan and two Required aggregates), and 46 skipped jobs. Plan failed before application Rust jobs on unresolved path edge `tools/functional-suite/forks/tui-test-upstream/crates/tui-test`; the aggregate failures add no application-level result. A prior DCO report of 38 historical missing sign-offs is not a fresh DCO readback for this head.
 
-The [current PR #38 evidence entry](../../docs/architecture/termrock-migration-record.md#current-evidence-at-pr-38-head-1e3ab9e-2026-10-28) holds the latest source bindings and Integration/Jackin status. The earlier 651 entry remains historical.
+The [PR #38 evidence entry for head 1e3ab9e](../../docs/architecture/termrock-migration-record.md#current-evidence-at-pr-38-head-1e3ab9e-2026-10-28) is historical; the current entry at head 2b6f8fa is linked below.
 
 At published PR #38 head `1e3ab9e502cf93d8f941179436d9bdd7dc865df4`, Actions run [40643651467](https://github.com/tailrocks/terminal-components-claude/actions/runs/40643651467) was in progress at the recorded 2026-10-28 06:26:17 UTC observation. Jactionlint had passed; Plan was still running and its checkout/result had not been inspected. No application result is known for this head. The migration record contains the source-bound Jackin pair and the latest CI observation.
+
+
+## Current evidence at published PR #38 head `2b6f8fa` (2026-10-28)
+
+The published suite remains at 89 cases, 10 with plan availability and 79 without. Its 276 coverage IDs are requirements, not frame checkpoints. The approved store remains 35 samples, and the full frame denominator is incomplete. The runtime approval lock remains excluded from Git and source exports.
+
+The published Showcase Buttons V5 change has a bounded two-case result: reference 12/12 exact frames; target 12/12 reached and 0/12 exact state-and-pixel matches. Both child processes exited cleanly, drained output, and restored terminal modes. The direct target Nextest exit is unknown because the zsh wrapper failed on its reserved `status` variable. This is incremental evidence, not full Showcase parity. Review SHA-256: `f7c017a26e7f95be9b7a82a46f0e1cb4589c4af64baa5f8758c02177cdcda522`.
+
+An unpublished Suite V2 candidate adds one case plan while retaining 89 cases: 11 with plan availability, 78 without; its 276 IDs remain requirements. Candidate hashes: harness `5c57284d9cf726c924852a1908cfa1b7de39234e28cc3c4eea848aec235ee1fe`, case manifest `9a445c17cee018708b287427b98d7a289e68cd5bd35b2f0d3d37c56ded7c2f0b`. Export and engine preparation succeeded; guarded locked/offline metadata succeeded. The functional target build was interrupted before completion when the observed total reached seven actual compiler workers. No Nextest LIST or test run completed. The candidate is not published or validated.
+
+Actions run [40652202431](https://github.com/tailrocks/terminal-components-claude/actions/runs/40652202431) at this head failed before application jobs: Plan stopped at unresolved path edge `tools/functional-suite/forks/tui-test-upstream/crates/tui-test`; the run had 1 success, 3 failures (Plan plus two Required aggregates), and 46 skipped jobs. The aggregate failures are not application results. See the [current migration record entry](../../docs/architecture/termrock-migration-record.md#current-evidence-at-pr-38-head-2b6f8fa-2026-10-28) for receipts and source bindings.
+
+Velnor PR #426 merged at `2026-10-28T07:31:47Z` (`e5286b78ef031018ecfe0920eeba34973103915e`). A separate read-only release-binding check remains in progress; merged source does not prove release binding, hosted artifact behavior, or combined native-and-RustSuite execution.
+
+## Current correction at PR #38 head `2b6f8fa` — 2026-10-28
+
+The Suite V2 candidate remains unpublished and unvalidated. Its export, engine preparation, and locked offline metadata succeeded, but both guarded functional-target builds were interrupted for resource admission (exit 130). One attempt observed seven compiler workers; the resumed attempt observed three, including two workers on `/tmp/velnor-bump-target`, and interrupted only its own process. No successful compile, Nextest LIST, or test run exists. The partial target and both full receipts/log sets are preserved under `/private/tmp/termrock-functional-suite-phases-v2-evidence-20261028/`; details and hashes are in the [migration record](../../docs/architecture/termrock-migration-record.md#correction-to-suite-v2-and-velnor-release-status-at-pr-38-head-2b6f8fa--2026-10-28).
+
+Velnor PR #426 merged, but the latest published release `v0.1.66` points to the pre-merge base and was published before the merge. No approved exact release pin contains the feature. Hosted artifact behavior, combined native-and-RustSuite execution, and release binding remain unproven. The merge is not release acceptance.
