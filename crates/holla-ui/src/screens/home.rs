@@ -819,7 +819,7 @@ impl HomeState {
                 .wrap(true)
                 .reserve_gutter(false);
             let panel = Panel::new(DETAIL_PANEL)
-                .title("Preview")
+                .title(selected_title)
                 .focused(ui.state(DETAIL_VIEWPORT).contains(StateFlags::FOCUSED));
             let empty_panel = Panel::new(DETAIL_PANEL)
                 .title("Preview")
