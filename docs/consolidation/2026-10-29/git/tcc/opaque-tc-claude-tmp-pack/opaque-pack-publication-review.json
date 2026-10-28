@@ -1,0 +1,42 @@
+{
+  "all_work_cleanup_gate": "HOLD",
+  "bytes": 279109631,
+  "decision": "ELIGIBLE_AS_EXACT_INERT_RAW_BYTE_TRANSPORT",
+  "device": 16777233,
+  "gid": 0,
+  "inode": 1542891815,
+  "limits": [
+    "Compressed internals were not manually semantically reviewed or repaired. Positive project provenance, explicit user all-project-state authorization, exact-byte screening and disclosed opaque status support raw transport absent a concrete finding.",
+    "This decision does not prove complete source history, remote raw-byte custody, or final cleanup eligibility."
+  ],
+  "mode": "0o444",
+  "path": "/private/tmp/tc-claude/.git/objects/pack/tmp_pack_1quA7Q",
+  "positive_provenance": "Independent static config-key check confirms remote.origin.url names the exact tailrocks/terminal-components-claude GitHub repository, without printing URL credentials or private config bytes.",
+  "preexisting_pack_status": {
+    "computed_pretrailer_sha1": "8847a92fbe258f3640ecc41171349471d4ae2cec",
+    "header_claimed_object_count": 67662,
+    "header_version": 2,
+    "indexed_sidecar_exists": false,
+    "trailer_matches": false,
+    "trailer_sha1": "688e51ef3edcf38ed429be933e59cac8ab2b597d"
+  },
+  "publication_conditions": [
+    "Preserve exact raw bytes as opaque inert data, split into approved bounded chunks if needed; preserve path/hash/size and preexisting corruption metadata.",
+    "Do not register this as a valid Git object pack or claim the header count proves available OIDs or graph closure.",
+    "Never execute archive content or copy raw Git configuration/hooks."
+  ],
+  "raw_stored_byte_screen": {
+    "bytes": 279109631,
+    "detectors": "private-key PEM, GitHub/OpenAI/AWS token shapes, JWT, credential URL and bearer literals; redacted metadata only",
+    "high_confidence_findings": [],
+    "overlap_bytes": 4096,
+    "stream_chunk_bytes": 8388608
+  },
+  "review_id": "PR38-TC-CLAUDE-OPAQUE-TMP-PACK-PUBLICATION-v1",
+  "reviewed_utc": "2026-10-28T21:15:08.765400+00:00",
+  "reviewer": "/root/consolidate_safety_and_remote_review",
+  "sha256": "425547877ef8944d9d93e1cc62b1e350f8b7b1b03fcd85c8c2f281c3cedb140c",
+  "source_execution": false,
+  "source_mutation": false,
+  "uid": 501
+}
