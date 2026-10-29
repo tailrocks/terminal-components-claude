@@ -16,6 +16,7 @@ use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Input, Mouse, MouseKind};
 use junie_tui::core::hit::{Axis, Bar};
+use junie_tui::core::id::WidgetId;
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -125,13 +126,13 @@ impl Shot {
     }
 
     /// The shared rule for inner scrollers: a scroller in the section
-    /// that shows a scrollbar (a list, a table, a log, a stack of panels)
-    /// says it holds more than its window, so what scrolling it brings
-    /// into view is reachable. Wheel each such scroller in view from its
-    /// bars to its start and then to its end (until it stops moving, or
-    /// the notch chains on to the section's view); one with both bars is
-    /// swept sideways at each window of rows. Then put the section back
-    /// where it was.
+    /// (a list, a table, a log, a stack of panels, a text area that
+    /// scrolls its lines sideways) holds more than its window by design,
+    /// so what wheeling it brings into view is reachable. Wheel each
+    /// scroller in view (from its bars, or over its body when it shows
+    /// none) to its start and then to its end (until it stops moving, or
+    /// the notch chains on to the section's view), sideways at each window
+    /// of rows. Then put the section back where it was.
     fn inner(&mut self, out: &mut BTreeSet<String>) {
         let view = self.view().id;
         let viewport = self.view().last_layout().viewport;
@@ -144,36 +145,59 @@ impl Shot {
             .filter(|b| b.owner != view && b.track.intersects(viewport))
             .copied()
             .collect();
-        let mut owners = Vec::new();
+        // each scroller once: its bars' cells (the wheel over a bar
+        // scrolls its owner), and the rows a window holds
+        let mut targets: Vec<(WidgetId, Option<Position>, Option<Position>, usize)> = Vec::new();
         for b in &bars {
-            if !owners.contains(&b.owner) {
-                owners.push(b.owner);
-            }
-        }
-        for owner in owners {
-            if self.done(out) {
-                return;
+            if targets.iter().any(|t| t.0 == b.owner) {
+                continue;
             }
             let at = |axis: Axis| {
                 bars.iter()
-                    .find(|b| b.owner == owner && b.axis == axis)
-                    .map(|b| {
-                        let r = b.track.intersection(viewport);
+                    .find(|x| x.owner == b.owner && x.axis == axis)
+                    .map(|x| {
+                        let r = x.track.intersection(viewport);
                         Position::new(r.x, r.y)
                     })
             };
-            let (v, h) = (at(Axis::Vertical), at(Axis::Horizontal));
-            // sideways once a window of rows went by (a notch moves about
-            // three rows; the track is as tall as the window)
             let rows = bars
                 .iter()
-                .find(|b| b.owner == owner && b.axis == Axis::Vertical)
-                .map_or(1, |b| (b.track.height / 3).max(1) as usize);
+                .find(|x| x.owner == b.owner && x.axis == Axis::Vertical)
+                .map_or(1, |x| (x.track.height / 3).max(1) as usize);
+            targets.push((b.owner, at(Axis::Vertical), at(Axis::Horizontal), rows));
+        }
+        // a wheel-scrollable region without a bar (a text area's sideways
+        // scroll) is wheeled over its body both ways
+        let regions: Vec<(WidgetId, Rect)> = self
+            .app
+            .shell
+            .hits
+            .regions()
+            .iter()
+            .filter(|r| r.scroll_only && r.id != view && r.area.intersects(viewport))
+            .map(|r| (r.id, r.area.intersection(viewport)))
+            .collect();
+        for (id, r) in regions {
+            let pos = Position::new(r.x + r.width / 2, r.y + r.height / 2);
+            match targets.iter_mut().find(|t| t.0 == id) {
+                // a scroller with one bar is wheeled over its body on the
+                // other axis (a code editor's sideways scroll shows none)
+                Some(t) => {
+                    t.1 = t.1.or(Some(pos));
+                    t.2 = t.2.or(Some(pos));
+                }
+                None => targets.push((id, Some(pos), Some(pos), (r.height / 3).max(1) as usize)),
+            }
+        }
+        for (_, v, h, rows) in targets {
+            if self.done(out) {
+                return;
+            }
             let start = self.view().offset();
             let mut notch = 0usize;
             let mut across = |s: &mut Self, out: &mut BTreeSet<String>| {
                 notch += 1;
-                if notch % rows != 0 {
+                if !notch.is_multiple_of(rows) {
                     return;
                 }
                 if let Some(h) = h {
@@ -251,6 +275,10 @@ fn reach_part(part: usize) {
     let mut pages = BTreeSet::new();
     for entry in NAV_ENTRIES.iter().skip(part).step_by(PARTS) {
         pages.insert(format!("{:?}", entry.id));
+        let t0 = std::time::Instant::now();
+        struct T(std::time::Instant, String);
+        impl Drop for T { fn drop(&mut self) { eprintln!("TIME {} {:?}", self.1, self.0.elapsed()); } }
+        let _t = T(t0, format!("{:?}", entry.id));
         for section in Section::ALL {
             let Some(mut big) = Shot::new(REFERENCE.0, REFERENCE.1, entry.id, section) else {
                 break;
@@ -271,6 +299,7 @@ fn reach_part(part: usize) {
                     continue;
                 }
                 failing.insert(key.clone());
+                eprintln!("DUMP {key}: {}", missing.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(" "));
                 if !allowed.contains(&key) {
                     let shown: Vec<&str> = missing.iter().take(12).map(|s| s.as_str()).collect();
                     problems.push(format!("{key}: never in view: {}", shown.join(" ")));

@@ -137,10 +137,12 @@ fn master_detail_states_grid_lists_its_rows() {
 
 #[test]
 fn master_detail_reads_at_80x24() {
+    // laid out at its natural width (Priority 0b), the demo keeps both
+    // panes at 80 columns and the page scrolls sideways to the facts
     let h = Harness::new(80, 24, PageId::MasterDetail);
     let text = h.text();
     assert!(
-        text.contains("Tables") && text.contains("→ orders"),
+        text.contains("Tables") && text.contains("╭─ orders"),
         "{text}"
     );
 }

@@ -135,14 +135,19 @@ impl MasterDetail {
     }
 
     /// The natural width of the layout (plan §1.4 `Measure`): the fewest
-    /// columns that show both panes side by side (never under
-    /// [`Self::collapse_below`]) with the master at least `master` and
-    /// the detail at least `detail` columns wide, at the detail's share
-    /// or the split's ratio and minima. Laid out at it, the layout does
-    /// not collapse and neither pane is squeezed.
+    /// columns that show both panes side by side with the master at least
+    /// `master` and the detail at least `detail` columns wide, at the
+    /// detail's share or the split's starting ratio and minima (a dragged
+    /// seam does not change it). Below [`Self::collapse_below`] the layout
+    /// still collapses: that threshold is the owner's choice.
     pub fn natural_width(&self, master: u16, detail: u16) -> u16 {
         let both = match self.size {
-            DetailSize::Resizable => self.split.extent_for(master, detail, self.gap),
+            // at the starting ratio: a dragged seam does not change it
+            DetailSize::Resizable => {
+                let mut split = self.split;
+                split.reset();
+                split.extent_for(master, detail, self.gap)
+            }
             DetailSize::Share { pct, min, max } => {
                 // the share never draws the detail wider than its max
                 let detail = detail.min(max.max(min));
@@ -157,7 +162,7 @@ impl MasterDetail {
                 w
             }
         };
-        both.max(self.collapse_below)
+        both
     }
 
     /// See [`Self::collapse_below`].
@@ -540,8 +545,9 @@ mod tests {
         Key { code, mods }
     }
 
-    /// Laid out at its natural width, the layout shows both panes at
-    /// least as wide as asked, resizable or shared, and never collapses.
+    /// Laid out at its natural width (and not under its collapse
+    /// threshold), the layout shows both panes at least as wide as asked,
+    /// resizable or shared.
     #[test]
     fn at_its_natural_width_both_panes_get_their_columns() {
         for mut md in [
@@ -553,7 +559,7 @@ mod tests {
                 .gap(3),
         ] {
             for (m, d) in [(30, 44), (60, 20), (12, 12)] {
-                let w = md.natural_width(m, d);
+                let w = md.natural_width(m, d).max(md.collapse_below);
                 let (l, _) = frame(&mut md, w, None);
                 assert_eq!(l.mode, Mode::Split, "{w} for {m},{d}");
                 assert!(l.master.width >= m, "master {:?} for {m}", l.master);

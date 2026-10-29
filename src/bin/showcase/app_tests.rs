@@ -1540,15 +1540,8 @@ fn tables_take_the_horizontal_wheel_and_the_sidebar_nav_keeps_its_cursor_visible
     let last = s.app.shell.hits.area_of(nav.child(7));
     assert!(last.is_some(), "the cursor row is on screen: {}", s.text());
     assert!(s.text().contains("Appearance"));
-    let sb = s
-        .app
-        .shell
-        .hits
-        .area_of(junie_tui::widgets::scrollbar::id_for(nav));
-    assert!(
-        sb.is_some(),
-        "the nav shows its scrollbar when it overflows"
-    );
+    // the nav is laid out whole (Priority 0b): the page's view scrolls,
+    // and a notch over the nav reaches it through scroll chaining
     assert_eq!(
         s.mouse(MouseKind::WheelUp, last.unwrap().x + 2, last.unwrap().y),
         Outcome::Changed

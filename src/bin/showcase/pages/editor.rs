@@ -24,7 +24,6 @@ use junie_tui::core::pointer::MouseTarget;
 use junie_tui::core::scroll::{HScroll, TrackClick};
 use junie_tui::theme::{CursorStyle, SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::measure::Measure;
 use junie_tui::ui::popup::{Dismiss, Place, Placement};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::fuzzy;
@@ -621,20 +620,18 @@ impl Page for EditorPage {
     }
 
     /// The editor beside the toolbar, State and Diagnostics cards, the
-    /// right column as wide as its facts and the empty diagnostics' hint
-    /// need (the editor takes 62 % of the width, at least 40); as tall as
-    /// the editor card's 26 rows.
-    fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
+    /// right column as wide as its facts and toolbar need (the editor
+    /// takes 62 % of the width, at least 40); as tall as the editor
+    /// card's 26 rows, which holds the right column's cards whole.
+    fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
+        // the diagnostics' hint wraps to the column: its card's rows hold it
         let right = Panel::card(Some("State"))
             .outer(Size::new(props::width(&self.state_props()), 0))
             .width
-            .max(
-                Panel::card(Some("Diagnostics"))
-                    .outer(Self::no_diagnostics().measure(Size::ZERO, ctx))
-                    .width,
-            )
             .max(self.find.width() + 2 + self.run_button.width());
-        // the smallest width whose right column (width - left - 2) holds it
+        // the code scrolls sideways in its editor: the 62 % share (at
+        // least 40) is enough; the smallest width whose right column
+        // (width - left - 2) holds the facts
         let mut width = right + 42;
         while width - (width * 62 / 100).max(40) - 2 < right {
             width += 1;

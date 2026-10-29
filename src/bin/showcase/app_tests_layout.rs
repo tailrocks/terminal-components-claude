@@ -13,13 +13,17 @@ fn outer() -> WidgetId {
     WidgetId::of("splitsstacks").sub("outer")
 }
 
-/// Width of the Explorer pane: its frame from `╭` to `╮`.
+/// Width of the Explorer pane: its frame from `╭` to `╮`, or to the
+/// screen's edge when the page (laid out at its natural size) runs on
+/// past it.
 fn explorer_width(h: &Harness) -> u16 {
     let (x, y) = h.at("╭─ Explorer");
     let row: Vec<String> = (x..h.term.backend().buffer().area.width)
         .map(|cx| h.cell(cx, y).symbol().to_owned())
         .collect();
-    row.iter().position(|s| s == "╮").expect("pane frame") as u16 + 1
+    row.iter()
+        .position(|s| s == "╮")
+        .map_or(row.len() as u16, |p| p as u16 + 1)
 }
 
 fn drag(h: &mut Harness, from: (u16, u16), to: (u16, u16)) {
@@ -112,7 +116,9 @@ fn splits_direction_stacks_the_panes() {
 
 #[test]
 fn stack_children_shrink_then_scroll_or_clip() {
-    let mut h = Harness::new(120, 40, PageId::SplitsStacks);
+    // tall enough to show the Playground whole: the panes card keeps its
+    // natural rows, so at 40 rows the stack card is below the fold
+    let mut h = Harness::new(120, 50, PageId::SplitsStacks);
     assert!(h.text().contains("▸ Danger zone · 1 row"));
     assert!(!h.text().contains("not in view"));
     h.opt("splitsstacks.min_child_rows=3");

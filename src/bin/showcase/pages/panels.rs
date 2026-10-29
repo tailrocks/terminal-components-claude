@@ -36,9 +36,9 @@ use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("panels");
 
-/// The narrowest column: a card in it shows the group with its note
-/// beside it.
-const COL_MIN: u16 = 57;
+/// The narrowest column the cards sit beside the panes in (the group's
+/// note goes under it when the column is narrow).
+const COL_MIN: u16 = 30;
 /// Rows each scrolling pane keeps at least.
 const PANE_H: u16 = 9;
 /// Where the group's note starts in the Nested card: after the group's
@@ -192,12 +192,12 @@ impl PanelsPage {
         let nested = self.card(Some("Nested"));
         let lines = |text: &str, w: usize| junie_tui::ui::text::wrap(text, w.max(1)).len() as u16;
         // the group takes its label and three rows; the note wraps beside
-        // it when it has room
+        // it when it has room, else under it after a blank row
         let nw = iw(&nested);
         let note = if nw > (NOTE_X + 20) as usize {
             lines(NESTED_NOTE, nw - NOTE_X as usize)
         } else {
-            0
+            4 + 1 + lines(NESTED_NOTE, nw)
         };
         [
             StackChild::fixed((lines(TITLED, iw(&titled)) + 3).max(7)),
@@ -281,16 +281,20 @@ impl PanelsPage {
             inner.height.saturating_sub(1).min(3),
         );
         self.nested.render(group, buf, ctx, bg);
+        // the note beside the group while it has room, else under it
         let note_x = group.right() + 2;
-        if note_x + 20 < inner.right() {
-            for (i, line) in
-                junie_tui::ui::text::wrap(NESTED_NOTE, (inner.right() - note_x) as usize)
-                    .iter()
-                    .enumerate()
-            {
-                if (i as u16) < inner.height {
-                    buf.set_string(note_x, inner.y + i as u16, line, t.muted().bg(bg));
-                }
+        let (x, y, w) = if note_x + 20 < inner.right() {
+            (note_x, inner.y, inner.right() - note_x)
+        } else {
+            (inner.x, group.bottom() + 1, inner.width)
+        };
+        for (i, line) in junie_tui::ui::text::wrap(NESTED_NOTE, w as usize)
+            .iter()
+            .enumerate()
+        {
+            let y = y + i as u16;
+            if y < inner.bottom() {
+                buf.set_string(x, y, line, t.muted().bg(bg));
             }
         }
     }

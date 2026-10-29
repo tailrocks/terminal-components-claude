@@ -84,9 +84,13 @@ fn pane_tree_resize_chords_and_seam_drag_move_the_seam() {
 #[test]
 fn pane_tree_split_and_close_change_the_panes() {
     let mut h = Harness::new(120, 40, PageId::PaneTree);
+    // the card grows to its new panes' natural size (Priority 0b): its
+    // meta at the right end may scroll out of view, the new pane does not
     h.click_id(button("split-right"));
-    assert!(h.text().contains("4 panes · focus editor"), "{}", h.text());
+    assert!(h.find("╭─ editor").is_some(), "{}", h.text());
+    assert!(h.status().contains("Opened editor"), "{}", h.status());
     h.click_id(button("close"));
+    assert!(h.find("╭─ editor").is_none(), "{}", h.text());
     assert!(h.text().contains("3 panes"), "{}", h.text());
     h.opt("panetree.layout=single");
     h.click_id(button("close"));

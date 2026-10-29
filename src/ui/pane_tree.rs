@@ -97,7 +97,9 @@ impl PaneNode {
 
     /// The natural size of the subtree (plan §1.4 `Measure`): each pane
     /// at `pane(id)`, each split at the extent that gives both sides
-    /// theirs ([`Split::extent_for`]) and the larger side across it.
+    /// theirs ([`Split::extent_for`]) at its starting ratio (a seam the
+    /// user drags does not change the size the tree asks for) and the
+    /// larger side across it.
     pub fn natural_size(&self, gap: u16, pane: &dyn Fn(PaneId) -> Size) -> Size {
         match self {
             PaneNode::Leaf(id) => pane(*id),
@@ -111,6 +113,8 @@ impl PaneNode {
                     first.natural_size(gap, pane),
                     second.natural_size(gap, pane),
                 );
+                let mut split = *split;
+                split.reset();
                 match dir {
                     SplitDir::Horizontal => Size::new(
                         split.extent_for(a.width, b.width, gap),

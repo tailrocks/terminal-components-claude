@@ -221,13 +221,18 @@ impl SplitsStacksPage {
                 split.extent_for(a.height, b.height, 1),
             ),
         };
+        // at the splits' starting ratios: a dragged seam or a zoom does
+        // not change the size the page asks for
+        let (mut outer, mut inner) = (self.outer, self.inner);
+        outer.reset();
+        inner.reset();
         let inner = across(
-            &self.inner,
+            &inner,
             self.inner_seam.dir,
             pane("Editor", EDITOR),
             pane("Output", OUTPUT),
         );
-        let body = across(&self.outer, self.dir(), pane("Explorer", EXPLORER), inner);
+        let body = across(&outer, self.dir(), pane("Explorer", EXPLORER), inner);
         let buttons: u16 = self.zoom.iter().map(Button::width).sum::<u16>()
             + 2 * self.zoom.len().saturating_sub(1) as u16;
         let meta = self.panes_meta();

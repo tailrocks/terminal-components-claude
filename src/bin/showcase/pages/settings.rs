@@ -17,7 +17,6 @@ use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{RadioGroup, Toggle};
@@ -30,6 +29,8 @@ use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction, Tone};
 use junie_tui::widgets::tabs::Tabs;
 use junie_tui::widgets::textarea::TextArea;
 
+/// The narrowest a text field of the General card is laid out.
+const FIELD_MIN: u16 = 24;
 const ID: WidgetId = WidgetId::of("settings");
 const REMOVE_DLG: WidgetId = ID.sub("remove-dialog");
 const ADD_DLG: WidgetId = ID.sub("add-dialog");
@@ -366,12 +367,14 @@ impl Page for SettingsPage {
         "Composed: tabs, form, editable table, list, dialogs"
     }
 
-    /// The General card's two columns whole (the description uncut, the
-    /// toggles with their state words, the visibility choices), each
-    /// column as wide as the wider needs; the tab's rows under the strip.
-    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+    /// The General card's two columns whole (the toggles with their
+    /// state words, the visibility choices; the fields, which scroll their
+    /// text sideways, at a usable width), each column as wide as the
+    /// wider needs; the tab's rows under the strip.
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;
-        let left = self.description.measure(Size::ZERO, ctx).width;
+        // the fields scroll their text sideways: a usable width is enough
+        let left = FIELD_MIN;
         let right = self
             .auto_merge
             .width()

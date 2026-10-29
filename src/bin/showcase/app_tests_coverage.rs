@@ -814,7 +814,9 @@ fn panels_route_wheel_and_nested_list_clicks() {
 #[test]
 fn a_panel_with_wide_lines_shows_and_moves_its_horizontal_position() {
     use junie_tui::widgets::scrollbar;
-    let mut h = Harness::new(80, 24, PageId::Panels);
+    // the panes sit beside the cards, whole, at 120x40 (under them at
+    // 80 columns, below the fold of a short screen)
+    let mut h = Harness::new(120, 40, PageId::Panels);
     let log = WidgetId::of("panels").sub("log");
     let bar = h.area(scrollbar::h_id_for(log));
     let thumb_x = |h: &Harness| {

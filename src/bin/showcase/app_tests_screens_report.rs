@@ -16,14 +16,18 @@ const REPORT: WidgetId = WidgetId::of("readonlyreport");
 
 #[test]
 fn report_shows_its_snapshot_not_the_stub() {
+    // the cards' left sides at every size; the meta at their right end
+    // where the page (laid out at its natural size) fits the screen
     for (w, h) in [(120, 40), (80, 24)] {
         let h = Harness::new(w, h, PageId::ReadOnlyReport);
         let text = h.text();
         assert!(!text.contains("arrives with"), "{text}");
-        for needle in ["Host snapshot", "live · 12 s ago", "CPU", "Memory"] {
+        for needle in ["Host snapshot", "CPU", "Memory"] {
             assert!(text.contains(needle), "{w}: {needle}: {text}");
         }
     }
+    let text = Harness::new(140, 40, PageId::ReadOnlyReport).text();
+    assert!(text.contains("live · 12 s ago"), "{text}");
     let text = Harness::new(120, 40, PageId::ReadOnlyReport).text();
     for needle in [
         "8 cores · load",
@@ -252,19 +256,18 @@ fn ticks(h: &mut Harness, n: usize) {
 
 #[test]
 fn cockpit_shows_rail_log_and_actions_not_the_stub() {
+    // the cards' left sides at every size; the meta at their right end
+    // where the page (laid out at its natural size) fits the screen
     for (w, h) in [(120, 40), (80, 24)] {
         let h = Harness::new(w, h, PageId::LaunchCockpit);
         let text = h.text();
         assert!(!text.contains("arrives with"), "{text}");
-        for needle in [
-            "Launch · payments-platform",
-            "0 of 11 stages",
-            "Credentials",
-        ] {
+        for needle in ["Launch · payments-platform", "Credentials"] {
             assert!(text.contains(needle), "{w}: {needle}: {text}");
         }
     }
-    let text = Harness::new(120, 40, PageId::LaunchCockpit).text();
+    let text = Harness::new(140, 40, PageId::LaunchCockpit).text();
+    assert!(text.contains("0 of 11 stages"), "{text}");
     for needle in [
         "Stages",
         "Derived Image",
