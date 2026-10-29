@@ -1,0 +1,26 @@
+{
+  "reviewed_integration_commit": "be9fca4baf1477f57ab1a252117c368fb2bfe657",
+  "reviewed_adapter_commit": "979acbe0f3b7125d51f8f5cae2c25e786adbd544",
+  "files": {
+    "tools/frozen_baseline.py": {
+      "bytes_identical": true,
+      "sha256": "bf4db7eb60eab4e0373b24fa67be798472eaab9559a9f9f4e68ddb3eb83b92ef"
+    },
+    "tools/test_frozen_baseline.py": {
+      "bytes_identical": true,
+      "sha256": "31163ab42f98ebbc377030d4fd0d11a9bb802350fc2a97365a2f17c3c0bdb429"
+    },
+    "tools/frozen_cli_build_cohorts.json": {
+      "bytes_identical": true,
+      "sha256": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4"
+    },
+    "tools/frozen_cli_build_cohort_reviews.json": {
+      "bytes_identical": true,
+      "sha256": "18d497515fb2a1b68e85d9672d2236ff4d143b578c3e3e4f428cefcc6e21454d"
+    },
+    "tools/frozen_cli_references.json": {
+      "bytes_identical": true,
+      "sha256": "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
+    }
+  }
+}

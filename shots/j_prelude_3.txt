@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Workspaces › new workspace         u Usage  c Accounts  s Settings  ? help
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                             ╭────────────────────────────────────────────────────────────╮
+                             │                                                            │
+                             │  New workspace · step 3 of 5 · Edit destination            │
+                             │                                                            │
+                             │   Destination *                                            │
+                             │ ▎ /Users/alexey/src/data-pipeline                          │
+                             │   Absolute path inside the Construct                       │
+                             │                                                            │
+                             │                                             ▎Back  ▎Next   │
+                             │                                                            │
+                             ╰────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT   Enter Next  Esc Cancel

@@ -1,0 +1,146 @@
+{
+  "status": "Independent bounded test-integrity clearance; original P2 finding resolved. No actionable findings remain in the assigned test-only change.",
+  "candidate": "eb82d6e1526cd55f21cdc66590b9ff36d7606deb",
+  "p2_fix": "4fb359b8e7239118a04d0cf6d81304c2d3a5d6e0",
+  "previous_review_candidate": "b5f09170d8d49266848e66df29266ef9e5c5f49d",
+  "findings": [],
+  "resolved_finding": {
+    "path": "crates/termrock-navigation/tests/item_row_columns.rs",
+    "old_line": 463,
+    "problem": "The old negative clone retained legacy disabled238 and could pass for that difference even with the correct muted245.",
+    "resolution": "Negative now clones fully normalized corrected, so disabled239 already matches default. It mutates only the recorded174 original legacy-muted244 positions from corrected245 to deliberately wrong246. No unrelated cells or channels are modified.",
+    "direct_mutant_proof": "The same external method copies the actual submitted constructor fixture, renames it, and changes only its sole negative246 value to the correct245. It passed incorrectly on b5; it now fails at the intended assert_ne on eb82 because the complete buffers are equal. The real unmutated fixture, including deliberately wrong246, passes in the native196-test run."
+  },
+  "source_checks": [
+    "Only navigation/tests/item_row_columns.rs and its audit differ from same-production parent93b306503; no production source, dependencies, generated code, resources or build script changes.",
+    "All four historical fingerprint literals remain byte-identical to80b50e4, including12184706452759668872 for ANSI256.",
+    "Production theme palettes are unchanged relative to b5 and retain ANSI256 disabled239. Historical238 remains fixture-only.",
+    "Full-cell positive equality, exact56 disabled-cell comparison, cursor/ordered-region assertions,174-muted count, all other profiles and default-versus-explicit-policy checks remain.",
+    "The negative now has a normalized background/context and its explicit174-position selection prevents the disabled palette mismatch from masking the muted guard."
+  ],
+  "checks": {
+    "navigation": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-navigation",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing"
+      ],
+      "exit": 0,
+      "run": 196,
+      "passed": 196,
+      "skipped": 0
+    },
+    "direct_correct_muted_mutant": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/private/tmp/itemrow-eb82-independent-review/consumer/Cargo.toml",
+        "--all-targets",
+        "-E",
+        "test(submitted_negative_guard_accepts_correct_muted_color)"
+      ],
+      "exit": 100,
+      "run": 1,
+      "failed": 1,
+      "other_tests_filtered": 2,
+      "expected_failure": "assertion `left != right` failed: mutating only normalized muted cells must change full-cell output",
+      "interpretation": "Expected failure demonstrates restored negative sensitivity; not a product failure."
+    },
+    "strict_clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-navigation",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0
+    },
+    "fmt": {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "termrock-navigation",
+        "--",
+        "--check"
+      ],
+      "exit": 0
+    },
+    "diff_check": {
+      "exit": 0
+    },
+    "bounded_script_seconds": 20.90238208399387
+  },
+  "preserved_prior_evidence": {
+    "packet": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/itemrow-fixture-independent-review-b5f09170.json",
+    "sha256": "3720eaba6c6426f9387d55302ab77b44592699f1ed49faca590328f3de8b9d74",
+    "focused_pre_fix": {
+      "exit": 100,
+      "run": 1,
+      "passed": 0,
+      "failed": 1,
+      "filtered": 13,
+      "actual": 17020103994864682368,
+      "expected": 12184706452759668872
+    },
+    "historical_projection": {
+      "result": "byte-identical",
+      "profiles": [
+        "TrueColor",
+        "Ansi256",
+        "Ansi16",
+        "Mono"
+      ],
+      "full_cells": 2688,
+      "includes": [
+        "complete Debug representation of every Cell including underline/diff/skip fields",
+        "all ordered registered Region records",
+        "cursor position",
+        "Runtime::cursor_bar shape query",
+        "focus owner",
+        "focus-visible state"
+      ],
+      "theme": "Same explicit historical ANSI256 palette fg2=244,fg3=238,disabled_fg=238 on both revisions; other profiles use their normal theme.",
+      "projection_sha256": "975f23b3a90b95a2b5136cfa1a073fd444dd1ba9e881dd82ad8fe4b3e99c7403",
+      "scope": "The initial fixed-data Columns fixture only; not all interactions, application flows or product parity."
+    },
+    "qualification": "The prior original-production93b RED and actual80b-versus-b5 full2688-cell/all-ordered-regions comparison are preserved unchanged. They are not rerun or relabeled as eb82 captures; production rendering source is unchanged by this test-only follow-up."
+  },
+  "review_worktree": {
+    "path": "/private/tmp/termrock-button-before-review",
+    "head": "eb82d6e1526cd55f21cdc66590b9ff36d7606deb",
+    "tracked_changes": 0
+  },
+  "publication": "This reviewer made no push, modified no product source, did not bypass the shared lock, and did not verify remote equality. Parent owns publication.",
+  "product_acceptance": false,
+  "limits": [
+    "Bounded historical library fixture integrity only. No full four-application parity, architecture or reference approval.",
+    "Prior exact-commit evidence retains its original scope and immutable packet; no expected frames or hashes were generated from the candidate."
+  ],
+  "evidence_root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/itemrow-fixture-review-eb82d6e",
+  "evidence_sha256": {
+    "candidate-clippy.log": "9936e7be0b16b2a76e8818fd8c61d936221b73770a9e988c58f19abfe18dbcc7",
+    "candidate-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "candidate-navigation.log": "a47e4ea039ef0c8b8aca0e0700f00015c4c61a0683545b61ade11539c75302a7",
+    "consumer/Cargo.lock": "1f7c1a2c01575b845ac082024c9b1811e5b30662ffa66b7953af5247d4e44cbf",
+    "consumer/Cargo.toml": "eab1884f8583918f3ab7e1256246a16f0684fe9f4cef7aa6f25808f055a04eaf",
+    "consumer/src/lib.rs": "f16d93a8aa9c03cbf92ef998ec98414eef203d9d33a44c7690426e91c9f11338",
+    "fixed-submitted-mutant.log": "50aef5b2d43f7ce62d9833a76c41f2b015adebb8ed97ce59287e4a6061646b57",
+    "mutation-method.txt": "cb13c357ce939be147cbb197a4b6ac5a59d6db128e42be9dffef0c27512a76a4",
+    "results.json": "5048bf6df1210482cc1e87a7321496fb6b3a50af3f803e287d0672ea37193ae2",
+    "run.py": "83393d244cb066871f0d819ed0bdfd3137b4a1103ee36d0457e4ed1b3001b2ea"
+  }
+}

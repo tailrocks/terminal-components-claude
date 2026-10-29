@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Terminal                               truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Terminal  Viewport with scrollback, selection and copy · drag the seam · step rail reports a…
+▎  Overview
+                          ╭─ Viewport ───────────────────── 12 lines · following ─╮ │  Step rail      2 of 0 · running
+   Components             │  payments-platform ❯ jackin launch                    │ │
+▎  Buttons                │  ▶ Resolve workspace                                  │ │  ▎✓ 01 Resolve workspace  0.8 s
+▎  Inputs                 │  ✓ Resolve workspace                                  │ │  ▎✓ 02 Pull base image    2.1 s
+▎  Text areas             │  ▶ Pull base image                                    │ │  ▎⠦ 03 Build container
+▎  Forms                  │    layer 01/12    3%                                  │ │  ▎  04 Mount sources     queued
+▎  Lists                  │    layer 02/12   19%                                  │ │  ▎  05 Resolve credent…  queued
+▎  Trees                  │    layer 03/12   34%                                  │ │  ▎  06 Start agent       queued
+▎  Tables                 │    layer 04/12   50%                                  │ │  ▎  07 Ready             queued
+▎  Editable tables        │    layer 05/12   65%                                  │ │
+▎  Panels                 │    layer 06/12   80%                                  │ │
+▎  Sidebars               │    layer 07/12   96%                                  │ │
+▎  Dialogs                │  ✓ Pull base image                                    │ │
+▎  Progress               │                                                       │ │
+▎  Scrolling              │                                                       │ │
+▎› Terminal               │                                                       │ │
+▎  Code editor            │                                                       │ │
+▎  Data grid              │                                                       │ │
+▎  Chips & selects        │                                                       │ │
+▎  Pickers                │                                                       │ │
+                          │                                                       │ │
+   Screens                │                                                       │ │
+▎  Settings               │                                                       │ │
+▎  Task runner            │                                                       │ │
+                          │                                                       │ │
+                          │                                                       │ │
+                          │                                                       │ │
+                          │                                                       │ │
+                          │                                                       │ │
+                          │                                                       │ │
+                          │                                                       │ │
+                          │                                                       │ │
+                          │                                                       │ │  ▎Run   ▎Run with a failure
+                          ╰───────────────────────────────────────────────────────╯ │
+
+ ↑ ↓ Scroll  Home End Oldest / live  f Follow  drag Select  y Copy  Esc Clear  Tab Next

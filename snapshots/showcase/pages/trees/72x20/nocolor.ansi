@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  Navigation › [0m[1mTrees[0m        i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mTrees[0m  Indent carries hierarchy; the focus bar ne… [0m
+ ──────────────────                                                     [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▸ Tables        ┃    Project                                  1–15 o ┃[0m
+  ▾ Navigation    ┃    ─────────────────────────────────────────────── ┃[0m
+      Lists       ┃     ▾ src                                          ┃[0m
+ [0m[1m▎  › Trees       [0m┃       ▸ api                                        ┆[0m
+      Sidebars    ┃       ▸ db                                         ┆[0m
+      Tabs        ┃       ▸ workers                                    ┆[0m
+      Menus       ┃         config.rs                             1.9  ┆[0m
+  ▸ Overlays      ┃         lib.rs                                 640 ┆[0m
+  ▸ Feedback      ┆         main.rs                               1.2  ┆[0m
+ [0m[2m ▸ Layout        [0m┆     ▾ tests                                        ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ [0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

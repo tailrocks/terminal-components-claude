@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                    no project  mbp · local [0m
+  ╭──────────────────────────────────────────────────────────────────╮  [0m
+  │                                                                  │  [0m
+ ━│  [0m[1mStop and remove all containers · gate 2 of 2[0m                    │─ [0m
+  │                                                                  │  [0m
+  │  Action   stop the running containers, then remove every         │  [0m
+  │           captured container on mbp (running and stopped) ·      │  [0m
+  │           images and volumes stay · rm runs only after stop      │  [0m
+  │                                                                  │  [0m
+  │  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 a…  │  [0m
+  │  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acm…  │  [0m
+  │                                                                  │  [0m
+  │   [0m[1mType REMOVE ALL CONTAINERS ON mbp to confirm                 [0m  │  [0m
+ ╭│ ▎                                                                │╮ [0m
+ ╰│                                                                  │╯ [0m
+  │                                                                  │  [0m
+  │                                               Cancel   [0m[2mExecute [0m  │  [0m
+  │                                                                  │  [0m
+ ~╰──────────────────────────────────────────────────────────────────╯0 [0m
+  [0m[1m   [0m         [0m[1m  ← →[0m Choose  [0m[1mEnter[0m Confir[0m[1mm[0m  [0m[1mEsc[0m Cancel    [0m[1m   [0m            [0m

@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Workspaces › payments-platform › edit       c Accounts  s Settings  ? help
+
+
+  ▎General   ▎Mounts   ▎Roles   ▎Environments   ▎Auth
+  ────────────━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────
+
+         Destination                           Mode  Isolation  Kind    Source
+  ▎›    /workspace/payments-platform          rw    worktree   git     ~/src/payments-platform
+  ▎     /workspace/libs                       ro    shared     host    ~/src/shared-libs
+  ▎     + Add mount
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ ← → Tab  1–5 Jump  Enter Body  [ ] Switch tab  Ctrl+S Save  Esc Back

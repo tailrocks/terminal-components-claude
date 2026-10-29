@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Tables                                                                         truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Tables  Sort by header, hover rows, select with Enter, overflow scrolls
+▎  Overview
+                            Tasks                                                                                                                     unsorted
+   Components
+▎  Buttons                     ID     Task                                                    Owner    Status     Branch                  Changes   Duration
+▎  Inputs                   ▎  #1040  Add rate limiting to auth endpoints                     mira     Done       feat/rate-limit              14     6m 52s
+▎  Text areas               ▎  #1041  Migrate sessions table to UUID keys                     jonas    ▸ Running  chore/uuid-sessions          31     1m 36s
+▎  Forms                    ▎  #1042  Fix flaky checkout integration test                     ana      Failed     fix/checkout-flake            3        58s
+▎  Lists                    ▎  #1043  Write release notes for 3.2                             mira     Queued     docs/release-3.2              0         0s
+▎  Trees                    ▎  #1044  Replace deprecated Vue mixins                           kai      Done       refactor/mixins              87    22m 10s
+▎› Tables                   ▎  #1045  Upgrade Postgres driver to 0.9                          jonas    Paused     chore/pg-driver               5     4m 00s
+▎  Editable tables          ▎  #1046  Extract billing service module                          sofia    Done       refactor/billing             52    15m 08s
+▎  Panels                   ▎  #1047  Add OpenTelemetry tracing spans                         kai      ▸ Running  feat/otel                    22     2m 10s
+▎  Sidebars                 ▎  #1048  Remove legacy feature flags                             ana      Queued     chore/flags                   0         0s
+▎  Dialogs                  ▎  #1049  Generate API client from OpenAPI                        sofia    Done       feat/api-client             118    36m 50s
+▎  Progress                 ▎  #1050  Harden CSP headers                                      mira     Done       sec/csp                       4     1m 17s
+▎  Scrolling                ▎  #1051  Speed up cold start of worker                           jonas    Failed     perf/worker-boot              9    10m 01s
+▎  Terminal                 ▎  #1052  Localize onboarding emails                              kai      Queued     feat/i18n-emails              0         0s
+▎  Code editor              ▎  #1053  Add pagination to audit log                             ana      Done       feat/audit-pages             16     5m 44s
+▎  Data grid                ▎  #1054  Refactor retry helper into crate                        sofia    ▸ Running  refactor/retry               11        45s
+▎  Chips & selects          ▎  #1055  Rotate signing keys quarterly                           mira     Queued     sec/key-rotation              0         0s
+▎  Pickers                  ▎  #1056  Fix timezone bug in scheduler                           jonas    Done       fix/tz-scheduler              7     3m 08s
+▎  Chrome                   ▎  #1057  Document webhook retry semantics                        kai      Done       docs/webhooks                 2     1m 05s
+                            ▎  #1058  Add dark mode to admin panel                            ana      Paused     feat/admin-dark              40    12m 00s
+   Screens                  ▎  #1059  Bump minimum Node to 22                                 sofia    Queued     chore/node-22                 0         0s
+▎  Settings                 ▎  #1060  Cache dependency graph between runs                     mira     ▸ Running  perf/dep-cache               19     3m 30s
+▎  Task runner              ▎  #1061  Clean up unused SQL views                               jonas    Done       chore/sql-views              12     2m 35s
+                            ▎  #1062  Add health endpoint for gateway                         kai      Done       feat/health                   3        42s
+                            ▎  #1063  Investigate memory growth in parser                     ana      ▸ Running  perf/parser-mem               6     6m 20s
+
+
+
+
+
+
+
+
+
+                            Checks
+
+                               Check                                                                                                                Result
+
+
+                                                                                  No checks have run yet
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

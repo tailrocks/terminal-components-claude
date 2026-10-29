@@ -1,0 +1,79 @@
+[
+  {
+    "argv": [
+      "cargo",
+      "+1.88.0",
+      "test",
+      "--locked",
+      "-p",
+      "xtask"
+    ],
+    "exit": 0,
+    "log": "gate-0.log",
+    "sha256": "f0c883153b7de3c08ed24265923dae5fa5ff8190c22a9088c6c022413667c04b"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.88.0",
+      "run",
+      "--locked",
+      "-p",
+      "xtask",
+      "--",
+      "bless-guard"
+    ],
+    "exit": 0,
+    "log": "gate-1.log",
+    "sha256": "c23e663d55c355ca1dc8a3a6d6d73bd87e97f15616896540694e60dd6a48dbe0"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.88.0",
+      "run",
+      "--locked",
+      "-p",
+      "xtask",
+      "--",
+      "parity",
+      "--dry-run"
+    ],
+    "exit": 0,
+    "log": "gate-2.log",
+    "sha256": "95fb9b1f75d5e48f7a84f8c2273fb05bc2495985b12396f7305d7127b33bb2a5"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.98.1",
+      "clippy",
+      "--locked",
+      "-p",
+      "xtask",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit": 0,
+    "log": "gate-3.log",
+    "sha256": "e397486ad3ddd661eb68f333096493b714851e3f946acfe4949646701806b371"
+  },
+  {
+    "argv": [
+      "rustfmt",
+      "+1.98.1",
+      "--check",
+      "--edition",
+      "2024",
+      "--config",
+      "skip_children=true",
+      "xtask/src/main.rs",
+      "xtask/src/historical_additions.rs"
+    ],
+    "exit": 0,
+    "log": "gate-4.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

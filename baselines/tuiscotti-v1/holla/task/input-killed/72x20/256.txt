@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      app · ser…kout  ◆ devbox · production
+
+  Here    deploy the release ! ×    the stubborn worker ○ ×
+ ──────────────────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━──────────
+  the stubborn worker · stopped · 1 s · exit 137
+  $ ./stubborn · started by Run the stubborn worker
+
+ ╭─ output ─────────────────────────────────────────────── following ─╮
+ │  $ ./stubborn                                                      │
+ │  ignoring SIGTERM…                                                 │
+ │  stop requested by holla · SIGTERM to the process group            │
+ │  no exit after SIGTERM for 750 ms · SIGKILL to the process group   │
+ │  killed (SIGKILL) · descendants reaped                             │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ /srv/app               stopped · 1 s                256 colors · 72×20
+        ↑↓ Scroll  f Follow  …   the stubborn worker stopped · exit 137

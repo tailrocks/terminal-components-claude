@@ -1,0 +1,40 @@
+{
+  "status": "bounded Stage 1 complete; no application or overall acceptance claim",
+  "plan_sha256": "44830f0d8b98b3e3f0fd8ecb3280bd9106f60061971fb472cc1ab02a671b57a8",
+  "ownership": {
+    "worktree": "/private/tmp/termrock-form-window-plan-20261021",
+    "branch": "wip/form-textarea-window-20261021",
+    "transfer": "authorized transfer of the complete sealed plan worktree from read-only planning role to sole writer; complete tracked inputs verified before edits",
+    "source_before_merges": "4ae4cb9dd7feb17f8835f9588d80bcedac0497fd",
+    "pr38_integrated": "8a8e28300cfcbb455eb1b8872935c9743abe6277",
+    "fields_dependency_integrated": "332f40d07e38512f91cfb038eb9174c413755686",
+    "runtime_window_dependency": "67377aad3c3ab9b36acac47cb48f6c594172907a"
+  },
+  "scope": [
+    "Added one private pure field-window resolver shared by linear and lane drawing, preserving the original placement row, visible area, and logical field height.",
+    "Text and secret Area controls pass a clipped VerticalWindow to the existing Fields adapter. Logical rows remain min(rows_in_form, full logical chrome body height); the visible rows are intersected with the original body source range. Empty intersections register no TextArea text body or cursor.",
+    "Radio handling and all public Form, FormData, document, state, action and layout signatures remain unchanged."
+  ],
+  "regression": {
+    "public_consumer": "crates/termrock-forms/tests/form_textarea_window.rs uses independent Preferences domain data and a real two-lane Form, with parent scrolling, visible original source rows, pointer focus and cursor bounds.",
+    "unit": "textarea_parent_window_intersects_the_logical_form_body covers a partial source window, configured row cap, empty height/width, and no logical intersection.",
+    "red_before_fix": "Temporarily routing TextArea through the pre-adapter draw_in_form path caused clipped_form_text_area_keeps_original_document_rows to fail: expected source rows row-one through row-four, got row-zero through row-three. The source adapter was restored immediately.",
+    "green": "Focused consumer suite passes with source-aware drawing and cursor confined to visible text bounds."
+  },
+  "checks": {
+    "forms_nextest": "cargo nextest run -p termrock-forms --all-targets: 66 passed, 0 skipped",
+    "fields_nextest": "cargo nextest run -p termrock-fields --all-targets: 83 passed, 0 skipped",
+    "forms_clippy": "cargo clippy -p termrock-forms --all-targets -- -D warnings: passed",
+    "fields_clippy": "cargo clippy -p termrock-fields --all-targets -- -D warnings: passed",
+    "format_changed_paths": "rustfmt --check --edition 2024 crates/termrock-forms/src/form.rs crates/termrock-forms/tests/form_textarea_window.rs: passed",
+    "whitespace": "git diff --check: passed",
+    "repository_fmt_check": "cargo fmt --check reported existing formatting differences in crates/showcase-demos/src/pages/chrome.rs and this task's changed files before formatting; only task-owned source/test files were formatted and rechecked."
+  },
+  "excluded_followups": [
+    "Stage 2 caret follow/deduplication",
+    "Stage 3 menu behavior",
+    "Stage 4 application-private painter removal",
+    "full product parity and application acceptance"
+  ],
+  "remaining": "Commit and push this WIP branch under the shared push lock, verify remote SHA, and hand off to parent for integration."
+}

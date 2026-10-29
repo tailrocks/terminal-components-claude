@@ -1,0 +1,50 @@
+ ▪  [0m[1mTablePro[0m  Connections  6 saved                                                                                                    no color · 160×50  ? help [0m
+                                                                                                                                                                [0m
+ ╭─[0m[1m Connections [0m──────────────────── 6 ─╮    Local PostgreSQL                                                                                                   [0m
+ │   [0m[1m                                  [0m │                                                                                                                       [0m
+ │ ▎ [0m[4mstag[0m                               │    Engine       PostgreSQL                                                                                            [0m
+ │  ▾ Acme                              │    Host         localhost:5432                                                                                        [0m
+ │      ◇ Staging                   pg  │    Database     acme_dev                                                                                              [0m
+ │                                      │    User         postgres                                                                                              [0m
+ │                                      │    Environment  local                                                                                                 [0m
+ │                                      │    Safe Mode    Silent · Writes run without asking. Destructive                                                       [0m
+ │                                      │                 statements still confirm.                                                                             [0m
+ │                                      │    SSL / SSH    off / off                                                                                             [0m
+ │                                      │    Last used    2 minutes ago                                                                                         [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │     [0m[1mConnect [0m   Edit    Duplicate    Delete…                                                                           [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ │                                      │                                                                                                                       [0m
+ ╰──────────────────────────────────────╯                                                                                                                       [0m
+                                                                                                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1mType[0m Filter  [0m[1m↓[0m Into list  [0m[1mEsc[0m Clear                                                                                                                    [0m

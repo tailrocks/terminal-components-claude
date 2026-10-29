@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 40,
+    "y": 17
+  },
+  "frame_digest": 131601709805523871,
+  "legacy_name": "tablepro/overlays/picker_open/160x50/nocolor",
+  "name": "tablepro/workbench/overlay-picker-open/160x50/nocolor",
+  "non_empty_cells": 7878,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}

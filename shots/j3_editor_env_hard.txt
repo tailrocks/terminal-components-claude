@@ -1,0 +1,36 @@
+  jackin❯  inside the Construct  ! instance index unreadable  ▲ daemon stale  Workspaces › payments-platform › edit
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ───────────────────────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────
+
+      Workspace                                                                                                4 vars
+  ▎›    DATABASE_URL        ****************          plain
+  ▎     STRIPE_KEY          ****************          [op] Engineering › Stripe · sandbox › credential
+  ▎     LOG_LEVEL           *****                     plain
+  ▎     GH_TOKEN            $GH_TOKEN                 host env
+  ▎     + Add environment variable
+      Role overrides                                                               1 configured · 126 in the registry
+    ▾ Role: backend                                                                                             1 var
+  ▎     OPENAI_API_KEY      ****************          [op] Engineering › OpenAI · Codex Primary › credential
+  ▎     + Add backend environment variable
+  ▎     + Add role override…
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ Enter Edit  m Show  …      Could not confirm running instances: instance index unreadable · entered without the ritual

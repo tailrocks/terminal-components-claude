@@ -1,0 +1,14 @@
+[package]
+name = "tablepro-demo"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "3f74aefc53342d0c74ab496c54a0fd0f84d519cf973819c674f0a32a505a88f7",
+  "artifacts": {
+    "ansi": {
+      "bytes": 11575,
+      "file": "holla/finder/fade-executor-burst-end/120x40/none.ansi",
+      "sha256": "3f74aefc53342d0c74ab496c54a0fd0f84d519cf973819c674f0a32a505a88f7"
+    },
+    "ascii": {
+      "bytes": 4271,
+      "file": "holla/finder/fade-executor-burst-end/120x40/none.ascii",
+      "sha256": "290b7c4d72b70330bc31ef7616ee6708ee331983ddeabe9d6cbc90ae48685c31"
+    },
+    "ascii_loss_json": {
+      "bytes": 36470,
+      "file": "holla/finder/fade-executor-burst-end/120x40/none.ascii.loss.json",
+      "sha256": "bf9e846d010d04cf244852b98305c1ed3d7cbb50085b722ef1a8e293edce8e94"
+    },
+    "frame_json": {
+      "bytes": 1117740,
+      "file": "holla/finder/fade-executor-burst-end/120x40/none.frame.json",
+      "sha256": "9538ca6dabd5cc1b7a7983ac5e637ffeb034c34ea0c6233e01f287d23ce060e5"
+    },
+    "html": {
+      "bytes": 503862,
+      "file": "holla/finder/fade-executor-burst-end/120x40/none.html",
+      "sha256": "159429b5b52deaf13d33e32f327099187d29accdfa57da5cbb5d59fe9594906e"
+    },
+    "observations_json": {
+      "bytes": 472,
+      "file": "holla/finder/fade-executor-burst-end/120x40/none.observations.json",
+      "sha256": "173b60e0cd082cca9ff8a5cc166f18b49df254d374aae92d61d692868ee6f959"
+    },
+    "png": {
+      "bytes": 355073,
+      "file": "holla/finder/fade-executor-burst-end/120x40/none.png",
+      "sha256": "6f179c34f484558fc06c12b2bd1daa9ea52f97e5c909fbc747f414fc3a6e451a"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/fade-executor-burst-end/120x40/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 5042,
+      "file": "holla/finder/fade-executor-burst-end/120x40/none.txt",
+      "sha256": "737d83ec863dc85ff8cd1a9c14e0e5bf5bd09c262392df866237c20f8c9bef95"
+    }
+  },
+  "ascii_substitutions_count": 393,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 7068772210347895211,
+  "frame_sha256": "9538ca6dabd5cc1b7a7983ac5e637ffeb034c34ea0c6233e01f287d23ce060e5",
+  "generation": "73c2a619526122ebcea4606f6c8bc16fe13de23650fd7a4195b79e8ef6dfe035",
+  "html_sha256": "159429b5b52deaf13d33e32f327099187d29accdfa57da5cbb5d59fe9594906e",
+  "legacy_name": "holla/fade/executor_burst-end/120x40/none",
+  "name": "holla/finder/fade-executor-burst-end/120x40/none",
+  "png_sha256": "6f179c34f484558fc06c12b2bd1daa9ea52f97e5c909fbc747f414fc3a6e451a",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:18Z",
+  "txt_sha256": "737d83ec863dc85ff8cd1a9c14e0e5bf5bd09c262392df866237c20f8c9bef95"
+}

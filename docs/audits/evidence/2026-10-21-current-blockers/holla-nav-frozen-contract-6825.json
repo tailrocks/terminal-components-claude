@@ -1,0 +1,87 @@
+{
+  "status": "Read-only architecture decision. No source edits, tests, captures, keys, or reference changes.",
+  "candidate": "6825b07e86bab75872866c6ed49e6877084db9bb",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "frozen_design_finder_blob": "b2b8621fed6f24473eb689623954564bb6f1be0f",
+  "critical_correction": {
+    "authority": "Frozen and fixed design src/bin/holla/screens/finder.rs are byte-identical. Frozen ordinary Finder labels and headings start at row.x+3, not candidate paint_action x+2.",
+    "exclude": "Do not add icon_width(0) to reproduce candidate Home paint_action. Do not extract its warning triangle, inline scope, reason_width+24 admission, ten-cell middle scope budget, or right-aligned reason as baseline contracts. They do not occur in the frozen Finder row renderer.",
+    "candidate_specific_defect": "home.rs:635 tag_columns is also not the frozen solver. Candidate min(max_label,36%width).max(14) differs from frozen min(max_label,max(36%width,14)) for labels shorter than14; candidate shrinks label to retain reason, frozen drops reason first."
+  },
+  "path_evidence": [
+    "Frozen src/bin/holla/screens/finder.rs:793-1022: real Finder control, scroll content, all-item column measurement, heading, item, Explore and scrollbar rendering.",
+    "Frozen finder.rs:829-874: row width loses one only on overflow; content width=row_width-4. label ideal/min=min(max_label,max(content_width*36/100,14)), max=max_label; kind and scope intrinsic fixed widths; reason min/ideal12, flex1, max65535, drop priority1; optional intrinsic fixed risk column; gap2.",
+    "Frozen finder.rs:880-945: heading origin+3; Explore row fill/cursor plus genuine separately clickable chips; ordinary row selected marker+1 and label+3.",
+    "Frozen finder.rs:945-1009: matched label byte indices, hidden-label faint ink, nonbold metadata, scope-specific tone, separator-aware reason truncation, cut reveal, right risk at row.right-risk_width-1.",
+    "Frozen src/widgets/nav_list.rs:314-401: sidebar header+3, icon+3, label+5, badge ends at row.right-1; row width always area.width-1, collapsed icon+3.",
+    "Candidate crates/termrock-navigation/src/nav_list.rs:951-984: gutter1, marker1, icon1, content_gap. content_gap(0) already provides Holla origin+3, empty icon occupies+2; no prefix API needed for Holla.",
+    "Candidate nav_list.rs:923-948: HEADER currently owns both full-row fill and text; section slots replace whole header.",
+    "Candidate crates/termrock-runtime/src/rowui.rs:741-776: meta/trailing are right-oriented remaining-width algorithms, not measured table columns; :1118-1206 ColumnsUi only fixed/flex/auto distributed sizes, no intrinsic dataset/drop-priority policy.",
+    "Candidate crates/termrock-navigation/src/item.rs:96-370: ItemColumns has private four-column solver and Picker-specific45% label geometry. It is not Holla Finder schema and must not receive Holla flags.",
+    "Candidate crates/holla-ui/src/screens/home.rs:267-295 early presentation selector, :319-322 render_row plus section retint, :464-531 private ordinary painter.",
+    "Candidate crates/showcase-demos/src/pages/sidebars.rs:306-358 erases real NavList then paints fixed NAV_SLOTS; correcting hidden builder does not demonstrate capability."
+  ],
+  "decisions": {
+    "header": "Retain prior header_text_patch contract: Option<&StylePatch>, defaultNone, forward through key/row builders. HEADER remains background/default text and whole-header slot. Without slot, canonical HEADER resolution with existing global/part patches first and text patch last. None byte-identical; no new Part, registry target or input behavior. Holla uses frozen Heading muted/no-bold ink; Showcase uses frozen sidebar faint ink. Do not blindly bless current TAG_GREY as universal theme recipe.",
+    "prefix": "Holla: existing header_indent(3), content_gap(0), no icon callback, CursorStyle::Fill. Showcase: additive marker_gap(u16), default0, requested1, yields marker at+1, blank+2, icon+3, content gap1, label+5; same gap applies collapsed icon. Propagate into measurement and clipping. Do not shift GUTTER or MARKER themselves.",
+    "columns": "Add one general intrinsic column solver to termrock-layout, using frozen Col algorithm semantics: min/ideal/max/flex/drop-priority and visible-only gaps. Factor the existing private ItemColumns solver onto it only with exact default parity proof; do not create a second solver or widen Picker schema for Holla.",
+    "consumer_adapter": "Navigation owns an additive measured-column row adapter above RowUi. Data projection yields borrowed text, match indices, semantic style patch and overflow policy per named column. Policy declares intrinsic/fixed/flex sizes, preferred relative cap and drop priority. Library measures every displayed logical item before clipping, solves once per layout, then feeds resolved widths to existing RowUi column cells; apps do not calculate widths/Rects. For Holla label cap is36%, floor14 then capped by intrinsic maximum; reason minimum12/flex1/drop1; gap2 and trailing reserve1. These numbers are explicit layout policy, not viewport whitelist.",
+    "overflow": "Expose only consumed generic cell overflow policies: end ellipsis, separator-preserving truncation, middle truncation where another real consumer needs it. Use termrock-text grapheme/cell tools and existing reveal services. Do not reuse CellUi.text raw clipping where frozen ellipsis/reveal is required; label_matched currently has ellipsis but reason does not.",
+    "gutter": "Scrollbar space policy is distinct from row prefix. Holla overflow-only existing policy; Showcase frozen reserves the last column even without overflow. Add a documented stable scrollbar gutter option to shared ScrollRegion/NavList only when migrating Showcase, defaultAuto unchanged. Do not emulate by app-side Rect subtraction or reserve twice on overflow.",
+    "ownership": "Holla owns rank/catalogue/query domain projections, kind/scope/risk labels, row ordering and actions. Termrock owns row/header geometry, measured columns, clipping, cursor/selection/hover/press styles, hit rows, scroll state, and reveal behavior. No whole World/App passed to components."
+  },
+  "staged_plan": [
+    {
+      "step": 1,
+      "scope": "Header text style-only API and ordinary Holla section-retint deletion. No claim tag paths or whole Home migrated.",
+      "owned_files": [
+        "crates/termrock-navigation/src/nav_list.rs",
+        "crates/termrock-navigation/tests/* focused new header test",
+        "crates/holla-ui/src/screens/home.rs",
+        "public catalog and existing coverage declarations"
+      ],
+      "proof": "DefaultNone full cells unchanged; active/inactive four profiles; HEADER background remains independent; explicit Set/Clear/modifier precedence; HEADER slot wins; headers gain no hits. Holla existing ordinary-path header cells must match frozen Heading recipe, not candidate approval."
+    },
+    {
+      "step": 2,
+      "scope": "Shared intrinsic column solver and measured navigation adapter, external consumer with different labels/data. Keep current default APIs unchanged.",
+      "owned_files": [
+        "crates/termrock-layout/src new columns module and lib export",
+        "crates/termrock-navigation/src measured column adapter",
+        "crates/termrock-runtime/src/rowui.rs only consumed cell overflow adapters",
+        "crates/termrock-text/src only if shared truncation contract absent",
+        "focused public consumer target"
+      ],
+      "proof": "Exhaustive small-width solver differential against frozen pure algorithm, especially drop ties, zero columns/width, short max_label<14, gap recalculation and oversized minima. Public consumer changed order/labels, Unicode, empty/large data; no measurement effects. Before revision must fail expected geometry/cell assertions using compatibility adapter or equivalent old API."
+    },
+    {
+      "step": 3,
+      "scope": "Migrate Showcase existing Sidebars through actual NavList with marker gap and stable gutter, remove fill-after-draw/NAV_SLOTS/private item painter. Second real consumer proves prefix/header/state API.",
+      "owned_files": [
+        "crates/termrock-navigation/src/nav_list.rs",
+        "crates/termrock-runtime/src/scroll_region.rs if stable gutter missing",
+        "crates/showcase-demos/src/pages/sidebars.rs",
+        "existing catalog/coverage/tests"
+      ],
+      "proof": "Paired real CLI frozen versus candidate across full/collapsed, badges, disabled, selected/focused/inactive, scroll, adjacent widths; actual shared hit rows align; inert state specimens retain genuine component renderer. Do not add screens."
+    },
+    {
+      "step": 4,
+      "scope": "Holla Finder ordinary item/header path uses measured adapter and semantic real catalogue/ranking. Remove paint_action/tag_columns/presentation selector only when same live model covers their flows.",
+      "owned_files": [
+        "crates/holla-ui/src/screens/home.rs",
+        "crates/holla-ui/src/screens/catalogue.rs domain projection boundary only",
+        "Holla domain/ranking files only if required baseline data missing"
+      ],
+      "proof": "Paired actual binaries frozen capture/replay/candidate after every input/resize/time checkpoint; separate domain ranking/order outcomes. Do not accept existing candidate hash fixtures."
+    }
+  ],
+  "full_home_blockers": [
+    "Frozen rows include explicit Blank, Heading and Explore cell-strip rows in addition to Items. Current section callback alone does not prove exact arbitrary row ordering or independently clickable Explore chips. A shared row-strip/collection-slot contract must preserve parent navigation and child activation before deleting all Home bypasses; no app-local hit routing.",
+    "Frozen step logic includes heading-context scroll reveal when cursor lands immediately below heading. Current NavList scroll behavior must be compared before claiming functional parity.",
+    "Frozen Holla row ink and current shared highlight recipes require independent per-profile rendered proof; a geometry-only patch is insufficient.",
+    "Existing Holla catalogue data is not established as full frozen ranking/data replacement. Library ownership cannot compensate for missing domain results."
+  ],
+  "validation": "Read-only git show/sed/rg inspections. No Rust tests or real-CLI captures run in this assignment. Proposed API signatures are contracts, not compiled APIs. No acceptance granted."
+}

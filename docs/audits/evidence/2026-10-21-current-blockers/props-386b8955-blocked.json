@@ -1,0 +1,44 @@
+{
+  "commit": "386b895597b220d949304e506bd5c629792b8b25",
+  "decision": "BLOCKED",
+  "prior_findings": {
+    "PS1": "PASS unchanged external hint bounds",
+    "PS2": "PASS unchanged external bottom bounds; newly introduced continuation regression below",
+    "PS3": "PASS unchanged per-row hint-width probe",
+    "PS4": "PASS unchanged full-label probe",
+    "PS5": "PASS separate canonical qualified probe; original two raw-color probes retain Mono expectation defect"
+  },
+  "findings": [
+    {
+      "id": "PS6",
+      "priority": "P1",
+      "file": "crates/termrock-controls/src/props.rs",
+      "line": 996,
+      "problem": "Clipping value_area before paint_value restarts wrapped text at clipped y; affects default Columns and Sheet. Preserve logical wrapping geometry and apply independent draw clipping.",
+      "evidence": "Unchanged default480:96 checkpoints drift,696 inside-host cells. host(2,1,8,4), Down: value rows e /tw/o become on/e /tw. Identical focus/cursor/ScrollState. Independent real-widget continuation probe GREEN e4, RED386."
+    },
+    {
+      "id": "PS7",
+      "priority": "P2",
+      "file": "crates/termrock-controls/src/props.rs",
+      "line": 928,
+      "problem": "Hardcoded RowUi container clear_fg scoped patch overrides explicit consumer CONTAINER.set_fg. LABEL.clear_fg inherits unrelated backdrop instead of configured container ink.",
+      "evidence": "Real Scene underlayMagenta, CONTAINER Cyan, LABEL Clear: expectedCyan, actualMagenta. Same unchanged external probe GREEN e4, RED386. RowUi merge order rowui.rs334 proves cause."
+    }
+  ],
+  "checks": {
+    "original9_plus_author5": "12PASS2FAIL; two original rawBlue Mono expectations fail; preserved",
+    "qualified_v2": "1PASS2FAIL0SKIP386;2PASS1FAIL0SKIPe4; style bug reverses independently",
+    "default480": "capture command exit0 is not comparison pass; 96/480 differ",
+    "native": "345PASS0SKIP Controls/Runtime libs,props_sheet_regressions,rowui_glyph_contract",
+    "strict_clippy": "PASS Controls/Runtime libs -Dwarnings",
+    "scoped_fmt": "PASS Controls/Runtime"
+  },
+  "reference_qualification": {
+    "old_canonical480": "da95cef52b6b93438596bf232d42c54a247459b6d688636cb86dd2263f33a53e",
+    "new_canonical480": "258547e360dd0a5eb6499e2072ff5a87537a2028a4116f794714b3a3fd51d089",
+    "mono": "Role::Custom uses downgrade_color; Blue=>Black,Cyan=>Reset; bind_role returnsNone forReset, preserving underlay. Separately named v2 probe follows canonical source. Original probes unchanged.",
+    "baseline": "Frozen416 source inspected: rows wraps before render; modern Columns fixture proves source compatibility, not direct frozen application parity."
+  },
+  "scope": "No product source edits, author worktree untouched. Existing RowUi constructors unchanged; no new input stack, measurement effects, domain effects, unsafe, concurrency changes observed. Full application parity and workspace gate not claimed. Reviewer copy restored386;1301preexisting target deletions retained."
+}

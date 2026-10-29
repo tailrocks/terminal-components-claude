@@ -1,0 +1,27 @@
+{
+  "schema": "termrock-paired-source-publication/v1",
+  "candidate": {
+    "commit": "f0a05fa55d4fd09b19be63d51f512d4c32076f67",
+    "tree": "d5261e5be9bb2d9bcc57c2c02c89b05b742f4d06"
+  },
+  "reference": {
+    "commit": "48e67af8511d4883759c97e384080fcb2b112c7a",
+    "tree": "acabf72a502aefbaaa715fc2e38ece3de1bb3254"
+  },
+  "suite_sha256": "b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d",
+  "common_package_tree": "c962085b9c9e6b80ddba31d8c82e01c8d2e97179",
+  "push_tool": "519177/session18056",
+  "push_completion": "1914d1",
+  "remote_readback": "d5cd9f",
+  "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+  "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "canonical_guard_tool": "cc99e1",
+  "compile_list": {
+    "names": 23,
+    "tests_executed": 0
+  },
+  "paired_run": "NOT_RUN",
+  "corpus": "NOT_ADMITTED",
+  "visibility": "INCOMPLETE",
+  "refactor": "NOT_READY"
+}

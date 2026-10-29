@@ -1,0 +1,24 @@
+  #  TablePro  Production  ? production  acme_prod ? public  v safe  .  ? help
+
+  ? Query 1 x                                                               +
+ ??????????????----------------------------------------------------------------
+ ? +- Query 1 ----------------------------------------------------------------+
+   |   Run   Run all   Explain                                                |
+ E+--------------------------------------------------------------------------+|
+ x| Safe Mode . this connection                                              ||
+ p|    Silent            Writes run without asking. Destructive s.           ||
+ l|    Alert             Every write asks for confirmation before.           ||
+ o|    Alert (Full)      Every statement, reads included, asks fo.           ||
+ r|  ? Safe Mode         Writes ask for confirmation and a delibe. current   ||
+ e|    Safe Mode (Full)  Every statement asks for confirmation an.           ||
+ r|    Read-Only         Writes are refused. Reads and exports st.           ||
+  |                                                                          ||
+  | ^v Move . Enter Set level . Esc Keep . levels are saved to the connecti. ||
+  +--------------------------------------------------------------------------+|
+   |                                                                          |
+   |                                                                          |
+   |                                                                          |
+   |                                                                          |
+   +--------------------------------------------------------------------------+
+
+ ^v Move  Enter Choose  Esc Cancel                    v Connected to Production

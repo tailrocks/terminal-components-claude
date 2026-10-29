@@ -1,0 +1,106 @@
+{
+  "schema": "termrock.independent-button-disabled-focusability-review.v1",
+  "reviewer": "/root/button_theme_contract_review",
+  "candidate": "05875f028f27b45805805b0529cd8b66b2dd1051",
+  "parent": "6509b91e721057b9d5ec4f5c998ded752f29066c",
+  "candidate_button_blob": "d155106a98f0d2f6846ffdcd102ab1f7de6d4f60",
+  "parent_button_blob": "4430953525bdae883c97450d810c755abf658679",
+  "original_finding_packet": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/button-focusability-independent-review-6509b91e.json",
+    "sha256": "08c96c71134e22c8b6909b4c972e84fffe2d0a11b69222c5a2bd2dd42bfe01cb"
+  },
+  "decision": "Bounded correction CLEARED. Both previously failing current-policy Disabled activation probes now pass unchanged. No new required finding in this correction. Entire new Focusability API/catalog/Showcase acceptance remains incomplete.",
+  "source_review": {
+    "effective_disabled_owner": "One private predicate self.disabled || focusability == Disabled; can_activate, derived disabled state/registration and draw eligibility use it.",
+    "already_routed_intents": "Both keyboard Binding and pointer Click/DoubleClick eligibility check current effective Disabled policy before returning Activated. DuringUpdate regressions change policy before Button consumes the real already-routed intent.",
+    "autofocus": "Disabled and ClickOnly policies skip autofocus; explicit disabled still cannot focus. Effective predicate also guards actual focus action.",
+    "drawing": "Disabled publishes Disabled registration, strips hover/press/focused/focus-visible styling, publishes no activation bindings. Rendered noninert disabled control retains its area; inert references register no hit/focus owner.",
+    "click_only": "Still pointer-hit-testable/activatable, no keyboard Binding activation or traversal, no focus marker. Actual default remains Focusable.",
+    "compatibility": "No public signature removal, Theme/dependency changes, raw new geometry, second renderer/input system, replay mechanisms or expected frame edits. Private const functions became ordinary private functions only. Existing inherited-form cloning retains focusability.",
+    "native_test_diff": "Existing ClickOnly test changes helper storage from bool to shared enum without changing its expected interaction results; adds four real-widget regressions. No snapshots/bless or weakened expectations."
+  },
+  "verification": {
+    "unchanged_external19": "19/19 passed, zero skipped. native_contract SHA afe1233253910676265bf730589018fe7d41d09fe6f352074d2f6ee6dc75114d and policy_edges SHA c043f8764f53715e31840cf1b37c91d54eb5771f577955f9e03df68463d4b69f match original independent packet byte-for-byte.",
+    "before_evidence": "Independently read and hash-verified original exact6509 raw log5a303695...:17pass2fail, current-policy keyboard and pointer each activated1 instead of0. This review did not rerun6509; uses retained independently recorded RED evidence plus exact unchanged probe bytes.",
+    "supplemental_public": "Additional one public test covers4profiles x explicitDisabled/policyDisabled x live/inert focused+focus-visible+hovered+pressed reference states: no autofocus/focus ring/gutter; live area remains, inert area absent. Passed. Combined external20/20 zero skips.",
+    "native_alltargets": "termrock-controls149/149 passed, zero skipped; includes16 button_contract tests.",
+    "strict_clippy": "cargo clippy -p termrock-controls --all-targets --offline -- -Dwarnings passed.",
+    "fmt": "cargo fmt -p termrock-controls --check passed.",
+    "diff_check": "git diff --check6509..058 passed."
+  },
+  "coverage_limits": [
+    "No new catalog or Showcase capability demonstration of focusability option; existing stated APIcapability gap remains required work.",
+    "FocusableReadOnly-specific Button semantics and dynamic reenabling autofocus policy are not separately approved by this bounded correction.",
+    "No Dialog adoption, full applications, paired frozen CLI comparison, full Theme/workspace/hosted CI acceptance.",
+    "Known palette/focus/other Button findings remain separate; do not infer their clearance from this controls-only run."
+  ],
+  "evidence_logs": [
+    {
+      "path": "/private/tmp/termrock-button-focusability-6509-policy-final.log",
+      "sha256": "5a3036953a6e6ad8ecc8bc5ef12989feb984c0c99c5349225302efaecbcc41c3",
+      "run_ids": [
+        "7b414580-0a8c-4dfd-bb77-c070a33f4cef"
+      ],
+      "summaries": [
+        "     Summary [   0.223s] 19 tests run: 17 passed, 2 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-058-independent-public.log",
+      "sha256": "98b8d9a99c5a35ad547ea783a69c59745560379564b68e77752d9b56c2599f04",
+      "run_ids": [
+        "7d96bf81-9a9b-49e5-a9b2-91dd22404528"
+      ],
+      "summaries": [
+        "     Summary [   0.058s] 20 tests run: 20 passed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-058-independent-controls.log",
+      "sha256": "9bb69a881f8663e6d30370a747390a4547135e06b0ef6b01b778801e1b1929f1",
+      "run_ids": [
+        "471873ba-4c6e-4027-9673-5aa4651806bf"
+      ],
+      "summaries": [
+        "     Summary [   0.646s] 149 tests run: 149 passed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/button-058-independent-clippy.log",
+      "sha256": "ed06d4fd4d017d274e85dbcb88cb0d81d5ac892756241294a20077b3b0b28ce0",
+      "run_ids": [],
+      "summaries": []
+    },
+    {
+      "path": "/private/tmp/button-058-independent-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run_ids": [],
+      "summaries": []
+    }
+  ],
+  "probe_sources": [
+    {
+      "path": "/private/tmp/button-058-independent-probes/tests/disabled_projection.rs",
+      "sha256": "0e6d7ae9bc0e7310a13498f5eaffa2acb577d70fd943146365824f90b4471085"
+    },
+    {
+      "path": "/private/tmp/button-058-independent-probes/tests/native_contract.rs",
+      "sha256": "afe1233253910676265bf730589018fe7d41d09fe6f352074d2f6ee6dc75114d"
+    },
+    {
+      "path": "/private/tmp/button-058-independent-probes/tests/policy_edges.rs",
+      "sha256": "c043f8764f53715e31840cf1b37c91d54eb5771f577955f9e03df68463d4b69f"
+    }
+  ],
+  "custody": {
+    "review_copy": "/private/tmp/termrock-button-9cf76-review",
+    "review_head": "05875f028f27b45805805b0529cd8b66b2dd1051",
+    "dedicated_target": "/private/tmp/button-058-independent-target",
+    "preexisting_target_deletions": 1301,
+    "other_dirty_paths": [],
+    "author_copy_touched": false,
+    "source_edits": false,
+    "helpers_spawned": false,
+    "remote_or_reference_operations": false
+  }
+}

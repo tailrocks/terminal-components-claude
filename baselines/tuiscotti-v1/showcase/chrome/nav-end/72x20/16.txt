@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Foundations / Overview   i Inspector   ? Help
+
+   Tables         │  Overview  Tokens and principles behind every comp…
+   Editable tabl… │
+   Panels         │    Tokens
+   Sidebars       │
+   Dialogs        │        ▏ canvas               ▏ text.muted
+   Progress       ┃        ▏ surface              ▏ text.faint
+   Scrolling      ┃        ▏ surface.elevated     ▏ accent
+   Terminal       ┃        ▏ surface.overlay      ▏ accent.hover
+   Code editor    ┃
+   Diff           ┃
+   Data grid      ┃    State language
+   Chips & selec… ┃
+   Pickers        ┃    ▎  focus
+   Chrome         ┃    ░  hover lifts the surface
+   Settings       ┃    ›  current / chosen
+▎  Task runner    ┃
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                      acme · mise monorepo  mbp · local
+
+      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×                                   2›
+ ────━━━━━━━───────────────────────────────────────────────────────────────────────────────────────
+   Search actions and resources…                                                    scope ‹ here ›
+
+    Suggested h╭────────────────────────────────────────────────────────────────────╮             ┃
+    Follow acme│ Activities                                                  4 live │             ┃
+    Inspect 10 │ ▎⠋ frontend dev                 running · child · 3 s  activities  │             ┃
+    Install mis│  ⠋ api dev                      running · child · 3 s              │             ┃
+    Review clea│  ✓ api tests                    succeeded · project ·…             │             ┃
+  › Deploy prev│  ⠋ logs · api worker scheduler  running · here · 3 s               │             ┃
+               │  ○ btm                          detached · host · 3 s              │             ┃
+    Recent here│                                                                    │             ┃
+    nothing use│                                                                    │             ┃
+               ╰────────────────────────────────────────────────────────────────────╯             ┃
+    Running                                                                                       ┃
+    logs · api worker scheduler        activity  here   ⠋ running · 3 s                           ┃
+    api dev                            activity  child  ⠋ running · 3 s                           ┃
+    btm                                activity  host   ⠋ detached · 3 s                          ┃
+    frontend dev                       activity  child  ⠋ running · 3 s                           ┃
+                                                                                                  ┃
+    Explore                                                                                       ┃
+     Tasks   Git   Files   Disk   Services   System                                               ┃
+    Children · 3 projects              explore   child  3 child projects discovered               │
+
+    → tools/deploy-preview.sh --env preview · here · mutating
+
+ ~/work/acme   main   ↑1                                          ⠋ 4 running    truecolor · 100×30
+                                ↑↓ Move  Enter Switch  Esc Cancel       api tests finished · exit 0

@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help       ! instance index unreadable  ▲ daemon stale
+
+ ╭─ Workspaces ────────────────────────────────────── 3 running · 1–11 of 16 ─╮
+ │     Current directory                         saved as payments-platform ┃ │
+ │   ▸ payments-platform                                          1 running ┃ │
+ │╭──────────────────────────────────────────────────────────────────────────╮│
+ ││ Launch · choose Agent                  payments-platform › the-architect ││
+ ││ ▎▪ Claude Code  account Claude · Personal · pr… choose at start  agents  ││
+ ││  ▪ Codex        account Codex · Primary · prov… ready                    ││
+ ││  ▪ OpenCode     account OpenCode · Go subscrip… ready                    ││
+ ││  ▪ Grok Build   account Grok · Team · provider… ready                    ││
+ ││                                                                          ││
+ ││                                                                          ││
+ │╰──────────────────────────────────────────────────────────────────────────╯│
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+   Current directory                                              Tab details
+
+   /workspace/payments-platform · 2 mounts · 5 vars
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal
+   ◉ 7f3a  the-architect · Claude Code · running
+
+
+ ▲ Could not confirm running instances: instance index unreadable · entered wi…

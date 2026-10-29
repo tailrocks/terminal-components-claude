@@ -1,0 +1,21 @@
+# nextest @ bea5350ec99b0652335714275fd3f0d078399bca (reviewed tip)
+# cargo nextest run -p showcase-demos -p showcase-ui -p jackin-preview-app -p holla-ui -p holla-sim -p termrock-theme -p termrock-overlays --all-targets
+
+     Summary [ 413.978s] 925 tests run: 912 passed (3 slow), 13 failed, 0 skipped
+        FAIL [   0.085s] (159/925) holla-ui app::tests::menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit
+        FAIL [   0.032s] (211/925) holla-ui::visual holla_visual_baseline
+        FAIL [   1.722s] (436/925) jackin-preview-app::visual jackin_visual_baseline
+        FAIL [   0.737s] (470/925) showcase-ui::app_tests editor_playground_keeps_live_find_completion_and_run_contracts
+        FAIL [   0.152s] (473/925) showcase-ui::app_tests editor_shell_completion_accepts_enter_then_tab_indents
+        FAIL [   0.083s] (474/925) showcase-ui::app_tests editor_shell_completion_accepts_tab_then_next_tab_indents
+        FAIL [   0.067s] (512/925) showcase-ui::page_headings all_page_headings_match_the_reference_capture_matrix
+        FAIL [   0.031s] (514/925) showcase-ui::page_headings all_shell_headers_match_reference_captures_and_visibility_thresholds
+        FAIL [   0.087s] (540/925) showcase-ui::visual showcase_visual_baseline
+        FAIL [   0.029s] (606/925) termrock-overlays picker::tests::query_field_resolves_picker_family_theme_and_part_patch
+        FAIL [   0.024s] (633/925) termrock-overlays::context_menu_danger_profile disabled_active_danger_profile_returns_to_popover_surface
+        FAIL [   0.196s] (645/925) termrock-overlays::context_menu_danger_profile keyboard_active_danger_row_uses_frozen_background_ladder
+        FAIL [   1.181s] (906/925) termrock-theme::empty_style_inheritance standalone_empty_cells_match_pre_inheritance_reference
+error: test run failed
+
+# clippy: cargo clippy --all-targets -p <the seven crates> -> no warnings, no errors
+# fmt: cargo fmt --check -p <the seven crates> -> exit 0, no diff

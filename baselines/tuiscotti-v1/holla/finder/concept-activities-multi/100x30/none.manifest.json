@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "b12816af4c0914072e7bb5fae3022dbbc3fa66b5e576dfd6a824b94c4d2aa7ac",
+  "artifacts": {
+    "ansi": {
+      "bytes": 7325,
+      "file": "holla/finder/concept-activities-multi/100x30/none.ansi",
+      "sha256": "b12816af4c0914072e7bb5fae3022dbbc3fa66b5e576dfd6a824b94c4d2aa7ac"
+    },
+    "ascii": {
+      "bytes": 2564,
+      "file": "holla/finder/concept-activities-multi/100x30/none.ascii",
+      "sha256": "2bb19c693326bf6e06a9960f78247dbea27b58d1742b9531163ca159c4918fec"
+    },
+    "ascii_loss_json": {
+      "bytes": 14618,
+      "file": "holla/finder/concept-activities-multi/100x30/none.ascii.loss.json",
+      "sha256": "ac9b6640c03add17f2bdc9a4750e36375ea0e067145ac523bb4f4292b9b64e8c"
+    },
+    "frame_json": {
+      "bytes": 697235,
+      "file": "holla/finder/concept-activities-multi/100x30/none.frame.json",
+      "sha256": "e588b5401aa004a764b19b2f7660627d66ab94aa28a6f980155cc48b1d38854b"
+    },
+    "html": {
+      "bytes": 544307,
+      "file": "holla/finder/concept-activities-multi/100x30/none.html",
+      "sha256": "848e3c11392fb99ca2ef921599068d157740f0ecc21860d63bd0574c8f1412bc"
+    },
+    "observations_json": {
+      "bytes": 472,
+      "file": "holla/finder/concept-activities-multi/100x30/none.observations.json",
+      "sha256": "1a46111a791e6b7e75315dc4ee8c188989818e00f963e23aeb33b0b2e745065d"
+    },
+    "png": {
+      "bytes": 393464,
+      "file": "holla/finder/concept-activities-multi/100x30/none.png",
+      "sha256": "520603e6ec1a3c2b1a9a6b2389a327bcd8b8d5033ba4aa95cb39433998dfb436"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/concept-activities-multi/100x30/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2862,
+      "file": "holla/finder/concept-activities-multi/100x30/none.txt",
+      "sha256": "f626f97a0d23835db3eb0268ba92d0e0a508adef802b5353b4e139a4068e7d2d"
+    }
+  },
+  "ascii_substitutions_count": 158,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 573681376408939434,
+  "frame_sha256": "e588b5401aa004a764b19b2f7660627d66ab94aa28a6f980155cc48b1d38854b",
+  "generation": "d15d6f01998d56c5245d36d2df83a52c0820d1da8cf44615fa0cf610619f81b3",
+  "html_sha256": "848e3c11392fb99ca2ef921599068d157740f0ecc21860d63bd0574c8f1412bc",
+  "legacy_name": "holla/concept/activities-multi/100x30/none",
+  "name": "holla/finder/concept-activities-multi/100x30/none",
+  "png_sha256": "520603e6ec1a3c2b1a9a6b2389a327bcd8b8d5033ba4aa95cb39433998dfb436",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:33Z",
+  "txt_sha256": "f626f97a0d23835db3eb0268ba92d0e0a508adef802b5353b4e139a4068e7d2d"
+}

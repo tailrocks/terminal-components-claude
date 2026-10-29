@@ -1,0 +1,7 @@
+{
+  "schema": "tc-proof-architecture-exemption/v1",
+  "binary_names_exemption": {
+    "package": "refactor-proof",
+    "bins": ["tc-proof", "tc-proof-host"]
+  }
+}

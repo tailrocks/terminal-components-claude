@@ -1,0 +1,40 @@
+{
+  "task": "Read-only review of Jackin reduced-color/modal dialog patch. No source edits; no capture roots or shared test data touched.",
+  "reviewed_commit": "adf334b21745b9f713c26275987d09bf22eeda16",
+  "parent": "499cec504c4f3e9005a339d3300ff6b881ca294a",
+  "worktree": "/Users/donbeave/Projects/termrock-worktrees/holla-readonly-42fb861 (detached review copy; no edits)",
+  "source_blobs": {
+    "crates/jackin-preview-app/src/app.rs": "427feecb56ed940be672f9435352a060e92cb4a8",
+    "crates/jackin-preview-app/src/app/launch_cockpit.rs": "63518a818aa2333f646f0be9728e217db653f9b6",
+    "crates/jackin-preview-app/src/app/launch_dialog_plate.rs": "951d16f1b8652ac9ec2919f32525ffd25fc1854c",
+    "crates/termrock-runtime/src/ui/mod.rs": "4253d85dc5a17a055dd4590416a6ecb585c10d0a",
+    "crates/termrock-runtime/src/ui/paint.rs": "d64fa0d899d1155b32a9ebadf9cb53f68216516d",
+    "docs/architecture/termrock-migration-matrix.md": "171ff26dc37d85d97801c735523152a7ad7900d1"
+  },
+  "findings": [
+    {
+      "severity": "blocker: violates product/library ownership gate",
+      "path": "crates/jackin-preview-app/src/app/launch_dialog_plate.rs:16,873,1659-1815 and app.rs:9580-9604",
+      "finding": "The change adds 1,600+ lines of fixed Plate cell/text data for Info and Cancel dialogs, paints them through low-level coordinates/raw RGB, and selects a special path at exactly 120x40 for non-truecolor. It is a production replay/plate path and application-owned rendering, not component composition. It also hardcodes text/content, so changed data, labels, or adjacent size cannot flow through shared components. Do not accept or merge this patch as a reusable-component fix merely because the 120x40 frame matches."
+    },
+    {
+      "severity": "high: semantic provenance destroyed",
+      "path": "crates/termrock-runtime/src/ui/mod.rs:1363-1387",
+      "finding": "recolor_pair always calls mark_area(area,None); CellRoles::patch(None) returns default roles. Thus an identity/no-op recolor erases semantic fg/bg role metadata across the clip. Later layer composition/backdrop decisions that depend on roles change even though visible cell colors did not. Keep roles for unchanged channels/cells; when intentionally translating colors, translate semantic roles explicitly or mark only changed channels as unowned. Add a visible behavior regression through a semantic-role cell -> recolor_pair(identity) -> dim/composite and compare against no recolor."
+    },
+    {
+      "severity": "high: raw palette inference",
+      "path": "crates/termrock-runtime/src/ui/paint.rs:490-558; app/launch_dialog_plate.rs:1730-1815",
+      "finding": "Reduced-color behavior infers semantic surfaces and controls by exact RGB values (`button_rgb`, `blank_black`, hard-coded RGB-to-index maps and text color comparisons). The color-level/NO_COLOR branches are capability handling, but choosing widget meaning from exact resolved ink is not. Alternate theme values or another widget using those colors are misclassified. Carry role/surface/state provenance through the cell/layer and resolve reduced color from semantic tokens; do not duplicate raw-RGB palette conversion in app rendering."
+    },
+    {
+      "severity": "qualification: not a demonstrated defect",
+      "path": "crates/termrock-runtime/src/ui/paint.rs:510-556",
+      "finding": "The implementation assigns DIM as the only modifier in reduced/NO_COLOR backdrop paths, which discards prior modifiers. However, the frozen baseline backdrop implementation (`src/ui/ctx.rs` 658\u2013688 per independent parent inspection) intentionally replaces modifiers with the backdrop result; therefore the prior-modifier loss alone is not a proven parity violation. The adjacent code comment \"NO_COLOR only sets dim\" is ambiguous against this replacement contract. Do not treat as a required fix without a frame-level baseline mismatch; clarify the comment/contract if this branch remains."
+    }
+  ],
+  "prior_packet_comparison": "Requested previous packet external-jackin-dialog-recolor-review-42fb861.json was not present under the specified branch-consolidation evidence directory, so exact delta against it is unavailable. Findings above are direct source evidence at adf334b.",
+  "test_evidence": "This commit changes no test file and adds no regression test for recolor_pair, semantic role preservation, or the new palette mapping. No tests were run in this read-only review. The parent commit contains existing private runtime role/dimming test patterns that can be extended; use the repository rule cargo nextest (never cargo test). A public-consumer-level check can render the role -> identity recolor -> modal/overlay sequence through the normal runtime and assert identical decoded frame/state; alternatively a same-crate regression can assert role metadata and composited cells.",
+  "status": "Review only; exact 120x40 plate is a false-parity/application-painter concern, not approved by visual similarity.",
+  "modifier_qualification": "Updated after parent noted frozen baseline modifier replacement contract; prior packet wording overstated this as a behavior defect."
+}

@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "/Users/donbeave/.cargo/bin/cargo",
+    "nextest",
+    "run",
+    "--locked",
+    "--offline",
+    "--test",
+    "authored_bg",
+    "-E",
+    "test(authored_background_contrast_preserves_explicit_channels)"
+  ],
+  "cwd": "/private/tmp/picker-contrast-c932adb-independent-consumer-20261021",
+  "target": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021",
+  "exit": 0,
+  "timeout": false,
+  "seconds": 3.284575917001348
+}

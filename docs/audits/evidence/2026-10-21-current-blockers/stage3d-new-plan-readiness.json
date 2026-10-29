@@ -1,0 +1,356 @@
+{
+  "schema": "termrock.stage3d.atomic-runner-readiness-review.v1",
+  "reviewer": "/root/runner_atomic_step_architect",
+  "created_at_utc": "2026-10-21T01:45:49.727185+00:00",
+  "decision": "Ready for a separately authorized preparation owner after the canonical guard is published and the migration decision is recorded. No preparation or capture was performed.",
+  "scope": "Read-only source and CLI-help review. This packet is the only created artifact.",
+  "runner": {
+    "path": "/private/tmp/runner-atomic-step-20261021/tools/frozen_baseline.py",
+    "source_commit": "243af5b6e1f54993db4b84aa484c994b61c62623",
+    "sha256": "8c87e4adc6591d693b2ef2819971895d89548876b527410efd6fb8a2957db23b",
+    "blob": "155d58e8f (abbreviated from reviewed diff)"
+  },
+  "project_inputs": {
+    "repo": "/private/tmp/ci-doc-inventory-20261021",
+    "commit": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+    "files": {
+      "tools/frozen_cli_pair.patch": {
+        "sha256": "17de30ad69fea9c7f514cd6530727283637d090958020ebe13a311aad4506ff4",
+        "identical_in_guard_commit": true,
+        "present_in_guard_worktree": true
+      },
+      "tools/frozen-cli-frame-support/src/lib.rs": {
+        "sha256": "d656a3aea96f17ed6e31b237fabdc138d4732a209d3cc4944b08cfcb4681571c",
+        "identical_in_guard_commit": true,
+        "present_in_guard_worktree": false
+      },
+      "tools/frozen_cli_extensions.json": {
+        "sha256": "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8",
+        "identical_in_guard_commit": true,
+        "present_in_guard_worktree": false
+      },
+      "tools/frozen_cli_extensions.rs": {
+        "sha256": "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9",
+        "identical_in_guard_commit": true,
+        "present_in_guard_worktree": false
+      },
+      "tools/frozen_cli_build_cohorts.json": {
+        "sha256": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+        "identical_in_guard_commit": true,
+        "present_in_guard_worktree": true
+      },
+      "tools/frozen_cli_build_cohort_reviews.json": {
+        "sha256": "65d1343138d5c817186bbd9486e6149ef554fc0fd4b3a96bf70cb916f0883718",
+        "identical_in_guard_commit": true,
+        "present_in_guard_worktree": true
+      },
+      "docs/audits/2026-10-21-fresh-baseline-capture-eligibility.json": {
+        "sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+        "identical_in_guard_commit": true,
+        "present_in_guard_worktree": true
+      },
+      "docs/audits/2026-10-21-fresh-baseline-capture-evidence-index.json": {
+        "sha256": "7333d762ddbbc25f7fafbc78fd49fe016358b787123dbfdabce422172121ba2c",
+        "identical_in_guard_commit": true,
+        "present_in_guard_worktree": true
+      },
+      "docs/audits/2026-10-21-fresh-capture-resumable-runner-contract.json": {
+        "sha256": "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb",
+        "identical_in_guard_commit": true,
+        "present_in_guard_worktree": true
+      }
+    }
+  },
+  "proposed_new_paths": {
+    "root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+    "root_absent_at_review": true,
+    "key_custody": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-atomic-run-key-custody",
+    "custody_absent_at_review": true,
+    "key_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-atomic-run-key-custody/run.key"
+  },
+  "fixed_references": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+    "tuiscotti": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "cohort": "frozen-20261021-serial-nonincr-r1-r2",
+    "binary_hashes": {
+      "holla": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf",
+      "jackin-preview": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+      "showcase": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+      "tablepro": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0"
+    }
+  },
+  "source_compatibility": {
+    "supported": "The executing runner is selected by Path(__file__). The explicit --repo supplies the harness patch, helper, extensions, cohort registries, capture review documents and Git baseline objects. Keeping --repo at exact482 while executing the reviewed guard runner is supported by these separate input paths.",
+    "new_root_required": "Plans use a fixed immutable filename, and source/live-source/CARGO_TARGET_DIR paths are root-bound. Official prepare and prepare-live must construct a new root. Do not alias old sources or targets, copy manifests, reuse old authentication keys, or import receipts.",
+    "expected_content_hashes": {
+      "source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+      "live_source_sha256": "74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430",
+      "live_test_tree_sha256": "8429d73b7d32b15b6c9a37a47112bd25f17894a40ff8cd8fd5fd5408ccbcdcca",
+      "snapshots_sha256": "6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8",
+      "visual_test_tree_sha256": "bdd772e6d049efd700912bc5d7b4464d11bb80e69a5d18b0f175b9421546af05"
+    },
+    "compiled_driver": "The test-driver source and inventory must match482. A new-location test executable is independently built and inventoried; its bytes are not asserted identical without measurement."
+  },
+  "inventory": {
+    "visual_cases": 29069,
+    "ordinary_cases": 20,
+    "chunk_size": 32,
+    "capture_chunks": 910,
+    "replay_chunks": 910,
+    "sha256": "f98b90a93e3d45438be49eca4962ebbdbd83624ba7738ad448d783bb3046135f",
+    "case_removal_allowed": false
+  },
+  "environment": {
+    "recipe": "Use the controlled preparation environment and exact selected tools. Record fresh observations rather than copying old fingerprints. Only the new root-bound target path is an intended environment difference.",
+    "tools": "Python3.15.0; Cargo/Rust1.99.1; LLVM23.1.1; nextest0.9.148. Verify actual paths, binary hashes and compiler/linker observations against the old controlled recipe.",
+    "terminal": "Do not supply --term-profile. Retain harness-default profile with inherited runner TERM=xterm-ghostty and child TERM=xterm-256color, subject to exact environment verification.",
+    "fonts": {
+      "name": "pinned-tuiscotti-VENDORED_FACES",
+      "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+    },
+    "clocks": {
+      "extension_cases": {
+        "TUISCOTTI_FIXED_TIME": "2026-01-01T00:00:00Z"
+      },
+      "original_cases": "use only the clock policy declared by the pinned frozen scenario harness"
+    },
+    "all_commands_same_environment": true
+  },
+  "stages": [
+    {
+      "stage": 1,
+      "argv": [
+        "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+        "/private/tmp/runner-atomic-step-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/private/tmp/ci-doc-inventory-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+        "--timeout",
+        "200",
+        "prepare"
+      ],
+      "execution_status": "NOT EXECUTED",
+      "supervision": "A separately reviewed external process supervisor must bound total execution plus cleanup to220seconds. Official timeout200seconds is not itself an inclusive process deadline. Use exclusive per-stage logs."
+    },
+    {
+      "stage": 2,
+      "argv": [
+        "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+        "/private/tmp/runner-atomic-step-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/private/tmp/ci-doc-inventory-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+        "--timeout",
+        "200",
+        "prepare-live",
+        "--fresh-cohort",
+        "frozen-20261021-serial-nonincr-r1-r2",
+        "--baseline-bin-dir",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin"
+      ],
+      "execution_status": "NOT EXECUTED",
+      "supervision": "A separately reviewed external process supervisor must bound total execution plus cleanup to220seconds. Official timeout200seconds is not itself an inclusive process deadline. Use exclusive per-stage logs."
+    },
+    {
+      "stage": 3,
+      "argv": [
+        "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+        "/private/tmp/runner-atomic-step-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/private/tmp/ci-doc-inventory-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+        "--timeout",
+        "200",
+        "verify-live",
+        "--fresh-cohort",
+        "frozen-20261021-serial-nonincr-r1-r2",
+        "--baseline-bin-dir",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin"
+      ],
+      "execution_status": "NOT EXECUTED",
+      "supervision": "A separately reviewed external process supervisor must bound total execution plus cleanup to220seconds. Official timeout200seconds is not itself an inclusive process deadline. Use exclusive per-stage logs."
+    },
+    {
+      "stage": 4,
+      "argv": [
+        "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+        "/private/tmp/runner-atomic-step-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/private/tmp/ci-doc-inventory-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+        "--timeout",
+        "200",
+        "fresh-plan",
+        "--cohort",
+        "frozen-20261021-serial-nonincr-r1-r2",
+        "--baseline-bin-dir",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin",
+        "--chunk-size",
+        "32"
+      ],
+      "execution_status": "NOT EXECUTED",
+      "supervision": "A separately reviewed external process supervisor must bound total execution plus cleanup to220seconds. Official timeout200seconds is not itself an inclusive process deadline. Use exclusive per-stage logs."
+    },
+    {
+      "stage": 5,
+      "argv": [
+        "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+        "/private/tmp/runner-atomic-step-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/private/tmp/ci-doc-inventory-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+        "--timeout",
+        "200",
+        "verify-fresh-plan",
+        "--cohort",
+        "frozen-20261021-serial-nonincr-r1-r2",
+        "--baseline-bin-dir",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin",
+        "--expected-plan-sha256",
+        "<NEW_EXTERNAL_CREATION_FILE_SHA256>"
+      ],
+      "execution_status": "NOT EXECUTED",
+      "supervision": "A separately reviewed external process supervisor must bound total execution plus cleanup to220seconds. Official timeout200seconds is not itself an inclusive process deadline. Use exclusive per-stage logs."
+    },
+    {
+      "stage": 6,
+      "argv": [
+        "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+        "/private/tmp/runner-atomic-step-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/private/tmp/ci-doc-inventory-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+        "--timeout",
+        "200",
+        "fresh-run-init",
+        "--cohort",
+        "frozen-20261021-serial-nonincr-r1-r2",
+        "--baseline-bin-dir",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin",
+        "--expected-plan-sha256",
+        "<NEW_EXTERNAL_CREATION_FILE_SHA256>",
+        "--key-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-atomic-run-key-custody/run.key"
+      ],
+      "execution_status": "NOT EXECUTED",
+      "supervision": "A separately reviewed external process supervisor must bound total execution plus cleanup to220seconds. Official timeout200seconds is not itself an inclusive process deadline. Use exclusive per-stage logs."
+    },
+    {
+      "stage": 7,
+      "argv": [
+        "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+        "/private/tmp/runner-atomic-step-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/private/tmp/ci-doc-inventory-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+        "--timeout",
+        "200",
+        "fresh-run-verify",
+        "--cohort",
+        "frozen-20261021-serial-nonincr-r1-r2",
+        "--baseline-bin-dir",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin",
+        "--expected-plan-sha256",
+        "<NEW_EXTERNAL_CREATION_FILE_SHA256>",
+        "--key-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-atomic-run-key-custody/run.key"
+      ],
+      "execution_status": "NOT EXECUTED",
+      "supervision": "A separately reviewed external process supervisor must bound total execution plus cleanup to220seconds. Official timeout200seconds is not itself an inclusive process deadline. Use exclusive per-stage logs."
+    },
+    {
+      "stage": 8,
+      "argv": [
+        "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+        "/private/tmp/runner-atomic-step-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/private/tmp/ci-doc-inventory-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+        "--timeout",
+        "200",
+        "fresh-run-advance",
+        "--cohort",
+        "frozen-20261021-serial-nonincr-r1-r2",
+        "--baseline-bin-dir",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin",
+        "--expected-plan-sha256",
+        "<NEW_EXTERNAL_CREATION_FILE_SHA256>",
+        "--key-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-atomic-run-key-custody/run.key",
+        "--expected-ordinal",
+        "0",
+        "--expected-phase",
+        "baseline-capture"
+      ],
+      "execution_status": "NOT EXECUTED",
+      "supervision": "A separately reviewed external process supervisor must bound total execution plus cleanup to220seconds. Official timeout200seconds is not itself an inclusive process deadline. Use exclusive per-stage logs."
+    }
+  ],
+  "help_evidence": {
+    "prepare": {
+      "exit_status": 0,
+      "stdout": "usage: frozen_baseline.py prepare [-h]\n\noptions:\n  -h, --help  show this help message and exit\n"
+    },
+    "prepare-live": {
+      "exit_status": 0,
+      "stdout": "usage: frozen_baseline.py prepare-live [-h] [--fresh-cohort FRESH_COHORT]\n                                       [--baseline-bin-dir BASELINE_BIN_DIR]\n\noptions:\n  -h, --help            show this help message and exit\n  --fresh-cohort FRESH_COHORT\n                        explicit reviewed fresh-capture cohort; bypasses\n                        legacy build.json/tuple approval path\n  --baseline-bin-dir BASELINE_BIN_DIR\n                        sealed application directory required with --fresh-\n                        cohort\n"
+    },
+    "verify-live": {
+      "exit_status": 0,
+      "stdout": "usage: frozen_baseline.py verify-live [-h] --fresh-cohort FRESH_COHORT\n                                      --baseline-bin-dir BASELINE_BIN_DIR\n\noptions:\n  -h, --help            show this help message and exit\n  --fresh-cohort FRESH_COHORT\n  --baseline-bin-dir BASELINE_BIN_DIR\n"
+    },
+    "fresh-plan": {
+      "exit_status": 0,
+      "stdout": "usage: frozen_baseline.py fresh-plan [-h] --cohort COHORT\n                                     --baseline-bin-dir BASELINE_BIN_DIR\n                                     [--chunk-size CHUNK_SIZE]\n                                     [--term-profile {dumb,linux,unset,xterm-256color}]\n\noptions:\n  -h, --help            show this help message and exit\n  --cohort COHORT\n  --baseline-bin-dir BASELINE_BIN_DIR\n  --chunk-size CHUNK_SIZE\n  --term-profile {dumb,linux,unset,xterm-256color}\n"
+    },
+    "verify-fresh-plan": {
+      "exit_status": 0,
+      "stdout": "usage: frozen_baseline.py verify-fresh-plan [-h] --cohort COHORT\n                                            --baseline-bin-dir BASELINE_BIN_DIR\n                                            --expected-plan-sha256 EXPECTED_PLAN_SHA256\n\noptions:\n  -h, --help            show this help message and exit\n  --cohort COHORT\n  --baseline-bin-dir BASELINE_BIN_DIR\n  --expected-plan-sha256 EXPECTED_PLAN_SHA256\n                        digest retained from fresh-plan creation; self-digest\n                        alone is not an approval anchor\n"
+    },
+    "fresh-run-init": {
+      "exit_status": 0,
+      "stdout": "usage: frozen_baseline.py fresh-run-init [-h] --cohort COHORT\n                                         --baseline-bin-dir BASELINE_BIN_DIR\n                                         --expected-plan-sha256 EXPECTED_PLAN_SHA256\n                                         --key-path KEY_PATH\n\noptions:\n  -h, --help            show this help message and exit\n  --cohort COHORT\n  --baseline-bin-dir BASELINE_BIN_DIR\n  --expected-plan-sha256 EXPECTED_PLAN_SHA256\n  --key-path KEY_PATH   private 0600 key path outside Git, source, binaries,\n                        and artifacts\n"
+    },
+    "fresh-run-verify": {
+      "exit_status": 0,
+      "stdout": "usage: frozen_baseline.py fresh-run-verify [-h] --cohort COHORT\n                                           --baseline-bin-dir BASELINE_BIN_DIR\n                                           --expected-plan-sha256 EXPECTED_PLAN_SHA256\n                                           --key-path KEY_PATH\n\noptions:\n  -h, --help            show this help message and exit\n  --cohort COHORT\n  --baseline-bin-dir BASELINE_BIN_DIR\n  --expected-plan-sha256 EXPECTED_PLAN_SHA256\n  --key-path KEY_PATH\n"
+    },
+    "fresh-run-advance": {
+      "exit_status": 0,
+      "stdout": "usage: frozen_baseline.py fresh-run-advance [-h] --cohort COHORT\n                                            --baseline-bin-dir BASELINE_BIN_DIR\n                                            --expected-plan-sha256 EXPECTED_PLAN_SHA256\n                                            --key-path KEY_PATH\n                                            [--expected-ordinal EXPECTED_ORDINAL]\n                                            [--expected-phase {baseline-capture,baseline-replay}]\n\noptions:\n  -h, --help            show this help message and exit\n  --cohort COHORT\n  --baseline-bin-dir BASELINE_BIN_DIR\n  --expected-plan-sha256 EXPECTED_PLAN_SHA256\n  --key-path KEY_PATH\n  --expected-ordinal EXPECTED_ORDINAL\n  --expected-phase {baseline-capture,baseline-replay}\n"
+    }
+  },
+  "completed_run_guard": {
+    "source_lines": "tools/frozen_baseline.py:3323-3334",
+    "behavior": "If authenticated completed_steps is >= len(planned), advance raises RunnerError(\"fresh run has no remaining planned chunks; finalization is not implemented\") before accessing the expected-step guard. It never returns complete success. With visual phases completed but ordinary steps remaining, it raises RunnerError(\"ordinary-check advancement is not implemented; no phase was skipped\") before checking explicit expected values.",
+    "stale_expectation": "A stale explicit expectation is rejected, although terminal states use the existing terminal-state error rather than the expected-step-mismatch diagnostic. No attempt directory or application launch occurs.",
+    "reachability": "The current journal validator rejects ordinary-check receipts, so an authenticated fully completed all-phase journal is not a normal producible state. The visual-complete/ordinary-pending state is relevant and remains an intentional incomplete gate.",
+    "review_method": "Source inspection only; no actual key, run verification or journal mutation."
+  },
+  "preservation": {
+    "old_plan": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-capture-plan.json",
+    "old_plan_id": "58b38fb0b1a1007f14230337f8f1a225",
+    "old_run_credit": "Nine receipts and288checkpoints stay associated with their original plan/run. No automatic credit transfer to the new plan.",
+    "partial_files": 707,
+    "new_expected": "No captured expected frames or chunks are copied into the new run. Frozen tag snapshots remain extraction inputs only.",
+    "custody": "Only canonical official runner commands may access actual key bytes. This review did not open any key."
+  },
+  "risks": [
+    "Cold Nextest inventory may exceed the command budget. Preserve incomplete preparation and exclusive logs; do not bless incomplete inventory, edit manifests, remove cases or silently reset the root. Any recovery procedure requires review.",
+    "Do not reuse the old exact-environment wrapper: it assigns m.run and opens output logs with overwrite mode. Invoke the canonical CLI under external supervision without monkeypatching.",
+    "Preserve full source, binary, prefix and expected-data hashes. No caching or validation weakening is proposed.",
+    "Reserve a quiet resource window for preparation/verification. Timeout is failure, not partial credit.",
+    "The final advance argv is documentation only. Capture still requires independent plan/run/supervisor approval.",
+    "Product acceptance, checkpoint reference approval, candidate comparison and ordinary-check completion remain false/incomplete."
+  ]
+}

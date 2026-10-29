@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "d3235d95c177eac659ad2a98edd540140cf6530006d525c4a8daf766a09e2d91",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5729,
+      "file": "jackin/usage/detail/120x40/nocolor.ansi",
+      "sha256": "d3235d95c177eac659ad2a98edd540140cf6530006d525c4a8daf766a09e2d91"
+    },
+    "ascii": {
+      "bytes": 4531,
+      "file": "jackin/usage/detail/120x40/nocolor.ascii",
+      "sha256": "b229e7351654f79a7bea44747baec1b7e14c3a10dc6fee77d5ba415ddd4d72fd"
+    },
+    "ascii_loss_json": {
+      "bytes": 27675,
+      "file": "jackin/usage/detail/120x40/nocolor.ascii.loss.json",
+      "sha256": "72cb2ee0827ac3e145f4f849b8fc43ea80aff6ec858816ebb1b205570e680f1e"
+    },
+    "frame_json": {
+      "bytes": 1075124,
+      "file": "jackin/usage/detail/120x40/nocolor.frame.json",
+      "sha256": "14f60bbc95226fc0cd3b74cd0cc24683af3eb41f10576da56269243e291e21cb"
+    },
+    "html": {
+      "bytes": 492817,
+      "file": "jackin/usage/detail/120x40/nocolor.html",
+      "sha256": "363df1fba2d3bf9c5922ddc2a2d35d9fe2794dd7502934245ae77a1fed5534e2"
+    },
+    "observations_json": {
+      "bytes": 451,
+      "file": "jackin/usage/detail/120x40/nocolor.observations.json",
+      "sha256": "596b2a89169a4d2fdf3eef5f59b9f8d34fb54f4e8a2183346fbe4e38cf83ac2f"
+    },
+    "png": {
+      "bytes": 357716,
+      "file": "jackin/usage/detail/120x40/nocolor.png",
+      "sha256": "3eb9dbad9da1dcca90dfe79e362ce4c8de05354a0b88d218b3c2e0743af07617"
+    },
+    "png_fidelity_json": {
+      "bytes": 1085,
+      "file": "jackin/usage/detail/120x40/nocolor.png.fidelity.json",
+      "sha256": "8dea2ca0177d50a31938497b37ce0b769728aa3b05661d4532919cb48bca5bec"
+    },
+    "txt": {
+      "bytes": 5116,
+      "file": "jackin/usage/detail/120x40/nocolor.txt",
+      "sha256": "4a28c31f67b48dc4492653651985539763f82d866010b5bd34c53335b81246dc"
+    }
+  },
+  "ascii_substitutions_count": 298,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 17814767607758434235,
+  "frame_sha256": "14f60bbc95226fc0cd3b74cd0cc24683af3eb41f10576da56269243e291e21cb",
+  "generation": "c94796da58e10f86561c3ea9a76115ed34388f8d56107f1b8a733a515f5362d8",
+  "html_sha256": "363df1fba2d3bf9c5922ddc2a2d35d9fe2794dd7502934245ae77a1fed5534e2",
+  "legacy_name": "jackin/usage/detail/120x40/nocolor",
+  "name": "jackin/usage/detail/120x40/nocolor",
+  "png_sha256": "3eb9dbad9da1dcca90dfe79e362ce4c8de05354a0b88d218b3c2e0743af07617",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:34Z",
+  "txt_sha256": "4a28c31f67b48dc4492653651985539763f82d866010b5bd34c53335b81246dc"
+}

@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                  acme · mise monorepo  mbp · local
+
+      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×               2›
+ ────━━━━━━━───────────────────────────────────────────────────────────────────
+   Se╭────────────────────────────────────────────────────────────────────╮e ›
+     │ Activities                                                  4 live │
+    S│ ▎⠋ frontend dev                 running · child · 3 s  activities  │   ┃
+    F│  ⠋ api dev                      running · child · 3 s              │   ┃
+    I│  ✓ api tests                    succeeded · project ·…             │   ┃
+    I│  ⠋ logs · api worker scheduler  running · here · 3 s               │   ┃
+    R│  ○ btm                          detached · host · 3 s              │es ┃
+  › D│                                                                    │   ┃
+     │                                                                    │   ┃
+    R╰────────────────────────────────────────────────────────────────────╯   ┃
+    nothing used here yet                                                     │
+                                                                              │
+    Running                                                                   │
+    logs · api worker schedul…  activity  here   ⠋ running · 3 s              │
+    api dev                     activity  child  ⠋ running · 3 s              │
+
+    → tools/deploy-preview.sh --env preview · here · mutating
+
+ ~/work/acme   main   ↑1                       ⠋ 4 running    truecolor · 80×24
+               ↑↓ Move  Enter Switch  Esc Cancel    api tests finished · exit 0

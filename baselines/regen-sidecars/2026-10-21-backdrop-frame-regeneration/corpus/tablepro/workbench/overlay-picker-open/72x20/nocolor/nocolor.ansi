@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe        [0m
+  ╭──────────────────────────────────────────────────────────────────╮  [0m
+  │ [0m[1mOpen Quickly[0m                                     All · Tab scope │  [0m
+ ━│ ▎ Search tables, views, schemas, tabs, queries…                  │─ [0m
+ ╭│                                                                  │╮ [0m
+ ││ [0m[1m▎[0mT[0m[1m change_log                    [0maudit ·…[0m[1m       [0mTables[0m[1m         [0m┃ ││ [0m
+ ││  T customers                     public …                      ┃ ││ [0m
+ ││  T daily_revenue                 analyti…                      ┃ ││ [0m
+ ││  T events                        analyti…                      ┃ ││ [0m
+ ││  T login_attempts                audit ·…                      ┃ ││ [0m
+ ││  T order_items                   public …                      ┃ ││ [0m
+ ││  T orders                        public …                      │ ││ [0m
+ ││  T organizations                 public …                      │ ││ [0m
+ ││  T payments                      public …                      │ ││ [0m
+ ││  T products                      public …                      │ ││ [0m
+ ││  T subscriptions                 public …                      │ ││ [0m
+ ││ [0m[2m V active_customers              public …       Views          [0m│ ││ [0m
+ ╰│ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clea… │╯ [0m
+  ╰──────────────────────────────────────────────────────────────────╯  [0m
+                                                Connected to Production [0m

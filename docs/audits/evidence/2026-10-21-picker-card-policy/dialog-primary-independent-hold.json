@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "commit": "e2b1727fcb04f4b8579ce771f8a5c99b1e910d4a",
+  "source": "/private/tmp/dialog-primary-e2b1727-independent-20261021",
+  "clean": true,
+  "decision": "HOLD",
+  "reviewer_role": "Independent Rust architect, read-only product source",
+  "findings": [
+    {
+      "priority": "P1",
+      "path": "crates/termrock-overlays/src/dialog.rs",
+      "line": 518,
+      "problem": "Prompt BlurPolicy::Keep preserves an uncommitted editing draft instead of committing on focus loss; a pointer primary action emits its key while DialogState::draft returns the old empty value. Tab also leaves the controlled value stale.",
+      "frozen_contract": "TextInput default BlurAction::Commit at input.rs204; on_blur411-425 commits. Dialog::on_blur1155-1164 folds blur without submitting.",
+      "observed": "Both independent probes typed \u6771\u4eac e\u0301; rendered Submit activated PRIMARY, but state.draft()==empty. Tab emitted no action but state.draft()==empty.",
+      "required": "Preserve blur commit and ending editing. Distinguish explicit prompt submission from a focus-loss commit. Do not submit on blur or globally intercept focused-button activation."
+    }
+  ],
+  "checks": {
+    "native_overlays": {
+      "pass": 163,
+      "fail": 0,
+      "skip": 0,
+      "exit": 0
+    },
+    "external_unchanged_author_tests": {
+      "pass": 7,
+      "fail": 0
+    },
+    "external_independent_value_tests": {
+      "pass": 0,
+      "fail": 2
+    },
+    "external_total": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0,
+      "exit": 100
+    }
+  },
+  "positive": [
+    "Configured primary key honored for prompt Enter",
+    "Disabled/missing/truncated/empty configured primary fails closed",
+    "Focused alternative Enter/Space, pointer/chord identity retain own key in author tests",
+    "Existing native acknowledgement tests pass; acknowledgement branch unchanged"
+  ],
+  "limits": [
+    "No source modifications or expectation updates",
+    "No full four-application CLI frame comparison",
+    "No new before-commit execution claim; frozen blur behavior proved by immutable source",
+    "Native tests do not assert typed controlled value on pointer action; independent consumer adds this coverage",
+    "No original working tree mutation"
+  ],
+  "artifacts": [
+    {
+      "path": "consumer/Cargo.lock",
+      "sha256": "c53c46d1b9a145ebe99429eacf43deb0257c37cdbb4e9549812f9b2410ffea48"
+    },
+    {
+      "path": "consumer/Cargo.toml",
+      "sha256": "798f825a3f070e597697acdbdd753aa38362cf0bbd4cb890e106f89460fc3929"
+    },
+    {
+      "path": "consumer/tests/primary.rs",
+      "sha256": "b84b2459c55ab1feadafd3eedb3a3d278513ef759c5fbbe18b43a06d8073d6d1"
+    },
+    {
+      "path": "consumer-run.json",
+      "sha256": "2b46359b2e0f50034c511e4061150878ac1c1830a98a5950b284e078d2444af4"
+    },
+    {
+      "path": "consumer-run.log",
+      "sha256": "c2f11d4778140d229961e3225e3d6759ce364c2d1f56e4c13c745e7c2f0a4bb6"
+    },
+    {
+      "path": "native-run.json",
+      "sha256": "b0d96391df954275361bbec104080d97402abf084538af7a0dff84779b408293"
+    },
+    {
+      "path": "native-run.log",
+      "sha256": "7d01c814a7c6203f6c0a99c6a5e36ccde4064875057dcaaba9ed09bf70387f2a"
+    },
+    {
+      "path": "source-contract.json",
+      "sha256": "5ebe2732665d79588f063ce8f677c663e7881c74cd9e9bbc7ef54c443470c915"
+    },
+    {
+      "path": "source.diff",
+      "sha256": "5e2c39197d6bcc089416c0a406476a86593eaf3d0f9c4665d2e7bd0eba0a8f03"
+    }
+  ]
+}

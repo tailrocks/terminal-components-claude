@@ -1,0 +1,20 @@
+  jackin❯    File   Edit   View   Session   Help                        [0m
+                                                                        [0m
+  ╭──────────────────────────────────────────────────────────────────╮  [0m
+ ━│ [0m[1mSplit ↓ Below[0m                                                    │─ [0m
+╭─│ ▎ Type to search…                                                │─╮[0m
+│ │                                                                  │││[0m
+│●│ [0m[1m▎[0m▪[0m[1m Claude Code  [0m2 accounts · choose at start[0m[1m             [0magents[0m[1m [0m │││[0m
+│ │  ▪ Codex        Primary                                          │││[0m
+│ │  ▪ OpenCode     Go subscription                                  │┃│[0m
+│●│  ▪ Grok Build   Team                                             │─╯[0m
+│ │  $ Shell        zsh                                      shells  │──[0m
+│ │                                                                  │─╮[0m
+│●│                                                                  │││[0m
+│ ╰──────────────────────────────────────────────────────────────────╯││[0m
+│                                ┃│││0002-settlement-batches.md   0005││[0m
+│▶ Allow edit to src/settlement/c┃│││0003-retry-policy.md         0007││[0m
+│❯                               ┃│││payments-platform ❯              ┃│[0m
+╰─────────────────────────────────╯│╰──────────────────────────────────╯[0m
+ PR #482 · Settlement retry backoff           Session ━━━━━━━━─── 76%   [0m
+            …   Attached to payments-platform · tabs and panes restored [0m

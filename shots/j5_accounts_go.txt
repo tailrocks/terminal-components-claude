@@ -1,0 +1,36 @@
+  jackin❯    File   Go   Help                      Accounts › Overview  ⠧ refreshing 1  inside the Construct  2 running
+                   ╭──────────────────────────────╮
+ ╭─ Accounts ──────│  Workspace manager       Esc │w                                        12 accounts · 8 providers
+ │ ▎   Overview    │  Account & Usage Center    c │
+ │ ▎ ▾ Claude      │  Usage                     u │       degraded · 4 warnings · 1 exhausted · 2 stale · 1         ┃
+ │ ▎   ★ Personal  │  Global settings           s │       refreshing · 3 failed · 1 quota not visible · 2 identities┃
+ │ ▎     Archived c╰──────────────────────────────╯       unresolved                                                ┃
+ │ ▎     Work                      !   │ │  Registry      12 accounts · 11 enabled · 1 disabled · 8 providers       ┃
+ │ ▎ ▾ Codex                           │ │  Sources       7 registered · 5 discovered · 1Password available         ┃
+ │ ▎   ★ Primary                       │ │                                                                          ┃
+ │ ▎     Experiments                   │ │  Comparable windows               identical provider, window and unit onl┃
+ │ ▎ ▾ Amp                         ▲   │ │  Anthropic · Session · 5-hour   2 accounts · 24–62% remaining (1 last    ┃
+ │ ▎     discovered                ▲   │ │  good)                                                                   ┃
+ │ ▎ ▾ Grok                            │ │  Anthropic · Weekly · all models   2 accounts · 12–67% remaining (1 last ┃
+ │ ▎   ★ Team                          │ │  good)                                                                   ┃
+ │ ▎ ▾ Z.AI                        ▲   │ │  Anthropic · Weekly · Opus   2 accounts · 0–46% remaining (1 last good)  ┃
+ │ ▎     discovered                ▲   │ │  OpenAI · Credits   2 accounts · 76–82% remaining (1 last good)          ┃
+ │ ▎ ▾ Kimi                        !   │ │  OpenAI · Session · 5-hour   2 accounts · 88–96% remaining (1 last good) ┃
+ │ ▎     discovered                !   │ │  OpenAI · Weekly · 7-day   2 accounts · 41–88% remaining (1 last good)   ┃
+ │ ▎ ▾ MiniMax                     !   │ │                                                                          ┃
+ │ ▎     discovered                !   │ │  Not comparable                                                          ┃
+ │ ▎ ▾ OpenCode                    !   │ │  Amp (single account or different windows) · xAI (single account or      ┃
+ │ ▎   ★ Go subscription           !   │ │  different windows) · Z.AI (single account or different windows) ·       │
+ │ ▎     ci-bot · discovered           │ │  MiniMax (single account or different windows) · OpenCode (single        │
+ │ ▎   Unsupported                     │ │  account or different windows)                                           │
+ │ ▎   + Add account…                  │ │                                                                          │
+ │                                     │ │  Warnings                                                                │
+ │                                     │ │  ▲ Claude · Work   Session · 5-hour 76% used · resets in 1 h 4 min       │
+ │                                     │ │  ▲ Claude · Work   Weekly · all models 88% used · resets Sun 19:14       │
+ │                                     │ │  ! Claude · Work   Weekly · Opus exhausted · resets Sun 19:14            │
+ │                                     │ │  ▲ Claude · Work   stale · last good 47 min ago                          │
+ │                                     │ │
+ │                                     │ │ ▎Refresh all   ▎Add account…
+ ╰─────────────────────────────────────╯ │
+
+ ← → Menu  ↑↓ Move  Enter Choose  Esc Close

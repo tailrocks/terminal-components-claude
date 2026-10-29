@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Dialogs     i Inspector   ? Help
+
+   Overview       ┃  Dialogs  Focus is trapped, the page dims, Esc alw…
+   Buttons        ┃
+   Inputs         ┃    Open a dialog
+   Text a╭────────────────────────────────────────────────────╮
+   Forms │                                                    │oices…
+   Lists │  Run task now?                                     │
+   Trees │                                                    │y / n …
+   Tables│  Junie will check out chore/uuid-sessions, apply   │bmits,…
+   Editab│  the plan and run the test suite. You can pause    │n in d…
+   Panels│  at any step.                                      │
+   Sideba│                                                    │
+ › Dialog│                                     Cancel  ▎Run   │
+   Progre│                                                    │
+   Scroll╰────────────────────────────────────────────────────╯
+   Terminal       │    Nothing yet
+   Code editor    │
+
+ ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer

@@ -1,0 +1,21 @@
+[0m[2m  jackin❯    File   Edit   View   Session   Help                     …  [0m
+[0m[2m      ╭──────────────────────────────────────────────────────────╮      [0m
+[0m[2m  1 Mi│ [0m[1;2mCommand palette[0m[2m                                 20 of 20 │      [0m
+[0m[2m ━━━━━│ ▎ Type to filter commands…                               │───── [0m
+[0m[2m╭─ Cla│                                                          │─────╮[0m
+[0m[2m│● Bas│ [0m[1;2;7m [0m[2;7m [0m[1;2;7m New tab                   [0m[2;7mCtrl+B c[0m[1;2;7m                  [0m[2m┃ │    ┆│[0m
+[0m[2m│  run│    Split pane                Ctrl+B " %                ┃ │    ┆│[0m
+[0m[2m│     │    Zoom / unzoom pane        Ctrl+B z                  ┃ │    ┃│[0m
+[0m[2m│● Edi│    Export file               host                      ┃ │┄┄┄┄ │[0m
+[0m[2m│  +  │    Export file and reveal    host                      ┃ │─────╯[0m
+[0m[2m│     │    Export file and open      host                      ┃ │──────[0m
+[0m[2m│● Ret│    Export file under cursor  no file under cursor      ┃ │─────╮[0m
+[0m[2m│  One│    Export file under curso…  no file under cursor      ┆ │000 ┆│[0m
+[0m[2m│     │    Export file under curso…  no file under cursor      ┆ │000 ┆│[0m
+[0m[2m│▶ All│    Export selected file      no selection              ┆ │000 ┆│[0m
+[0m[2m│❯    │    Export selected file an…  no selection              ┆ │    ┃│[0m
+[0m[2m│━━━━━│    Export selected file an…  no selection              ┆ │┄┄┄┄ │[0m
+[0m[2m╰─────│                                                          │─────╯[0m
+[0m[2m PR #4╰──────────────────────────────────────────────────────────╯76% ▲ [0m
+ [0m[1mEsc[0m Cancel  …   Attached to payments-platform · tabs and panes restor… [0m
+[?25h[4;11H[6 q

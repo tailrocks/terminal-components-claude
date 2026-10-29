@@ -1,0 +1,29 @@
+{
+  "source_commits": {
+    "Fields": "332f40d07e38512f91cfb038eb9174c413755686",
+    "Form_stage1": "ae32d3ff812aa436eb5d6c15eb155d9b8d59502a",
+    "modal": "02742e48d58ce319ce98e64095ad86cb1709f5a3"
+  },
+  "parent_integration_before_records": "23ae77d10ac3ee0d9c90085a879a40ef51295fd6",
+  "scope": [
+    "termrock-fields",
+    "termrock-forms",
+    "termrock-runtime"
+  ],
+  "features": [
+    "termrock-runtime/testing"
+  ],
+  "native_summary": "Summary [   2.180s] 513 tests run: 513 passed, 3 skipped",
+  "strict_clippy": "passed all targets, same packages/features",
+  "formatting": "same packages passed",
+  "diff_check": "passed",
+  "modal_reference_proof": "13 public probes; 36864 frozen-derived style cases; 10092 preserved pair outputs; four subprocess environments including inherited NO_COLOR zero allocation",
+  "limitations": [
+    "Three existing ignored tests are not passing evidence.",
+    "Public API catalog/coverage remains incomplete.",
+    "Incoming PR93 palette expectation overrides and application/plate changes are not accepted.",
+    "The six test overrides conceal unchanged production defects; separate integrity restoration c60830f is pending independent review/integration.",
+    "Full architecture, full workspace checks, paired CLI comparisons twice and all four applications remain incomplete."
+  ],
+  "product_acceptance": false
+}

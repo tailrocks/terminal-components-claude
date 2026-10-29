@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Workspaces › new workspace         u Usage  c Accounts  s Settings  ? help
+
+
+
+
+
+
+
+
+
+
+
+
+                               ╭─ New workspace · step 2 of 5 · Destination ────────────╮
+                               │  ✓ Source · Destination · Edit · Working dir · Name    │
+                               │                                                        │
+                               │  Source  ~/src/data-pipeline                           │
+                               │                                                        │
+                               │   Mount destination                                    │
+                               │ ▎(●) Same path   /Users/alexey/src/data-pipeline       │
+                               │ ▎( ) Edit destination…                                 │
+                               │                                                        │
+                               │                                                        │
+                               │                                                        │
+                               │                                                        │
+                               │                                         ▎Back  ▎Next   │
+                               ╰────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑↓ Choose  Enter Confirm  Tab Buttons  Esc Cancel

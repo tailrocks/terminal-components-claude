@@ -1,0 +1,82 @@
+{
+  "reviewer": "/root/incoming_modal_dim_review",
+  "source_commit": "a7f5c2b53775d0470c798e4a3d80dde14cbab690",
+  "parent_commit": "9b0277bc62bd5035c4244c3721af1b1775250db2",
+  "decision": "Changes required. Do not integrate as independently cleared. The DIM evidence correction is sound, but production-source masking introduces a demonstrated false negative and fails to exclude another ordinary test-module form.",
+  "method": "Separate sparse source archive with dedicated target, no author worktree changes. Independent regression probes were appended only to the review-owned test artifact, then exact candidate bytes restored. All Rust execution used cargo nextest inside owned process groups with 210-second deadlines. No production behavior, labels, snapshots, expected outputs, references, or keys changed.",
+  "findings": [
+    {
+      "id": "ESC-A7-R1",
+      "priority": "P1",
+      "path": "crates/termrock-theme/tests/esc_vocabulary.rs:199-207",
+      "problem": "An external test-module declaration (`#[cfg(test)] mod tests;`) is treated as the start of an inline module. The unbounded search for the next opening brace consumes the following production item and masks its contents. A genuine invalid hint in the next production function is silently omitted, so the acceptance gate can pass with a non-verb production label.",
+      "reproduction": "Input: #[cfg(test)]\\nmod tests;\\nfn production() { hint(\"Esc\", \"Unexpected label\"); }. Before this change the scanner returns one invalid label; candidate returns zero. Independent assertion expected1, actual0. External cfg(test) module declarations already occur at tablepro-ui/src/app.rs:31, termrock-shell/src/nav.rs:353, and termrock-shell/src/router.rs:518; the TablePro declaration currently masks a following grouped use item.",
+      "required_change": "Parse the complete module declaration boundary; distinguish an external semicolon declaration from an inline opening brace, and never search past the current item into a later one. Add the independent regression fixture and verify that a following production hint still fails validation."
+    },
+    {
+      "id": "ESC-A7-R2",
+      "priority": "P2",
+      "path": "crates/termrock-theme/tests/esc_vocabulary.rs:188-201",
+      "problem": "A normal additional attribute between cfg(test) and an inline module prevents masking. `#[cfg(test)] #[allow(dead_code)] mod tests { ... }` is retained as production source and its fixture label fails the gate, reproducing the original class of false positive.",
+      "reproduction": "Input has cfg(test), allow(dead_code), a test module containing hint(\"Esc\", \"Fixture only\"), then production hint(\"Esc\", \"Close\"). Expected labels [Close], actual [Fixture only, Close].",
+      "required_change": "Recognize the complete attribute list and supported module syntax instead of requiring immediate literal `mod `. Preserve code following the module and add focused fixtures for external modules, stacked attributes, visibility, and normal Rust whitespace."
+    }
+  ],
+  "accepted_parts": {
+    "baseline_exception": "Only exact label Keep launching at jackin-preview-app/src/app/launch_cockpit.rs is exempted; gate checks exactly two occurrences. Different labels at that path and the same label elsewhere are rejected. Frozen source 4169783 src/widgets/dialog.rs:1987-1997 explicitly tests the visible Escape hint, and no production labels are changed. The static commit/assertion constants document evidence; they do not dynamically verify frozen Git contents.",
+    "dim_addendum": "Accurately withdraws the earlier component-specific oracle conclusion, distinguishes mutable candidate Harness digest from frozen CLI output, states no fresh capture occurred, preserves the old report, and retains the already-cleared DIM behavior. No production source files were changed by this commit."
+  },
+  "inventory": {
+    "candidate_production_labels": 26,
+    "candidate_paths_with_labels": 15,
+    "exact_frozen_exceptions": 2,
+    "ignored_candidate_esc_tests": 0,
+    "before_scanner_blob": "e488262b67917eac0b8f03200fd73a99281ae9ea",
+    "before_blob_matches_previous_review_ffa723642": true,
+    "new_source_files_changed": [
+      "crates/termrock-theme/tests/esc_vocabulary.rs",
+      "docs/audits/2026-10-21-modal-backdrop-evidence-addendum.md"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-theme --test esc_vocabulary --success-output immediate",
+      "scope": "Candidate five tests plus three independent review-only tests",
+      "exit": 100,
+      "passed": 6,
+      "failed": 2,
+      "skipped": 0,
+      "log": "independent-nextest.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-theme",
+      "scope": "Exact unchanged candidate test source, after removing review-only probes",
+      "exit": 100,
+      "passed": 153,
+      "failed": 1,
+      "skipped": 0,
+      "only_failure": "capability_palettes::all_73_junie_slots_match_reference_capability_output",
+      "log": "exact-candidate-theme-nextest.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-theme --test esc_vocabulary -E test(independent_external_module_before_correction)",
+      "scope": "Parent scanner source plus unchanged equivalent external-module regression assertion",
+      "exit": 0,
+      "passed": 1,
+      "filtered": 3,
+      "log": "before-correction-external-module-nextest.log"
+    }
+  ],
+  "gaps": [
+    "No full workspace acceptance or real application visual parity claim.",
+    "No fresh frozen CLI capture or expected-data approval.",
+    "Known all_73 capability palette failure remains red and unchanged.",
+    "Review did not run broad Clippy/fmt because the scanner correctness failures already require correction."
+  ],
+  "files": {
+    "exact-candidate-theme-nextest.log": "2ac723702e33c4b17d64e1ef8214b8c1a26fe93738c8bdb896b1a44c5efd3188",
+    "independent-nextest.log": "b7e236d37eb3ed4acaa3a32f76ba378d811796b454174504608f51237924b55d",
+    "before-correction-external-module-nextest.log": "50305a4db44d7ec8faddaef5e1e4a91d3d0d7404345f03596d1ae7f968b414eb",
+    "review-probes.rs": "8d72ea3b0293a590527bdc332469b5878eaa76c3e794695f505d270b3b888ee3"
+  }
+}

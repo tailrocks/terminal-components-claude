@@ -1,0 +1,149 @@
+{
+  "reviewed_commit": "65092d97e6443019aa9ade83d064c134985bd4a0",
+  "previous_review_commit": "95d21da73f0a826e31114cffd2c5b4131de6d0e2",
+  "reference_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "reviewer": "modal_backdrop_independent_review",
+  "decision": "Changes required: prior R1/R2 fixed, but explicit Color::Reset style background remains a frozen visual mismatch.",
+  "prior_findings": [
+    {
+      "id": "R1",
+      "status": "fixed",
+      "evidence": "Reduced Ansi16/Mono uses backdrop_collision_ink before final style construction. Unchanged external pure and actual Harness probes pass."
+    },
+    {
+      "id": "R2",
+      "status": "fixed",
+      "evidence": "Private mapper preserves raw mapped ink until backdrop_style collision test. Unchanged external collision DIM probe passes; native real modal collision regression passes."
+    }
+  ],
+  "findings": [
+    {
+      "id": "R3",
+      "priority": "P1",
+      "path": "crates/termrock-theme/src/lib.rs",
+      "lines": "257-275",
+      "title": "Preserve explicit terminal-default background separately from absent background in the style endpoint",
+      "evidence": "Frozen src/theme.rs1244-1251 uses Some(_) => surface_overlay and None => canvas. Therefore Some(Color::Reset) maps to overlay. Candidate source_bg==Color::Reset at262 treats Some(Reset) and None alike as canvas; dark-plane/contrast-plane handling at267-275 also conflates them. Pure public Theme::backdrop_style probe fails. Real Ui.modal_backdrop Harness paints x with explicit Reset background: actual Rgb(0,0,0), frozen expected overlay Rgb(39,39,42).",
+      "repair": "Give backdrop_style the frozen Option<Color> background interpretation, including dark-plane and contrast-plane handling. Preserve existing backdrop_colors concrete-color Reset behavior; its legacy contract is separately verified. Share token mapping without conflating the two endpoint semantics."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/modal-backdrop-rereview-65092/Cargo.toml --all-targets --no-fail-fast --success-output immediate",
+      "exit": 100,
+      "result": "11 tests run:9 passed,2 failed,0 skipped. Failures are pure explicit Reset and actual Harness explicit Reset probes. Original four95 probes all pass unchanged."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/modal-backdrop-rereview-65092/Cargo.toml --test modal_backdrop_native",
+      "environment_variants": [
+        "NO_COLOR absent; CLICOLOR_FORCE absent",
+        "NO_COLOR empty; CLICOLOR_FORCE absent",
+        "NO_COLOR=1; CLICOLOR_FORCE absent",
+        "NO_COLOR=1; CLICOLOR_FORCE=1"
+      ],
+      "environment_common": {
+        "TERM": "xterm-256color",
+        "COLORTERM": "truecolor"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "Each separate process ran3 tests:3 passed,0 skipped. Includes exact copied native warmed allocation test with zero allocations and actual modal color/modifier tests across all four explicitly selected Theme profiles. No unsafe process environment mutation."
+    },
+    {
+      "command": "Public concrete pair API snapshot captured at95d21, verified unchanged at65092",
+      "result": "10092 cases match byte-for-byte across4 downgraded profiles,3 custom-token configurations, concrete Reset/named/indexed/RGB/token color pairs. Capture fixture immutable during65092 checks."
+    },
+    {
+      "command": "Public ColorLevel::from_env policy probe",
+      "result": "NO_COLOR present selects Mono, absent/empty selects TrueColor for terminal input, CLICOLOR_FORCE=1 overrides present NO_COLOR; explicit TrueColor Theme is not re-read from inherited environment during backdrop mapping."
+    }
+  ],
+  "architecture": {
+    "runtime": "Ui.modal_backdrop delegates to pure Theme mapping, replaces modifiers, and clears non-ASCII focus bar independently of its foreground as frozen ctx658-688 specifies. No per-paint environment read/cache or new RGB role inference in reviewed source.",
+    "public_api": "Existing backdrop_colors signature retained and10092 concrete pair outputs unchanged. backdrop_style additive.",
+    "scope": "Only the modal Theme/runtime repair is reviewed; incoming efda9593 ancestry and application/plate changes are not approved by this review.",
+    "showcase": "Showcase DialogsPage773-779 draws real shared confirm/prompt Dialogs through ui.layer; runtime composite_layer2364-2366 invokes modal_backdrop for rendered dim layers. Existing behavior demonstration path exists. No public catalog registration or explicit coverage allowance for new backdrop_style was found; author audit retains this required follow-up."
+  },
+  "limits": [
+    "No full application or full workspace acceptance.",
+    "Known all73 palette failure is neither changed nor waived.",
+    "Full reverse/flags combinations and clipping/cursor/focus bounds were not independently exhaustively executed; modifier replacement is source-inspected and BOLD|ITALIC behavior verified by native real-cell tests.",
+    "No further expansion was performed after reproducing the explicit Reset mismatch."
+  ],
+  "worktree": {
+    "path": "/private/tmp/termrock-button-2b3e-review",
+    "head": "65092d97e6443019aa9ade83d064c134985bd4a0",
+    "preexisting_changes": "1301 deleted tracked target/tuiscotti artifact paths remain untouched. No product source edits."
+  },
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/Cargo.lock",
+      "sha256": "b789a7e9022f5da6092bafb86cd2af92cdb0c2be16def50acad6bc6f77f05203"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/Cargo.toml",
+      "sha256": "a13850f454dc567dda8a619ae03c6e4495af846208e2a0f2dcf1561173e9cd09"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/consumer.rs",
+      "sha256": "5d9b17ba37d63b6afa448b5017d4774c497f242cca6795b91702d17f4a6ee560"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/environment-absent.log",
+      "sha256": "8dc3721809fd91cd0d9aad0fccc584b102787373707742c9c45111f51fc2518e"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/environment-empty.log",
+      "sha256": "eb258d219f80810a449fec82d9710f342b179f857da158d993ed366532f2ff05"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/environment-forced.log",
+      "sha256": "c2b6fbe3745dce48d6a811ac893647ea72ecffc91b1a8cbf4ed77bb4b11ab34c"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/environment-present.log",
+      "sha256": "a8e35fd2bb32cfad3098865a948ce093da1268571d26b7e6e8e8a6aede07ff65"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/final-rereview.log",
+      "sha256": "83caa9ec7947b8f7dfd3573161b9066b6e19506fc18f648787b58827cf128196"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/frozen-ctx.rs",
+      "sha256": "4dd2a8fd3f4efc76ad7c0f0f1e03f613fa74b198aedd57c5932fbb24570ae8ed"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/frozen-theme.rs",
+      "sha256": "9e72e36f973de33f40ff205aaf3a2cc790c880323c793225fd8a5a12561b4c86"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/implementation-diff.patch",
+      "sha256": "185f86255bb79725ce885aef72ca80d7bb4c3d32de4f97b7c717b0ccce1bc620"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/initial-rereview.log",
+      "sha256": "247a02eb7f88038e59edd8ee211513f783794bd575dbaf5dfd398177e7527126"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/modal_backdrop_native.rs",
+      "sha256": "316ffcab7c70007eaa89f35f4fb4bf054fb24d735b231513f1a7364c13f56b6c"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/pair-before-95d21.txt",
+      "sha256": "af028b547485cc3a8cb6c27b679b6e1ec8f2557f490f244dfce3af245dba9a59"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/pair-before-capture.log",
+      "sha256": "57c6a796bbb8a6ea0ed2bcb722c00aa48197949763d7f010bf6965333b1772f1"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-65092/results.json",
+      "sha256": "5e5528177c162c9c8dd5afdf7c6185ae1c5573f9f0dea921dee8a018fb32da56"
+    }
+  ],
+  "timestamp_utc": "2026-10-20T23:10:27.884235+00:00"
+}

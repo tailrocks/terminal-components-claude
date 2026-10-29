@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                      probe · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                    [0m
+ [0m[1m Here › Custom actions  [0m                                                                           [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mCustom actions[0m                                         ~/work/probe/.holla.toml · live · 1 s ago  [0m
+                                                                                                    [0m
+  Origin   project                                                                                  [0m
+  Digest   sha256:371a5fe65de3fa31c4d718afa4beb4a90bfcfba1953a1df79fe3a3ffae7e8324                  [0m
+  Trust    Untrusted                                                                                [0m
+  Actions  1 · 2 diagnostics                                                                        [0m
+                                                                                                    [0m
+ ╭─[0m[1m Detail [0m───────────────────────────────────────────────────────────────── 21 lines · y copies ─╮ [0m
+ │  /Users/alex/work/probe/.holla.toml action[0]: id "git.pull" collides with a built-in action ┃ │ [0m
+ │  /Users/alex/work/probe/.holla.toml action[2]: `label` is blank · `command` must be an argv …┃ │ [0m
+ │  deploy                  mutating     tools/deploy.sh                                        ┃ │ [0m
+ │                                                                                              ┃ │ [0m
+ │  [[action]]                                                                                  ┃ │ [0m
+ │  id = "git.pull"                                                                             ┃ │ [0m
+ │  label = "Collides"                                                                          ┃ │ [0m
+ │  command = ["true"]                                                                          ┃ │ [0m
+ │  danger = "safe"                                                                             ┃ │ [0m
+ │                                                                                              │ │ [0m
+ │  [[action]]                                                                                  │ │ [0m
+ │  id = "deploy"                                                                               │ │ [0m
+ │  label = "Deploy"                                                                            │ │ [0m
+ │  [0m[2mcommand = ["tools/deploy.sh"]                                                               [0m│ │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                    [0m
+ [0m[1m~/work/probe[0m   main   ↓1                  snapshot · read-only                   no color · 100×30 [0m
+                                   [0m[1m↑↓[0m Scroll  [0m[1my[0m Copy  [0m[1mEsc[0m Back                                      [0m

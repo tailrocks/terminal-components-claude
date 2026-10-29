@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Dialogs            truecolor · 100×30   i Inspector   ? Help
+
+▎  Overview          Dialogs  Focus is trapped, the page dims, Esc always cancels
+▎  Buttons
+▎  Inputs              Open a dialog
+▎  Text areas
+▎  Forms               ▎Confirm run   ▎Rename task…   ▎Three choices…   ▎Delete branch…
+▎  Lists
+▎  Trees               Confirm: primary action focused first · y / n answer directly
+▎  Tables              Prompt: editing inside a modal, Enter submits, validation blocks
+▎  Editable tables     Destructive: Cancel focused first, action in danger style
+▎  Panels              Task: Migrate sessions table
+▎  Sidebars
+▎› Dialogs
+▎  Progress            Results
+▎  Scrolling
+▎  Terminal            Nothing yet
+▎  Code editor
+▎  Data grid
+▎  Chips & selects
+▎  Pickers
+▎  Chrome
+▎  Settings
+▎  Task runner
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

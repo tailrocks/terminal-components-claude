@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "5754c614dda1572a9512eb99c83a9ab60c4b8d57a72c843745269bc34c45d4c0",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5738,
+      "file": "jackin/manager/launch-picker/72x20/256.ansi",
+      "sha256": "5754c614dda1572a9512eb99c83a9ab60c4b8d57a72c843745269bc34c45d4c0"
+    },
+    "ascii": {
+      "bytes": 1032,
+      "file": "jackin/manager/launch-picker/72x20/256.ascii",
+      "sha256": "370092b72f42f53ecad821f17511e469d5115b51ab7e315df19c37d367a9b392"
+    },
+    "ascii_loss_json": {
+      "bytes": 22185,
+      "file": "jackin/manager/launch-picker/72x20/256.ascii.loss.json",
+      "sha256": "e42d4d2a6fee1985822b8e1fff4ad2a806002e43e002d64fcd8396443f1efc7f"
+    },
+    "frame_json": {
+      "bytes": 339089,
+      "file": "jackin/manager/launch-picker/72x20/256.frame.json",
+      "sha256": "94d827f124f47b01982edc77905d86e7d38804edac45a6a907ed489b81a8782e"
+    },
+    "html": {
+      "bytes": 252507,
+      "file": "jackin/manager/launch-picker/72x20/256.html",
+      "sha256": "0ce8cb248f470aa6d61012f5612edd87151173817cfaa0b0fca813498d62f5a5"
+    },
+    "observations_json": {
+      "bytes": 458,
+      "file": "jackin/manager/launch-picker/72x20/256.observations.json",
+      "sha256": "ee1ae0cdba96ffc8087bb932f2cf0a791636fe0ccdf43f4b51040384fd409898"
+    },
+    "png": {
+      "bytes": 174766,
+      "file": "jackin/manager/launch-picker/72x20/256.png",
+      "sha256": "0a533a3bf3948fb46aff116851ce09f816ff43f0739c29b6ccadd9d107a5c1ba"
+    },
+    "png_fidelity_json": {
+      "bytes": 499,
+      "file": "jackin/manager/launch-picker/72x20/256.png.fidelity.json",
+      "sha256": "3662d41a0eb6b5e9ca2b3cc485bddb5c3978bd1aeb07ea7ef747b6286d865f8e"
+    },
+    "txt": {
+      "bytes": 1501,
+      "file": "jackin/manager/launch-picker/72x20/256.txt",
+      "sha256": "cdaa4453a397cc52cfabd4f410331bf945201f532a8690217844229d9679ce12"
+    }
+  },
+  "ascii_substitutions_count": 240,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 11982369328506344572,
+  "frame_sha256": "94d827f124f47b01982edc77905d86e7d38804edac45a6a907ed489b81a8782e",
+  "generation": "712974f318bcdb8732a368d7c7c70c702cf6a3a166b32a41c4ce7901001e78ba",
+  "html_sha256": "0ce8cb248f470aa6d61012f5612edd87151173817cfaa0b0fca813498d62f5a5",
+  "legacy_name": "jackin/manager/launch_picker/72x20/256",
+  "name": "jackin/manager/launch-picker/72x20/256",
+  "png_sha256": "0a533a3bf3948fb46aff116851ce09f816ff43f0739c29b6ccadd9d107a5c1ba",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:35Z",
+  "txt_sha256": "cdaa4453a397cc52cfabd4f410331bf945201f532a8690217844229d9679ce12"
+}

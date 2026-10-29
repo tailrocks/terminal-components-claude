@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help        Workspaces › payments-platform › edit  ! instance index unreadable  ▲ daemon stale
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ──────────────────────────────━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────
+
+      Workspace                                                                                                4 vars
+  ▎     DATABASE_URL    ╭──────────────────────────────────────────────────────────────────────╮
+  ▎     STRIPE_KEY      │ Add role override                                          126 roles │ential
+  ▎     LOG_LEVEL       │ ▎ Type to search…                                                    │
+  ▎     GH_TOKEN        │                                                                      │
+  ▎     + Add environmen│ ▎· the-architect  no overrides yet                           roles ┃ │
+      Role overrides    │ ▎▪ backend        1 override · Enter adds anoth… configured        │ │· 126 in the registry
+    ▾ Role: backend     │ ▎· reviewer       no overrides yet                                 │ │                1 var
+  ▎     OPENAI_API_KEY  │ ▎· sre            no overrides yet                                 │ │› credential
+  ▎     + Add backend en│ ▎· data-eng       no overrides yet                                 │ │
+  ▎›    + Add role overr│ ▎· writer         no overrides yet                                 │ │
+                        │ ▎· svc-001        no overrides yet                                 │ │
+                        │ ▎· svc-002        no overrides yet                                 │ │
+                        │ ▎· svc-003        no overrides yet                                 │ │
+                        │ ▎· svc-004        no overrides yet                                 │ │
+                        │ ▎· svc-005        no overrides yet                                 │ │
+                        │ ▎· svc-006        no overrides yet                                 │ │
+                        │ ▎· svc-007        no overrides yet                                 │ │
+                        │                                                                      │
+                        ╰──────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+  Type Filter  ↑↓ Move  …   Could not confirm running instances: instance index unreadable · entered without the ritual

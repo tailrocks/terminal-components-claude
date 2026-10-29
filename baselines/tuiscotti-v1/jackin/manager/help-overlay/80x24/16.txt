@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help       Workspaces  inside the Construct  2 running
+  ╭─ Keyboard shortcuts ──────────────────────────────────────── 1–18 of 45 ─╮
+ ╭│  Workspaces                                                             ┃│╮
+ ││  ↑↓ j k       move                                                      ┃││
+ ││  ←→ h l       collapse / expand                                         ┃││
+ ││  Space        fold workspace                                            ┃││
+ ││  Enter        launch                                                    ┃││
+ ││  e            edit workspace                                            ┃││
+ ││  n            new workspace                                             ┃││
+ ││  d            delete…                                                   │││
+ ││  w            prewarm                                                   │││
+ ││  o            open in GitHub                                            │││
+ ││  * -          expand / collapse all                                     │││
+ ││  Tab          details                                                   │││
+ ╰│                                                                         ││╯
+  │  Instances                                                              ││
+  │  Enter r      reconnect / restore                                       ││
+  │  a            new session                                               ││
+  │  x            open shell                                                ││
+  │  i            inspect container                                         ││
+  │  ↑↓ Scroll · Esc Close                                                   │
+  ╰──────────────────────────────────────────────────────────────────────────╯
+
+                             ↑↓ Scroll  Esc Close

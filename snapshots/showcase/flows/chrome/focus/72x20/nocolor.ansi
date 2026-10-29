@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Chrome      i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Lists          [0m│  [0m[1mChrome[0m  Brand lockup · menu bar with anchored men… [0m
+   Trees          │                                                     [0m
+   Tables         │   [0m[1m app❯ [0m ▎[0m[1m File [0m  View   Help                       [0m
+   Editable tabl… │                                                     [0m
+   Panels         ┃    Sessions      right-click or m for the tab menu  [0m
+   Sidebars       ┃                                                     [0m
+   Dialogs        ┃       1 Claude Code (Work)                working   [0m
+   Progress       ┃       2 Codex (Primary)                      idle   [0m
+   Scrolling      ┃       3 Shell                                       [0m
+   Terminal       ┃       4 docs                              blocked   [0m
+   Code editor    ┃                                                     [0m
+   Diff           ┃                                                     [0m
+   Data grid      ┃                                                     [0m
+   Chips & selec… ┃   [0m[1mpayments-platform[0m   PR #482 · settlement backoff  [0m
+   Pickers        ┃   hint bar · topmost layer wins:                    [0m
+[0m[2m › Chrome         [0m│   [0m[1m← →[0m Menu  [0m[1mEnter[0m Open  [0m[1mTab[0m Next                    [0m
+                                                                        [0m
+ [0m[1m← →[0m Menu  [0m[1mEnter[0m Open  [0m[1mTab[0m Next                                         [0m

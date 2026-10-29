@@ -1,0 +1,141 @@
+{
+  "schema": "termrock.independent-executable-cohort-capture-review",
+  "schema_version": 1,
+  "reviewer": "/root/launch_receipts_independent_review",
+  "scope": "executable-cohort-capture-eligibility",
+  "decision": "eligible-for-fresh-baseline-capture-and-baseline-replay-only",
+  "cohort_id": "frozen-20261021-serial-nonincr-r1-r2",
+  "cohort_registry_sha256": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+  "integration_commit_reviewed": "be9fca4baf1477f57ab1a252117c368fb2bfe657",
+  "binary_sha256": {
+    "showcase": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+    "tablepro": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+    "jackin-preview": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+    "holla": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf"
+  },
+  "source": {
+    "tag": "visual-baseline",
+    "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+    "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "cargo_lock_sha256": "46c1c71d85de829b277feffc959e6e8feab99deb171b1e48521c12d5cf14c2ed",
+    "rust_toolchain_sha256": "007a7e2abbd4afe192a3ef190dfa54914800621e221196747cff9e172735dc00"
+  },
+  "build_identity": {
+    "recipe_sha256": "849900e9c848d892824bd2b6636a17ba35d57c9be57859abf136c42f7f314bac",
+    "target": "aarch64-apple-darwin",
+    "rustc": {
+      "host": "aarch64-apple-darwin",
+      "llvm": "23.1.1",
+      "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "1ba7bb8e273bd64125f4048d2ecce530e0a6470e565ab1b3aecf0b82b532f7b1",
+      "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+    },
+    "cargo": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6d576d8058f8ca643e8fce55b64ee3c614ba64c9da2e536bae843e6a2e1f3951",
+      "version": "cargo 1.99.1 (5f94df478 2026-08-27)"
+    },
+    "rustdoc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/rustdoc",
+      "sha256": "21f27299ea863556078be5074ab193672c0460049688cf0f08dc47c73b730c29"
+    },
+    "nextest": {
+      "path": "/Users/donbeave/.cargo/bin/cargo-nextest",
+      "sha256": "b13262d605d77eb7884304caad932669dba1d6aa7f46232f78e6eab25d3f86d6",
+      "version": "0.9.148 (cd1d6d546 2026-10-07)"
+    },
+    "selected_linker_tools_rehashed": {
+      "clang": {
+        "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+        "sha256": "ee029330bf58ab6e481385f4237cc54602eaa8b81526242e5c5ab5b76e8c5a7e"
+      },
+      "ld": {
+        "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld",
+        "sha256": "809ad9e3c137cdf6d997b4e67dd3dd2589f6bb5de612dc298504e87bc4936c7e"
+      },
+      "ar": {
+        "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar",
+        "sha256": "ba81a5e9c4a1fd399c7693367559e341e823a411eecef83221c3caf9f25b581b"
+      },
+      "ranlib": {
+        "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib",
+        "sha256": "6e0a9c96cc9896ee392ee691133e51cfff0216234d9a21b8dfa53bdc3ffbc410"
+      }
+    },
+    "sdk_path": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+    "sdk_version": "27.0",
+    "sdk_settings_sha256": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb",
+    "profile_delta": "CARGO_INCREMENTAL=0; junie-tui dev/test codegen-units=256 only; existing debug information/assertions/overflow checks, optimization and panic policies retained."
+  },
+  "evidence": {
+    "recheck_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cohort-fresh-capture-eligibility-review/evidence-recheck.json",
+    "recheck_sha256": "2384180eea4d9e9454a20f028098b31a3ac7524ee3d0213012c9bb66fe10687e",
+    "cohort_evidence_pins": {
+      "recipe_sha256": "849900e9c848d892824bd2b6636a17ba35d57c9be57859abf136c42f7f314bac",
+      "run1_archive_sha256": "ef4b805a35667e0f1c41018dac78564ba6332489024b19638f4c8d114eaaf5a9",
+      "run2_archive_sha256": "89d6d0c03eaa0911b51af32b1cced55b93d405ec43876b55bae1d19055b540e2",
+      "run2_comparison_sha256": "f2bc6d30b2a528432781e12c318d6e0a6684c38caa5e392dca2c251a59c1ecbc",
+      "run1_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+      "run2_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+      "run1_live_source_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+      "run2_live_source_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+      "run1_stage1_receipt_sha256": "e62c9f13660211dde530a81d5d840ee97dc32f31d5d3fc31d1303a7f27547ae3",
+      "run1_stage2_receipt_sha256": "0f3bf5677d69e578ec9a93e5eeecb74bc9a7570deb73070a98cec61a61efaaaf",
+      "run2_stage1_receipt_sha256": "684d9bc6c181d087ad023d37b95187d01b1a1897e36a0674f18d0ccc5322b4a5",
+      "run2_stage2_receipt_sha256": "08b573ed200e1c32ff3627cc5845c744fa12d27d5fc00e87fc02e53240a46f16",
+      "run2_sealed_manifest_sha256": "2ca05dc3d79dabbc49e28f97a9cad0b4241925d482eec2e9257024418743e8b2"
+    },
+    "committed_serial_audit_sha256": "2faab3f822add89fac7545bb3442f08b44d00a3a8e202d5b4ccc86b6f48dadd6",
+    "committed_adapter_review_sha256": "06fa2a80e09b15e66c00c60792cf5331ba61438184418e0d724ceae1cd8fb25e",
+    "resumable_contract_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cohort-fresh-capture-eligibility-review/resumable-runner-contract.json",
+    "resumable_contract_sha256": "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb",
+    "integrated_adapter_source_equivalence_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cohort-fresh-capture-eligibility-review/integrated-adapter-source-equivalence.json",
+    "integrated_adapter_source_equivalence_sha256": "d75cf46e829a7950cac903987d56ee7a255176f259295ffac6096a66baec193b"
+  },
+  "basis": [
+    "Both serial runs match all four stage1 and final complete executable hashes, with no byte normalization.",
+    "Source provenance, patched test-source record, raw Cargo metadata, stage argv/cwd/environment and compiler argument multisets match.",
+    "All13 evidence pins, all983 RUN1 manifest entries, RUN2 complete archive hash, both sealed executable cohorts and current selected compiler/tool identities were rechecked.",
+    "Source and snapshot digests remain frozen; only the seven reviewed test-harness adapter/extension files differ in prepared live source.",
+    "The bounded metadata adapter and candidate isolation guards passed independent51-test and adversarial review; production eligibility rows are currently empty."
+  ],
+  "limitations": [
+    "RUN1 omits the complete compiled-target archive. Its source archives, fingerprints, logs, receipts and sealed binaries remain preserved. This limits complete historical target reconstruction; it does not negate the observed byte-identical sealed binaries.",
+    "RUN1 had a failed missing-historical-loader prepare-live attempt before source copy or compilation, followed by a successful recorded retry. Both attempts remain preserved.",
+    "RUN2 has the full source/target archive; the first archive verifier rejected archive-only AppleDouble metadata before correction. Original failure, archive bytes, metadata inventory and complete filesystem-entry verification remain preserved.",
+    "Reproduction is same host, fixed physical build path and recorded tool/environment only. It is not hermetic, path-independent, cross-host or exhaustive runtime equivalence proof.",
+    "The historical build.json copy used during diagnostic preparation is not fresh provenance and must not become the provenance record for an eligible cohort.",
+    "No new frozen baseline frame or functional journey has been approved by this review."
+  ],
+  "permitted": {
+    "fresh_baseline_capture": true,
+    "baseline_replay_against_fresh_immutable_capture": true,
+    "collect_reference_conflict_evidence_without_prior_tuple_approval": true
+  },
+  "not_permitted": {
+    "candidate_comparison_eligible": false,
+    "checkpoint_reference_approval": "none",
+    "old_v1_exception_transferred": false,
+    "product_acceptance": false,
+    "unconditional_general_build_admission": false
+  },
+  "legacy_decision": {
+    "path": "tools/frozen_cli_references.json",
+    "sha256": "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b",
+    "rule": "Remain byte-for-byte unchanged and scoped only to its original exact binary hashes/environment/checkpoint. This review neither reuses nor supersedes that tuple decision."
+  },
+  "capture_constraints": [
+    "Launch only the exact four final sealed binaries after before/after private-file identity+hash checks and actual image/start observation through the pinned tuiscotti harness.",
+    "Pin the independently reviewed capture runner/harness revision, full inventory, all20ordinary checks, terminal profile/fonts/data/time controls and ordered receipt obligations in an immutable plan.",
+    "Separate legacy approval conflict observations from fresh baseline capture/replay validity; preserve red legacy verdicts and both artifacts.",
+    "All new cohort/checkpoint conflicts require independent repeatable baseline diagnosis and a separate documented decision before candidate comparison or acceptance.",
+    "Fresh capture/resume implementation must be independently reviewed before execution; this review does not silently wire or launch the current adapter."
+  ],
+  "current_state": {
+    "production_review_registry_empty": true,
+    "no_capture_executed_in_this_review": true,
+    "candidate_acceptance_blocked": true
+  }
+}

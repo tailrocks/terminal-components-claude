@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Data grid           no color · 100×30   i Inspector   ? Help
+
+   Overview          Data grid  Typed cells, a pending-change queue, paging and local sort
+   Buttons
+   Inputs              customers             rows 7–26 of 40 loaded · ~4,812 total · cols 1–4 of 8
+   Text areas
+   Forms                     ⚷ id       customer                   plan          seats        4›
+   Lists                   7 1007       Wide World Importers       pro             150           │
+   Trees                   8 1008       Adventure Works            free             25           │
+   Tables                  9 1009       Proseware Studio           enterprise        3           │
+   Editable tables        10 1010       Woodgrove Bank             team             80           ┃
+   Panels                 11 1011       Alpine Ski House           pro              12           ┃
+   Sidebars               12 1012       Coho Winery                free              1           ┃
+   Dialogs                13 1013       Lucerne Publishing         enterprise       40           ┃
+   Progress               14 1014       Margie's Travel            team              5           ┃
+   Scrolling              15 1015       Trey Research              pro             150           ┃
+   Terminal               16 1016       Humongous Insurance        free             25           ┃
+   Code editor            17 1017       Northwind Traders 2        enterprise        3           ┃
+   Diff                   18 1018       Blue Yonder Airlines 2     team             80           ┃
+▎› Data grid              19 1019       Contoso Pharmaceuticals 2  pro              12           │
+   Chips & selects        20 1020       Fabrikam Robotics 2        free              1           │
+   Pickers                21 1021       Litware Analytics 2        enterprise       40           │
+   Chrome                 22 1022       Tailspin Toys 2            team              5           │
+   Settings               23 1023       Wide World Importers 2     pro             150           │
+   Task runner            24 1024       Adventure Works 2          free             25           │
+                          25 1025       Proseware Studio 2         enterprise        3           │
+                          26 1026       Woodgrove Bank 2           team             80           │
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

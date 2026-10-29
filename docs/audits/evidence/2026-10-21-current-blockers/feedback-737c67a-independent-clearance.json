@@ -1,0 +1,109 @@
+{
+  "reviewer": "/root/incoming_modal_dim_review",
+  "decision": "Bounded independent clearance: no findings in the private FieldRowPaint parameter extraction. Existing seven Feedback failures remain unresolved and are not approved or hidden. This clearance does not approve SettingsPage architecture, private historical paths, application parity, or the full PR.",
+  "exact_tip": "737c67aadc8dd154082a175ed4762deb61a476db",
+  "implementation_commit": "fb639c6a9673ac3d204780a70f4e83099f14e19c",
+  "before_commit": "45760ca43689cbaac6145b99361fc1ebe838e1ee",
+  "source_review": {
+    "changed_production_file": "crates/termrock-feedback/src/settings_page.rs",
+    "context": "Private FieldRowPaint stores area, y, word and padding PaintStyle. paint_field_parts changes from eight parameters to five. Selected scope, optional kind, and optional source reuse the immutable context.",
+    "correctness": "Each previous argument is transferred unchanged. bold/ plain are pure constructors over copied immutable Ink values; computing two styles once before fill has no side effects. put calls, row order, width(text), saturating subtraction/addition, repeated spaces, clipping, optional-field conditions, and unselected branch are unchanged. No public signature, state ownership, error behavior, unsafe code, or concurrency is changed.",
+    "source_before_sha256": "a2686aa692452b236c122cbe86a6419bc4b92ceaeb5eeb1f576552622ff14836",
+    "source_after_sha256": "05023db302abb22a92125f0e2757232c52990ee57fce1a590e2e68fd8b01a3e6",
+    "author_copy_modified": false,
+    "review_copy_restored_exact_candidate_bytes": true
+  },
+  "method": "Created a separate sparse source archive (740 source/manifest/config files) with a dedicated build target. Recovered the author ephemeral harness from /private/tmp/feedback-field-row-corpus-test.txt and independently executed it against both unmodified before source and exact candidate source. Review-only harness bytes were removed afterward. No snapshots, expected hashes, baseline source, production labels, or author worktree files changed. Every Rust check used cargo nextest, or Clippy/fmt, within explicit owned process-group total deadlines of 210 seconds.",
+  "corpus": {
+    "description": "48 complete cell/cursor/registry cases: widths79,80,81,119,120,121; shifted origins; selected/unselected rows; absent narrow/present wide kind and source; empty, short, overlong, wide and combining labels. Theme Junie/default color only. Actual SettingsPage painter through Runtime::draw_scene and Buffer, not reference replay.",
+    "independent_before": {
+      "corpus_sha256": "a783726be915d4dc2387dd66329b3d5a9324d137001bcc116cd06035a4310a51",
+      "bytes": 10834878,
+      "lines": 76848,
+      "cases": 48,
+      "failures": [
+        "termrock-feedback::derived_hintbar_metadata metadata_without_a_hint_context_still_renders_and_redraw_allocates_nothing",
+        "termrock-feedback::feedback_clock bound_scene_freezes_feedback_without_clock_or_update_effects_and_allocates_nothing",
+        "termrock-feedback::feedback_clock synchronization_is_equal_time_idempotent_and_backwards_or_wrong_policy_atomic",
+        "termrock-feedback::feedback_clock warm_equal_time_sync_and_live_publication_allocate_nothing",
+        "termrock-feedback::meter_defaults capture_unchanged_default_cells",
+        "termrock-feedback::meter_semantic_tokens junie_block_rest_matches_pinned_lift_on_every_surface_and_capability",
+        "termrock-feedback::meter_semantic_tokens quantized_aliases_follow_pinned_ordered_lift"
+      ]
+    },
+    "independent_after": {
+      "corpus_sha256": "a783726be915d4dc2387dd66329b3d5a9324d137001bcc116cd06035a4310a51",
+      "bytes": 10834878,
+      "lines": 76848,
+      "cases": 48,
+      "failures": [
+        "termrock-feedback::derived_hintbar_metadata metadata_without_a_hint_context_still_renders_and_redraw_allocates_nothing",
+        "termrock-feedback::feedback_clock bound_scene_freezes_feedback_without_clock_or_update_effects_and_allocates_nothing",
+        "termrock-feedback::feedback_clock synchronization_is_equal_time_idempotent_and_backwards_or_wrong_policy_atomic",
+        "termrock-feedback::feedback_clock warm_equal_time_sync_and_live_publication_allocate_nothing",
+        "termrock-feedback::meter_defaults capture_unchanged_default_cells",
+        "termrock-feedback::meter_semantic_tokens junie_block_rest_matches_pinned_lift_on_every_surface_and_capability",
+        "termrock-feedback::meter_semantic_tokens quantized_aliases_follow_pinned_ordered_lift"
+      ]
+    },
+    "matches_author_before_and_after": true,
+    "harness_sha256": "b08b9b4efbb73cfac0b35dbeddf16d9f0579025c85191c088e6a39384f2cd324"
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-feedback --all-targets",
+      "before_exit": 100,
+      "before_passed": 123,
+      "before_failed": 7,
+      "before_skipped": 0,
+      "after_exit": 100,
+      "after_passed": 123,
+      "after_failed": 7,
+      "after_skipped": 0,
+      "failure_set_identical": true
+    },
+    {
+      "command": "cargo nextest run -p termrock-feedback --lib -E test(settings_page_complete_cell_corpus_for_private_refactor)",
+      "before_exit": 0,
+      "before_passed": 1,
+      "after_exit": 0,
+      "after_passed": 1,
+      "scope": "Review-only corpus test selected intentionally; no full-gate claim."
+    },
+    {
+      "command": "cargo nextest run -p jackin-preview-app --test app_tests -E test(settings_mounts_80_paints_the_approved_destination_cell) or test(settings_mounts_two_enter_paints_the_approved_mounts_frame) or test(settings_tabs_and_save_preview_stay_on_the_settings_route)",
+      "exit": 0,
+      "passed": 3,
+      "filtered": 48
+    },
+    {
+      "command": "cargo clippy -p termrock-feedback --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt --all --check",
+      "exit": 0
+    }
+  ],
+  "findings": [],
+  "limits": [
+    "The surrounding SettingsPage still paints coordinates and fixed selected styles; this private refactor does not establish reusable component ownership or approve historical screen reproduction.",
+    "Corpus is a before/after structural preservation check, not a frozen reference artifact and not all themes/capabilities.",
+    "Seven pre-existing Feedback failures still require their own diagnosis/fix.",
+    "No real frozen/candidate CLI comparison, full workspace test gate, or hosted CI verification was performed."
+  ],
+  "evidence_files": {
+    "validation-commands.json": "d6a301f8abf71154be1010a1b6854e7d2f2a89e65228f204f7e9a82a8bd20794",
+    "after-full-feedback.log": "da19d302fe35daef4e01aec1b487df0b4fc17bd8a4b893dc0f7c0cabec2cb80a",
+    "before-full-feedback.log": "597d6048ee3bdcda18c107d8b3b76cbea206d0fe2325c553ac689f267d9ab7f3",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "strict-clippy.log": "47a0cb3d7a64054f85a240877baffbc98727c27e602a1ba766b09688fe4c38d2",
+    "before.txt": "a783726be915d4dc2387dd66329b3d5a9324d137001bcc116cd06035a4310a51",
+    "reproduced-corpus-harness.rs": "b08b9b4efbb73cfac0b35dbeddf16d9f0579025c85191c088e6a39384f2cd324",
+    "after.txt": "a783726be915d4dc2387dd66329b3d5a9324d137001bcc116cd06035a4310a51",
+    "commands.json": "31c22e19065a7923fc33057cea8efbb33db3e0cae27e8c9a45e04c7f78d16db0",
+    "before-corpus.log": "0fda946db3631a60a3dd66186eb965975535eb78a4ecc807532d45f9f49aa0e6",
+    "after-corpus.log": "1953a1178f42a0c369b19e30acd08e37865e342f33bba02eee61fcfc888cc9cf",
+    "jackin-settings.log": "7c3b1027daeaee97aebe49ce58d5e193c81aede5ae0c9a049cd830490bd5d5c8"
+  }
+}

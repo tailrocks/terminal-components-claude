@@ -1,0 +1,60 @@
+{
+  "reviewed_commit": "426bb0c9f",
+  "parent_review_base": "7483ce5208e054291e9aebdfc12cf15a42bbb41",
+  "frozen_reference": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design_reference": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "disposition": "Do not merge as a parity/library fix. The new alternate cockpit is application-owned painting selected by a captured scenario/frame, while the 120x40 branch remains the fixed replay. It is source-replay evidence only; no PTY or visual acceptance run was performed.",
+  "findings": [
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:7132-7153,9555-9559",
+      "issue": "The new rendering branch is keyed to Route::Cockpit + Motion::Paused + Scenario::LaunchRunning + frame()==40 and a set of closed overlays. At exactly 120x40 it still calls draw_historical_launch_running; only other sizes reach launch_cockpit::paint. This preserves a scenario/frame-selected presentation and forks screen implementations by viewport rather than providing general composition. The fixed RUNS path is not removed by this commit.",
+      "source_evidence": "git diff 7483ce5208e054291e9aebdfc12cf15a42bbb41..426bb0c9f app.rs; the new `paused_launch_scene` predicate and render dispatch are visible at those lines.",
+      "replacement_owner": "Replace both branches together with one data-driven shared screen composition that accepts live run/stage/credential/agent/workspace view data and a documented responsive policy. Scenario time controls belong in injected data, not a renderer selector."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_cockpit.rs:1-35,37-70,128-206,208-361,522-649",
+      "issue": "The 649-line app module builds a fresh Buffer, manually calculates Rect coordinates, paints every cell with private helpers, and re-blits through Ui::paint_cell. It duplicates runtime/rendering and screen/component mechanics in the application. Its constants hard-code ROLE, WORKSPACE, agent/account line, and credential text; only a subset of LaunchRun state (counts/stage states/durations) is live. In contrast, frozen/design screens/cockpit.rs:778 onward draw from CockpitScreen fields, World account/workspace/agent data, credentials, activity and log.",
+      "source_evidence": "New file imports termrock::{Buffer, Color, Modifier, Position, Rect, Style, Ui}; direct draw helpers at lines 522-649; hard-coded view data at lines 10-19; baseline source `src/bin/jackin_preview/screens/cockpit.rs` at frozen commit lines 778-994 consumes dynamic screen/domain fields and existing StepRail/Button/viewport contracts.",
+      "replacement_owner": "Keep LaunchRun/domain data and action handlers in Jackin. Compose shared Blocks and widgets (`MasterDetail`/shell or a general workspace block, `Steps`, `Button`, `StatusBar`/`HintBar`, and viewport) using explicit view models. Termrock owns measurement, layout, rendering and regions. Avoid an app-specific renderer crate or captured screen component."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_cockpit.rs:108-119,325-360,363-489",
+      "issue": "The new view shows help/cancel affordances as static text. `Seg.clickable` is used only to add a space/layout adjustment and is never turned into a hit region; paint_cancel writes a label with no Button/update/input contract; footer hints are fixed strings. Frozen cockpit has actual CHIP_RUN/CHIP_ACTIVITY/CHIP_CONTAINER clickable regions and an actual secondary cancel Button at frozen cockpit.rs:973-1004, with corresponding dispatch in on_event at 680-710. The new screen therefore drops interaction/focus behavior outside the legacy 120x40 path.",
+      "replacement_owner": "Use real shared Button/link/hint components with stable IDs and typed actions; preserve click, focus, cursor, modal and state behavior via existing runtime APIs."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_cockpit.rs:490-520,565-646",
+      "issue": "The alternate screen forks color-profile conversion and semantic styling inside the app, including a NO_COLOR override and direct conversion of raw RGB, before painting. `legacy_mono(..., y == 0)` infers a semantic menu role from screen coordinates. This is coupled to frame appearance and duplicates shared theme resolution.",
+      "replacement_owner": "Move semantic palette/brand/link roles to shared theme/component recipes and let common rendering resolve color capability. Keep generic user-specified RGB conversion separate from semantic roles."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/termrock-theme/src/downgrade.rs:236-255, tests near the added cases",
+      "issue": "The incoming diff adds exact raw-RGB pair rules (#808080 on black and #474747 on black) to legacy_mono plus exact expected-color tests. The previous source review 4fcbc23/5d06c61 is explicitly not cleared: LegacyMono still infers semantic link/menu attributes from raw color pairs, and downgrade_pair has a named-color contrast exception. These additions expand that unresolved captured-palette mechanism instead of establishing provenance-aware semantic ownership.",
+      "source_evidence": "git diff 7483..426 adds two literal match arms and tests in crates/termrock-theme/src/downgrade.rs. Prior audit docs/audits/2026-10-21-jackin-theme-4fcbc-5d06-review.json records the not-cleared issue and required general/custom RGB neighboring tests.",
+      "replacement_owner": "Keep semantic palette decisions in authored theme/component roles; preserve arbitrary custom RGB conversion as a general algorithm. Do not identify roles by exact color pair or row coordinate. Resolve the prior audit before considering these additions."
+    },
+    {
+      "severity": "P2",
+      "path": "crates/jackin-preview-app/src/app/launch_cockpit.rs:492-520,379-389",
+      "issue": "Text placement and truncation count Unicode scalar values (`chars().count/take`) rather than terminal-cell width/grapheme boundaries. Wide and combining labels can be clipped or misaligned. This differs from the frozen shared `ui::text::width` and `reveal::cut` calls.",
+      "replacement_owner": "Use shared text measurement, truncation and grapheme-aware clipping in the shared text/render layer."
+    },
+    {
+      "severity": "P2",
+      "path": "crates/jackin-preview-app/src/app/launch_cockpit.rs and app_tests*",
+      "issue": "The commit adds no behavior-focused tests for new layouts/inputs and the migration-matrix claim that the composed cockpit matches several terminal sizes/profiles is not demonstrated by this diff. Pending 40x12/60x18 are explicitly described as having no snapshot, so the implementation must not be treated as reference-confirmed there.",
+      "replacement_owner": "Require pinned tuiscotti real-CLI paired checkpoints for baseline and candidate, including adjacent sizes and interaction states; keep unapproved diagnostic outputs separate from expected approvals."
+    }
+  ],
+  "retain": [
+    "The semantic goal to make the cockpit work responsively is valid; implement it through reusable shared blocks and live view data, not the new app painter.",
+    "LaunchRun stage state/duration/count inputs are useful domain data and should remain outside Termrock.",
+    "The concern that truecolor values need explicit semantic roles in indexed/mono profiles is valid; role provenance should be shared theme data rather than color-pair inference."
+  ],
+  "verification": "Read-only source comparison of commit 426bb0c9f with parent base 7483ce5208e054291e9aebdfc12cf15a42bbb41 and frozen/design source. No source edits, tests, app builds, or visual parity claims."
+}

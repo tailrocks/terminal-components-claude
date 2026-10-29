@@ -1,0 +1,34 @@
+{
+  "source_commit": "332f40d07e38512f91cfb038eb9174c413755686",
+  "integration_commit_before_records": "c2ee936df3fd419bafde06824cd8f7c87294ca60",
+  "nextest": {
+    "packages": [
+      "termrock-fields",
+      "termrock-forms",
+      "termrock-runtime"
+    ],
+    "features": [
+      "termrock-runtime/testing"
+    ],
+    "run": 504,
+    "passed": 504,
+    "skipped": 3
+  },
+  "strict_clippy": "passed for same packages/all targets/features",
+  "formatting": "scoped package checks passed",
+  "independent_review": "2026-10-21-textarea-332f-clearance.json",
+  "limitations": [
+    "Three existing ignored tests are not passing evidence.",
+    "Partial thumbs, clipped menu, parent-clipped vertical top policy, Forms integration and application parity remain unaccepted."
+  ],
+  "artifact_recovery": {
+    "paths": 1301,
+    "action": "Restored only missing tracked conformance artifacts from exact HEAD after recording paths and blob identities. No source changed.",
+    "cause": "Unknown; independent diagnosis did not reproduce disappearance.",
+    "evidence": [
+      "2026-10-21-parent-tracked-artifact-absence.json",
+      "2026-10-21-artifact-absence-independent-diagnosis.json"
+    ]
+  },
+  "product_acceptance": false
+}

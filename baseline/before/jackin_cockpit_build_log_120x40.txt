@@ -1,0 +1,40 @@
+  jackin❯  entering the Construct  2 running  Launch › payments-platform › the-architect            4/11 stages  ? help
+
+
+                                                        jackin❯
+     ╭─ Docker build · building… ────────────────────────────────────────────────────────── 25 lines · following ─╮
+     │  #1 [internal] load build definition from Dockerfile.derived                                               │
+     │  #1 transferring dockerfile: 2.31kB done                                                                   │
+     │  #1 DONE 0.0s                                                                                              │
+     │  #2 [internal] load metadata for ghcr.io/jackin/construct:0.6.4                                            │
+     │  #2 DONE 0.4s                                                                                              │
+     │  #3 [internal] load .dockerignore                                                                          │
+     │  #3 transferring context: 2B done                                                                          │
+     │  #3 DONE 0.0s                                                                                              │
+     │  #4 [ 1/9] FROM ghcr.io/jackin/construct:0.6.4@sha256:9c41e2f0a7b3c5d6e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d  │
+     │  5e6f7a8b9c0d1                                                                                             │
+     │  #4 resolve ghcr.io/jackin/construct:0.6.4 0.1s done                                                       │
+     │  #4 CACHED                                                                                                 │
+     │  #5 [internal] load build context                                                                          │
+     │  #5 transferring context: 41.02kB 0.0s done                                                                │
+     │  #5 DONE 0.0s                                                                                              │
+     │  #6 [ 2/9] RUN --mount=type=cache,target=/var/cache/apt apt-get update && apt-get install -y --no-install  │ P…
+     │  -recommends git-lfs ripgrep fd-find jq                                                                    │ss…
+     │  #6 0.812 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]                                   │
+     │  #6 1.204 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]                          │
+     │  #6 2.331 Reading package lists...                                                                         │
+     │  #6 3.118 Building dependency tree...                                                                      │
+     │  #6 3.902 The following NEW packages will be installed: fd-find git-lfs jq ripgrep                         │
+     │  #6 5.410 Setting up ripgrep (13.0.0-4+b2) ...                                                             │
+     │  #6 5.612 Setting up git-lfs (3.3.0-1+b5) ...                                                              │
+     │  #6 DONE 6.1s                                                                                              │
+     │  #7 [ 3/9] RUN corepack enable && corepack prepare pnpm@9.12.0 --activate                                  │
+     │  #7 1.930 Preparing pnpm@9.12.0 for immediate activation...                                                │
+     │                                                                                                            │
+     │                                                                                                            │
+     │  ↑↓ Scroll · PgUp PgDn Page · End Follow · Esc Close                                                       │
+     ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ ⠋ Building derived image…                                                               jackin-payments-platform-b5df
+ 25 lines · b build log
+
+                                         ↑↓ Scroll  End Follow  Esc Close log

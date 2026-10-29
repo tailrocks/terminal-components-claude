@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help
+  ╭─ Keyboard shortcuts ── Usage › Claude › Archived contractor laptop profile — do not use for production launches ─╮
+ ╭│  Usage                               Reading meters                                                              │╮
+ ││  ↑↓ j k       move                   ━            used share of the wi…                                          ││
+ ││  Enter        detail                 ▲            warning ≥ 75 %                                                 ││
+ ││  r            refresh every account  !            exhausted · error                                              ││
+ ││  m            manage in Accounts     stale        last good value kept…                                          ││
+ ││  Esc          close                                                                                              ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││                                                                                                                  ││
+ ││  ↑↓ Scroll · Esc Close                                                                                           ││
+ ╰╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯╯
+
+                                                 ↑↓ Scroll  Esc Close

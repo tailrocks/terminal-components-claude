@@ -1,0 +1,50 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                                                                      no color · 160×50  ? help [0m
+                                                                                                                                                                [0m
+  ≡ Query 1 ×                                                                                                                                               +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ───────────────── public ─╮ ╭─ Query 1 ───────────────────────────────────────────────────────────────────────────────────────────────────────  ─╮ [0m
+ │                                     │ │   ›  1 UPDATE orders SET status = 'paid' WHERE id = 'x'                                                            │ [0m
+ │   Filter objects                    │ │                                                                                                                    │ [0m
+ │  ▾ D acme_prod                      │ │                                                                                                                    │ [0m
+ │    ▾ S public                       │ │                                                                                                                    │ [0m
+ │      ▾ Tables                    7  │ │                                                                                                                    │ [0m
+ │        ▸ T organizations     1.2 k  │ │                                                                                                                    │ [0m
+ │        ▸ T customers        48.9 k  │ │                                                                                                                    │ [0m
+ │        ▸ T products            312  │ │                                                                                                                    │ [0m
+ │        ▸ T orders            1.2 M  │ │                                                                                                                    │ [0m
+ │        ▸ T order_items       3.8 M  │ │                                                                                                                    │ [0m
+ │        ▸ T payments          1.2 M  │ │                                                                                                                    │ [0m
+ │        ▸ T subscriptions     1.1 k  │ │ ╭────────────────────────────────────────────────────────────────────────╮                                         │ [0m
+ │      ▸ Views                     2  │ │ │                                                                        │                                         │ [0m
+ │      ▸ Functions                 1  │ │ │  [0m[1mExecute write query?[0m                                                  │                                         │ [0m
+ │      ▸ Sequences                 1  │ │ │                                                                        │                                         │ [0m
+ │    ▸ S analytics                    │ │ │  Action      UPDATE                                                    │                                         │ [0m
+ │    ▸ S audit                        │ │ │  Target      Production · production · acme_prod · orders              │                                         │ [0m
+ │                                     │ │ │  Scope       matching rows in orders                                   │                                         │ [0m
+ │                                     │ │ │  Reversible  Reversible by a compensating UPDATE                       │                                         │ [0m
+ │                                     │ │ │  Safe Mode   Safe Mode · deliberate confirmation required              │                                         │ [0m
+ │                                     │ │ │                                                                        │                                         │ [0m
+ │                                     │ │ │  UPDATE orders SET status = 'paid' WHERE id = 'x'                      │                                         │ [0m
+ │                                     │ │ │                                                                        │                                         │ [0m
+ │                                     │ │ │   [0m[1mType orders to confirm                                             [0m  │                                         │ [0m
+ │                                     │ │ │ ▎                                                                      │                                         │ [0m
+ │                                     │ │ │                                                                        │                                         │ [0m
+ │                                     │ │ │                                                                        │                                         │ [0m
+ │                                     │ │ │                                                     Cancel   [0m[2mExecute [0m  │                                         │ [0m
+ │                                     │ │ │                                                                        │                                         │ [0m
+ │                                     │ │ ╰────────────────────────────────────────────────────────────────────────╯lt+R runs all                            │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel                                                                                                  Connected to Production [0m

@@ -1,0 +1,25 @@
+[0m[2m  holla❯    File   Go   Help     payments · s…eckout  ◆ prod-eu-1 · production  [0m
+[0m[2m  Here › Review                                                                 [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                        │── [0m
+[0m[2m  R│  [0m[1;2mRestart payments · gate 2 of 2[0m[2m                                        │…  [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m  A│  [0mAction   systemctl restart payments on prod-eu-1 · production ·     [0m[2m ┃│┃  [0m
+[0m[2m   │  [0m         in-flight requests are dropped                             [0m[2m ┃│┃  [0m
+[0m[2m  H│  [0mHost     prod-eu-1 · production                                     [0m[2m ┃│┃  [0m
+[0m[2m  I│  [0mIn       prod-eu-1 · host-wide                                      [0m[2m ┃│┃  [0m
+[0m[2m  S│  [0mScope    on prod-eu-1                                               [0m[2m ┃│┆  [0m
+[0m[2m  C│  [0mChanges  payments restarts · brief outage on prod-eu-1              [0m[2m ┆│┆  [0m
+[0m[2m  R│  [0mRisk     privileged                                                 [0m[2m ┆│┆  [0m
+[0m[2m   │  [0mData     live · 0 s ago                                             [0m[2m ┆│   [0m
+[0m[2m ╭─│  ↓ 3 more                                                              │─╮ [0m
+[0m[2m │ │  [0m[1;2mType RESTART PAYMENTS ON prod-eu-1 to confirm                       [0m[2m  │ │ [0m
+[0m[2m │ │[0m[1;2;7m▎                                                                     [0m[2m  │ │ [0m
+[0m[2m │ │                                                                        │ │ [0m
+[0m[2m ╰─│                                                    Cancel    Execute   │─╯ [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   ╰─────────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m────────╯   [0m
+[0m[2m                                                                                [0m
+[0m[2m /srv/payments   detached @ v2.14.3    review · gate 1 of 2    no color · 80×24 [0m
+ [0m[1m EDIT [0m  [0m[1mType[0m "RESTA[0m[1mRT PA[0mYMENTS ON p[0m[1mrod[0m-eu-1" [0m[1mt[0mo confirm  [0m[1mEsc[0m C[0m[1manc[0mel            [0m
+[?25h[17;7H[6 q

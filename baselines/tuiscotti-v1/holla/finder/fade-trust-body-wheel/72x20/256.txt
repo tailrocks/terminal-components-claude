@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           team · Rust project  mbp · local
+
+  Here › Trust
+ ━━━━━━━━━━━━━━━───────────────────────────────────────────────────────
+  Trust ~/work/team/.holla.toml?
+  not trusted yet · review the exact definition, commands and environmen
+
+  File         ~/work/team/.holla.toml
+  Defines      3 custom actions · 1 destructive · 2 diagnostics
+  Digest       sha256:80de150cfec6235763ee88135d6e8abf9c8de43ddebf1481
+               35b5eb42ea710dad
+  Trust scope  the whole file by content digest · edited content is
+               untrusted again · every action in it runs without a
+               shell
+  Provenance   project · read from disk when the finder opened
+  argv[0]      "tools/deploy-preview.sh"
+  argv[1]      "--env"                     ▎Cancel    Trust this file
+  argv[2]      "preview stack"
+ ~/work/team   main           trust review · one exact file
+           ← → Choose  Enter Activate  Tab Next  Esc Cancel

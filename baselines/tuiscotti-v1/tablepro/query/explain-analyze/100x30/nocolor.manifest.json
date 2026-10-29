@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "05add97f5fea1c671d4bdad3ff81d55855abf66b6559431f4166eeb8b39061f6",
+  "artifacts": {
+    "ansi": {
+      "bytes": 4220,
+      "file": "tablepro/query/explain-analyze/100x30/nocolor.ansi",
+      "sha256": "05add97f5fea1c671d4bdad3ff81d55855abf66b6559431f4166eeb8b39061f6"
+    },
+    "ascii": {
+      "bytes": 2799,
+      "file": "tablepro/query/explain-analyze/100x30/nocolor.ascii",
+      "sha256": "30dc656ac019b97e94d72408df0bf19002411d3b645d39ba596b311081b48e44"
+    },
+    "ascii_loss_json": {
+      "bytes": 39621,
+      "file": "tablepro/query/explain-analyze/100x30/nocolor.ascii.loss.json",
+      "sha256": "39eb541486d83e17bdd388379921e0a0e31e6a10cb4eb075a6dab74d5daca5c2"
+    },
+    "frame_json": {
+      "bytes": 673923,
+      "file": "tablepro/query/explain-analyze/100x30/nocolor.frame.json",
+      "sha256": "a7e213a3f5c4e1582727ff174998718852164785af8e55164ad6e6f8dca970f8"
+    },
+    "html": {
+      "bytes": 278267,
+      "file": "tablepro/query/explain-analyze/100x30/nocolor.html",
+      "sha256": "85e0e36a6767739d5d6754c1d7a2d9963610f00792be507c0966b4cbea8195c7"
+    },
+    "observations_json": {
+      "bytes": 472,
+      "file": "tablepro/query/explain-analyze/100x30/nocolor.observations.json",
+      "sha256": "2f9bce2cd56aa869a1126481fd2c43d4bbafe96b7f9eacf2f465f3b8087e95a7"
+    },
+    "png": {
+      "bytes": 198836,
+      "file": "tablepro/query/explain-analyze/100x30/nocolor.png",
+      "sha256": "803793172660c1ac7519072c35d4c68d45740f9c152445a5d446b38640c366b5"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "tablepro/query/explain-analyze/100x30/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3649,
+      "file": "tablepro/query/explain-analyze/100x30/nocolor.txt",
+      "sha256": "bdb0617b89b823515b98ea62371a28c3c539c020b84d3db3fe69c43a477de054"
+    }
+  },
+  "ascii_substitutions_count": 428,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 4084370608161346091,
+  "frame_sha256": "a7e213a3f5c4e1582727ff174998718852164785af8e55164ad6e6f8dca970f8",
+  "generation": "48235f5d56e3010cc36db6026c573f44ec04247387859ddb776ddb03a5a8c17a",
+  "html_sha256": "85e0e36a6767739d5d6754c1d7a2d9963610f00792be507c0966b4cbea8195c7",
+  "legacy_name": "tablepro/query/explain_analyze/100x30/nocolor",
+  "name": "tablepro/query/explain-analyze/100x30/nocolor",
+  "png_sha256": "803793172660c1ac7519072c35d4c68d45740f9c152445a5d446b38640c366b5",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:37Z",
+  "txt_sha256": "bdb0617b89b823515b98ea62371a28c3c539c020b84d3db3fe69c43a477de054"
+}

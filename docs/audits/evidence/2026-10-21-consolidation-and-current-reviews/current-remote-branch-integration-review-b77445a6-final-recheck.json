@@ -1,0 +1,19 @@
+{
+  "observed_utc": "2026-10-20T23:45:01.505129+00:00",
+  "primary_report_sha256": "beaf8e2066a389b3be3a8ffe7aaedfa54652c66ba202fdb95130df6312838e05",
+  "final_remote_heads": 105,
+  "changes_since_snapshot": [
+    {
+      "branch": "parity/termrock-visual-baseline",
+      "before": "b77445a6da757045f80cf793adc7812952aaeab9",
+      "after": "992953a9eb8092558b1de3043d40a0d4265f7f11"
+    }
+  ],
+  "fixed_refs": {
+    "main": "a97e351df736b576904bc450619ca347ea64d65b",
+    "design/interaction-polish": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+    "parity/termrock-visual-baseline": "992953a9eb8092558b1de3043d40a0d4265f7f11"
+  },
+  "eligible_tips_unchanged": true,
+  "no_remote_mutations_performed": true
+}

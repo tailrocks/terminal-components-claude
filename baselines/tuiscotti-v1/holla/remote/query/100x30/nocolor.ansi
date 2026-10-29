@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                  payments · service checkout  [0m[1m◆ prod-eu-1 · production[0m [0m
+                                                                                                    [0m
+ [0m[1m Here  [0m                                                                                            [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4mrestart payments[0m                                                                 scope ‹ here ›  [0m
+                                                                                                    [0m
+    Results · 2                                                                                     [0m
+ [0m[1m › Restart payments         [0msystem[0m[1m  [0mon prod-eu-1[0m[1m  [0mproduction host · two gates[0m[1m          [0mprivileged[0m[1m [0m [0m
+    [0m[1mRestart[0m payments-worker  system  on prod-eu-1  production host · two gates          privileged  [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+    → sudo systemctl restart payments · on prod-eu-1 · privileged                                   [0m
+                                                                                                    [0m
+ [0m[1m/srv/payments[0m   detached @ v2.14.3                                               no color · 100×30 [0m
+    [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Review…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear      [0m

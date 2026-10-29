@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Code editor i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mCode editor[0m  Blocks, tones, diagnostics and compl… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃   ▎[0m[1mretry.rs[0m                               3 blocks  [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃    ▎› [0m[1m 1[0m [0m[4mcl[0m[3;4m// Retry a request with exponential b…[0m┃  [0m
+   Lists          ┃      ╭───[0m[1m───[0m─[0m[1m─────[0m─[0m[1m──[0m──────────────────────────────╮[0m
+   Trees          ┃      │[0m[1m▎[0mT[0m[1m Client                             [0mstruct[0m[1m [0m│[0m
+   Tables         ┃      │ ƒ [0m[1mcl[0mient(                   fn () -> Client │[0m
+   Editable tabl… ┃      │ ƒ s[0m[1mc[0mhedu[0m[1ml[0me(  fn (attempts: u32) -> Vec<u64> │[0m
+   Panels         ┃    St╰─────────────────────────────────────────────╯[0m
+   Sidebars       ┃                                                     [0m
+   Dialogs        │    Mode         editing                             [0m
+   Progress       │    Cursor       ln 1 · col 3                        [0m
+   Scrolling      │    Block        1 of 3                              [0m
+   Terminal       │    Runs         0                                   [0m
+ › Code editor    │                                                     [0m
+                                                                        [0m
+ [0m[1m EDIT [0m  [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Accept  [0m[1mEsc[0m Close                              [0m

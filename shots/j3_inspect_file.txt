@@ -1,0 +1,36 @@
+  jackin❯    File   Edit   View   Session   Help
+  1 Mi╭─ Inspect changes · payments-platform ───────────────────────────────────────────── Esc back to the list ─╮
+ ─────│  M src/settlement/mod.rs  +2 −1 · 1 hunk                                           unified · d switches  │─────
+Amp 1.│                                                                                                          │
+      │  M src/settlement/mod.rs  +2 −1 · 1 hunk                                                                 │
+› Why │  @@ -28,4 +28,5 @@                                                                                       │
+      │   28  28   pub mod config;                                                                               │
+⠿ Sear│   29  29   pub mod retry;                                                                                │
+⠿ Read│       30 + pub mod backoff;                                                                              │
+      │   30  31                                                                                                 │
+The lo│   31     - pub use retry::RetryPolicy;                                                                   │
+(resyn│       32 + pub use retry::{RetryPolicy, SettleError};                                                    │
+      │                                                                                                          │
+Sugges│                                                                                                          │
+  - .W│                                                                                                          │
+  + .W│                                                                                                          │
+      │                                                                                                          │
+Apply │                                                                                                          │
+›     │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ payments-platform › the-architect   PR #482 · Settlement retry backoff                       Session 38% · Weekly 33%
+ ↑↓ Scroll  drag Select  y Copy  d Unified / review  Esc List

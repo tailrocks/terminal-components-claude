@@ -1,0 +1,127 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling libc v0.2.191
+   Compiling unicode-segmentation v1.13.3
+   Compiling cfg-if v1.0.5
+   Compiling rustversion v1.0.23
+   Compiling foldhash v0.2.0
+   Compiling allocator-api2 v0.2.21
+   Compiling bitflags v2.13.2
+   Compiling strsim v0.11.1
+   Compiling ident_case v1.0.1
+   Compiling thiserror v2.0.21
+   Compiling equivalent v1.0.3
+   Compiling errno v0.3.14
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+   Compiling hashbrown v0.17.1
+   Compiling either v1.19.0
+   Compiling heck v0.5.0
+   Compiling itoa v1.0.18
+   Compiling itertools v0.14.0
+   Compiling castaway v0.2.4
+   Compiling ryu v1.0.23
+   Compiling parking_lot_core v0.9.12
+   Compiling unicode-width v0.2.2
+   Compiling signal-hook v0.3.18
+   Compiling static_assertions v1.1.0
+   Compiling compact_str v0.9.1
+   Compiling unicode-truncate v2.0.1
+   Compiling strum_macros v0.28.0
+   Compiling lru v0.18.5
+   Compiling signal-hook-registry v1.4.8
+   Compiling convert_case v0.10.0
+   Compiling smallvec v1.16.3
+   Compiling indoc v2.0.8
+   Compiling critical-section v1.2.0
+   Compiling rustix v1.1.5
+   Compiling scopeguard v1.2.0
+   Compiling log v0.4.34
+   Compiling mio v1.2.4
+   Compiling lock_api v0.4.14
+   Compiling darling_core v0.24.1
+   Compiling derive_more-impl v2.1.1
+   Compiling strum v0.28.0
+   Compiling litrs v1.0.1
+   Compiling signal-hook-mio v0.2.5
+   Compiling thiserror-impl v2.0.21
+   Compiling derive_more v2.1.1
+   Compiling document-features v0.2.12
+   Compiling parking_lot v0.12.5
+   Compiling num_threads v0.1.8
+   Compiling powerfmt v0.2.1
+   Compiling num-conv v0.2.2
+   Compiling time-core v0.1.9
+   Compiling deranged v0.5.9
+   Compiling kasuari v0.4.13
+   Compiling crossterm v0.29.0
+   Compiling darling_macro v0.24.1
+   Compiling ratatui-core v0.1.2
+   Compiling darling v0.24.1
+   Compiling time v0.3.55
+   Compiling instability v0.3.14
+   Compiling line-clipping v0.3.8
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.229
+   Compiling ratatui-crossterm v0.1.2
+   Compiling ratatui-widgets v0.3.2
+   Compiling termrock-core v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-core)
+   Compiling serde_json v1.0.154
+   Compiling termrock-theme v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-theme)
+   Compiling ratatui-macros v0.7.2
+   Compiling ratatui v0.30.2
+   Compiling termrock-text v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-text)
+   Compiling termrock-layout v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-layout)
+   Compiling termrock-collections v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-collections)
+   Compiling termrock-render v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-render)
+   Compiling termrock-runtime v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-runtime)
+   Compiling serde_derive v1.0.229
+   Compiling memchr v2.8.3
+   Compiling termrock-controls v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-controls)
+   Compiling termrock-shell v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-shell)
+   Compiling termrock-viewport v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-viewport)
+   Compiling termrock-feedback v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-feedback)
+   Compiling termrock-fields v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-fields)
+   Compiling termrock-terminal v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-terminal)
+   Compiling termrock-session v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-session)
+   Compiling termrock-navigation v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-navigation)
+   Compiling termrock-overlays v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-overlays)
+   Compiling termrock-forms v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-forms)
+   Compiling termrock-grid v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-grid)
+   Compiling termrock-editors v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-editors)
+   Compiling termrock v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock)
+   Compiling termrock-test-support v0.1.0 (/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-test-support)
+   Compiling independent-picker-contrast v0.0.0 (/private/tmp/picker-contrast-c932adb-independent-consumer-20261021)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 23.71s
+────────────
+ Nextest run ID a1910466-0652-4428-abdf-adf85d938c84 with nextest profile: default
+    Starting 2 tests across 1 binary
+        PASS [   0.067s] (1/2) independent-picker-contrast::contrast default_frames_remain_unmodified
+        FAIL [   1.071s] (2/2) independent-picker-contrast::contrast recreated_white_background_and_authored_channels_contrast
+  stdout ───
+
+    running 1 test
+    test recreated_white_background_and_authored_channels_contrast ... FAILED
+
+    failures:
+
+    failures:
+        recreated_white_background_and_authored_channels_contrast
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1.05s
+
+  stderr ───
+
+    thread 'recreated_white_background_and_authored_channels_contrast' (146337979) panicked at tests/contrast.rs:37:2:
+    Default-ink contrast failures:
+    Mono/Fill/None/I: fg=White bg=DarkGray ratio=4.00410696
+    Mono/Fill/None/D: fg=White bg=DarkGray ratio=4.00410696
+    Mono/Fill/None/T: fg=White bg=DarkGray ratio=4.00410696
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   1.076s] 2 tests run: 1 passed, 1 failed, 0 skipped
+        FAIL [   1.071s] (2/2) independent-picker-contrast::contrast recreated_white_background_and_authored_channels_contrast
+error: test run failed

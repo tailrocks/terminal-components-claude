@@ -1,0 +1,51 @@
+ ▪ [0m[1mJunie[0m Design system  Overlays › [0m[1mPickers[0m                                                                            no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+ [0m[1mComponents[0m           54  [0m[1mPickers[0m  One modal list for files, tabs, levels, commands and branches: search, scope, status                                         [0m
+ ───────────────────────                                                                                                                                        [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                                                              [0m
+  ▸ Tables                  Open a picker                                                                                                        Enter · click  [0m
+  ▸ Navigation              ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+  ▾ Overlays                 [0m[1;7mOpen quickly [0m   Switch tab    Choose a level    Run command    Remote branch                                                       [0m
+      Dialogs                                                                                                                                                   [0m
+ [0m[1m▎  › Pickers           [0m    Quick: fuzzy as you type, Tab scope, Alt+Enter alternate · Tabs: live, Delete closes · Level: no search box · Commands: disabled    [0m
+      Dialog kinds          rows say why · Remote: loads, r retries                                                                                             [0m
+      Popups & tooltips                                                                                                                                         [0m
+      File browser                                                                                                                                              [0m
+  ▸ Feedback                Applied                                                                                              read back from a built picker  [0m
+  ▸ Layout                  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+  ▸ Text & code             Size      width 64 · max rows 12 · Center                                                                                           [0m
+  ▸ Screens                 Fit       margin 1 · Center · backdrop keeps 1 bottom rows                                                                          [0m
+                            Rows      cursor Fill · Delete secondary on · nav desktop                                                                           [0m
+                            Close     Esc on · outside click on                                                                                                 [0m
+                            Text      placeholder “Type to search…” · no matches: “No matches — Esc clears the search” · hints “per picker”                     [0m
+                            Commands  ▶ Run query (run.query) · ⇩ Export results… (results.export, disabled: Run a query first) · ✓ Commit transaction          [0m
+                                      (tx.commit, disabled: No open transaction)                                                                                [0m
+                            Remote    Loading, then Ready                                                                                                       [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                            Result                                                                                                                PickerAction  [0m
+                            ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+                            Chosen          nothing yet                                                                                                         [0m
+                            Detail          —                                                                                                                   [0m
+                            Level           Safe Mode                                                                                                           [0m
+                            Open tabs       Query 1 · orders · order_items · History                                                                            [0m
+                            Last action     none yet · QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back ·         [0m
+                                            Cancelled                                                                                                           [0m
+                            Pickers opened  0                                                                                                                   [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
+[?25l

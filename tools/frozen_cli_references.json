@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "decision_scope": "one_exact_stale_approval_live_pair_reference",
+  "decisions": [
+    {
+      "decision_id": "visual-baseline-overview-grown-120x40-2026-10-20",
+      "tuple": {
+        "test_id": "showcase::resize::overview_grown::120x40::truecolor",
+        "case_id": "showcase/resize/overview_grown/120x40/truecolor",
+        "ordinal": 0,
+        "logical_name": "showcase/resize/overview_grown/120x40/truecolor",
+        "application": "showcase",
+        "cols": 120,
+        "rows": 40,
+        "color_mode": "truecolor"
+      },
+      "baseline": {
+        "tag": "visual-baseline",
+        "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+        "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+        "source_tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+        "source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+        "visual_test_tree_sha256": "bdd772e6d049efd700912bc5d7b4464d11bb80e69a5d18b0f175b9421546af05",
+        "inventory_sha256": "d260d2f0644d63a3a1b4c1611c0d7c61777e59e61249e3ca513d1d6217b0639c",
+        "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+        "showcase_binary_sha256": "21e8b1c1af30b47b331aed033525c4682726b99de5fe1238d4507e58f84359d1",
+        "binary_sha256": {
+          "showcase": "21e8b1c1af30b47b331aed033525c4682726b99de5fe1238d4507e58f84359d1",
+          "tablepro": "f23caa1d97cecc501e8588079e4f38529f834cbd8bb8b57750a427c5a5f993dc",
+          "jackin-preview": "8fccb21faa2459d4b22e5e527f7c1cc29eff64cd1df025957aaed92da35c2a2e",
+          "holla": "6dd87a4e21dff2c69bc2b102234d0f37a5ddcd5c3f2ecd42114a825b2037e01c"
+        }
+      },
+      "control": {
+        "boot_args": [
+          "--page",
+          "overview"
+        ],
+        "start_size": [
+          80,
+          24
+        ],
+        "resize_to": [
+          120,
+          40
+        ],
+        "inputs_after_resize": [
+          "ctrl-l"
+        ],
+        "post_input_delay_ms": 700,
+        "readiness_text": "Design system  Overview",
+        "quiet_settle_ms": 400,
+        "checkpoint_order": [
+          "showcase/resize/overview_grown/120x40/truecolor"
+        ]
+      },
+      "environment": {
+        "policy": "runner-clean-env-with-fixed-values",
+        "values": {
+          "VISUAL_FULL": "1",
+          "VISUAL_REVIEW": "0",
+          "TERM": "dumb",
+          "NO_COLOR": "1",
+          "COLORTERM": "",
+          "LANG": "C.UTF-8",
+          "LC_ALL": "C.UTF-8"
+        },
+        "terminal_profile": "tuiscotti-default"
+      },
+      "legacy_approval": {
+        "path": "showcase/resize/overview_grown/120x40/truecolor.ansi",
+        "sha256": "7769a6686dfc5cb5c69facb03f54a0fa57e963b35fcf315b1c4625745e2b7708",
+        "bytes": 18474,
+        "verdict": "known_stale_cells_differ",
+        "paired_exception": "never edits or replaces this approval; its standalone legacy verdict stays red"
+      },
+      "live_frame": {
+        "ansi_sha256": "f2e07ed284673b1d543441767460193e987034e163ca7ea7d3d4496473a0d442",
+        "ansi_bytes": 19454,
+        "semantic_frame_sha256": "01e9f7d349fc8075df7b64188db97a05705792aac8c781184db14a6d1ecc253a",
+        "cols": 120,
+        "rows": 40,
+        "cell_count": 4800,
+        "cursor": {
+          "x": 0,
+          "y": 0,
+          "visible": false,
+          "style": "Bar",
+          "blinking": false
+        }
+      },
+      "independent_replays": [
+        {
+          "run_id": "repeat-1",
+          "command_sha256": "ea6c4392e36384add3b089638f2da43d88f86ffc05e811e89a1632cbbfb1277e",
+          "log_sha256": "db78f4ce3b76adcd4bb1e96f167a250dca8dfabf3940672ac800d5ffb224cbde",
+          "ansi_sha256": "f2e07ed284673b1d543441767460193e987034e163ca7ea7d3d4496473a0d442",
+          "semantic_frame_sha256": "01e9f7d349fc8075df7b64188db97a05705792aac8c781184db14a6d1ecc253a"
+        },
+        {
+          "run_id": "repeat-2",
+          "command_sha256": "ea6c4392e36384add3b089638f2da43d88f86ffc05e811e89a1632cbbfb1277e",
+          "log_sha256": "2cc6654d5cce2867577f123f44f409b68d6899a241599b6fc78fedfd4dd8bf94",
+          "ansi_sha256": "f2e07ed284673b1d543441767460193e987034e163ca7ea7d3d4496473a0d442",
+          "semantic_frame_sha256": "01e9f7d349fc8075df7b64188db97a05705792aac8c781184db14a6d1ecc253a"
+        }
+      ],
+      "independent_control": {
+        "test_id": "showcase::pages::overview::120x40::truecolor",
+        "ansi_sha256": "9d07df1b6a32e33d2af4f66d5eff80ff08d55759782f28a42fa7f286f53e5915",
+        "semantic_frame_sha256": "0340c1d42acbadea6cfd6b05534dec4a0ebdb2ca25a0b581ec7719274641e4de"
+      }
+    }
+  ]
+}

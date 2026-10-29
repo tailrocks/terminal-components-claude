@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Text areas  i Inspector   ? Help
+
+   Overview       ┃  Text areas  Multi-line editing, Unicode cursor mo…
+   Buttons        ┃
+   Inputs         ┃    Playground     Enter Edit · Esc Done · Tab Next
+▎› Text areas     ┃
+   Forms          ┃      Task description         Notes
+   Lists          ┃       7. Open a PR ag… │      Anything the agen…
+   Trees          ┃       8. Run the inte… │
+   Tables         ┃       9. Read src/api… ┃
+   Editable tabl… ┃      10. Keep the pub… ┃
+   Panels         ┃      11. Open a PR ag… │
+   Sidebars       ┃      12. Run the inte… │
+   Dialogs        │      13. Read src/api… │
+   Progress       │      14. Keep the pub… │
+   Scrolling      │      Home/…  7–14 of 28       Optional
+   Terminal       │
+   Code editor    │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

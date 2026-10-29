@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+  ≡ Query 1 ×    ≡ Query 2 ×    ≡ Query 3 ×    ≡ Query 4 ×    T customers ×    H History ×                          +
+ ─────────────────────────────────────────────────────────────────────────────━━━━━━━━━━━━━━───────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query history ───────────────────────────────────────────────────────── 15 entries ─╮
+ │                           │ │                                                                                      │
+ │ ▎ Filter objects          │ │  ▎ payments                                        scope: Production  ·  status: any │
+ │ ▎▾ D acme_prod            │ │                                                                                      │
+ │ ▎  ▾ S public             │ │  ▎› SELECT * FROM payme… 1 d ago · 24 ms     Query                Editor · 1 d ago   │
+ │ ▎    ▾ Tables             │ │                                                                                      │
+ │ ▎      ▸ T organizations  │ │                                             ▎›  1 SELECT * FROM payments WHERE       │
+ │ ▎      ▸ T customers      │ │                                                 2 status = 'failed' AND              │
+ │ ▎      ▸ T products       │ │                                                 3 created_at > now() - interval      │
+ │ ▎      ▸ T orders         │ │                                                 4 '7 days'                           │
+ │ ▎      ▸ T order_items    │ │                                                                                      │
+ │ ▎      ▸ T payments       │ │                                                                                      │
+ │ ▎      ▸ T subscriptions  │ │                                              Connection  Production · acme_prod.p…   │
+ │ ▎    ▸ Views              │ │                                              Duration    24 ms                       │
+ │ ▎    ▸ Functions          │ │                                              Rows        318                         │
+ │ ▎    ▸ Sequences          │ │                                                                                      │
+ │ ▎  ▸ S analytics          │ │                                              ▎Open in new tab   ▎Run in new tab      │
+ │ ▎  ▸ S audit              │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Open in new tab  r Rerun  y Copy  / Search  c s Scope · Status  Tab Next                 Opened public.customers

@@ -1,0 +1,24 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m        ? help [0m
+                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                               +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────── [0m
+ ╭─[0m[1m public › orders [0m──────────────────────────────────────────────── 14 cols ─╮ [0m
+ │  [0m[1m Data  [0m  Structure                                                        │ [0m
+ │  ━━━━━━━────────────────────────────────────────────────────────────────── │ [0m
+ │                                                                            │ [0m
+ │   match all ▾   status = 'pending' ×    + Add filter                       │ [0m
+ │                                                                            │ [0m
+ │   ‹4    status ∇ ▴     total_amount  currency    shipping_address     7›   │ [0m
+ │  [0m[1m▎  [0m  1[0m[1m pending             1617.64  USD         {"line1": "87 Nevsk…    [0m┃ │ [0m
+ │       2 pending             2236.65  EUR         {"line1": "78 Via R…    │ │ [0m
+ │       3 pending             2376.57  EUR         {"line1": "152 Mark…    │ │ [0m
+ │       4 pending              550.69  USD         {"line1": "196 Mark…    │ │ [0m
+ │       5 pending              290.26  EUR         {"line1": "164 Nevs…    │ │ [0m
+ │       6 pending             2326.75  USD         {"line1": "139 Kung…    │ │ [0m
+ │       7 pending             2392.98  USD         {"line1": "125 Rue …    │ │ [0m
+ │       8 pending              497.22  EUR         {"line1": "115 Kung…    │ │ [0m
+ │  [0m[2m     9 pending             1326.92  USD         {"line1": "10 Via R…    [0m│ │ [0m
+ │   sort status ▴ · filtered (1) · rows 1–9 of 335 loaded · ~201,559 total   │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1mAlt+D[0m Duplicate row  …       Sorted by status ascending [0m

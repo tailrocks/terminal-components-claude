@@ -1,0 +1,67 @@
+{
+  "purpose": "read-only retirement preconditions for three coordinator-designated integrated WIP branches",
+  "reviewed_at_utc": "2026-10-21",
+  "remote": "tailrocks/terminal-components-claude",
+  "integration_branch": {
+    "name": "parity/termrock-visual-baseline",
+    "remote_head": "f49c6e3b4646f27297418027e58229a02578304d",
+    "pull_request": 38,
+    "pr_state": "open",
+    "draft": true,
+    "mergeable": true,
+    "mergeable_state": "blocked",
+    "reviews": [],
+    "head_status": [{"name":"DCO","status":"completed","conclusion":"action_required"}]
+  },
+  "branches": [
+    {
+      "name": "wip/holla-nav-header-policy-20261021",
+      "remote_head": "aec8661ec2e3ab9c602f1b4efed2806072a58751",
+      "protected": false,
+      "matching_branch_rules": [],
+      "commit_message": "test(holla): use simulation clock for menu lifecycle",
+      "changed_paths": ["crates/holla-ui/src/screens/home.rs","docs/audits/2026-10-21-holla-nav-list-header-policy.md"],
+      "integration_compare": {"status":"ahead","ahead_by":44,"behind_by":0},
+      "associated_pull_requests": [38],
+      "ownership": "Coordinator designated this as an owned WIP for this retirement-precondition review.",
+      "source_audit": "The integrated audit says scope is only generic Holla Home NavList header text policy; Finder selectors/catalogue/app chrome/footer are explicitly excluded. It documents live Harness coverage and retains the source data/row renderer/state."
+    },
+    {
+      "name": "wip/picker-card-layout-20261021",
+      "remote_head": "6cd63d2270b85dac30c63018070e00ed80510925",
+      "protected": false,
+      "matching_branch_rules": [],
+      "commit_message": "fix(overlays): honor picker zero-row footer policy",
+      "changed_paths": ["crates/termrock-overlays/src/picker.rs","crates/termrock-overlays/tests/picker_layout.rs"],
+      "integration_compare": {"status":"ahead","ahead_by":42,"behind_by":0},
+      "associated_pull_requests": [38],
+      "ownership": "Coordinator designated this as an owned WIP for this retirement-precondition review.",
+      "source_audit": "The integrated code changes shared Picker footer policy and its tests; the separate cf854 test-only audit is not on this integrated tip and is not represented as merged."
+    },
+    {
+      "name": "wip/dialog-primary-action-20261021",
+      "remote_head": "8a9af56bcb39d3fe810191fc8da85d149996eccf",
+      "protected": false,
+      "matching_branch_rules": [],
+      "commit_message": "fix(overlays): preserve prompt draft on blur",
+      "changed_paths": ["crates/termrock-overlays/src/dialog.rs","crates/termrock-overlays/tests/dialog_primary.rs","docs/audits/2026-10-21-dialog-primary-action.md"],
+      "integration_compare": {"status":"ahead","ahead_by":21,"behind_by":0},
+      "associated_pull_requests": [38],
+      "ownership": "Coordinator designated this as an owned WIP for this retirement-precondition review.",
+      "source_audit": "The integrated audit documents public Harness cases for primary action, fail-closed inputs, focus/pointer behavior, Unicode draft preservation, dismissal, repeated open/close, and focused crate checks."
+    }
+  ],
+  "repository_rules": {
+    "active_rulesets": [
+      {"id":24883153,"name":"protect-main","target":"branch","include":["~DEFAULT_BRANCH"],"enforcement":"active"},
+      {"id":24883130,"name":"protect-tags","target":"tag","include":["~ALL"],"enforcement":"active"}
+    ],
+    "conclusion": "Neither WIP branch matches the active main-only or tag rulesets; per-branch GitHub API rules query returned an empty rule list for each."
+  },
+  "decision": "CLEAR retirement preconditions for only these three exact remote WIP refs after coordinator confirms no concurrent tip change immediately before deletion. All three exact WIP commits are ancestors of integration head f49c6e3b4646f27297418027e58229a02578304d (compare behind_by=0), each commit associates only with open PR #38, and none is protected. Do not infer acceptance or PR readiness: PR #38 remains draft/open, mergeable_state blocked, reviews empty, DCO action_required. No ref was deleted or modified by this review.",
+  "limits": [
+    "No branch deletion or mutation performed.",
+    "No claim that full product parity, architecture, or required CI has passed.",
+    "Remote branch heads must be rechecked atomically/immediately before any deletion to rule out a new push after this review."
+  ]
+}

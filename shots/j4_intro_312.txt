@@ -1,0 +1,36 @@
+  jackin❯  inside the Construct  no instances  Workspaces                       u Usage  c Accounts  s Settings  ? help
+
+ ╭─ Workspaces ─────── no instances ─╮ │  Current directory                                                 not saved
+ │ ▎   Current directory             │ │
+ │ ▎   + New workspace               │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │                    Create a workspace from this directory.
+ │                                   │ │
+ │                                   │ │         ~/src/payments-platform is mounted at its own path inside the
+ │                                   │ │     Construct. Enter launches with defaults; n creates a saved workspace.
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Launch   ▎Create workspace
+ ╰───────────────────────────────────╯ │
+
+ Enter Launch  n New  Tab Details  c Accounts  u Usage  s Settings  ? Help  q Quit

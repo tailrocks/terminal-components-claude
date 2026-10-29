@@ -1,0 +1,40 @@
+ [0m[1m jackin❯ [0m   File   Go   Help                      Accounts › Overview  ⠋ refreshing 1  inside the Construct  2 running [0m
+                                                                                                                        [0m
+ ╭─[0m[1m Accounts [0m───────── 12 · 4 ▲ · 4 ! ─╮ │  Overview                                        12 accounts · 8 providers   [0m
+ │ [0m[1m▎ [0m [0m[1m Overview                       [0m │ │                                                                              [0m
+ │   ▾ Claude                      !   │ │  Health        degraded · 4 warnings · 1 exhausted · 2 stale · 1         ┃   [0m
+ │     ★ Personal                      │ │                refreshing · 3 failed · 1 quota not visible · 2 identities┃   [0m
+ │       Archived contractor laptop …  │ │                unresolved                                                ┃   [0m
+ │       Work                      !   │ │  Registry      12 accounts · 11 enabled · 1 disabled · 8 providers       ┃   [0m
+ │   ▾ Codex                           │ │  Sources       7 registered · 5 discovered · 1Password available         ┃   [0m
+ │     ★ Primary                       │ │                                                                          ┃   [0m
+ │       Experiments                   │ │  [0m[1mComparable windows[0m               identical provider, window and unit onl┃   [0m
+ │   ▾ Amp                         ▲   │ │  Anthropic · Session · 5-hour   2 accounts · 24–62% remaining (1 last    ┃   [0m
+ │       discovered                ▲   │ │  good)                                                                   ┃   [0m
+ │   ▾ Grok                            │ │  Anthropic · Weekly · all models   2 accounts · 12–67% remaining (1 last ┃   [0m
+ │     ★ Team                          │ │  good)                                                                   ┃   [0m
+ │   ▾ Z.AI                        ▲   │ │  Anthropic · Weekly · Opus   2 accounts · 0–46% remaining (1 last good)  ┃   [0m
+ │       discovered                ▲   │ │  OpenAI · Credits   2 accounts · 76–82% remaining (1 last good)          ┃   [0m
+ │   ▾ Kimi                        !   │ │  OpenAI · Session · 5-hour   2 accounts · 88–96% remaining (1 last good) ┃   [0m
+ │       discovered                !   │ │  OpenAI · Weekly · 7-day   2 accounts · 41–88% remaining (1 last good)   ┃   [0m
+ │   ▾ MiniMax                     !   │ │                                                                          ┃   [0m
+ │       discovered                !   │ │  [0m[1mNot comparable[0m                                                          ┃   [0m
+ │   ▾ OpenCode                    !   │ │  Amp (single account or different windows) · xAI (single account or      ┃   [0m
+ │     ★ Go subscription           !   │ │  different windows) · Z.AI (single account or different windows) ·       ┃   [0m
+ │       ci-bot · discovered           │ │  MiniMax (single account or different windows) · OpenCode (single        ┃   [0m
+ │     Unsupported                     │ │  account or different windows)                                           ┃   [0m
+ │     + Add account…                  │ │                                                                          ┃   [0m
+ │                                     │ │  [0m[1mWarnings[0m                                                                ┃   [0m
+ │                                     │ │  ▲ Claude · Work   Session · 5-hour 76% used · resets in 1 h 5 min       ┃   [0m
+ │                                     │ │  ▲ Claude · Work   Weekly · all models 88% used · resets Sun 19:14       │   [0m
+ │                                     │ │  ! Claude · Work   Weekly · Opus exhausted · resets Sun 19:14            │   [0m
+ │                                     │ │  ▲ Claude · Work   stale · last good 47 min ago                          │   [0m
+ │                                     │ │  ▲ Amp · discovered   Amp Free · daily 91% used · resets in 10 h         │   [0m
+ │                                     │ │  ▲ Z.AI · discovered   Weekly 76% used · resets Mon 09:14                │   [0m
+ │                                     │ │  ▲ Z.AI · discovered   stale · last good 2 h ago                         │   [0m
+ │                                     │ │  [0m[2m! Kimi · discovered   No credential found: ~/.kimi has no api key       [0m│   [0m
+ │                                     │ │                                                                              [0m
+ │                                     │ │  Refresh all    Add account…                                                 [0m
+ ╰─────────────────────────────────────╯ │                                                                              [0m
+                                                                                                                        [0m
+                          [0m[1mEnter[0m Details  [0m[1mr[0m Refresh all  [0m[1ma[0m Add…  [0m[1m/[0m Filter  [0m[1mm[0m Usage  [0m[1mEsc[0m Back                             [0m

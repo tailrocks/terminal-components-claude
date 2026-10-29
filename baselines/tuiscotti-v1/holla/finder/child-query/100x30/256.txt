@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                     acme › frontend · Node project · pnpm  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ▎ test                                                                             scope ‹ here ›
+
+    Results · 17
+  › Run tests                          task      here     alias test
+    pnpm test                          script    here     package.json here
+    Run test                           task      parent   defined by ~/work/acme/mis…
+    Run //services/api:test            task      sibling  defined by ~/work/acme/ser…
+    Run //tools/worker:test            task      sibling  defined by ~/work/acme/too…
+    Show PostgreSQL activity           postgres  here     6/100 connections
+    Rotate local secrets               custom    parent   Current folder…              destructive
+    Start development ecosystem        task      parent   defined by ~/work/acme/mis…
+    Start development ecosystem        task      sibling  defined by ~/work/acme/ser…
+    Start development ecosystem        task      sibling  defined by ~/work/acme/too…
+    Upgrade 8 outdated mise tools      task      host     8 tools have newer versions
+    Clone a GitHub repository…         git       here     logged in as alex-dev
+    Copy this folder's path            file      here     available
+    Delete everything inside this fo…  cleanup   here     always available…            destructive
+    Top files on this Mac              disk      host     macOS Spotlight
+    Find the process on a port…        system    host     available on this host
+    Garbage-collect the repository     git       parent   available
+
+
+    → mise run //apps/frontend:test · here · mutating
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2                                      256 colors · 100×30
+    Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear

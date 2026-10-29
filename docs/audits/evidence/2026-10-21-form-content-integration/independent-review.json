@@ -1,0 +1,50 @@
+{
+  "base_worktree": "/private/tmp/form-field-before-b7daf8-20261021 (removed after clean verification)",
+  "disposition": "CLEAR for this bounded library increment; not full product/architecture acceptance",
+  "parent_commit": "b7daf8f529c504487c119020aafe444c1de5bd46",
+  "probe_reversibility": {
+    "commits_or_pushes": false,
+    "production_edits": false,
+    "remaining_logs": "Four hashed test logs retained in /private/tmp; unique before/after target directories retained.",
+    "temporary_test_only": "Identical test-only probes were inserted in isolated sparse review worktrees and removed with git checkout; both worktrees were clean before removal."
+  },
+  "review": "independent Form intrinsic field sizing review",
+  "review_findings": [
+    {
+      "detail": "Policy is opt-in and defaults Fixed. Existing field kinds retain fixed sizing; chooser intrinsic behavior is gated by Intrinsic. Placement height consumes live FormData for flat and lane planning and is reused by measure/update/draw.",
+      "status": "clear"
+    },
+    {
+      "detail": "Note rows use supplied semantic roles in Intrinsic mode, size follows live row count, and source window skips clipped rows. Tests cover 0/1/5 rows, following-field placement, color tones and partial scroll.",
+      "status": "clear"
+    },
+    {
+      "detail": "Intrinsic chooser is display-only: value and optional detail are rendered before a real shared trailing Button. Tests assert the value has no hit target and button click produces Chose(field ID). Unicode/narrow widths are covered.",
+      "status": "clear"
+    },
+    {
+      "detail": "No explicit intrinsic chooser measurement assertion or intrinsic lane-layout contract test was found. Existing shared placement path is used for both; this is not a demonstrated functional defect, but those combinations remain unproven.",
+      "status": "coverage limitation"
+    },
+    {
+      "detail": "The 60x30 before/after signature is one default chooser scenario, not a full frozen visual application comparison. This WIP has not migrated an application FormDialog; its own audit correctly marks adoption/parity pending.",
+      "status": "scope limitation"
+    }
+  ],
+  "source_commit": "2f6193e6e2f396100a2a11cbdc83899a3acfd0ee",
+  "source_worktree": "/private/tmp/form-field-review-2f619-20261021 (removed after clean verification)",
+  "validation": {
+    "after": "CARGO_TARGET_DIR=/private/tmp/form-field-target-after-2f619-20261021 cargo nextest run -p termrock-forms --all-targets -j 4 \u2014 71 passed, 0 skipped",
+    "after_log": {
+      "path": "/private/tmp/form-field-after-full-fixed-probe.log",
+      "sha256": "48f1ce78eb7ba427f5a4ee886a99e8dddab1425f683f26bb340e0f40cbeb0a67"
+    },
+    "before": "CARGO_TARGET_DIR=/private/tmp/form-field-target-before-b7daf8-20261021 cargo nextest run -p termrock-forms --all-targets -j 4 \u2014 67 passed, 0 skipped",
+    "before_log": {
+      "path": "/private/tmp/form-field-before-full-fixed-probe.log",
+      "sha256": "66fc562bd8fe1a8b8e950564c4061df2740c780b08550e44ebfa39fb66d0cf36"
+    },
+    "full_fixed_frame_probe": "Identical temporary unit probe source in both commits; decoded full 60x30 cell signature for default Fixed Chooser with same app/data/runtime. Cell signature lines SHA-256 before and after both 1c7fbd11229f561e8fe4a230b0257139c92ee86c90921fa67847c693461e58e1; diff was empty.",
+    "no_valid_before_red": "FieldSizingPolicy and intrinsic mode are new public API; parent lacks the tested feature. The before/after check instead verifies the default Fixed chooser\u2019s complete decoded buffer is unchanged."
+  }
+}

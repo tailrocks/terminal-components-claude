@@ -1,0 +1,122 @@
+{
+  "schema": "independent-domain-validation-diagnosis-v1",
+  "created_at": "2026-10-21T02:37:02.316325+00:00",
+  "reviewer": "/root/tablepro_name_edit_architect",
+  "source_commit": "e404a63a62af0f4a9fa985ddc668c924296f173a",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "source_sha256": {
+    "crates/tablepro-domain/src/connections.rs": "16fc204c3e9968789b91eb16ed23d2066c6fea5da552f6394b6f9cfa31bd7d2a",
+    "crates/tablepro-ui/tests/footer_unicode.rs": "039f97837cf162bbef20347e5a49eb6e88301145ab7584a4116c1ad0b8f3ad31",
+    "crates/tablepro-ui/tests/replacement_contract.rs": "ebb3e058b8ac8c5f8e4123dfa4d37377cd6be4a78104389e09fe3073e44939fe",
+    "crates/tablepro-ui/src/app.rs": "7b5c4b47ef5042f97e4ef912c4c2ba871ce4d05baba40c07424966e899be2057"
+  },
+  "decision": "actual_domain_validation_mismatch_plus_separate_stale_guard_fixture",
+  "parent_native_gate": {
+    "run": 208,
+    "passed": 205,
+    "failed": 3,
+    "skipped": 0,
+    "source": "/private/tmp/termrock-parent-tablepro-blank-diagnostic-2fbf6fec-7ddc-4772-96db-7f427722a684.log"
+  },
+  "findings": [
+    {
+      "id": "TP-DATABASE-REQUIRED-BASELINE-01",
+      "severity": "P1",
+      "location": "crates/tablepro-domain/src/connections.rs:219-235",
+      "problem": "New blank database unmasks a pre-existing candidate-only PostgreSQL DatabaseRequired rule. Frozen ConnForm::validate validates only Name and Port, and frozen submit accepts blank database. The Unicode footer test enters Name but no Database, so its failure is a genuine product rule mismatch, not a stale expected image.",
+      "independent_proof": [
+        "Named default ConnectionDraft with valid Port and blank Database fails validate_all at DATABASE, code required.",
+        "Actual UI Unicode Name-only SaveConnect stays open and reports DATABASE required.",
+        "Actual dirty-query UI with explicit valid Name and blank Database fails before the reconnect guard at DATABASE required."
+      ],
+      "minimal_production_fix": "Remove the engine0/blankDatabase rejection from application-owned ConnectionDraft::validate_all. Keep Name/Port validation, constructor defaults, shared Form mechanics and reconnect guard unchanged. No new Termrock validation policy is needed."
+    },
+    {
+      "id": "TP-RECONNECT-NEW-FIXTURE-01",
+      "severity": "P2",
+      "location": "crates/tablepro-ui/tests/replacement_contract.rs:177-195",
+      "problem": "The test opens New and immediately presses SaveConnect without entering Name. It previously passed because New cloned a valid connection. Frozen New is blank and frozen NameRequired must reject this fixture before any reconnect guard. Removing DatabaseRequired alone cannot make this test valid.",
+      "independent_proof": "Public Harness dirty-work fixture with untouched blank New stays open, no reconnect dialog, and validate_all reports NAME required.",
+      "minimal_test_fix": "Enter a nonempty Name through actual Name control before reaching the existing SaveConnect action. Leave Database blank to cover the restored baseline domain rule. Preserve all original reconnect-dialog, cancel, active-tab and pending-edit assertions. Do not auto-prefill production code, weaken NameRequired, directly seed private state or replace guard expectations."
+    }
+  ],
+  "radio_failure": {
+    "id": "TP-RADIO-BASELINE-INTERACTION-01",
+    "status": "Separate existing diagnosed work; no test fixture update is authorized to approve the candidate deferred-radio/Enter-submit behavior."
+  },
+  "source_trace": [
+    "Frozen connections.rs:119-133 port/name validators;301-305 validates onlyName/Port;888-927 commits edits then validates and saves full database text without requiring it.",
+    "Candidate shared Form::submit_form invokes FormData::validate_all and returns Invalid before domain submit. TablePro also checks the same ConnectionDraft::validate_all before pushing or requesting reconnect. A single application-domain correction fixes both validation gates.",
+    "Candidate FormData::validate only special-cases Port. DatabaseRequired is not a second shared widget requirement."
+  ],
+  "checks": {
+    "command": "cargo nextest run --manifest-path consumer/Cargo.toml --test validation --no-fail-fast --no-capture",
+    "final_exit": 100,
+    "run": 4,
+    "passed": 1,
+    "failed": 3,
+    "skipped": 0,
+    "seconds": 2.25,
+    "target": "/private/tmp/tablepro-blank-domain-validation-target-20261021",
+    "readonly_source_copy": "/private/tmp/tablepro-blank-domain-validation-readonly-e404-20261021",
+    "invalid_initial_probe": "Initial fourth failure was an overstrong diagnostic assertion expecting focus to settle exactly on Name. Actual focus was Engine. This was not source-qualified; original probe and log are preserved, and v2 removes only that focus assertion. Domain NAME-error and no-guard assertions remain and pass. No required product expectation was weakened."
+  },
+  "writer_ownership_plan": {
+    "domain_writer": [
+      "crates/tablepro-domain/src/connections.rs",
+      "crates/tablepro-ui/tests/replacement_contract.rs",
+      "domain-focused regression tests"
+    ],
+    "radio_writer": [
+      "Common TablePro form factory in app.rs and coordinated controls/Form contracts remain outside this domain writer scope."
+    ],
+    "preserve": [
+      "Existing footer_unicode.rs test bytes and its six-name inventory.",
+      "Frozen expected artifacts and baseline tag.",
+      "All reconnect/cancel safety assertions."
+    ]
+  },
+  "required_verification": [
+    "Run unchanged external probe before and after: current3RED1GREEN should become4GREEN after domain fix.",
+    "Run original footer_unicode.rs unchanged; all six Unicode names must save and reach footer without diagnostics.",
+    "Run corrected guard fixture with real Name entry, blank Database and original cancel/pending-work assertions; add negative empty-Name coverage.",
+    "Run complete domain/UI native gate and preserve separate radio failures until its real contract correction.",
+    "Independently review exact source commit; no real CLI/tuiscotti parity is established by these tests."
+  ],
+  "additional_source_discrepancies": [
+    {
+      "id": "TP-PORT-ZERO-BASELINE-01",
+      "severity": "P2",
+      "location": "crates/tablepro-domain/src/connections.rs:58-62",
+      "problem": "Candidate valid_port accepts0 because u16 parse succeeds; frozen port_validator accepts empty or1..65535. This is separate existing application-domain parity work; do not silently broaden the DatabaseRequired fix."
+    },
+    {
+      "id": "TP-NAME-TRIM-BASELINE-01",
+      "severity": "P2",
+      "location": "crates/tablepro-domain/src/connections.rs:to_connection",
+      "problem": "Candidate saves name.clone; frozen ConnForm::to_connection stores name.trim().to_owned. Separate source-established domain parity gap, not exercised by this diagnosis."
+    }
+  ],
+  "observations": [
+    "After the external validation-triggering action, settled focus was Engine for blank Name and User for invalid Database. This diagnosis does not prove whether that is a separate focus-routing defect; exact observations are preserved without changing production expectations.",
+    "Runtime errors were identified by public field ID and code required; Debug redacts message text. Exact rendered error text was not independently asserted."
+  ],
+  "artifacts": {
+    "consumer/Cargo.lock": "51cbce238490ca8954079a023bf77f06808d126d19c55a9678b251a3538e24bb",
+    "consumer/Cargo.toml": "5a86fa6b97b43f8bd3f6238d27582179a4e208159897213f9bc9229bd4a521da",
+    "consumer/tests/validation.rs": "1c81cb07224bd47cfd3c85a6efea0dcccefc027909dcc979e9aded323d7ab4f3",
+    "execution-v2.json": "4f12ecc1185e2cfa838aaee8f79d8e5e19375a2b37a7717bd860df293c0ce87d",
+    "execution.json": "949b41b8386e321c84b7e1ce7a86846a66bfde9bb6d752067d32369c333d4f85",
+    "nextest-v2.log": "dba1471c7c9631590c9b752ce4bad96710ffcfa13d6c525358d359371f31c46d",
+    "nextest.log": "2f191a598ec7018aeb842b7483beefebbee534bf18dd6cdb783de3b51311aec5",
+    "validation_v1_overstrong_focus_assertion.rs": "2f228a74bf11cf3bd540b2504cfe3beb9af14b6832cf8f1be367e26c66836178"
+  },
+  "repository_source_edits": false,
+  "expected_artifact_edits": false,
+  "captures_executed": false,
+  "key_access": false,
+  "limitations": [
+    "Candidate real App/Form/domain execution only; fixed baseline behavior is source-qualified, not newly executed.",
+    "No production correction or after-fix green proof was implemented by this read-only architect."
+  ]
+}

@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>capture</title>
+<style>
+html,body{margin:0;background:#1a1a1a}
+pre{margin:16px;display:inline-block;font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",Menlo,monospace;font-size:14px;line-height:18px;white-space:pre;background:#000000}
+span{display:inline-block;height:18px;vertical-align:top}
+</style></head><body><pre><span style="color:#d0d0d0;background:#000000"> ▪ </span><span style="color:#d0d0d0;background:#000000;font-weight:700">Junie</span><span style="color:#d0d0d0;background:#000000"> Design system / Foundations / Overview           i Inspector   ? Help  </span>
+<span style="color:#d0d0d0;background:#000000">                                                                                </span>
+<span style="color:#d0d0d0;background:#000000">▎› Overview          </span><span style="color:#d0d0d0;background:#000000;font-weight:700">Overview</span><span style="color:#d0d0d0;background:#000000">  Tokens and principles behind every component     </span>
+<span style="color:#d0d0d0;background:#000000">▎  Buttons                                                                      </span>
+<span style="color:#d0d0d0;background:#000000">▎  Inputs              Tokens                                                   </span>
+<span style="color:#d0d0d0;background:#000000">▎  Text areas                                                                   </span>
+<span style="color:#d0d0d0;background:#000000">▎  Forms                   ▏ canvas                   ▏ text.muted              </span>
+<span style="color:#d0d0d0;background:#000000">▎  Lists                   ▏ surface                  ▏ text.faint              </span>
+<span style="color:#d0d0d0;background:#000000">▎  Trees                   ▏ surface.elevated         ▏ accent                  </span>
+<span style="color:#d0d0d0;background:#000000">▎  Tables                  ▏ surface.overlay          ▏ accent.hover            </span>
+<span style="color:#d0d0d0;background:#000000">▎  Editable tables         ▏ field                    ▏ accent.pressed          </span>
+<span style="color:#d0d0d0;background:#000000">▎  Panels                  ▏ popover                  ▏ accent.bg               </span>
+<span style="color:#d0d0d0;background:#000000">▎  Sidebars                                                                     </span>
+<span style="color:#d0d0d0;background:#000000">▎  Dialogs                                                                      </span>
+<span style="color:#d0d0d0;background:#000000">▎  Progress            State language                                           </span>
+<span style="color:#d0d0d0;background:#000000">▎  Scrolling                                                                    </span>
+<span style="color:#d0d0d0;background:#000000">▎  Terminal            ▎  focus                                                 </span>
+<span style="color:#d0d0d0;background:#000000">▎  Code editor         ░  hover lifts the surface                               </span>
+<span style="color:#d0d0d0;background:#000000">▎  Data grid           ›  current / chosen                                      </span>
+<span style="color:#d0d0d0;background:#000000">▎  Chips &amp; selects     ✓  checked                                               </span>
+<span style="color:#d0d0d0;background:#000000">▎  Pickers             !  error                                                 </span>
+<span style="color:#d0d0d0;background:#000000">▎  Chrome                                                                       </span>
+<span style="color:#d0d0d0;background:#000000">                                                                                </span>
+<span style="color:#d0d0d0;background:#000000"> </span><span style="color:#d0d0d0;background:#000000;font-weight:700">↑ ↓</span><span style="color:#d0d0d0;background:#000000"> Move  </span><span style="color:#d0d0d0;background:#000000;font-weight:700">Enter</span><span style="color:#d0d0d0;background:#000000"> Open  </span><span style="color:#d0d0d0;background:#000000;font-weight:700">Tab</span><span style="color:#d0d0d0;background:#000000"> Into page  </span><span style="color:#d0d0d0;background:#000000;font-weight:700">q</span><span style="color:#d0d0d0;background:#000000"> Quit                                    </span></pre></body></html>

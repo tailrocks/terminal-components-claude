@@ -1,0 +1,55 @@
+{
+  "reviewed_commit": "b46010bd95300e04d2903895fa6def76a4a7f368",
+  "status": "Original P1 issues repaired; changes requested for scoped bubble fallback before integration.",
+  "review_copy": "/private/tmp/termrock-tablepro-base-a60-review (detached exact reviewed commit, read-only product source)",
+  "verification": [
+    {
+      "result": "Facade public MasterDetail consumer: 7 passed, zero skipped. Tests exercise actual prepared runtime, live editor, modal and sibling isolation, repeated drawer lifecycle and narrow/zero bounds.",
+      "log": "/tmp/master-detail-independent-b460-native.log"
+    },
+    {
+      "result": "Original external three-case suite: two passed, one failed. Both original P1 cases are now green. The remaining summary assertion confuses editor body registration with its full allocation; see the separate source correction below.",
+      "log": "/tmp/master-detail-independent-b460-external.log"
+    },
+    {
+      "result": "Extended external suite: four passed, two failed, zero skipped. New resize-before-input and precise summary-allocation probes pass. One failure is the preserved obsolete summary assertion; the other is the newly confirmed scoped-decline fallback regression.",
+      "log": "/tmp/master-detail-independent-b460-extended.log"
+    },
+    {
+      "result": "Runtime all-target testing-feature nextest: 331 passed, three skipped. These skipped fixtures are reported, not counted as passing coverage.",
+      "log": "/tmp/master-detail-independent-b460-runtime.log"
+    }
+  ],
+  "cleared_source_contracts": [
+    "MasterDetail reports actual effective draw bounds through existing LayoutFacts and reads them through FrameRead::layout; no terminal-width assumption or state-owned Rect cache remains.",
+    "The real detail descendants are wrapped in a Normal FocusRing scope. Cx::focused_in_scope uses actual registered focus, transitive scope ancestry and current top-layer eligibility. No invisible block control or ID-prefix membership inference is introduced.",
+    "Leaf dispatch precedes scoped binding dispatch. The actual public CodeEditor consumer consumes its first Escape; a later Escape closes the drawer. Top modal and sibling focus do not close the drawer.",
+    "Scoped bindings use existing Binding descriptors, key remapping, frame storage and runtime callback dispatch. There is no second input engine or effectful measurement.",
+    "The new bounds/scope fix does not add application data, route names or replay selectors to the library. The merged right-alignment change in runtime/ui/mod.rs is an external source change; this packet does not establish its full independent acceptance."
+  ],
+  "remaining_finding": {
+    "severity": "P1",
+    "path": "crates/termrock-runtime/src/runtime.rs:1713-1720",
+    "problem": "After a scoped binding is selected, its update result is not checked before the else-if chain skips global Bubble and default Escape handling. An ignored scoped action therefore swallows the key. Nested outer scopes are not attempted if the deepest scope declines either.",
+    "probe": "/private/tmp/master-detail-review-probes-e4eb/src/lib.rs::scoped_decline_preserves_application_escape_fallback",
+    "observed": "A real focused Button declines Escape, a published scoped binding is routed to its owner and returns ignored, but App::on_esc is never invoked: counter 0 instead of 1.",
+    "required_fix": "Dispatch eligible scoped candidates from deepest to outer scope, checking consumed after each, then preserve the pre-existing global Bubble/default Escape path if none consumes. Reuse existing owner binding intents and callback lifecycle. Do not forward raw copied keys, drain unrelated owner buckets or introduce application routing.",
+    "required_regressions": [
+      "A declined inner scoped binding falls through to a consuming outer scoped binding.",
+      "If all scoped bindings decline, global Bubble or App::on_esc runs exactly once.",
+      "A consumed leaf or scope stops propagation; top modal, unrelated popup and sibling scopes remain isolated."
+    ]
+  },
+  "summary_probe_correction": {
+    "preserved_test": "summary_rows_reserves_requested_clamped_height remains unchanged and red in the original probe file/log.",
+    "cause": "The assertion expects Runtime::area_of(MASTER).height to equal the complete master allocation. The actual master is CodeEditor::fill_height; CodeEditor::draw reserves one footer row and registers only the body, so area_of returns 7 for an 8-row allocation.",
+    "source": "crates/termrock-editors/src/code.rs:1265-1284,1319-1328",
+    "replacement_evidence": "A separate probe summary_layout_reserves_three_rows_plus_gap_and_editor_footer passes: summary starts at y=9 and registered master body height 7 plus its one-row footer equals the expected 8-row master allocation. The native consumer checks summary positions at multiple heights.",
+    "interpretation": "This particular remaining red is a probe interpretation defect, not evidence that the summary sizing fix failed. The original output and assertion were not silently blessed or removed."
+  },
+  "limits": [
+    "No product source edits or helpers were used.",
+    "Native tests and public component consumers do not establish four-application frozen CLI parity.",
+    "The pending runtime fallback repair requires independent follow-up review before source clearance."
+  ]
+}

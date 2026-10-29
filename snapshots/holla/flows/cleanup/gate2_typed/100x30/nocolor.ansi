@@ -1,0 +1,31 @@
+[0m[2m  holla❯    File   Go   Help                                      safe · Rust project  mbp · local  [0m
+[0m[2m  Here › Disk › Usage › Review                                                                      [0m
+[0m[2m  Here › Di╭──────────────────────────────────────────────────────────────────────── × ─╮           [0m
+[0m[2m ━━━━━━━━━━│                                                                            │────────── [0m
+[0m[2m  Review · │  [0m[1;2mTrash 1 items · gate 2 of 2[0m[2m                                               │tely       [0m
+[0m[2m           │                                                                            │           [0m
+[0m[2m  Action   │  [0mAction        move to Trash 1 item under ~/Projects/safe                [0m[2m ┃│           [0m
+[0m[2m  Host     │  [0mHost          mbp · local                                               [0m[2m ┃│           [0m
+[0m[2m  Mode     │  [0mMode          Trash · native macOS Trash · space returns after the Trash[0m[2m ┃│           [0m
+[0m[2m  Estimate │  [0m              is emptied                                                [0m[2m ┃│ed · not   [0m
+[0m[2m           │  [0mEstimate      1000.0 MiB allocated · APFS clones may overcount ·        [0m[2m ┃│           [0m
+[0m[2m  Denied   │  [0m              purgeable space excluded · not a free-space guarantee     [0m[2m ┃│nk rules   [0m
+[0m[2m  Revision │  [0mDenied        none · every path passed the lexical, protected-root,     [0m[2m ┃│           [0m
+[0m[2m  Threat mo│  [0m              user-data and symlink rules                               [0m[2m ┃│ rename    [0m
+[0m[2m           │  [0mRevision      68c21e8eb8ed0a71 · any change to paths, mode or dry run   [0m[2m ┃│           [0m
+[0m[2m  Paths    │  [0m              voids this review                                         [0m[2m ┃│           [0m
+[0m[2m  Recoverab│  [0mThreat model  an unprivileged user · ancestors are re-resolved at commit[0m[2m ┃│           [0m
+[0m[2m  Provenanc│  [0m              · a concurrent rename of the final path cannot be excluded[0m[2m ┃│           [0m
+[0m[2m  Gate     │  [0mPaths         ~/Projects/safe/target                                    [0m[2m ┃│           [0m
+[0m[2m           │  [0m                                                                        [0m[2m ┆│           [0m
+[0m[2m ╭─ Sequenc│  ↓ 1 more                                                                  │ copies ─╮ [0m
+[0m[2m │  01  tra│  [0m[1;2mType TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to confirm          [0m[2m  │         │ [0m
+[0m[2m │         │▎ [0m[2;4mTRASH 1 UNDER /Users/alex/Projects/safe ON mbp[0m[2m                            │         │ [0m
+[0m[2m │         │                                                                            │         │ [0m
+[0m[2m ╰─────────│                                                        Cancel    Execute   │─────────╯ [0m
+[0m[2m           │                                                                            │           [0m
+[0m[2m           ╰─────────────────────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m╯ontinue…   [0m
+[0m[2m                                                                                                    [0m
+[0m[2m ~/Projects/safe                       review · gate 1 of 2                       no color · 100×30 [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Execu[0m[1mte  Esc[0m Cancel  [0m[1m   [0m                      1 item selected · 1000.0 MiB estimated [0m
+[?25h[23;61H[6 q

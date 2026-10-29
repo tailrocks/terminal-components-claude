@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 12434164662389959370,
+  "legacy_name": "holla/flows/task/input_cancelled/120x40/nocolor",
+  "name": "holla/task/input-cancelled/120x40/nocolor",
+  "non_empty_cells": 798,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

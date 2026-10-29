@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help                           Workspaces  inside the Construct  2 running
+
+ ╭─ Workspaces ─────────────────────────────────────────────────────────────────────── 2 running ─╮
+ │     Current directory                                              saved as payments-platform  │
+ │   ▸ payments-platform                                                               1 running  │
+ │   ▸ infra-control-plane                                                             1 running  │
+ │   ▸ release-automation                                                               ! failed  │
+ │   ▸ c╭──────────────────────────────────────────────────────────────────────────────────╮iled  │
+ │     +│ Launch · choose Agent                          payments-platform › the-architect │      │
+ │      │ ▎▪ Claude Code  account Claude · Personal · provider d… choose at start  agents  │      │
+ │      │  ▪ Codex        account Codex · Primary · provider def… ready                    │      │
+ │      │  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │      │
+ │      │  ▪ Grok Build   account Grok · Team · provider default  ready                    │      │
+ │      │                                                                                  │      │
+ │      │                                                                                  │      │
+ │      ╰──────────────────────────────────────────────────────────────────────────────────╯      │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+   Current directory                                                                  Tab details
+
+   /workspace/payments-platform · 2 mounts · 5 vars
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal
+   ◉ 7f3a  the-architect · Claude Code · running
+
+
+                                ↑↓ Move  Enter Choose  Esc Cancel

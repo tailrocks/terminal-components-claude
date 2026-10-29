@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Settings               no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mProject settings[0m  Composed: tabs, form, editable table, list, dialogs          [0m
+   Buttons                                                                                          [0m
+   Inputs            [0m[1m General  [0m  Members    Environment                                             [0m
+   Text areas        ━━━━━━━━━━─────────────────────────────────────────────────────────────────────[0m
+   Forms                                                                                            [0m
+   Lists               General                                                                      [0m
+   Trees                                                                                            [0m
+   Tables                Project name *                         Visibility                          [0m
+   Editable tables       payments-gateway                      (●) Private                          [0m
+   Panels                                                      ( ) Internal                         [0m
+   Sidebars              Description                           ( ) Public                           [0m
+   Dialogs               Handles checkout, invoicing an…                                            [0m
+   Progress                                                    ○── Auto-merge approved PRs off      [0m
+   Scrolling                                                   ──● Protect main branch on           [0m
+   Terminal                                                                                         [0m
+   Code editor                                                                                      [0m
+   Diff                                                                                             [0m
+   Data grid                                                                                        [0m
+   Chips & selects                                                                                  [0m
+   Pickers              [0m[1mSave changes [0m  No changes                                                   [0m
+   Chrome                                                                                           [0m
+ › Settings                                                                                         [0m
+   Task runner                                                                                      [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m← →[0m Switch tab  [0m[1m1 2 3[0m Jump  [0m[1mTab[0m Next                                                               [0m

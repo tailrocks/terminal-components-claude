@@ -1,0 +1,50 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                                                                     truecolor · 160×50  ? help
+
+  ≡ Query 1 ×    T orders ×    ≡ Query 2 • ×    ≡ Query 3 • ×    H History ×                                                                                +
+ ───────────────────────────────────────────────────────────────━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ───────────────── public ─╮ ╭─ Query history ─────────────────────────────────────────────────────────────────────────────────────── 16 entries ─╮
+ │                                     │ │                                                                                                                    │
+ │ ▎ Filter objects                    │ │  ▎ Search history · terms are ANDed                            scope: Production  ·  status: any                   │
+ │ ▎▾ D acme_prod                      │ │                                                                                                                    │
+ │ ▎  ▾ S public                       │ │  ▎› SELECT * FROM orders WHERE status… just now · 15 ms     Query                              Editor · just now   │
+ │ ▎    ▾ Tables                    7  │ │  ▎  SELECT plan, count(*) FROM subscrip… 3 d ago · 5 ms                                                            │
+ │ ▎      ▸ T organizations     1.2 k  │ │  ▎  SELECT * FROM payments WHERE statu… 1 d ago · 24 ms    ▎›  1 SELECT * FROM orders WHERE status =               │
+ │ ▎      ▸ T customers        48.9 k  │ │  ▎  SELECT day, revenue, refunds FROM … 3 h ago · 14 ms        2 'pending' LIMIT 25                                │
+ │ ▎      ▸ T products            312  │ │  ▎! SELECT * FROM ordres                    1 h ago · –                                                            │
+ │ ▎      ▸ T orders            1.2 M  │ │  ▎  SELECT o.id, o.total_amount, c.ema… 1 h ago · 61 ms                                                            │
+ │ ▎      ▸ T order_items       3.8 M  │ │  ▎  UPDATE orders SET status = 'ship… 58 min ago · 3 ms     Connection  Production · acme_prod.public              │
+ │ ▎      ▸ T payments          1.2 M  │ │  ▎  SELECT * FROM customers ORDER B… 40 min ago · 21 ms     Duration    15 ms                                      │
+ │ ▎      ▸ T subscriptions     1.1 k  │ │  ▎  EXPLAIN ANALYZE SELECT * FROM or… 15 min ago · 9 ms     Rows        25                                         │
+ │ ▎    ▸ Views                     2  │ │  ▎  SELECT count(*) FROM orders WH… 12 min ago · 412 ms                                                            │
+ │ ▎    ▸ Functions                 1  │ │  ▎  SELECT * FROM orders WHERE statu… 4 min ago · 38 ms     ▎Open in new tab   ▎Run in new tab   ▎Copy             │
+ │ ▎    ▸ Sequences                 1  │ │                                                                                                                    │
+ │ ▎  ▸ S analytics                    │ │                                                                                                                    │
+ │ ▎  ▸ S audit                        │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Open in new tab  r Rerun  y Copy  / Search  c s Scope · Status  Tab Next                                                Cancelled · nothing was executed

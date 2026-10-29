@@ -1,0 +1,22 @@
+{
+  "cell_count": 3000,
+  "cols": 100,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 9550838372849639237,
+  "legacy_name": "tablepro/query/completion_columns/100x30/truecolor",
+  "name": "tablepro/query/completion-columns/100x30/truecolor",
+  "non_empty_cells": 806,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 30
+}

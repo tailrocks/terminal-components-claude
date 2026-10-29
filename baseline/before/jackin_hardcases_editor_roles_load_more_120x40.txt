@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help        Workspaces › payments-platform › edit  ! instance index unreadable  ▲ daemon stale
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ─────────────────────━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────
+
+    Allowed roles  3 of 126                                                                  default ★ the-architect
+  ▎    [ ] svc-093          registry · trusted · notify service agent #93                                            │
+  ▎    [ ] svc-094          registry · trusted · ingest service agent #94                                            │
+  ▎    [ ] svc-095          registry · trusted · auth service agent #95                                              │
+  ▎    [ ] svc-096          registry · trusted · billing service agent #96                                           │
+  ▎    [ ] svc-097          registry · trusted · ledger service agent #97                                            │
+  ▎    [ ] svc-098          registry · trusted · search service agent #98                                            │
+  ▎    [ ] svc-099          registry · trusted · notify service agent #99                                            │
+  ▎    [ ] svc-100          registry · trusted · ingest service agent #100                                           │
+  ▎    [ ] svc-101          registry · trusted · auth service agent #101                                             │
+  ▎    [ ] svc-102          registry · trusted · billing service agent #102                                          │
+  ▎    [ ] svc-103          registry · trusted · ledger service agent #103                                           │
+  ▎    [ ] svc-104          registry · trusted · search service agent #104                                           │
+  ▎    [ ] svc-105          registry · trusted · notify service agent #105                                           │
+  ▎    [ ] svc-106          registry · trusted · ingest service agent #106                                           │
+  ▎    [ ] svc-107          registry · trusted · auth service agent #107                                             │
+  ▎    [ ] svc-108          registry · trusted · billing service agent #108                                          │
+  ▎    [ ] svc-109          registry · trusted · ledger service agent #109                                           │
+  ▎    [ ] svc-110          registry · trusted · search service agent #110                                           │
+  ▎    [ ] svc-111          registry · trusted · notify service agent #111                                           │
+  ▎    [ ] svc-112          registry · trusted · ingest service agent #112                                           │
+  ▎    [ ] svc-113          registry · trusted · auth service agent #113                                             │
+  ▎    [ ] svc-114          registry · trusted · billing service agent #114                                          │
+  ▎    [ ] svc-115          registry · trusted · ledger service agent #115                                           │
+  ▎    [ ] svc-116          registry · trusted · search service agent #116                                           ┃
+  ▎    [ ] svc-117          registry · trusted · notify service agent #117                                           ┃
+  ▎    [ ] svc-118          registry · trusted · ingest service agent #118                                           ┃
+  ▎    [ ] svc-119          registry · trusted · auth service agent #119                                             ┃
+  ▎    [ ] svc-120          registry · trusted · billing service agent #120                                          ┃
+  ▎›  + Load role…                                                                                                   ┃
+
+                                                                                                 ▎Cancel    ▎Save…
+
+      Enter Load role…  …   Could not confirm running instances: instance index unreadable · entered without the ritual

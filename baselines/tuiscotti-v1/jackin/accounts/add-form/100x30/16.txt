@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help             Accounts › Overview  ⠋ refreshing 1  inside the Construct
+               ╭─ New account ───────────────────────────────────── form · unsaved ─╮
+ ╭─ Accounts ──│   Display name *                                                  ┃│ 1–17 of 23 ─╮
+ │     Overview│ ▎ Personal, Work, Team…                                           ┃│           ┃ │
+ │   ▾ Claude  │                                                                   ┃│     !   3 ┃ │
+ │     ★ Person│                                                                   ┃│rent 4 min ┃ │
+ │       Archiv│   Purpose label  optional                                         ┃│  disabled ┃ │
+ │       Work  │   personal · work · experiments                                   ┃│ale 47 min ┃ │
+ │   ▾ Codex   │                                                                   ┃│         2 ┃ │
+ │     ★ Primar│                                                                   ┃│rent 2 min ┃ │
+ │       Experi│   Provider                                                        ┃│refreshing ┃ │
+ │   ▾ Amp     │   Claude Code · Anthropic / Claude                             ▾  ┃│     ▲   1 ┃ │
+ │       discov│                                                                   ┃│rent 1 min ┃ │
+ │   ▾ Grok    │                                                                   ┃│         1 ┃ │
+ │     ★ Team  │   Agent runtime Claude Code · provider Anthropic / Claude · usa…  ┃│rent 9 min ┃ │
+ │   ▾ Z.AI    │                                                                   ┃│     ▲   1 │ │
+ │       discov│   Credential source                                               ┃│ stale 2 h │ │
+ │   ▾ Kimi    │  (●) 1Password item / field  (recommended)                        ┃│     !   1 │ │
+ │       discov│  ( ) Local agent folder                                           ┃│eds secret │ │
+ │   ▾ MiniMax │  ( ) Plain-text API key                                           ┃│     !   1 │ │
+ ╰─────────────│                                                                   ┃│─────────────╯
+               │   1Password reference                                             ┃│
+   Overview    │   not chosen                                            Choose…   ┃│ Tab details
+               │                                                                   ┃│
+   Health  degr│                                                                   ││1 quota not…
+   Registry  12│                                                                    │
+   Sources  7 r│                                                                    │
+               │              Enter plain text instead   Validate   Cancel   Save   │
+               ╰────────────────────────────────────────────────────────────────────╯
+                          Tab Next field  Enter Edit / Save  Esc Cancel

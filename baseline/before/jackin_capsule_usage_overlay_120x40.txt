@@ -1,0 +1,40 @@
+  jackin❯    File   Edit   View   Session   Help        payments-platform › the-architect  jackin-payments-pl…form-7f3a
+
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ───────────────━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────
+payments-platform ❯ git status -sb
+## feature/settlement-backo╭─ Usage ───────────────────────────────── read-only projection ─╮
+ M src/settlement/retry.rs │  ▎Overview   Claude Code · Work   Codex · Primary              │
+ M src/settlement/mod.rs   │  ─━━━━━━━━───────────────────────────────────────────────────  │
+?? docs/adr/0007-retry-back│                                                                │
+payments-platform ❯ cargo c│  Claude Code · Work    76%                                     │
+    Checking settlement v0.│  Codex · Primary       12%                                     │
+    Finished dev [unoptimiz│                                                                │
+payments-platform ❯ ls docs│                                                                │
+0001-record-architecture.md│                                                                │
+0002-settlement-batches.md │                                                                │
+0003-retry-policy.md       │                                                                │
+payments-platform ❯        │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │  r refresh  Tab tabs/body  ←→ provider  Esc close              │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+ PR #482 · Settlement retry backoff   • 4 changed · 1 unpushed        shell   3 tabs · 1 pane        no account · shell
+         r Refresh  Tab Tabs / body  ← → Provider  Esc Close    Attached to payments-platform · tabs and panes restored

@@ -1,0 +1,22 @@
+{
+  "schema": "termrock-vis01-reference-status-postcommit-binding-review/v1",
+  "verdict": "READY_POSTCOMMIT_BINDING",
+  "scope": "Read-only binding of the created commit to the reviewed R9 proposal; no tests or ref mutations.",
+  "commit": "28c694037ee06e093a23de2ec0e0f6ed3f7f5569",
+  "parent": "48e67af8511d4883759c97e384080fcb2b112c7a",
+  "tree": "ca4ee5c1f0a8108566852269e6d060450147c2cf",
+  "proposal_sha256": "b28b1728421df553396fc21b0c137637436ee67af34b636d99ad2b546d4e54c3",
+  "proposal_commit_message_sha256": "cc82abea35b493ac4591bf88846e84c265bb252b09e920a7d1adb741fc023e77",
+  "actual_commit_message_sha256": "cc82abea35b493ac4591bf88846e84c265bb252b09e920a7d1adb741fc023e77",
+  "author": "Alexey Zhokhov <alexey@zhokhov.com>",
+  "committer": "Alexey Zhokhov <alexey@zhokhov.com>",
+  "exact_dco_trailer": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+  "path_binding": {
+    "reviewed_path_count": 89,
+    "commit_path_count": 89,
+    "exact_status_and_path_set_match": true,
+    "status_counts": {"A": 88, "M": 1},
+    "manifest_path_set_match": true
+  },
+  "review_basis": "R9 message-correction receipt 4b3638406dad17c8e6802dc77bc72efc6d5e0d9082153364405179716185b059 and R8 tree/source receipt 5af51cb587ed5814f5b0207a8fc0023e223a08061f29916f2c64006ae52eb4e2"
+}

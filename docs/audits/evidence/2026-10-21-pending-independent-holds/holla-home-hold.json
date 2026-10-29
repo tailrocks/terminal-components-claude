@@ -1,0 +1,57 @@
+{
+  "reviewer": "owned_plan_correction_review",
+  "decision": "HOLD for exact visual parity; bounded shared-row behavior is promising but current evidence/source show unresolved parity differences",
+  "source_commit": "2c21e2c3883a89a624bad596b963c3e8e40d2d1f",
+  "parent_commit": "f49c6e3b4646f27297418027e58229a02578304d",
+  "checkout": "/private/tmp/holla-home-review-2c21-20261021",
+  "target": "/private/tmp/holla-home-row-review-target-2c21-20261021",
+  "worktree_clean": true,
+  "diff_check": "PASS",
+  "diff_scope": [
+    "crates/holla-ui/src/screens/home.rs",
+    "docs/audits/2026-10-21-holla-home-action-row-composition.md"
+  ],
+  "independent_test": {
+    "command": "CARGO_TARGET_DIR=/private/tmp/holla-home-row-review-target-2c21-20261021 rustup run 1.99.1 cargo nextest run --locked -p holla-ui --lib -j 4",
+    "result": "PASS: 142 passed, 0 failed, 0 skipped",
+    "target_unique": true,
+    "note": "First attempt failed metadata because sparse checkout omitted tools/refactor-proof; this was setup-only and the successful run followed adding tools to the sparse checkout."
+  },
+  "positive_review": [
+    "The live Home action list now uses NavList::row/RowUi instead of owning row background/gutter/cell painting, and the existing NavList key keeps identity dispatch stable.",
+    "CursorStyle::Fill is consistent with the stated shared visual rule for a list whose owner is another focusable element; current tests assert no duplicate ▎ in the row area, including while the menu is active.",
+    "Existing keyboard and pointer activation tests remain; new test verifies live title/kind/scope/risk/reason text and no diagnostics. The 119/120/121 × 4-profile menu test preserves focus restoration and header cells."
+  ],
+  "blocking_findings": [
+    {
+      "id": "H-PARITY-1",
+      "evidence": "Frozen source 4169783ae883788186d161af09ba9c481bd84e5c:src/bin/holla/screens/finder.rs uses rows beginning at x+3 after gutter/marker spacing. NavList defaults content_gap=1, and its row path reserves GUTTER + MARKER + ICON + gap before caller content; this migration does not override content_gap, so composed row content starts at x+4. No paired capture establishes that this one-cell shift is reference-compatible.",
+      "required": "Compare decoded full frames at the mapped Holla Home/Finder scenario and supported sizes; if the path is the same baseline content, set a documented shared/public gap policy to preserve the reference origin and prove it with tests."
+    },
+    {
+      "id": "H-PARITY-2",
+      "evidence": "The frozen Finder row renderer only paints its risk column for Risk::Destructive or Risk::Privileged (finder.rs around lines 1003-1006). New Home risk_text emits visible `read only`, `bounded`, or `broad` text for every ready action, plus warning prefixes for blocked/untrusted actions. This is extra or changed row content unless the Home scenario is explicitly proven not to map to that frozen screen. No exact paired reference capture is present.",
+      "required": "Use same-identity frozen CLI captures to establish desired field/risk content. Do not bless extra risk text from library/Harness tests alone."
+    },
+    {
+      "id": "H-PARITY-3",
+      "evidence": "The commit changes five displayed semantic columns and sizing policy, but only Harness checks establish field presence and absence of the old app gutter. They do not compare complete before/after/reference cells, colors, attributes, cursor, or behavior under all required inputs. Parent reports a separate 144-pass/1-protected-visual-red run with expected hash e30768d9339a0fb9 and observed hash d737412561a7e6fa; that is coordinator-provided context and the red approval remains protected/unresolved.",
+      "required": "Diagnose the visual red against the frozen binary and preserve both artifacts; no snapshot update/approval until independent diagnosis."
+    }
+  ],
+  "before_red": {
+    "source_proof": "At parent f49, paint_action writes `▎` at area.x for every row; the existing menu test explicitly notes 15 such gutters. The new test asserts zero ▎ throughout ROWS after focusing the list and while menu is active, so this assertion is predicted to fail on parent source.",
+    "limitation": "I did not execute the new assertion against a separately built parent binary/source. Treat this as source-derived regression evidence, not an independently observed before-run RED."
+  },
+  "architecture_note": "No direct Rect or buffer painting remains in the migrated action-row callback. However ActionColumns::apply computes cross-row widths in the app and the app invokes solve_columns; this is public shared layout machinery, but ownership of reusable measurement/policy remains unproven and may warrant a shared row/table abstraction if reused. This is secondary to the exact visual HOLD.",
+  "source_reference": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_file": "src/bin/holla/screens/finder.rs",
+    "mapping_caveat": "The baseline screen is named Finder and the candidate is Home; this review did not prove their full route/scenario equivalence. This ambiguity increases, rather than resolves, the need for paired live-CLI evidence."
+  },
+  "scope_limits": [
+    "No frozen baseline binary build or Tuiscotti paired capture/replay was run in this bounded review.",
+    "No source edits, expected artifact updates, commits, pushes, or branch operations were performed.",
+    "No overall Holla or Termrock acceptance claim."
+  ]
+}

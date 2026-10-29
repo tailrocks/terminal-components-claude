@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                    Workspaces › payments-platform › edit  inside the Construct  2 running
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ───────────━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────
+
+        Destination                           Mode  Isolation  Kind    Source
+  ▎›    /workspace/payments-platform          rw    worktree   host    ~/src/payments-platform
+  ▎     /workspace/libs                       ro    shared     host    ~/src/shared-libs
+  ▎     + Add mount
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ Enter Edit…  r Read-only  i Isolation  o Open source  d Remove  a Add mount…  [ ] Switch tab  Ctrl+S Save  Esc Back

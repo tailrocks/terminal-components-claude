@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                    no project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+  Here   [0m[1m stop all containers ! ×  [0m                                                                                     [0m
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mstop all containers[0m · failed · 0 s · exit 1                                                                      mbp  [0m
+  $ docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-scheduler-1 · started by Stop all containers       [0m
+                                                                                                                        [0m
+ ╭─[0m[1m output [0m─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ [0m
+ │  $ docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-scheduler-1                                    │ [0m
+ │  acme-db-1                                                                                                         │ [0m
+ │  [0m[1mError response from daemon: cannot stop container: acme-scheduler-1: tried to kill container, but did not receive[0m │ [0m
+ │  [0m[1m an exit event[0m                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m~/work/stack[0m                                     ! exit 1 · 0 s                                      no color · 120×40 [0m
+             [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  [0m[1my[0m Copy  [0m[1mr[0m Restart  [0m[1mx[0m Close  [0m[1mEsc[0m Here    [0m[1m![0m stop all containers failed · exit 1 [0m

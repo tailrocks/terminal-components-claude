@@ -1,0 +1,58 @@
+{
+  "commit": "a1903462d2abf972741f15d4b5873a953e5df471",
+  "status": "Cleared for integration of this bounded typed-slot library increment. No remaining actionable findings in reviewed changes.",
+  "supersedes": "acb750e regression-sensitivity blocker only; prior source clipping repair clearance remains valid.",
+  "required_regression": {
+    "source": "Exact committed crates/termrock/tests/slots.rs copied unchanged into separate external consumer test target.",
+    "broken_source": "a0c620e5806c2b1aa92ac6dbdfc11aa62fc22ce9",
+    "red_command": "cargo nextest run --offline --test repaired_authored -E test(clipped_dialog_slot_preserves_logical_body_geometry_and_regions)",
+    "red_result": {
+      "exit": 100,
+      "selected_failed": 1,
+      "selected_passed": 0,
+      "explicitly_filtered": 4,
+      "assertion": "cell output must match with parent clipping at TrueColor"
+    },
+    "corrected_source": "a1903462d2abf972741f15d4b5873a953e5df471",
+    "green_command": "cargo nextest run --offline --no-fail-fast",
+    "green_result": {
+      "exit": 0,
+      "tests": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    "explanation": "The committed test now applies Ui::with_area inside slot.render_component before the typed draw_body_slot or existing Dialog::draw path, so Ui::layer cannot reset away the clipping condition."
+  },
+  "scope_and_compatibility": {
+    "product_source_diff_from_acb750e": "None: only test placement and audit changed.",
+    "api": "Existing additive Dialog and PropsList adapters, public geometry-free consumer, borrowed state/data lifetimes, existing measurement and input stack unchanged. No new unsafe code or ownership/error/concurrency defect found.",
+    "unchanged_probe_hashes": {
+      "tests/review.rs": "1d0402e0aae2d799aceacce2627888a53837d56fac2fdd4375449085ecd5a703",
+      "tests/authored.rs": "ce81ffe2bde8161750a916bb0ebea2058f67c4d73b87cfa9a940c22cbfe14cc9",
+      "src/lib.rs": "dc5816c3b547e238d1296a16aef43af4a4fa3d738788f661f1c50f1264c3e149"
+    },
+    "coverage": "Original unchanged eleven public/independent probes plus corrected five native tests and eight keyboard fixture tests (the latter include seven repeated independent probes) all pass. Four profiles; complete cells/styles, ALL registered regions, focus/cursor equality; 84 profile/data/resize scenes, zero/narrow callback-count cases, stable-key reorder and copy. Actual Tab/ShiftTab/Esc/two-cycle modal focus restoration included.",
+    "checks": "Exact changed-source rustfmt and diff checks passed. Previous exact acb750e strict public-consumer Clippy passed; no product source changed in a1903462d.",
+    "gaps": [
+      "Remote publication and exact integrated-head gates belong to parent; reviewer did not push or bypass lock.",
+      "No hosted CI execution, application adoption, command-scope implementation, frozen InfoDialog chrome, clipboard integration side effect, or full application parity accepted."
+    ]
+  },
+  "preservation": {
+    "review_head": "a1903462d2abf972741f15d4b5873a953e5df471",
+    "author_source": "Untouched",
+    "artifact_deletions_preserved": 1301,
+    "non_artifact_changes": []
+  },
+  "logs": [
+    {
+      "path": "/private/tmp/termrock-typed-slot-a1903462d-native-on-a0c620e.log",
+      "sha256": "945adf83b5bb69901bbc5c01fd4fcb63a3bb17a5dda92324139f7f6d14917d1a"
+    },
+    {
+      "path": "/private/tmp/termrock-typed-slot-independent-a1903462d-green.log",
+      "sha256": "78f4e735864dfd2f9c8c9443459a538ec82d6bd385bfea03b4174ee96c7f6b53"
+    }
+  ]
+}

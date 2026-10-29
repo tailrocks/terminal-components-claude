@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Diff              256 colors · 100×30   i Inspector   ? Help
+
+   Overview          Diff viewer  Unified or old / new review · narrow panes use unified · select …
+   Buttons
+   Inputs            ▎● Review    ○ Empty
+   Text areas
+   Forms             ╭─ Diff ──────────────────────────────────────────────────────────────────────╮
+   Lists             │    3 region = "東京"                 │   4 region = "東京"                │ │
+   Trees             │    4 label = "café ☕"               │   5 label = "café ☕"              │ │
+   Tables            │    5 endpoint = "https://api.exampl… │   6 endpoint = "https://api.exampl…│ │
+   Editable tables   │    6 enabled = true                  │   7 enabled = true                 ┃ │
+   Panels            │  ─────────────────────────────────────────────────────────────────────────┃ │
+   Sidebars          │  @@ -9,6 +10,7 @@                                                         ┃ │
+   Dialogs           │    9 [service.worker_1]              │  10 [service.worker_1]             ┃ │
+   Progress          │   10 attempts = 3                    │  11 attempts = 5                   ┃ │
+   Scrolling         │                                      │  12 backoff = "exponential"        ┃ │
+   Terminal          │   11 region = "東京"                 │  13 region = "東京"                ┃ │
+   Code editor       │   12 label = "café ☕"               │  14 label = "café ☕"              ┃ │
+ › Diff              │   13 endpoint = "https://api.exampl… │  15 endpoint = "https://api.exampl…│ │
+   Data grid         │   14 enabled = true                  │  16 enabled = true                 │ │
+   Chips & selects   │  ─────────────────────────────────────────────────────────────────────────│ │
+   Pickers           │  @@ -17,6 +19,7 @@                                                        │ │
+   Chrome            │   17 [service.worker_2]              │  19 [service.worker_2]             │ │
+   Settings          │   18 attempts = 3                    │  20 attempts = 5                   │ │
+   Task runner       │                                      │  21 backoff = "exponential"        │ │
+                     │   19 region = "東京"                 │  22 region = "東京"                │ │
+                     │   20 label = "café ☕"               │  23 label = "café ☕"              │ │
+                     ╰─────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Toggle  Tab Next control

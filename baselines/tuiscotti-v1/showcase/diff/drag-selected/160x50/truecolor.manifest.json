@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "42a1ad214bcc7da8c1f7b376e2913ea24d5171f6303238aad16881125d4f600d",
+  "artifacts": {
+    "ansi": {
+      "bytes": 26059,
+      "file": "showcase/diff/drag-selected/160x50/truecolor.ansi",
+      "sha256": "42a1ad214bcc7da8c1f7b376e2913ea24d5171f6303238aad16881125d4f600d"
+    },
+    "ascii": {
+      "bytes": 7175,
+      "file": "showcase/diff/drag-selected/160x50/truecolor.ascii",
+      "sha256": "eaa3ebbf0e239f63337dc2e1fffd38668802825a7e166caa2f37391dce75d0d0"
+    },
+    "ascii_loss_json": {
+      "bytes": 90689,
+      "file": "showcase/diff/drag-selected/160x50/truecolor.ascii.loss.json",
+      "sha256": "39a65d328d8def7b3b087ef6801e329f3779b716d4d8d84b4ab0b82311a290b1"
+    },
+    "frame_json": {
+      "bytes": 2125327,
+      "file": "showcase/diff/drag-selected/160x50/truecolor.frame.json",
+      "sha256": "fc3ee7e0f08e6736b7ba6ffef95b4837577859605dcb9d5ad7747b1544e20cfe"
+    },
+    "html": {
+      "bytes": 1131215,
+      "file": "showcase/diff/drag-selected/160x50/truecolor.html",
+      "sha256": "2ac4b64c709946f386bba0307a300fc11dda453a6c466aff8ba7f0df699c640c"
+    },
+    "observations_json": {
+      "bytes": 477,
+      "file": "showcase/diff/drag-selected/160x50/truecolor.observations.json",
+      "sha256": "2da6aa7f49f67218cd06ccd9c1db75457b08ec55a1c0bbb7ac212d7051738874"
+    },
+    "png": {
+      "bytes": 808826,
+      "file": "showcase/diff/drag-selected/160x50/truecolor.png",
+      "sha256": "41c41e414c96879588adbf6790fd597e9a23eef2c10bd471c3589fbb6ad756ad"
+    },
+    "png_fidelity_json": {
+      "bytes": 5755,
+      "file": "showcase/diff/drag-selected/160x50/truecolor.png.fidelity.json",
+      "sha256": "7dc756ee6f0f3380505897951da5f5a054d59c93e88a74299b1c125d21e0d204"
+    },
+    "txt": {
+      "bytes": 9087,
+      "file": "showcase/diff/drag-selected/160x50/truecolor.txt",
+      "sha256": "286ad73aeb491d0e19b784d7dac57e90e429188de14a8a7498596e6dc38b28e9"
+    }
+  },
+  "ascii_substitutions_count": 971,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 5962245403487303446,
+  "frame_sha256": "fc3ee7e0f08e6736b7ba6ffef95b4837577859605dcb9d5ad7747b1544e20cfe",
+  "generation": "7f4b8dd07732577880fd59205af171ae81b6bc0c2e4e14e0a306713eb1830938",
+  "html_sha256": "2ac4b64c709946f386bba0307a300fc11dda453a6c466aff8ba7f0df699c640c",
+  "legacy_name": "showcase/flows/diff/drag-selected/160x50/truecolor",
+  "name": "showcase/diff/drag-selected/160x50/truecolor",
+  "png_sha256": "41c41e414c96879588adbf6790fd597e9a23eef2c10bd471c3589fbb6ad756ad",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:06Z",
+  "txt_sha256": "286ad73aeb491d0e19b784d7dac57e90e429188de14a8a7498596e6dc38b28e9"
+}

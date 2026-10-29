@@ -1,0 +1,59 @@
+{
+  "task": "Read-only diagnosis of termrock-navigation item_row_columns fingerprint failure",
+  "recorded_at_utc": "2026-10-21",
+  "source_commits": {
+    "failing_reproduction": "759d0d411ed9148e3d04f700bcc81d7b90b97a4a",
+    "earlier_passing_worktree": "80b50e4c5fb993ad29b9edf5868391d1499e1764",
+    "palette_change": "4bd17e2a0ec6ae7d1c14ed34c713ac0810061255",
+    "legacy_fixture_reconstruction": "082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0",
+    "matched_label_change": "b1780b927291baf034c96ba9653b82caaff39e23",
+    "fixed_baseline_source": "4169783ae883788186d161af09ba9c481bd84e5c"
+  },
+  "test": "crates/termrock-navigation/tests/item_row_columns.rs::constructor_defaults_match_the_pre_policy_full_cell_fixture",
+  "reproduction": {
+    "command": "rustup run 1.99.1 cargo nextest run -p termrock-navigation --test item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture --features termrock-runtime/testing --no-capture",
+    "failing_source": "759d0d411ed9148e3d04f700bcc81d7b90b97a4a",
+    "exit_status": 100,
+    "assertion": "legacy fixture fingerprint under authored legacy palette",
+    "line": 360,
+    "actual": 17020103994864682368,
+    "expected": 12184706452759668872,
+    "log": "/private/tmp/termrock-itemrow-current-diagnosis.log"
+  },
+  "earliest_evidence": {
+    "known_pass_commit": "082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0",
+    "evidence": "docs/audits/2026-10-20-item-row-legacy-palette-fixture.md records the focused nextest passing after explicit reconstruction of historical fg[2]=244 and fg[3]=238; the fixture was manually executed and passed at ancestor 80b50e4c5fb993ad29b9edf5868391d1499e1764.",
+    "earliest_causal_change": "4bd17e2a0ec6ae7d1c14ed34c713ac0810061255 changes Junie ANSI-256 disabled_fg from Indexed(238) to Indexed(239), matching frozen source. First observed failure in this audit is at 759d0d411; no direct test execution at exact 4bd17 source, so do not call it earliest observed failure."
+  },
+  "evidence_ranked_cause": [
+    {
+      "rank": 1,
+      "finding": "The test reconstructs the historical ANSI-256 theme by overriding fg[2] and fg[3], but leaves disabled_fg at the later frozen value Indexed(239). Its shared ITEMS fixture contains a disabled third item. FilterList draw_rows sets StateFlags::DISABLED for that row; the Junie disabled recipe uses Role::DisabledFg. The hash therefore still includes the changed disabled-row foreground. This is the strongest explanation for the mismatch and preserves expected checksum while restoring the old fixture palette; exact differing cells/count not directly captured."
+    },
+    {
+      "rank": 2,
+      "finding": "b1780b927 changes compact ItemRow from label() to label_matched(). This does not run in this fingerprint case: it uses ItemRowLayout::Columns and ItemColumns::paint/CellUi::text_matched, whose matched-label path predates b178. Do not attribute this failure to that compact-row feature."
+    },
+    {
+      "rank": 3,
+      "finding": "Nav RowUi 0333 Fill-gutter changes are separate: this fingerprint uses CursorStyle::Bar defaults, not the new Fill path."
+    }
+  ],
+  "contract_and_authority": {
+    "app_parity": "Only frozen source 4169783ae883788186d161af09ba9c481bd84e5c is authority for application visual parity.",
+    "library_fixture": "This fingerprint is a historical library-constructor checksum, introduced in 208a1d80d4cd2a515e8d4cf044d6c73dec66a4a and explicitly described as captured before picker policy changes at 7c5714871f3a41666231f9bc5a920ac554cf17eb. It is not a frozen app frame.",
+    "frozen_token": "Frozen src/theme.rs sets ANSI-256 disabled to index 239. Keep production token unchanged."
+  },
+  "repair_plan": [
+    "Keep expected checksum 12184706452759668872 unchanged.",
+    "Reconstruct the historical fixture theme completely: add legacy_theme.color.disabled_fg = Color::Indexed(238) alongside the existing fg[2]/fg[3] overrides; verify whether other changed tokens affect these rendered cells before claiming full reconstruction.",
+    "Keep default/current-theme assertion against frozen palette output and keep matched-grapheme behavior covered by its dedicated regression test.",
+    "Run the focused nextest test at the exact proposed source and capture a cell diff if reconstruction still fails. Do not bless a candidate-derived checksum."
+  ],
+  "limits": [
+    "No source edits.",
+    "Exact changed cell positions and count not captured; fingerprint alone does not encode them.",
+    "No test run at exact 4bd17 commit; earliest causal change inferred from diff, earliest directly observed failure is 759d0d411.",
+    "Known 1,301 tracked tuiscotti artifact deletions in reused worktree preserved; not staged or restored."
+  ]
+}

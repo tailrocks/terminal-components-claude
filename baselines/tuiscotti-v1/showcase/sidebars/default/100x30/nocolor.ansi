@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Sidebars            no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, collapsed mode; text f… [0m
+   Buttons                                                                                          [0m
+   Inputs                                            Tasks                                          [0m
+   Text areas           Workspace                                                                   [0m
+   Forms              › T Tasks                3     One focus stop. ↑ ↓ move the cursor, Enter     [0m
+   Lists                R Runs                       opens.                                         [0m
+   Trees                B Branches                                                                  [0m
+   Tables                                            ›  current item · persists when focus leaves   [0m
+   Editable tables      Project                      ▎  keyboard cursor · only while focused        [0m
+   Panels               M Members                    ░  hover · follows the pointer                 [0m
+[0m[1m▎› Sidebars        [0m     E Environment                                                               [0m
+   Dialogs           [0m[2m   $ Billing                [0m    Disabled items are skipped and ignore the      [0m
+   Progress                                          pointer.                                       [0m
+   Scrolling            Preferences                  Collapsed mode keeps rows and markers,         [0m
+   Terminal             K Keyboard                   initials only.                                 [0m
+   Code editor          A Appearance                                                                [0m
+   Diff                                                                                             [0m
+   Data grid                                                                                        [0m
+   Chips & selects                                                                                  [0m
+   Pickers                                                                                          [0m
+   Chrome              Collapse                                                                     [0m
+   Settings                                                                                         [0m
+   Task runner                                                                                      [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

@@ -1,0 +1,36 @@
+
+thread 'main' (293523906) panicked at src/bin/jackin_preview/screens/capsule.rs:1183:65:
+end byte index 8 is out of bounds for string of length 7
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library/std/src/panicking.rs:679:5
+   1: core::panicking::panic_fmt
+             at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library/core/src/panicking.rs:80:14
+   2: core::str::slice_error_fail_rt
+   3: core::str::slice_error_fail
+             at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library/core/src/str/mod.rs:70:5
+   4: <core::ops::range::RangeTo<usize> as core::slice::index::SliceIndex<str>>::index
+             at /Users/donbeave/.rustup/toolchains/1.98.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/traits.rs:457:21
+   5: <alloc::string::String as core::ops::index::Index<core::ops::range::RangeTo<usize>>>::index
+             at /Users/donbeave/.rustup/toolchains/1.98.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/string.rs:2829:15
+   6: <jackin_preview::screens::capsule::CapsuleScreen>::open_container_info
+             at ./src/bin/jackin_preview/screens/capsule.rs:1183:65
+   7: <jackin_preview::screens::capsule::CapsuleScreen>::run_menu
+             at ./src/bin/jackin_preview/screens/capsule.rs:450:38
+   8: <jackin_preview::screens::capsule::CapsuleScreen as jackin_preview::screens::Screen>::on_key
+             at ./src/bin/jackin_preview/screens/capsule.rs:1897:26
+   9: <jackin_preview::app::App>::on_key
+             at ./src/bin/jackin_preview/app.rs:636:26
+  10: <jackin_preview::app::App>::handle
+             at ./src/bin/jackin_preview/app.rs:350:22
+  11: <jackin_preview::app::App as junie_tui::runtime::Application>::handle
+             at ./src/bin/jackin_preview/main.rs:117:9
+  12: junie_tui::runtime::event_loop::<jackin_preview::app::App>
+             at ./src/runtime.rs:127:28
+  13: junie_tui::runtime::run::<jackin_preview::app::App>
+             at ./src/runtime.rs:101:18
+  14: jackin_preview::main
+             at ./src/bin/jackin_preview/main.rs:112:5
+  15: <fn() -> core::result::Result<(), core::io::error::Error> as core::ops::function::FnOnce<()>>::call_once
+             at /Users/donbeave/.rustup/toolchains/1.98.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.

@@ -1,0 +1,21 @@
+ [0m[1;7m holla❯ [0m   File   Go   Help     acme › frontend … · pnpm  [0m[1mmbp · local[0m  [0m
+  Here › [0m[1mArguments[0m                                                      [0m
+ [0m[1m Here › Arguments  [0m                                                    [0m
+ ━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────── [0m
+  [0m[1mRun tests · arguments[0m                                                 [0m
+  field name, expected value, default and validation · secrets stay m…  [0m
+                                                                        [0m
+   [0m[1mfilter  optional                                      [0m               [0m
+ ▎ test name substring                                                  [0m
+   passes through to nextest                                            [0m
+                                                                        [0m
+   profile                                                              [0m
+   default                                             ▾                [0m
+                                                                        [0m
+                                                                        [0m
+                                                                        [0m
+                                                        Cancel    [0m[1;7mRun [0m  [0m
+                                                                        [0m
+ [0m[1m~/work/acme/apps/frontend[0m   main   ↑1   • 2           no color · 72×20 [0m
+ [0m[1m EDIT [0m  [0m[1mEsc[0m Cancel  …   Trusted ~/work/acme/apps/frontend/mise.toml ·… [0m
+[?25h[9;4H[6 q

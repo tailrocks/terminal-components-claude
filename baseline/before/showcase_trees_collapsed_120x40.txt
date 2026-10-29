@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Trees                                  truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Trees  Indent carries hierarchy; the focus bar never moves
+▎  Overview
+                           ▎Project                                                   Selection
+   Components
+▎  Buttons                  ▎▸ src                                                    Nothing selected
+▎  Inputs                   ▎▾ tests                                                  Enter on a file selects it
+▎  Text areas               ▎    checkout.rs                             5.3 KB
+▎  Forms                    ▎    auth_flow.rs                            3.0 KB       cursor  src
+▎  Lists                    ▎  ▸ fixtures                                             visible 10 rows
+▎› Trees                    ▎▾ docs                                                   open    4 folders
+▎  Tables                   ▎    architecture.md                         7.7 KB
+▎  Editable tables          ▎    webhooks.md                             2.2 KB
+▎  Panels                   ▎  Cargo.toml                                1.4 KB
+▎  Sidebars                 ▎  README.md                                 3.5 KB
+▎  Dialogs
+▎  Progress
+▎  Scrolling
+▎  Terminal
+▎  Code editor
+▎  Data grid
+▎  Chips & selects
+▎  Pickers
+▎  Chrome
+
+   Screens
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  ← → Fold / unfold  Enter Open  * Expand all  Tab Next

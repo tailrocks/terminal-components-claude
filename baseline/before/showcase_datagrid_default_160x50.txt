@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Data grid                                                                      truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Data grid  Typed cells, a pending-change queue, paging and local sort
+▎  Overview
+                            customers                                                                                     rows 1–0 of 40 loaded · ~4,812 total
+   Components
+▎  Buttons                        ⚷ id       customer                   plan          seats      mrr  active    renewed_at    notes
+▎  Inputs                   ▎   1 1001       Northwind Traders          enterprise        3    57.00  true      2026-01-01    {"owner":"mira","seats":3}     ┃
+▎  Text areas               ▎   2 1002       Blue Yonder Airlines       team             80  1920.00  true      2026-02-04    NULL                           ┃
+▎  Forms                    ▎   3 1003       Contoso Pharmaceuticals    pro              12   348.00  true      2026-03-07    NULL                           ┃
+▎  Lists                    ▎   4 1004       Fabrikam Robotics          free              1     0.00  false     NULL          NULL                           ┃
+▎  Trees                    ▎   5 1005       Litware Analytics          enterprise       40   760.00  true      2026-05-13    {"owner":"mira","seats":40}    ┃
+▎  Tables                   ▎   6 1006       Tailspin Toys              team              5   120.00  true      2026-06-16    NULL                           ┃
+▎  Editable tables          ▎   7 1007       Wide World Importers       pro             150  4350.00  true      2026-07-19    NULL                           ┃
+▎  Panels                   ▎   8 1008       Adventure Works            free             25     0.00  true      NULL          NULL                           ┃
+▎  Sidebars                 ▎   9 1009       Proseware Studio           enterprise        3    57.00  false     2026-09-25    {"owner":"mira","seats":3}     ┃
+▎  Dialogs                  ▎  10 1010       Woodgrove Bank             team             80  1920.00  true      2026-10-28    NULL                           ┃
+▎  Progress                 ▎  11 1011       Alpine Ski House           pro              12   348.00  true      2026-11-03    NULL                           ┃
+▎  Scrolling                ▎  12 1012       Coho Winery                free              1     0.00  true      NULL          NULL                           ┃
+▎  Terminal                 ▎  13 1013       Lucerne Publishing         enterprise       40   760.00  true      2026-01-09    {"owner":"mira","seats":40}    ┃
+▎  Code editor              ▎  14 1014       Margie's Travel            team              5   120.00  false     2026-02-12    NULL                           ┃
+▎› Data grid                ▎  15 1015       Trey Research              pro             150  4350.00  true      2026-03-15    NULL                           ┃
+▎  Chips & selects          ▎  16 1016       Humongous Insurance        free             25     0.00  true      NULL          NULL                           ┃
+▎  Pickers                  ▎  17 1017       Northwind Traders 2        enterprise        3    57.00  true      2026-05-21    {"owner":"mira","seats":3}     │
+▎  Chrome                   ▎  18 1018       Blue Yonder Airlines 2     team             80  1920.00  true      2026-06-24    NULL                           │
+                            ▎  19 1019       Contoso Pharmaceuticals 2  pro              12   348.00  false     2026-07-27    NULL                           │
+   Screens                  ▎  20 1020       Fabrikam Robotics 2        free              1     0.00  true      NULL          NULL                           │
+▎  Settings                 ▎  21 1021       Litware Analytics 2        enterprise       40   760.00  true      2026-09-05    {"owner":"mira","seats":40}    │
+▎  Task runner              ▎  22 1022       Tailspin Toys 2            team              5   120.00  true      2026-10-08    NULL                           │
+                            ▎  23 1023       Wide World Importers 2     pro             150  4350.00  true      2026-11-11    NULL                           │
+                            ▎  24 1024       Adventure Works 2          free             25     0.00  false     NULL          NULL                           │
+                            ▎  25 1025       Proseware Studio 2         enterprise        3    57.00  true      2026-01-17    {"owner":"mira","seats":3}     │
+                            ▎  26 1026       Woodgrove Bank 2           team             80  1920.00  true      2026-02-20    NULL                           │
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

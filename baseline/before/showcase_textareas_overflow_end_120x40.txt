@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Text areas                             truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Text areas  Multi-line editing, wrapping cursor motion, scroll position
+▎  Overview
+                            Playground                                                Enter Edit · Esc Done · Tab Next
+   Components
+▎  Buttons                    Task description                               Notes
+▎  Inputs                   ▎ 21. Read src/api/billing.rs before tou… │    ▎ Anything the agent should know…
+▎› Text areas               ▎ 22. Keep the public API stable; add, n… │    ▎
+▎  Forms                    ▎ 23. Open a PR against main with a clea… │    ▎
+▎  Lists                    ▎ 24. Run the integration suite and atta… │    ▎
+▎  Trees                    ▎ 25. Read src/api/billing.rs before tou… │    ▎
+▎  Tables                   ▎ 26. Keep the public API stable; add, n… │    ▎
+▎  Editable tables          ▎ 27. Open a PR against main with a clea… ┃    ▎
+▎  Panels                   ▎ 28. Run the integration suite and atta… ┃    ▎
+▎  Sidebars                   Enter inserts a newline · Esc…  ln 28/28       Optional
+▎  Dialogs
+▎  Progress
+▎  Scrolling                Disabled and error
+▎  Terminal
+▎  Code editor                Read-only transcript                           Commit message
+▎  Data grid                ▎ Junie: Reading 14 files…                     ▎ fix stuff                              !
+▎  Chips & selects          ▎ Junie: Plan ready. 3 steps.                  ▎
+▎  Pickers                  ▎                                              ▎
+▎  Chrome                   ▎                                              ▎
+                                                                             Use the imperative mood and explain why
+   Screens
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+  EDIT   Enter Newline  Esc Done  Shift+↑↓ Select  Tab Next

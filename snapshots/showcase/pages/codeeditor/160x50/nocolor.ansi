@@ -1,0 +1,51 @@
+ ▪ [0m[1mJunie[0m Design system  Text & code › [0m[1mCode editor[0m                                                                     no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+ [0m[1mComponents[0m           54  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; the gutter says where you are                                                 [0m
+ ───────────────────────                                                                                                                                        [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                                                              [0m
+  ▸ Tables                  retry.rs                                                               3 blocks     Find    Run block                               [0m
+  ▸ Navigation              ───────────────────────────────────────────────────────────────────────────────                                                     [0m
+  ▸ Overlays                 ›  1 [0m[3m// Retry a request with exponential backoff.[0m                            ┃      State                                          [0m
+  ▸ Feedback                    2 [0m[1mpub[0m [0m[1masync[0m [0m[1mfn[0m fetch(url: &str) -> Result<Body, Error> {                  ┃      ─────────────────────────────────────────────  [0m
+  ▸ Layout                      3     [0m[1mlet[0m [0m[1mmut[0m delay = [0m[3m200[0m;                                                ┃      Mode         navigating                        [0m
+  ▾ Text & code                 4     [0m[1mfor[0m attempt [0m[1min[0m [0m[3m1..[0m=[0m[3m5[0m {                                              ┃      Cursor       ln 1 · col 1                      [0m
+ [0m[1m▎  › Code editor       [0m        5         [0m[1mmatch[0m client().get(url).[0m[1mawait[0m {                                 ┃      Block        1 of 3                            [0m
+      Diff                      6             Ok(body) => [0m[1mreturn[0m Ok(body),                                ┃      Runs         0                                 [0m
+      Terminal                  7             Err(e) [0m[1mif[0m e.is_transient() => {                             ┃      Last run     —                                 [0m
+      Text utilities            8                 log::warn!("attempt {attempt} failed: {e}");            ┃      Diagnostics  0                                 [0m
+  ▸ Screens                     9                 sleep(delay).[0m[1mawait[0m;                                     ┃      Completion   closed                            [0m
+                               10                 delay *= [0m[3m2[0m;                                             ┃      Find         closed                            [0m
+                               11             }                                                           ┃                                                     [0m
+                               12             Err(e) => [0m[1mreturn[0m Err(e),                                    ┃                                                     [0m
+                               13         }                                                               ┃                                                     [0m
+                               14     }                                                                   ┃      Diagnostics                                    [0m
+                               15     Err(Error::Exhausted)                                               ┃      ─────────────────────────────────────────────  [0m
+                               16 }                                                                       ┃                                                     [0m
+                               17                                                                         ┃                     Nothing flagged                 [0m
+                               18 [0m[1mfn[0m client() -> Client {                                                 ┃                                                     [0m
+                               19     Client::builder().timeout([0m[3m10[0m).gzip([0m[3mtrue[0m).build().unwrap()           ┆        Run the second block: its unwrap() gets a    [0m
+                               20 }                                                                       ┆                         warning                     [0m
+                               21                                                                         ┆                                                     [0m
+                            [0m[2m   22 [0m[2;3m#[test][0m[2m                                                                 [0m┆                                                     [0m
+                                                                                                1–22 of 26                                                      [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
+[?25l

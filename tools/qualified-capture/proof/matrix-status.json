@@ -1,0 +1,25 @@
+{
+  "commit": "e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2",
+  "status": "complete",
+  "required_gate_count": 6,
+  "passed_gates": 6,
+  "counts": {
+    "0": {
+      "passed": 49,
+      "failed": 0,
+      "filtered": 0
+    },
+    "1": {
+      "passed": 40,
+      "failed": 0,
+      "filtered": 0,
+      "non_doc_tests": 39,
+      "doctests": 1
+    },
+    "2": {
+      "passed": 1,
+      "failed": 0,
+      "filtered": 0
+    }
+  }
+}

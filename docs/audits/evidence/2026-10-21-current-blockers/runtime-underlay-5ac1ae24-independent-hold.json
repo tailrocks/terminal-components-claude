@@ -1,0 +1,114 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T06:20:05.937889+00:00",
+  "reviewer": "/root/runtime_underlay_correction_review",
+  "reviewed_commit": "5ac1ae24b9f0548bc064d6609de26245e62695ea",
+  "comparison_revision": "860529a316dd1e45e6e2f9f3921d93e964fa0e66",
+  "decision": "HOLD",
+  "findings": [
+    {
+      "id": "5AC-R1",
+      "priority": "P2",
+      "path": "crates/termrock-runtime/src/ui/layer_buf.rs",
+      "lines": [
+        100,
+        103
+      ],
+      "title": "Overlapping paint modifier masks fail to remove an inherited modifier",
+      "evidence": "apply_paint_modifiers passes add.difference(remove) and remove.difference(add), dropping an overlapping bit from both operations. With lower BOLD and public Style { add_modifier: BOLD, sub_modifier: BOLD }, underlay preserves BOLD while canonical ordinary fill removes it. The unchanged prior overlap test passes only because its base has no BOLD. New public Runtime full-buffer test overlapping_modifier_fields_remove_inherited_bold passes on exact860 and fails on5ac.",
+      "repair": "Model Ratatui removal precedence even for inherited bits; remove must retain overlapping bits. Keep the distinct explicit StylePatch addition precedence and test successive operations against canonical painting."
+    },
+    {
+      "id": "5AC-R2",
+      "priority": "P2",
+      "path": "crates/termrock-runtime/src/ui/layer_buf.rs",
+      "lines": [
+        118,
+        123,
+        145,
+        155
+      ],
+      "title": "Single deferred fade loses sequential paint semantics",
+      "evidence": "defer_fade overwrites the previous operation, and composite evaluates its background/REVERSED guard after all subsequent paints. Three public Runtime differential tests pass on exact860 and fail on5ac: repeated_rgb_fades_compose_in_order (only the last RGB fade is applied), later_background_does_not_undo_earlier_fade (background-only paint retrospectively removes the prior DIM), and later_reverse_does_not_undo_earlier_fade (REVERSED retrospectively prevents the prior DIM). These are ordinary supported painter calls; no application/test identity is involved.",
+      "repair": "Preserve ordered fade transforms and their guards relative to subsequent background/modifier/channel changes in the existing compositor pipeline. Resolve inherited channels against actual lower layers, without materializing stale page colors. Add all three unchanged public differentials plus fade-then-remove-DIM and explicit foreground/patch interactions."
+    }
+  ],
+  "fixed_prior_findings": [
+    "Original BB-R1/R2/R3 fixtures all now pass on5ac: simple post-fill fade, overlap with no inherited modifier, and right-aligned vacated-source reset. This is bounded repair evidence, not full closure of the broader operation contracts.",
+    "Strong actual-admitted upper-layer test, underline retention, role-aware modal dim comparison across four color levels, page ForcedWidth reset, and20 clipped/zero/wide page cases remain passing. Original ignored-Tick weak nested fixture is retained only as historical control; it is never credited as actual upper-layer admission."
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-runtime --all-targets --no-fail-fast",
+      "exit": 0,
+      "passed": 406,
+      "failed": 0,
+      "skipped": 3,
+      "log": "native.log"
+    },
+    {
+      "command": "cargo nextest run --all-targets --no-fail-fast (external public consumer)",
+      "exit": 100,
+      "passed": 14,
+      "failed": 7,
+      "skipped": 0,
+      "log": "final-public.log",
+      "failure_attribution": "Three pre-existing Menu renderer holds (chord, disabled style, border patch) plus four Runtime failure cases covered by two findings. Original prior16 subset now13pass3oldMenu failures."
+    },
+    {
+      "command": "cargo nextest run -E selected-four-new-runtime-tests --no-fail-fast (same source, exact860)",
+      "exit": 0,
+      "passed": 4,
+      "failed": 0,
+      "filtered": 17,
+      "log": "before-ordering.log",
+      "qualification": "Intentional four-case regression subset;17 filtered cases are not acceptance passes."
+    },
+    {
+      "command": "cargo clippy -p termrock-runtime --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "clippy.log"
+    },
+    {
+      "command": "cargo fmt --check",
+      "exit": 0,
+      "log": "fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    }
+  ],
+  "architecture_review": {
+    "ordinary_fast_path": "Sparse optional HashMap starts None and allocates only on underlay fill; reset clears entries without full-screen intent resize. No-intent composite no longer clones destination Cell. This structurally resolves prior P3; no allocation or latency benchmark was run. A pooled layer that previously used underlay retains an empty map allocation, an allowed reuse cost.",
+    "pipeline": "Private intent still extends existing LayerDraw composition; no second renderer/input engine, application data or captured-frame assets introduced. Raw full-cell writes cancel intent; move transfers destination intent and now resets vacated underline/modifiers. Deferred operation ordering remains incorrect as documented.",
+    "api_and_safety": "No public API changes or unsafe code introduced in this correction. No specific concurrency or ownership defect found beyond painter semantic findings."
+  },
+  "fixture_integrity": {
+    "source": "Original prior16 consumer retained byte-identically as prefix; five new public tests appended. Identical final source used for candidate21 and exact860 four-case subset. Before source revision and runtime source cleanliness verified. Separate exactrevision targets used. No reviewer-owned prior fixture changed or relinked.",
+    "candidate_worktree": "/private/tmp/underlay-5ac-review-20261021",
+    "candidate_target": "/private/tmp/underlay-5ac-exact-target-20261021",
+    "before_target": "/private/tmp/underlay-5ac-before-860-target-20261021",
+    "strong_nested": "stub::deliver internally requires successful handling; open_spec(UPPER), layer_area(UPPER), actual Black fill and Blue foreground asserted. Weak direct handle(Tick) rejection is separately asserted."
+  },
+  "limits": [
+    "No full application parity, Tuiscotti paired capture, workspace-wide gate, performance benchmark, hosted CI or Menu-unification clearance.",
+    "No product-source edits, commits, pushes, baseline changes or expectation changes. Evidence files only. Each owned command group completed under220seconds with bounded TERM/KILL cleanup available.",
+    "No exhaustive modifier powerset, post-fade patch matrix, deep nested/resize stress, backend failure or panic-injection validation."
+  ],
+  "artifacts": {
+    "before-ordering.log": "8887de696415ffc76a98c29004ff435bb9424d95400fe537af5592ce3b2e0d6b",
+    "Cargo.toml": "732048f67aa8477a8b46a5800c4366e37a3520bd6c3248d59e70846cfe577db8",
+    "before-Cargo.toml": "1434ce58a9785f2f6ecad9f62ec5a75e37284fc7cc503c02a067487e26038b9b",
+    "extended.log": "87102bac4b92eca2ee0edc4f8b4414f5b65691de3671466d359b792d66e2a0ad",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bounded-runner.py": "1dd640dadca11de53bdf4a6f814586b0653593bec7943d0c9c84951f93a64fb9",
+    "final-public.log": "1ba4517a32f4725ef0d1f5ba7f58139e76bd3fc122f9c0dfa851fd36070fbac0",
+    "clippy.log": "22eae2664ab595fa9514a22d5a7442042783e36fb8fe951e4e628e510ecab50e",
+    "Cargo.lock": "2a96426ac6812855ae6a1099e77d2c89b9a11fb61e676410ab0b88eb93f040bd",
+    "native.log": "3b38b322ec67c1bfec6de7563f57662031a9f491b929b6a265e29c47f212e42d",
+    "public.log": "97cdb851c196d62b11e17eafde6ec8d68475ec1b3be3150e4319872426ef6deb",
+    "source.diff": "bb421894eaafed01d270cb9535e1e32c425046bc5382ce2a710daaf04e0af775",
+    "consumer.rs": "b511d5a5530172a9b43bb6abd4976a3cbf114e2acf6bd9b0855554a050bc6dff"
+  }
+}

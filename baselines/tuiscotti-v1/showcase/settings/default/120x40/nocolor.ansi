@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Settings                                   no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mProject settings[0m  Composed: tabs, form, editable table, list, dialogs                         [0m
+   Overview                                                                                                             [0m
+                          [0m[1m General  [0m  Members    Environment                                                            [0m
+   Components             ━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────[0m
+   Buttons                                                                                                              [0m
+   Inputs                   General                                                                                     [0m
+   Text areas                                                                                                           [0m
+   Forms                      Project name *                                 Visibility                                 [0m
+   Lists                      payments-gateway                              (●) Private                                 [0m
+   Trees                                                                    ( ) Internal                                [0m
+   Tables                     Description                                   ( ) Public                                  [0m
+   Editable tables            Handles checkout, invoicing and refund…                                                   [0m
+   Panels                                                                   ○── Auto-merge approved PRs off             [0m
+   Sidebars                                                                 ──● Protect main branch on                  [0m
+   Dialogs                                                                                                              [0m
+   Progress                                                                                                             [0m
+   Scrolling                                                                                                            [0m
+   Terminal                                                                                                             [0m
+   Code editor                                                                                                          [0m
+   Diff                      [0m[1mSave changes [0m  No changes                                                                  [0m
+   Data grid                                                                                                            [0m
+   Chips & selects                                                                                                      [0m
+   Pickers                                                                                                              [0m
+   Chrome                                                                                                               [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+[0m[1m▎› Settings             [0m                                                                                                [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

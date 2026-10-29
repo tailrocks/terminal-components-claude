@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                                no project  mbp · local
+
+  Here › Files › site
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────
+  Files · ~/work/site
+  16 entries · 2 hidden hidden · Ctrl+H shows · directories first
+
+  ▸ assets   ╭────────────────────────────────────────────────────────────────────────╮y
+  ▸ private  │ Go to path                                                 ~/work/site │on denied
+    bad.txt  │ ▎ nope                                                                 │
+    big.log  │                                                                        │
+  → broken   │             ! ~/work/site/nope: no such file or directory              │ink → /Use…
+    café.txt │                                                                        │
+    café.txt │                  edit the path or choose a suggestion                  │
+    control.t│                                                                        │
+  → current  ╰────────────────────────────────────────────────────────────────────────╯
+    empty.txt                                           0 B  2026-09-09 08:41  file
+    index.html                                         34 B  2026-09-09 08:41  file
+    logo.png                                            6 B  2026-09-07 08:41  file
+    long.txt                                        4.9 KiB  2026-09-08 08:41  file
+    package.json                                       85 B  2026-09-08 08:41  file
+  ◇ pipe                                                0 B  2026-09-10 08:41  special file
+    pnpm-lock.yaml                                     19 B  2026-09-08 08:41  file
+
+
+
+
+
+ ~/work/site                      ~/work/site · hidden off                       truecolor · 100×30
+                          Type Filter  ↑↓ Move  Enter Switch  Esc Cancel

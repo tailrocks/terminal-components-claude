@@ -1,0 +1,645 @@
+{
+  "reviewed_HEAD": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+  "index_all_entries_equal_HEAD_tree": true,
+  "HEAD_entry_count": 13795,
+  "index_path_count": 13795,
+  "index_tree_differences": [],
+  "tracked_symlinks": [
+    {
+      "path": ".github/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": true,
+      "current_is_symlink": true,
+      "current_target": "AGENTS.md"
+    },
+    {
+      "path": "CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": true,
+      "current_is_symlink": true,
+      "current_target": "AGENTS.md"
+    },
+    {
+      "path": "docs/refactoring-plan/evidence/host-bootstrap-fixture/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/001/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-fixture/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/002/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/003/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/004/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/005/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/006/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/007/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/008/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/009/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/010/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/011/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/012/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/013/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/014/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/015/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/016/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/017/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/018/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/019/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/020/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/021/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/022/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/023/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/024/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/025/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/026/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/027/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/028/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/029/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/030/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/031/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/032/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/033/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/034/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/035/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/036/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/037/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/038/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/039/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/040/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/041/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/042/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/043/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/044/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/045/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/046/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/047/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/048/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/049/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/050/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/051/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/052/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/053/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/054/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/055/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/056/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/057/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/058/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/059/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/060/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/061/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/062/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/063/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/064/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/065/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/066/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/067/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/068/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/069/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/070/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/070/trusted/proof-bootstrap/host-bootstrap-fixture/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/071/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/071/trusted/proof-bootstrap/host-bootstrap-fixture/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/072/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/072/trusted/proof-bootstrap/host-bootstrap-fixture/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    },
+    {
+      "path": "refactoring-tasks/terminal-components/completion/073/CLAUDE.md",
+      "HEAD_target": "AGENTS.md",
+      "present": false,
+      "current_is_symlink": false,
+      "current_target": null
+    }
+  ],
+  "restoration_paths_with_symlink_ancestors": [],
+  "modified_mtimes_utc": [
+    {
+      "path": ".github/AGENTS.md",
+      "mtime_utc": "2026-10-21T10:47:32.121168+00:00"
+    },
+    {
+      "path": ".github/actionlint.yaml",
+      "mtime_utc": "2026-10-21T10:47:32.121339+00:00"
+    },
+    {
+      "path": ".github/actions/declared-task-0/action.yml",
+      "mtime_utc": "2026-10-21T10:47:32.121570+00:00"
+    },
+    {
+      "path": ".github/actions/velnor-tool-seed/action.yml",
+      "mtime_utc": "2026-10-21T10:47:32.121961+00:00"
+    },
+    {
+      "path": ".github/actions/velnor-tools-cache-restore/action.yml",
+      "mtime_utc": "2026-10-21T10:47:32.122318+00:00"
+    },
+    {
+      "path": ".github/scripts/velnor-tools-cache-identity.sh",
+      "mtime_utc": "2026-10-21T10:47:32.122797+00:00"
+    },
+    {
+      "path": ".github/velnor/task-execution-manifest-v1.json",
+      "mtime_utc": "2026-10-21T10:47:32.124270+00:00"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "mtime_utc": "2026-10-21T10:47:32.125110+00:00"
+    },
+    {
+      "path": ".gitignore",
+      "mtime_utc": "2026-10-21T10:47:32.125591+00:00"
+    },
+    {
+      "path": ".velnor/config.toml",
+      "mtime_utc": "2026-10-21T10:47:32.125809+00:00"
+    },
+    {
+      "path": ".velnor/release-manifest.json",
+      "mtime_utc": "2026-10-21T10:47:32.125979+00:00"
+    },
+    {
+      "path": "AGENTS.md",
+      "mtime_utc": "2026-10-21T10:47:32.126214+00:00"
+    },
+    {
+      "path": "Cargo.lock",
+      "mtime_utc": "2026-10-21T10:47:32.126805+00:00"
+    },
+    {
+      "path": "Cargo.toml",
+      "mtime_utc": "2026-10-21T10:47:32.127020+00:00"
+    }
+  ],
+  "historical_remote_evidence": "origin-parity-reflog.txt records 2ce39f5cc at2026-10-21T17:47:52+07:00 (10:47:52UTC), current remote6ce at10:59:30UTC. Target identity is historical, not inferred from moving current ref.",
+  "untracked_prefix_counts": {
+    ".github-gen": 1,
+    ".github": 2,
+    "baseline": 1714,
+    "baselines": 64600
+  },
+  "safe_action_plan": [
+    "Parent first archives modified files, raw index, status and patches outside original.",
+    "Immediately re-read HEAD/index and verify same identities; stop on changes.",
+    "For each1122 absent tracked file, require lstat still missing, index stillHEAD, no symlink ancestor before restoring exactHEAD blob/mode.",
+    "For each14 modified file, require exact Git blob+mode still equal manifest partial-target2ce before restoring exactHEAD blob/mode; changed files must be preserved separately.",
+    "Use explicit literal path list; worktree-only restore with source frozenHEAD is suitable after checks. Never reset index, switch branch, clean, recurse-delete, restore all unconditionally or touch untracked paths.",
+    "Restore symlinks as symlinks to exactHEAD target; never dereference a link while writing.",
+    "Verify HEAD/index unchanged and restored tracked content/modes equalHEAD. All preexisting untracked paths must remain; retain backup evidence."
+  ],
+  "no_repository_writes_by_reviewer": true
+}

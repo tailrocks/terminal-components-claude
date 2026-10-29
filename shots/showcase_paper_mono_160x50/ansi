@@ -1,0 +1,50 @@
+ ▪ [1mJunie[0m Design system / Foundations / Overview                                                                       no color · 160×50   i Inspector   ? Help  
+                                                                                                                                                                
+[1m   Foundations          [0m  [1mOverview[0m  Tokens and principles behind every component                                                                                
+[1m▎› Overview             [0m                                                                                                                                        
+                            Tokens                                          Principles                                                                          
+[1m   Components           [0m                                                                                                                                        
+▎  Buttons                      ▏ canvas                      #000000       [1mOne hue[0m                                                                             
+▎  Inputs                       ▏ surface                     #111111       Green means focus, primary action or selection. Everything else is achromatic.      
+▎  Text areas                   ▏ surface.elevated            #18181b                                                                                           
+▎  Forms                        ▏ surface.overlay             #27272a       [1mAlpha ladder[0m                                                                        
+▎  Lists                        ▏ field                       #1e1e22       Text and borders step down in white opacity, never in arbitrary grays.              
+▎  Trees                        ▏ popover                     #3f3f46                                                                                           
+▎  Tables                       ▏ border.subtle             white 15%       [1mState is geometry[0m                                                                   
+▎  Editable tables              ▏ border.strong             white 30%       Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows   
+▎  Panels                       ▏ text.primary                #ffffff       the cursor.                                                                         
+▎  Sidebars                     ▏ text.secondary            white 70%                                                                                           
+▎  Dialogs                      ▏ text.muted                white 50%       [1mThree planes[0m                                                                        
+▎  Progress                     ▏ text.faint                white 30%       Canvas, surface, elevated. Depth comes from lightness, not borders.                 
+▎  Scrolling                    ▏ accent                      #48e054                                                                                           
+▎  Terminal                     ▏ accent.hover                #3ab343       [1mQuiet chrome[0m                                                                        
+▎  Code editor                  ▏ accent.pressed              #2b8632       Bold is reserved for the focused control. No box around a thing unless the box      
+▎  Data grid                    ▏ accent.bg                 green 20%       carries meaning.                                                                    
+▎  Chips & selects              ▏ error                       #e44545                                                                                           
+▎  Pickers                      ▏ warning                     #f59e09                                                                                           
+▎  Chrome                       ▏ info                        #8787ff       State language                                                                      
+                                                                                                                                                                
+[1m   Screens              [0m                                                    ▎  focus                                                                            
+▎  Settings                                                                 ░  hover lifts the surface                                                          
+▎  Task runner                                                              ›  current / chosen                                                                 
+                                                                            ✓  checked                                                                          
+                                                                            !  error                                                                            
+                                                                            ▁  editing: cursor + underline                                                      
+                                                                            ○  disabled: faint, no hover                                                        
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                          Author component · click or Tab                                                       
+                                                                                                                                                                
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                                                                                                                    

@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help                    big · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                [0m
+ [0m[1m Here › Disk › Usage  [0m                                                         [0m
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────── [0m
+  [0m[1mDisk usage · ~/work/big[0m                                                       [0m
+  scan complete · 2.3 MiB allocated · 21 entries · 0 selected (0 B)             [0m
+                                                                                [0m
+    largest first · allocated · unfolded                                        [0m
+  ▾   big                                                       2.3 MiB · 100%  [0m
+    ▸   target                                                  2.0 MiB ·  85%  [0m
+ [0m[1m▎  ▸ [0m [0m[1m noise                                                 176.0 KiB ·   7% [0m [0m
+        vm.img                                                160.0 KiB ·   7%  [0m
+    ▸   docs                                                    8.0 KiB ·   0%  [0m
+    ▸   src                                                     8.0 KiB ·   0%  [0m
+        Cargo.toml                                              4.0 KiB ·   0%  [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+ [0m[1m~/work/big[0m                  0 selected · 0 B                  no color · 80×24 [0m
+     [0m[1m↑↓[0m Move  [0m[1m← →[0m Fold / open  [0m[1mSpace[0m Select  [0m[1ms[0m Sort  …   Noise folders unfolded [0m

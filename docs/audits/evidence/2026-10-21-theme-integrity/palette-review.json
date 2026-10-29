@@ -1,0 +1,103 @@
+{
+  "review_type": "Independent read-only bounded test-integrity restoration review",
+  "commit": "c60830f8a3b7279aa2046be7d3e7b6ca9984896a",
+  "source_increment": "3a2d4cfd90639b0ecd886e734d677078889fc512",
+  "pre_increment_parent": "c851d8b3a847464347d16bd4df61408c9a0e49b8",
+  "remote": "origin/wip/palette-test-integrity-20261021",
+  "remote_tip_verified": "c60830f8a3b7279aa2046be7d3e7b6ca9984896a",
+  "decision": "The six-line test restoration is cleared for its bounded test-integrity purpose. It removes unsupported candidate-matching expectations without product behavior changes or lost cases. It is not a palette correctness, semantic-oracle, full test-suite or product-parity approval. One minor audit wording correction is requested.",
+  "scope_proof": {
+    "changed_paths": [
+      "crates/termrock-theme/tests/capability_palettes.rs",
+      "docs/audits/2026-10-21-palette-expected-overrides-rejected.md"
+    ],
+    "product_diff_empty": true,
+    "restored_fixture_blob": "087ef151b7fde7e8c14e90f0aeba608cbe6615f9",
+    "pre93_fixture_blob": "087ef151b7fde7e8c14e90f0aeba608cbe6615f9",
+    "byte_identical_pre93": true,
+    "retained": "Original on_accent232, border_strong242, disabled_fg239 assignments; same73-token inventory assertion; same four profile loop; all original cases/attributes/assertions and production palettes. No test skip/omit, expected hash change, frozen artifact change or production edit in delta."
+  },
+  "independent_same_product_proof": {
+    "command": "cargo nextest run --no-fail-fast --manifest-path /private/tmp/theme-c60830-integrity-probes/Cargo.toml -E test(all_73_junie_slots_match_reference_capability_output) | test(frozen_error_cursor_fill_plane_is_not_candidate_neutral_gray)",
+    "run_id": "b2dd64ff-9395-49ad-9478-8674da93cdcf",
+    "run": 3,
+    "passed": 1,
+    "failed": 2,
+    "filtered_skipped": 16,
+    "before_fixture": "Byte-identical c851 predecessor fixture with six overrides: PASS against exactc608 product",
+    "restored_fixture": "Byte-identical c608 restored fixture: RED against same exactc608 product",
+    "frozen_qualified": "Byte-identical independent93 danger-highlight frozen88 probe: RED actual238 expected88 against exactc608 product",
+    "actual_values": {
+      "accent_pressed": 238,
+      "accent_tint": 233,
+      "focus_ring": 238,
+      "highlight_danger_bg": 238,
+      "danger_tint": 233,
+      "syntax.match_bg": 233
+    },
+    "restored_raw_expected_values": {
+      "accent_pressed": 71,
+      "accent_tint": 22,
+      "focus_ring": 71,
+      "highlight_danger_bg": 95,
+      "danger_tint": 52,
+      "syntax.match_bg": 22
+    },
+    "interpretation": "No new production behavior regression is caused by this test-only removal. Restored RED re-exposes a candidate/raw-fixture disagreement that had been hidden. It does NOT approve the restored raw values as frozen semantic truth. Separate fixed-source authority still requires PrimaryButton ANSI256 pressed65 and qualified Error CursorRow Fill88. Actual238 versus88 remains an independently established semantic defect."
+  },
+  "checks": {
+    "scoped_formatting": {
+      "command": "cargo fmt -p termrock-theme -- --check",
+      "exit": 0
+    },
+    "diff_check": {
+      "command": "git diff --check c851d8b3 c60830f8",
+      "exit": 0
+    },
+    "full_suite": "Not rerun for this bounded restoration; prior exact93 Theme139pass/1backdropfail evidence is historical and not represented as exactc608 full-suite validation. Filtered16 cases are not claimed as passed."
+  },
+  "audit_review": {
+    "correct_statements": [
+      "Six overrides match candidate source and are removed; original3 retained.",
+      "Neither six additions nor restored generic raw projection is a universal73-token semantic oracle.",
+      "48qualified/25contextual inventory retained; documented independently reviewed replacement still required.",
+      "Fixed baseline commit, tag object and tool revision remain fixed.",
+      "Restored RED is not passing product parity."
+    ],
+    "finding": {
+      "severity": "P3",
+      "path": "docs/audits/2026-10-21-palette-expected-overrides-rejected.md",
+      "section": "Validation status",
+      "quote": "This increment restores the unsupported expectations and leaves the known semantic mismatch visible.",
+      "problem": "The phrase reverses the actual operation and can imply the removed overrides were restored; preceding Decision correctly says they were removed.",
+      "requested_change": "Replace with: This increment removes the unsupported overrides, restores the earlier assertion, and leaves the known semantic mismatch visible. Clarify that the raw assertion itself remains an invalid universal semantic oracle; its expected95 is not the frozen qualified88."
+    },
+    "stash_incident": "Audit records scoped stash risk, uncertain provenance and excluded unrelated app.rs edit. Verified existing safety ref resolves to8a8b5b5ca22235728602a0aa77d8eac0f81d2732, without inspecting/publishing stash contents. No stash/restore/mutation operation performed in this review. Source diff confirms app.rs excluded; author worktree was not touched. Attribution of original stash remains intentionally unestablished."
+  },
+  "reference_decision": {
+    "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "tag": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tool": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "prior_integrity_packet": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/theme-six-overrides-review-93b306/review.json",
+    "prior_packet_sha256": "34c22015f6dca2d9ffbf1cb862eaa8fab9b22a849e0bacd441ad3477c6cba158",
+    "required_next_work": "Separate independently reviewed source-qualified semantic oracle replacement and real component palette repairs. Preserve raw quantizer proofs, all73 inventory and unresolved25 contexts. No frozen reference revision change or expectation blessing is authorized by this clearance."
+  },
+  "evidence": {
+    "/private/tmp/theme-c60830-integrity.log": "454e8eb8b1fd2a05229618673cc78d906ab8c6c1e674d74872660cb74eca554e",
+    "/private/tmp/theme-c60830-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/private/tmp/theme-c60830-diffcheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/private/tmp/termrock-button-9cf76-review/docs/audits/2026-10-21-palette-expected-overrides-rejected.md": "94e6d42db1599a784c6e5ee18df93f158b796a2f270d49f8280a5bb7833529e0"
+  },
+  "external_probe_files": {
+    "/private/tmp/theme-c60830-integrity-probes/tests/before_fixture.rs": "ae89c6b5f94a69628b89ea0e5d96674b1b6361fd0db42e304d4e5cd86c696ec9",
+    "/private/tmp/theme-c60830-integrity-probes/tests/frozen_qualified.rs": "0e1ed3d80bd94ac56860c3ac48b670931c31c673f64d489ee8e0747c63f54e05",
+    "/private/tmp/theme-c60830-integrity-probes/tests/restored_fixture.rs": "f4be8895e940e955b5aabbdfd72d327853960085fe383a3230ef46b4de1d98f4"
+  },
+  "custody": {
+    "source_changes": [],
+    "preserved_artifact_changes": 1301,
+    "source_edits": false,
+    "writer_copy_touched": false,
+    "helpers_activated": false
+  }
+}

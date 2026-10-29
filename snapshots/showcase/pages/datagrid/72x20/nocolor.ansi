@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mData grid[0m        i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mData grid[0m  Typed cells, a pending-change queue, p… [0m
+ ──────────────────                                                     [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▾ Tables        ┃    customers         rows 1–21 of 40 loaded · ~4,8 ┃[0m
+      Basic table ┃    ─────────────────────────────────────────────── ┆[0m
+      Editable    ┃          ⚷ id       customer                   pla ┆[0m
+ [0m[1m▎  › Data grid   [0m┃        1 1001       Northwind Traders          ent ┆[0m
+      Selection   ┃        2 1002       Blue Yonder Airlines       tea ┆[0m
+      Cell edito… ┃        3 1003       Contoso Pharmaceuticals    pro ┆[0m
+      Columns     ┃        4 1004       Fabrikam Robotics          fre ┆[0m
+  ▸ Navigation    ┆        5 1005       Litware Analytics          ent ┆[0m
+  ▸ Overlays      ┆        6 1006       Tailspin Toys              tea ┆[0m
+ [0m[2m ▸ Feedback      [0m┆        7 1007       Wide World Importers       pro ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ [0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

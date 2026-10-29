@@ -1,0 +1,137 @@
+{
+  "schema": "termrock.independent-stage3c-supervisor-v2-clearance.v1",
+  "reviewer": "/root/button_theme_contract_review",
+  "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-inclusive-ordinal8-supervisor-v2-20261021.py",
+  "source_sha256": "2765ef46ecb834225b30c75686c8f44610a81559a66e80b31afbb8d0a574804b",
+  "author_packet_sha256": "a1b66b403bd6a28d99d26cca104c30abac7fbc0f727b4af9f6024902e0f0d798",
+  "decision": "CLEARED for ONE supervised full ordinal8 retry by original operational owner under coordinator resource window. Exact v2 supervisor only; unchanged runner/plan/full32case selection/environment/hash checks. This review performed no capture and grants no checkpoint/product approval.",
+  "prior_findings": [
+    {
+      "id": "invalid_creation_anchor_field",
+      "status": "cleared",
+      "evidence": "Worker keeps exact external file SHA check and uses existing pinned _read_self_sealed_plan reader; no invented field required. Independent selftest accepts actual immutable schema and rejects wrong external anchor without mutation."
+    },
+    {
+      "id": "215_second_repeated_guard",
+      "status": "cleared",
+      "evidence": "Shared require_preflight_budget requires15sec cleanup+2sec launch headroom, not a fresh200second reservation. Independent real10.1sec preflight marker passes10.219sec; additional actual20sec preflight with production220/15 settings reaches fast synthetic marker at20.079sec. Slow13.2sec preflight under16sec scaled bound blocks marker and reaps child."
+    },
+    {
+      "id": "foreign_pgid_signal_on_isolation_failure",
+      "status": "cleared",
+      "evidence": "Failed isolation now terminates/kills/reaps only direct Popen child; observed foreign PGID is not signaled. Independent mismatchingPGID test with recorded group-signal callback passes. Real ps happy path and owned same-group child/grandchild TERM+reap also pass."
+    }
+  ],
+  "deadline_contract": {
+    "inclusive_module_entry_budget_seconds": 220,
+    "cleanup_reserve_seconds": 15,
+    "official_runner_cli_timeout_seconds": 200,
+    "all_preflight_in_isolated_worker_under_same_absolute_deadline": true,
+    "worker_wait_uses_remaining_minus_cleanup_reserve": true,
+    "event_identity_and_cleanup_logged": true,
+    "critical_interpretation": "The runner still receives --timeout200, but supervisor preflight consumes the inclusive220 budget. At20sec preflight, outer work deadline can preempt runner before its full200 allowance. This is safe for evidence integrity only because incomplete work never receives receipt credit; success is not guaranteed. No promise of a full additional200sec allocation after arbitrary preflight."
+  },
+  "source_and_environment_contract": {
+    "pinned_runner_revision": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+    "pinned_runner_sha256": "f2a7583e155c7e85b7c8782c1b163b60bd0bf83038f5e736abe52271724139a8",
+    "plan_external_sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+    "plan_self_sha256": "4be7c01d0aecbe3fec1fff8416ab89c03fb25dfec8acbb73a1b26039e8293a31",
+    "chunk_size": 32,
+    "environment": "Worker constructs same fresh_clean_env, adds same target/JSON allowlisted variables, checks exact prepared environment and selected tools; official runner receives that exact env. No test condition/candidate/reference changes."
+  },
+  "operational_conditions": [
+    "Coordinator establishes quiet compile/hash window before original owner launches exact reviewed supervisor. Source review/writing may continue.",
+    "Exactly ordinal8/all32 planned cases into a newrandom attempt. Prior707-file partial is independently preserved and preflight hash-checked; no partial reuse, rename, manufactured receipts or ordinal9 shortcut.",
+    "On supervisor exit0, still require authenticated ordinal8 and official full verification. Receipt publication can occur before a supervisory failure; any nonzero/timeout requires independent journal diagnosis, not blind retry or credit.",
+    "Do not start ordinal9 until valid8 receipt and official verification.",
+    "If timeout occurs while nested session processes may still be active, stop and inspect recorded PIDs/start identities read-only; never kill byname or reused/unowned PIDs.",
+    "Keep source/plan/key/prefix/binaries/environment all pinned; changed wrapper requires exact review, changed runner/chunk policy requires new reference/plan decision."
+  ],
+  "independent_checks": {
+    "selftest_exit": 0,
+    "selftest_results": {
+      "actual_schema_plan_reader_accepts_external_anchor": true,
+      "tampered_external_anchor_rejected_without_plan_mutation": true,
+      "real_ps_process_identity_observed": true,
+      "10_1_second_preflight_leaves_time_for_fast_runner_marker": true,
+      "10_1_second_preflight_elapsed_seconds": 10.219,
+      "slow_preflight_blocks_runner_marker_and_is_reaped": true,
+      "slow_preflight_elapsed_seconds": 13.296,
+      "mismatched_observed_pgid_never_signaled": true,
+      "owned_child_and_grandchild_cleanup": true,
+      "synthetic_only_no_repository_plan_or_capture_touched": true
+    },
+    "additional_real20sec_preflight_exit": 0,
+    "additional_real20sec_preflight_marker": true,
+    "additional_real20sec_preflight_elapsed": 20.078611791,
+    "additional_real20sec_worker_reaped": true,
+    "additional_real20sec_owned_group_empty": true,
+    "prior707_file_mismatches": [],
+    "prior_partial_filecount": 707,
+    "plan_anchor_unchanged": true,
+    "journal_files_unchanged0through7": [
+      {
+        "name": "step-00000000.json",
+        "sha256": "4cfadf3ce45982129085d290ad66ab63c4ddfaf24f57f27798a9e16473f78d8a"
+      },
+      {
+        "name": "step-00000001.json",
+        "sha256": "91cf2eba3e12176c12edeed0fde67cd7d1e5529c767c712b0cd956b3c7470cb3"
+      },
+      {
+        "name": "step-00000002.json",
+        "sha256": "42dabdc941ffd7b975d52e9cb0cafba7e810851aca427180b6095f7fe96bb1e1"
+      },
+      {
+        "name": "step-00000003.json",
+        "sha256": "9bdf6d2dbdef0476b1e9075f61f42a0640d9090a52f72d94c07829e1023bedd0"
+      },
+      {
+        "name": "step-00000004.json",
+        "sha256": "7744670ad33d8e85f3696882ebf05a89fe15bf96458da37e774912d4b876dcd8"
+      },
+      {
+        "name": "step-00000005.json",
+        "sha256": "5715cc586c0dc978590c653fe79570900f74984d7c81d9c30f04e4961378045f"
+      },
+      {
+        "name": "step-00000006.json",
+        "sha256": "12ca4d1d1002daa136ce11212b8ee5576bf7268bde307619549980fe486979f2"
+      },
+      {
+        "name": "step-00000007.json",
+        "sha256": "4a607ffd7b6070be6f1c1f8dec49b7eea1515b840b47639f4d4ecb23bc70d6a1"
+      }
+    ],
+    "real_retry_log_or_event_created_by_review": false
+  },
+  "limitations_preserved": [
+    "Nested new-session descendants are explicitly not enumerated or killed by this wrapper. Same-group synthetic cleanup does not prove cleanup of all possible nested session descendants. Official runner itself launches nextest in a separate session; whole-tree cleanup is not claimed.",
+    "Synchronous final log hashing/event output use remaining-time checks and15sec reserve. Small synthetic success does not establish hard real-time guarantees under arbitrary OS/I/O stalls.",
+    "No real complete advance/preflight or key-content reading occurred in this review. Exact environment/tool checks are source-reviewed, not newly executed here.",
+    "No full application parity, ordinary/replay/candidate completion or final acceptance is established."
+  ],
+  "evidence": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-inclusive-ordinal8-supervisor-v2-20261021.py",
+      "sha256": "2765ef46ecb834225b30c75686c8f44610a81559a66e80b31afbb8d0a574804b"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-inclusive-supervisor-v2-AUTHOR-packet-20261021.json",
+      "sha256": "a1b66b403bd6a28d99d26cca104c30abac7fbc0f727b4af9f6024902e0f0d798"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3c-supervisor-review-v2-2765/selftest.json",
+      "sha256": "31bd7efeb5327a3c986643e08e65395a809f1c304e2b0404a1234764c7d5e345"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3c-supervisor-review-v2-2765/real20sec-preflight.json",
+      "sha256": "4afb7a31ea6a3119f7695dd299ad3c39cebe099c8c62aee45d2be9199d99ab77"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3c-supervisor-review-v2-2765/readonly-integrity.json",
+      "sha256": "dbdb741dc055b601b1709de0a37d870a6534c9b19e3f5d8c9a3a5aa07e1e6f77"
+    }
+  ],
+  "custody": "No source/plan/key/journal/attempt modification, no real capture/retry, no helper agents. Synthetic children were owned by this review and cleaned by reviewed supervisor. Old reports preserved."
+}

@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Screens / Task runner                               truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Task runner  Composed: tree, live progress, following log, busy states
+▎  Overview
+                            Targets                         Pipeline · running                             0 of 6 done
+   Components
+▎  Buttons                  ▎▾ payments-gateway             ⠧ compile     ━━━━━━━━━━━──────────────────────────  29%
+▎  Inputs                   ▎  ▾ build                      ⠧ lint        ━━━━━━━━━━━━━━━──────────────────────  41%
+▎  Text areas               ▎      compile                  typecheck     queued
+▎  Forms                    ▎      lint                     unit          queued
+▎  Lists                    ▎      typecheck                integration   queued
+▎  Trees                    ▎  ▾ test                       e2e           queued
+▎  Tables                   ▎      unit                     Overall     ───────────────────━━━━━━━━───────────────────
+▎  Editable tables          ▎      integration              ▎Run pipeline   ▎Cancel
+▎  Panels                   ▎      e2e
+▎  Sidebars                 ▎  ▾ ╭────────────────────────────────────────────────────╮
+▎  Dialogs                  ▎    │                                                    │                    · following
+▎  Progress                 ▎    │  Cancel pipeline?                                  │
+▎  Scrolling                ▎▾ sh│                                                    │
+▎  Terminal                 ▎    │  Running tasks stop immediately. Finished tasks    │
+▎  Code editor              ▎    │  keep their results.                               │
+▎  Data grid                     │                                                    │
+▎  Chips & selects               │                        ▎Cancel  ▎Cancel pipeline   │
+▎  Pickers                       │                                                    │
+▎  Chrome                        ╰────────────────────────────────────────────────────╯
+
+   Screens
+▎  Settings
+▎› Task runner
+
+
+
+
+
+
+
+
+
+
+ ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer                                             Pipeline running

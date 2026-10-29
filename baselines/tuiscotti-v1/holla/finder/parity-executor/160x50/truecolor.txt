@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                            batch · project collection  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›
+
+    Suggested here                                                                                               Emit a burst                   custom · here
+    Status across 3 child projects  git      child  0 dirty · 1 behind
+  › Emit a burst                    custom   here   Current folder · trusted                                     Does       4500 lines in sixteen ticks
+    Emit a mixed stream             custom   here   Current folder · trusted                                     Runs       ./emit-burst
+                                                                                                                 In         ~/work/batch
+    Recent here                                                                                                  Host       mbp · local
+    nothing used here yet                                                                                        Scope      here
+                                                                                                                 Why        Current folder · trusted
+    Explore                                                                                                      Changes    none · read-only
+     Tasks   Git   Files   Disk   Services   System                                                              Risk       read-only
+    Children · 3 projects           explore  child  3 child projects discovered                                  Data       live · 0 s ago
+    System · mbp                    explore  host   available on this host                                       Gate       runs directly
+                                                                                                                 Alt+Enter  Set an alias… · Show
+                                                                                                                            configuration diagnostics · Pin
+                                                                                                                            · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/batch                                                                                                                                truecolor · 160×50
+                                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

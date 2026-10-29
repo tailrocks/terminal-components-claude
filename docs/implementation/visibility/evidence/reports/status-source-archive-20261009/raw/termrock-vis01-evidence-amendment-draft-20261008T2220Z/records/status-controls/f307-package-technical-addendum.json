@@ -1,0 +1,83 @@
+{
+  "schema": "termrock-vis02-proposed-package-technical-addendum-v1",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "verdict": "TECHNICAL_READY_FOR_EXACT_SCOPED_PACKAGE_TREE",
+  "scope": "Focused technical verdict for the exact path-scoped f307 termrock-e2e package tree. No source edits or tests were performed.",
+  "repository": {
+    "path": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+    "parent_sha": "186c28774ae6abe740fc7663a3db2e17444f086a",
+    "proposed_tree_sha": "15b0c9c2b24b773844a99c84b3839b4e98ef101f",
+    "shared_index_sha256_before": "6f20d5e65d5153f148a8a3b4e1575027fb38d35e31afede693b7c7a6dde3cc7c",
+    "shared_index_sha256_after": "6f20d5e65d5153f148a8a3b4e1575027fb38d35e31afede693b7c7a6dde3cc7c",
+    "tree_construction": "Initialized a separate GIT_INDEX_FILE from parent 186c28774ae6abe740fc7663a3db2e17444f086a; copied stage-0 blob entries for only the 16 listed package paths; ran write-tree. No shared index, ref, or source change."
+  },
+  "proposed_commit": {
+    "package": "crates/termrock-e2e",
+    "suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+    "parent_diff_path_count": 16,
+    "parent_diff_binary_sha256": "acd6469870504655ffc635019a5aa08ae47dccfdaa5efe24489f9f7f6be0c85e",
+    "paths": [
+      "crates/termrock-e2e/Cargo.lock",
+      "crates/termrock-e2e/Cargo.toml",
+      "crates/termrock-e2e/README.md",
+      "crates/termrock-e2e/cases/registry.json",
+      "crates/termrock-e2e/profile.json",
+      "crates/termrock-e2e/schemas/expected-generation-v1.schema.json",
+      "crates/termrock-e2e/schemas/receipt-v2.schema.json",
+      "crates/termrock-e2e/schemas/receipt-v3.schema.json",
+      "crates/termrock-e2e/schemas/subject-manifest-v2.schema.json",
+      "crates/termrock-e2e/schemas/trust-record-v2.schema.json",
+      "crates/termrock-e2e/src/lib.rs",
+      "crates/termrock-e2e/src/visual.rs",
+      "crates/termrock-e2e/tests/command_lane.rs",
+      "crates/termrock-e2e/tests/contract.rs",
+      "crates/termrock-e2e/tests/holla_help_overlay.rs",
+      "crates/termrock-e2e/tests/shared_journeys.rs"
+    ],
+    "all_parent_diff_paths_match_list": true,
+    "unrelated_staged_fixture_included": false
+  },
+  "reused_reviews": [
+    {
+      "path": "/private/tmp/termrock-4app-run03-combined-20261009-gmhnfrj9/technical-review.json",
+      "sha256": "9a6f47dfc249108199cce0c2da344b69f8f6a5adfa8aa69b1470f4a56703a7dc",
+      "verdict": "READY",
+      "reviewed_suite_sha256": "0c3745ec0fef4795e02bba644aa5fd88baf30838acba063b9fb16c7bb8f50971"
+    },
+    {
+      "path": "/private/tmp/termrock-vis02-holla-compat-20261009/technical-review.json",
+      "sha256": "7d21bba49d9881047cc36df0adfe1fe6b31793b9c8e14cd14542acc4619a9acc",
+      "verdict": "READY",
+      "reviewed_suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+      "reviewed_file_count": 21
+    },
+    {
+      "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/actual-evidence-review-r4.json",
+      "sha256": "d371e97c7ecb48770b6a04a1f77fc3279085b2115b3f26ca4d324d2873782041",
+      "verdict": "READY_FOR_LOCAL_6_PATH_RECONCILIATION",
+      "receipt_sha256": "11bbc2548897ff83126aa6585266e21dd657ce7556dc4195362489d64f81e4a8",
+      "actual_status": "PASS"
+    }
+  ],
+  "technical_assessment": {
+    "blocking_code_findings": [],
+    "basis": [
+      "The combined source review covered the core four-app registry, contract, and command-lane tree; the f307 review independently checked all 21 candidate files and the restored Holla selector/guards.",
+      "The f307 actual gate compiled and listed the two affected ignored-test targets, then passed the exact registry/precondition contract test against the f307 embedded build identity.",
+      "The staged package suite digest, accepted overlay, and exact 16-path parent diff bind this verdict to proposed tree 15b0c9c2b24b773844a99c84b3839b4e98ef101f."
+    ],
+    "evidence_limits": [
+      "R4 ran 3 stages: two Nextest list/compile stages and one exact contract test. That test had selected=1, executed=1, passed=1, failed=0; nine other tests were filtered.",
+      "This does not establish a Holla product journey, RUN-03 command execution, visual comparison/admission, or full package test-suite success.",
+      "The historical 13/13 command-lane run applies to suite digest 86ed825275221ad002a6098fbe20f96e7b84071a128c71b8430709d9ec57e0a3, not f307.",
+      "The simple core-10/overlay-6 split remains unreviewed and incoherent; this verdict covers only all 16 listed paths together."
+    ]
+  },
+  "execution": {
+    "cargo_or_tests_run_by_this_review": false,
+    "source_or_shared_index_mutated": false,
+    "ref_or_commit_created": false,
+    "write_tree_object_created": true,
+    "temporary_index_path": "/private/tmp/termrock-vis02-local-f307-reconciliation-20261009/review-index-luna"
+  }
+}

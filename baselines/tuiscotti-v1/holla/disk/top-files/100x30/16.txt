@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                        big · Rust project  mbp · local
+
+  Here › Disk › Usage › Top files
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────
+  Top files · Spotlight
+  3 files · regular files of 100 MiB or more · top 50 by allocated size · Space selects for the s…
+
+ ▎[ ] ~/Downloads/iso.iso                                700.0 MiB
+  [ ] ~/Movies/big.mov                                   400.0 MiB
+  [ ] ~/Downloads/vanished.bin                           stat failed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/big                         3 files · 0 selected                         16 colors · 100×30
+                     ↑↓ Move  Space Select  d Delete…  y Copy path  Esc Back

@@ -1,0 +1,122 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.78s
+────────────
+ Nextest run ID b443dad1-0edd-481e-82fa-0bbcd4dcaef9 with nextest profile: default
+    Starting 44 tests across 1 binary (891 tests skipped)
+        FAIL [   0.039s] ( 1/44) termrock-conformance::conformance help_overlay::bindings_match_handled_keys
+  stdout ───
+
+    running 1 test
+    test help_overlay::bindings_match_handled_keys ... FAILED
+
+    failures:
+
+    failures:
+        help_overlay::bindings_match_handled_keys
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 934 filtered out; finished in 0.01s
+
+  stderr ───
+
+    thread 'help_overlay::bindings_match_handled_keys' (148798372) panicked at crates/termrock-test-support/src/conformance/driver.rs:1379:13:
+    assertion failed: h.tab_to(C::control_id())
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 17 tests still running
+        PASS [   0.039s] ( 2/44) termrock-conformance::conformance key_hint::bindings_match_handled_keys
+        PASS [   0.043s] ( 3/44) termrock-conformance::conformance derived_hint_bar::bindings_match_handled_keys
+        PASS [   0.044s] ( 4/44) termrock-conformance::conformance brand::bindings_match_handled_keys
+        FAIL [   0.054s] ( 5/44) termrock-conformance::conformance dialog::bindings_match_handled_keys
+  stdout ───
+
+    running 1 test
+    test dialog::bindings_match_handled_keys ... FAILED
+
+    failures:
+
+    failures:
+        dialog::bindings_match_handled_keys
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 934 filtered out; finished in 0.01s
+
+  stderr ───
+
+    thread 'dialog::bindings_match_handled_keys' (148798402) panicked at crates/termrock-test-support/src/conformance/driver.rs:1331:9:
+    dialog: dynamic binding F6 was not consumed
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.068s] ( 6/44) termrock-conformance::conformance empty::bindings_match_handled_keys
+        PASS [   0.085s] ( 7/44) termrock-conformance::conformance hint_bar::bindings_match_handled_keys
+        FAIL [   0.086s] ( 8/44) termrock-conformance::conformance filter_list::bindings_match_handled_keys
+  stdout ───
+
+    running 1 test
+    test filter_list::bindings_match_handled_keys ... FAILED
+
+    failures:
+
+    failures:
+        filter_list::bindings_match_handled_keys
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 934 filtered out; finished in 0.06s
+
+  stderr ───
+
+    thread 'filter_list::bindings_match_handled_keys' (148798389) panicked at crates/termrock-test-support/src/conformance/driver.rs:1430:17:
+    filter_list: consumed Ctrl+a which is not in the binding table or legacy set
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   1.061s] ( 9/44) termrock-conformance::conformance field::bindings_match_handled_keys
+  stdout ───
+
+    running 1 test
+    test field::bindings_match_handled_keys ... FAILED
+
+    failures:
+
+    failures:
+        field::bindings_match_handled_keys
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 934 filtered out; finished in 1.03s
+
+  stderr ───
+
+    thread 'field::bindings_match_handled_keys' (148798396) panicked at crates/termrock-test-support/src/conformance/driver.rs:1430:17:
+    field: consumed Shift+F10 which is not in the binding table or legacy set
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   1.122s] (10/44) termrock-conformance::conformance form::bindings_match_handled_keys
+  stdout ───
+
+    running 1 test
+    test form::bindings_match_handled_keys ... FAILED
+
+    failures:
+
+    failures:
+        form::bindings_match_handled_keys
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 934 filtered out; finished in 1.10s
+
+  stderr ───
+
+    thread 'form::bindings_match_handled_keys' (148798379) panicked at crates/termrock-test-support/src/conformance/driver.rs:1430:17:
+    form: consumed Shift+F10 which is not in the binding table or legacy set
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   1.156s] (11/44) termrock-conformance::conformance code_editor::bindings_match_handled_keys
+        PASS [   2.087s] (12/44) termrock-conformance::conformance checkbox::bindings_match_handled_keys
+        PASS [   2.362s] (13/44) termrock-conformance::conformance chip_bar::bindings_match_handled_keys
+        PASS [   2.440s] (14/44) termrock-conformance::conformance button::bindings_match_handled_keys
+        PASS [   2.617s] (15/44) termrock-conformance::conformance context_menu::bindings_match_handled_keys
+        PASS [   2.725s] (16/44) termrock-conformance::conformance grid::bindings_match_handled_keys
+        PASS [   2.778s] (17/44) termrock-conformance::conformance diff_view::bindings_match_handled_keys
+        PASS [   2.969s] (18/44) termrock-conformance::conformance completion::bindings_match_handled_keys
+────────────
+     Summary [   2.972s] 18/44 tests run: 13 passed, 5 failed, 891 skipped
+        FAIL [   0.039s] ( 1/44) termrock-conformance::conformance help_overlay::bindings_match_handled_keys
+        FAIL [   0.054s] ( 5/44) termrock-conformance::conformance dialog::bindings_match_handled_keys
+        FAIL [   0.086s] ( 8/44) termrock-conformance::conformance filter_list::bindings_match_handled_keys
+        FAIL [   1.061s] ( 9/44) termrock-conformance::conformance field::bindings_match_handled_keys
+        FAIL [   1.122s] (10/44) termrock-conformance::conformance form::bindings_match_handled_keys
+warning: 26/44 tests were not run due to test failure (run with --no-fail-fast to run all tests, or run with --max-fail)
+error: test run failed

@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                     web · Node project · pnpm  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Cleanup  [0m                                                                                                      [0m
+ ━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mCleanup review[0m                                                                                                        [0m
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash                                                             [0m
+                                                                                                                        [0m
+ [0m[1m▎[0m[–][0m[1m [0m▸[0m[1m Xcode DerivedData         [0m810.0 MiB[0m[1m  [0mrebuilt on demand…[0m[1m         [0m┃    Xcode DerivedData               category   [0m
+                                                                        ┃                                               [0m
+  [✓] ▸ Xcode device support        2.4 GiB  safe if old…               ┃    Safety     rebuilt on demand               [0m
+                                                                        ┃    Age rule   any age                         [0m
+  [ ] ▸ Xcode archives            300.0 MiB  review first…              ┃    Platform   macOS only                      [0m
+                                                                        ┃    Roots      ~/Library/Developer/Xcode/Der   [0m
+  [✓] ▸ Simulator caches          900.0 MiB  rebuilt on demand…         ┃               ivedData                        [0m
+                                                                        ┃    Why        rebuilt by the next build       [0m
+  [✓] ▸ Homebrew cache            100.0 MiB  rebuilt on demand…         ┃    Size       810.0 MiB                       [0m
+                                                                        ┃    Guard      Xcode is running · candidates   [0m
+  [✓] ▸ npm cache                 201.0 MiB  rebuilt on demand…         ┃               are skipped                     [0m
+                                                                        ┃    Selection  0 of 1 candidates eligible ·    [0m
+  [✓] ▸ pnpm store                  2.1 GiB  safe if old · 1 candidate… ┃               0 checked                       [0m
+                                                                        ┃                                               [0m
+  [✓] ▸ Yarn cache                 50.0 MiB  rebuilt on demand…         ┃                                               [0m
+                                                                        ┃                                               [0m
+  [✓] ▸ Bun cache                  60.0 MiB  rebuilt on demand…         ┃                                               [0m
+                                                                        ┃                                               [0m
+  [✓] ▸ Cargo registry cache        4.8 GiB  safe if old…               ┃                                               [0m
+                                                                        ┃                                               [0m
+  [✓] ▸ Gradle caches               1.5 GiB  safe if old…               ┃                                               [0m
+                                                                        ┃                                               [0m
+  [ ] ▸ Maven repository          700.0 MiB  review first…              ┃                                               [0m
+                                                                        ┃                                               [0m
+  [✓] ▸ pip cache                 150.0 MiB  rebuilt on demand…         │                                               [0m
+                                                                        │                                               [0m
+  [✓] ▸ uv cache                  300.0 MiB  rebuilt on demand…         │                                               [0m
+                                                                        │                                               [0m
+  [~] ▸ User caches                 1.9 GiB  review first…              │                                               [0m
+ [0m[2m                                                                       [0m│                                               [0m
+                                                                                                                        [0m
+ [0m[1m~/Projects/web[0m                                19 selected · 12.4 GiB                                 no color · 120×40 [0m
+        [0m[1m↑↓[0m Move  [0m[1mSpace[0m Select  [0m[1mEnter[0m Open  [0m[1ma[0m All  [0m[1mm[0m Permanent  [0m[1mn[0m Dry run  [0m[1md[0m Review deletion  [0m[1mp[0m Facts  [0m[1mEsc[0m Back          [0m

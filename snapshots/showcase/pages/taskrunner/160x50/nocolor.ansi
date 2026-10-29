@@ -1,0 +1,51 @@
+ ▪ [0m[1mJunie[0m Design system  Screens › [0m[1mTask runner[0m                                                                         no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+ [0m[1mComponents[0m           54  [0m[1mTask runner[0m  Composed: tree, live progress, following log, busy states                                                                [0m
+ ───────────────────────                                                                                                                                        [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                                                              [0m
+  ▸ Tables                  Targets                         Pipeline                                                                               0 of 6 done  [0m
+  ▸ Navigation              ──────────────────────────      ──────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+  ▸ Overlays                 ▾ payments-gateway             ○ compile  …  queued                                                                                [0m
+  ▸ Feedback                   ▾ build                      ○ lint     …  queued                                                                                [0m
+  ▸ Layout                         compile                  ○ typecheck…  queued                                                                                [0m
+  ▸ Text & code                    lint                     ○ unit     …  queued                                                                                [0m
+  ▾ Screens                        typecheck                ○ integrati…  queued                                                                                [0m
+      Settings                 ▾ test                       ○ e2e      …  queued                                                                                [0m
+ [0m[1m▎  › Task runner       [0m           unit                                                                                                                         [0m
+      Query workbench              integration               [0m[1;7mRun pipeline [0m   [0m[2mCancel [0m                                                                            [0m
+      Connections                  e2e                                                                                                                          [0m
+      Finder                   ▾ deploy                                                                                                                         [0m
+      Disk cleanup                 ◇ staging                Log                                                                                    · following  [0m
+      Activity                     ◆ production             ──────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+      Workspaces             ▾ shared-libs                  Ready. Press r or Run to start the pipeline.                                                        [0m
+      Accounts & usage           compile                                                                                                                        [0m
+      Launch cockpit             publish                                                                                                                        [0m
+      Read-only report                                                                                                                                          [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
+[?25l

@@ -1,0 +1,66 @@
+{
+  "schema": "termrock.canonical-owned-stage3.independent-review.v2",
+  "decision": "CLEAR exact executable canonical stage3 source e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257. Documentation finding STAGE3-OWNED-DOC-1 remains open; correct it before representing the complete increment as cleared. No actual stage3 operation is admitted.",
+  "source_commit": "5891c8727ff814e329ac6042a80a35adfc900099",
+  "source_runner": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-5891c872/after/tools/frozen_baseline.py",
+    "sha256": "e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257"
+  },
+  "source_tests": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-5891c872/after/tools/test_frozen_baseline.py",
+    "sha256": "0d0d4e636f80ad5c57ec0be79a580a743bc57823e7a50e84b3f6cfd280fb1b2b"
+  },
+  "prior_hold": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-14bee2db-20261021.json",
+    "sha256": "2a810a71777d1b2f5ffcf986d6946d1a9daba2186dabef6ca7779abcea64d267"
+  },
+  "method": "Read-only narrow exact-commit diff review, same independent real-clock/final-output/path probes applied unchanged to held and corrected executable sources, complete 109-case synthetic suite from exact committed fixture closure. No actual verify-live, full preflight, key access, app launch, capture, replay, or source edits.",
+  "resolved_findings": [
+    {
+      "id": "STAGE3-OWNED-1",
+      "status": "fixed",
+      "evidence": "Unchanged independent delayed-final-output and recorded-SIGTERM probes both return 0 on 14bee2db and 1 on corrected5891c872. Corrected success print explicitly flushes; output is followed by a cancellation/deadline check within the same execution. Success JSON serialization is also bracketed by checks."
+    },
+    {
+      "id": "STAGE3-OWNED-2",
+      "status": "fixed",
+      "evidence": "Unchanged independent late-path probe returns 0 before and 1 after. Before ordering is paths_resolved then execution_created; after is execution_created then paths_resolved. Corrected code checks immediately before and after paths. Legacy default retains separate unowned paths."
+    }
+  ],
+  "findings": [
+    {
+      "id": "STAGE3-OWNED-DOC-1",
+      "severity": "P3",
+      "status": "still-open",
+      "location": "docs/audits/evidence/2026-10-21-owned-verify-stage3/audit.json limits entry at line40; docs/architecture/termrock-migration-matrix.md:72",
+      "problem": "The current audit limits still states: The stage-two external supervisor still requires independent clearance before any stage-three operation. Added correction/stage2_admission fields correctly record V12 stage2 admission, but do not remove this contradictory current limitation. The matrix claims all three findings were addressed despite this surviving sentence.",
+      "required_fix": "Replace the stale current audit limit with the actual pending stage3-only supervisor/canonical review gate, preserving V12 stage2 admission and historical records. Correct the claim that all three findings are already addressed until this documentation change lands. A documentation-only successor with byte-identical executable source does not need the complete executable suite repeated."
+    }
+  ],
+  "tests": {
+    "independent_before_after_probes": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-5891c872/unchanged-probes.json",
+      "sha256": "9bd47895841d24423bc0b1a35943874fab09e79dd2d08b885a2a7e123f6e8357"
+    },
+    "complete_suite": {
+      "run": 109,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "exit_status": 0,
+      "log": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-5891c872/full-suite.log",
+        "sha256": "bb2441d95869c6b1b8f7ffa442c24a7035bafae67e76e045068a99fa52c214ab"
+      }
+    },
+    "author_prior_transient": "Author audit preserves an earlier timeout-subtest failure in test_fresh_advance_failed_child_and_timeout_keep_attempt_and_retry_same_ordinal, then isolated and full passing runs. This reviewer does not erase that failure or claim exhaustive flake elimination."
+  },
+  "retained_proof": "Hash/callback threading, cohort/tool/source mutation checks, optional probe timeout versus internal broker error handling and legacy-default API paths are unchanged from the reviewed14bee implementation except scoped CLI boundary/output corrections. Complete existing tests remain green.",
+  "limits": [
+    "No actual stage3 operation was run; a stage3-only independently reviewed external supervisor and separate actual-result review remain mandatory.",
+    "Kernel-blocked filesystem/output calls may outlast the monotonic deadline while blocked; post-return checks fail closed. No universal hard wall-clock bound is claimed.",
+    "Only existing canonical subprocess/broker scope is owned; no universal descendant containment is claimed.",
+    "Stage4 sealing must wait for remaining owned plan/init/verify/advance lifecycle implementation before binding a new immutable runner identity.",
+    "No product, library, capture/replay, or candidate parity acceptance is granted."
+  ]
+}

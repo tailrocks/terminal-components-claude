@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 6977621891812792131,
+  "legacy_name": "showcase/resize/overview_shrunk/160x50/16",
+  "name": "showcase/overview/resize-shrunk/160x50/16",
+  "non_empty_cells": 1227,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}

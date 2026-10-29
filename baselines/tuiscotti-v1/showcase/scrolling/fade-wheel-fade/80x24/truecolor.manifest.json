@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "c345fe226b99d58890049208e6a532260764a77a5d3c79d0c0e490e06cf4cca9",
+  "artifacts": {
+    "ansi": {
+      "bytes": 16300,
+      "file": "showcase/scrolling/fade-wheel-fade/80x24/truecolor.ansi",
+      "sha256": "c345fe226b99d58890049208e6a532260764a77a5d3c79d0c0e490e06cf4cca9"
+    },
+    "ascii": {
+      "bytes": 1529,
+      "file": "showcase/scrolling/fade-wheel-fade/80x24/truecolor.ascii",
+      "sha256": "e6527fe508eb51debd9ab658e0f09c74fb151cc6820b19b0826ddfea9d90fe2f"
+    },
+    "ascii_loss_json": {
+      "bytes": 8962,
+      "file": "showcase/scrolling/fade-wheel-fade/80x24/truecolor.ascii.loss.json",
+      "sha256": "685d34c8a1d6134bc7d36b5aa8f81ad465147b1765f4879d95c7445cacd49fc1"
+    },
+    "frame_json": {
+      "bytes": 512554,
+      "file": "showcase/scrolling/fade-wheel-fade/80x24/truecolor.frame.json",
+      "sha256": "d21bd367ff3a3ccd7199c210c9019c549195c2daac79f65e82e17ee505b70840"
+    },
+    "html": {
+      "bytes": 483293,
+      "file": "showcase/scrolling/fade-wheel-fade/80x24/truecolor.html",
+      "sha256": "80525bed8087dd91b65ed97016e4cfd49b292eb9a12618a98359aac18020d429"
+    },
+    "observations_json": {
+      "bytes": 480,
+      "file": "showcase/scrolling/fade-wheel-fade/80x24/truecolor.observations.json",
+      "sha256": "1f2b20787c995dd0a344c0ee9812ec08a17492ba186043ec05714185b3d43878"
+    },
+    "png": {
+      "bytes": 327577,
+      "file": "showcase/scrolling/fade-wheel-fade/80x24/truecolor.png",
+      "sha256": "1ac9c04a656b7432d4e4eb843f8d56bf88ff0913c8697259c1d450c9dd16a9b6"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "showcase/scrolling/fade-wheel-fade/80x24/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1721,
+      "file": "showcase/scrolling/fade-wheel-fade/80x24/truecolor.txt",
+      "sha256": "b7f157a34db63cfed12f0c18967fdf663e0f33a5c67ea4d94baba3425207413f"
+    }
+  },
+  "ascii_substitutions_count": 96,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 910556064832653097,
+  "frame_sha256": "d21bd367ff3a3ccd7199c210c9019c549195c2daac79f65e82e17ee505b70840",
+  "generation": "196e8bdd9a6970f58476801b0577667c0e0de2b0cb85484c0ae70546bf9ff72d",
+  "html_sha256": "80525bed8087dd91b65ed97016e4cfd49b292eb9a12618a98359aac18020d429",
+  "legacy_name": "showcase/fade/scrolling/wheel-fade/80x24/truecolor",
+  "name": "showcase/scrolling/fade-wheel-fade/80x24/truecolor",
+  "png_sha256": "1ac9c04a656b7432d4e4eb843f8d56bf88ff0913c8697259c1d450c9dd16a9b6",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:09Z",
+  "txt_sha256": "b7f157a34db63cfed12f0c18967fdf663e0f33a5c67ea4d94baba3425207413f"
+}

@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help
+
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │  Claude · Archived contractor laptop profile — do not use for production …
+ │ ▎   Overview                        │ │
+ │ ▎ ▾ Claude                      !   │ │  Provider      Anthropic / Claude
+ │ ▎   ★ Personal                      │ │  Agent runtime Claude Code
+ │ ▎     Archived contractor laptop …  │ │  Usage surface Claude
+ │ ▎     Work                      !   │ │  Identity      unresolved identity
+ │ ▎ ▾ Codex                           │ │  Plan          unknown
+ │ ▎   ★ Primary                       │ │  Credential    Local folder · ~/Library/Application
+ │ ▎     Experiments                   │ │                Support/jackin/profiles/claude-contractor-2025-archive
+ │ ▎ ▾ Amp                         ▲   │ │                detected Claude API key env
+ │ ▎     discovered                ▲   │ │  Provenance    configured source · confidence presence only · registered
+ │ ▎ ▾ Grok                      ╭────────────────────────────────────────────────────╮
+ │ ▎   ★ Team                    │                                                    │
+ │ ▎ ▾ Z.AI                      │  Remove account Archived contractor laptop profi…  │
+ │ ▎     discovered              │                                                    │
+ │ ▎ ▾ Kimi                      │  Claude · Archived contractor laptop profile — do  │  current · refreshed 30 d ago
+ │ ▎     discovered              │  not use for production launches is removed from   │le
+ │ ▎ ▾ MiniMax                   │  the registry. No Workspace or Role selections     │
+ │ ▎     discovered              │  that point at it fall back to the provider        │uota access · material
+ │ ▎ ▾ OpenCode                  │  default. The credential source itself is          │
+ │ ▎   ★ Go subscription         │  untouched.                                        │ usage without a public handle
+ │ ▎     ci-bot · discovered     │                                                    │
+ │ ▎   Unsupported               │                                 ▎Cancel  ▎Remove   │
+ │ ▎   + Add account…            │                                                    │
+ │                               ╰────────────────────────────────────────────────────╯
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │ ▎Refresh   ▎Validate   ▎Edit…   ▎Set default   ▎Enable   ▎Remove…
+ ╰─────────────────────────────────────╯ │
+
+                              ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer

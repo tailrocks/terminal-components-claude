@@ -1,0 +1,35 @@
+{
+  "review": "independent narrow test-integrity review",
+  "decision": "CLEAR for the test-only short/empty picker footer regression coverage",
+  "source_commit": "cf854b9e5a3f73096e07f473cced123f59a3542e",
+  "parent_commit": "6cd63d2270b85dac30c63018070e00ed80510925",
+  "checkout": "/private/tmp/picker-footer-review-cf854-20261021",
+  "worktree_clean": true,
+  "diff_paths": [
+    "crates/termrock-overlays/tests/picker_layout.rs",
+    "docs/audits/2026-10-21-picker-short-footer-regression.md"
+  ],
+  "diff_check": "PASS",
+  "scope": "Tests and audit documentation only; no production source, expected snapshots, or visual approvals changed.",
+  "review_findings": [
+    "Existing 100-row zero-footer test remains unchanged and retains its live-row/viewport assertions.",
+    "New one-item and empty-result cases each test footer_rows(0) and footer_rows(1) at TrueColor, Ansi256, Ansi16, and Mono.",
+    "Each color/data case has an explicit positive control requiring the configured hint to render with a one-row footer; the zero-row assertion requires no hint.",
+    "Assertions are additive and not weakened. Harness is the existing public test support API."
+  ],
+  "independent_validation": {
+    "command": "CARGO_TARGET_DIR=/private/tmp/picker-footer-target-cf854-20261021 cargo nextest run -p termrock-overlays --test picker_layout -j 4",
+    "result": "PASS: 7 passed, 0 failed, 0 skipped",
+    "target_isolated": true
+  },
+  "regression_evidence": {
+    "prior_independent_probe_packet": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/picker-6cd63d2-independent-review-20261021/review.json",
+    "prior_packet_sha256": "3af845f6aaeda5d2d68551b871f9c4939943f3912492089952eca322f1939f73",
+    "recorded_pre_fix": "The prior independent packet reports a one-item zero-footer failure on ed5bda4 and candidate pass on 6cd63d2; empty case passed before and is preservation coverage.",
+    "limitation": "This review independently reran the new native tests at cf854, but did not rebuild/rerun the added tests against ed5bda4. The pre-fix red evidence is from the preserved prior independent public probe and committed audit, not a fresh rerun here."
+  },
+  "coverage_limits": [
+    "This is not full picker behavior, application integration, frozen baseline parity, or four-application acceptance.",
+    "No claim is made that the added tests alone establish all terminal frame state or functional behavior."
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "f718c2033c61e930eec199038ad8aa2ab038da2f04f97a103f96f2ea437e6472",
+  "artifacts": {
+    "ansi": {
+      "bytes": 4496,
+      "file": "holla/finder/parity-docker/72x20/256.ansi",
+      "sha256": "f718c2033c61e930eec199038ad8aa2ab038da2f04f97a103f96f2ea437e6472"
+    },
+    "ascii": {
+      "bytes": 1076,
+      "file": "holla/finder/parity-docker/72x20/256.ascii",
+      "sha256": "d6d8fe5514a84ea0a733d553aee154172da6e1796a1b10bcf6d2b72258f5825c"
+    },
+    "ascii_loss_json": {
+      "bytes": 8994,
+      "file": "holla/finder/parity-docker/72x20/256.ascii.loss.json",
+      "sha256": "cf51435d288e1ef69cfdda535479d4cfe38b2b7cf0de897cbdd24dc17a39490a"
+    },
+    "frame_json": {
+      "bytes": 337947,
+      "file": "holla/finder/parity-docker/72x20/256.frame.json",
+      "sha256": "b1d8c88e5d9f386e429caf6a1d55927c9d8e33fdb97821643622dd6771660f6f"
+    },
+    "html": {
+      "bytes": 271758,
+      "file": "holla/finder/parity-docker/72x20/256.html",
+      "sha256": "cb440430b61337fcd6fa975469df03ef5bc0cb8b339d4f8c22583f51e7346e4a"
+    },
+    "observations_json": {
+      "bytes": 446,
+      "file": "holla/finder/parity-docker/72x20/256.observations.json",
+      "sha256": "8b61d55fa7a9ef0fa5af66407ef47ab3814fb89f6202f701c4c3833b735c1b86"
+    },
+    "png": {
+      "bytes": 193947,
+      "file": "holla/finder/parity-docker/72x20/256.png",
+      "sha256": "70c183e8386fc255e37b86e6a51ab19299b6fd5a478d42cc688088e27ae3fe38"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/parity-docker/72x20/256.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1265,
+      "file": "holla/finder/parity-docker/72x20/256.txt",
+      "sha256": "c6bafcd99cd25c48b98c617bc83480b3a63c375f1b2ed2eda41ad223818bf4c5"
+    }
+  },
+  "ascii_substitutions_count": 97,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 7938302342815402381,
+  "frame_sha256": "b1d8c88e5d9f386e429caf6a1d55927c9d8e33fdb97821643622dd6771660f6f",
+  "generation": "19553e11854cc50bf37a83354c7402527108a7993f785a049407d8be8acb4014",
+  "html_sha256": "cb440430b61337fcd6fa975469df03ef5bc0cb8b339d4f8c22583f51e7346e4a",
+  "legacy_name": "holla/parity/docker/72x20/256",
+  "name": "holla/finder/parity-docker/72x20/256",
+  "png_sha256": "70c183e8386fc255e37b86e6a51ab19299b6fd5a478d42cc688088e27ae3fe38",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:50Z",
+  "txt_sha256": "c6bafcd99cd25c48b98c617bc83480b3a63c375f1b2ed2eda41ad223818bf4c5"
+}

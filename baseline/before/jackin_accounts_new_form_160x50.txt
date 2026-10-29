@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                              Accounts › Overview  ⠋ refreshing 1  inside the Construct  2 running
+
+ ╭─ Accounts ─────────────────────── 12 · 4 ▲ · 4 ! ─╮ │  Overview                                                                  12 accounts · 8 providers
+ │ ▎   Overview                                      │ │
+ │ ▎ ▾ Claude                                 !   3  │ │  Health        degraded · 4 warnings · 1 exhausted · 2 stale · 1 refreshing · 3 failed · 1 quota not
+ │ ▎   ★ Personal                     current 4 min  │ │                visible · 2 identities unresolved
+ │ ▎     Archived contractor laptop prof…  disabled  │ │  Registry      12 accounts · 11 enabled · 1 disabled · 8 providers
+ │ ▎     Work                      !   stale 47 min  │ │  Sources       7 registered · 5 discovered · 1Password available
+ │ ▎ ▾ Codex                                      2  │ │
+ │ ▎   ★ Primary                      current 2 min  │ │  Comparable windows                                         identical provider, window and unit only
+ │ ▎     Experiments                   ⠋ refr╭─ New account ───────────────────────────────────── form · unsaved ─╮ing (1 last good)
+ │ ▎ ▾ Amp                                   │   Display name *                                                   │aining (1 last good)
+ │ ▎     discovered               ▲   current│ ▎ Personal, Work, Team…                                            │(1 last good)
+ │ ▎ ▾ Grok                                  │                                                                    │good)
+ │ ▎   ★ Team                         current│                                                                    │ (1 last good)
+ │ ▎ ▾ Z.AI                                  │   Purpose label  optional                                          │1 last good)
+ │ ▎     discovered                   ▲   sta│ ▎ personal · work · experiments                                    │
+ │ ▎ ▾ Kimi                                  │                                                                    │
+ │ ▎     discovered                !   needs │                                                                    │ccount or different windows) · Z.AI
+ │ ▎ ▾ MiniMax                               │   Provider                                                         │ccount or different windows) · OpenCode
+ │ ▎     discovered                 !   unava│ ▎ Claude Code · Anthropic / Claude                             ▾   │
+ │ ▎ ▾ OpenCode                              │                                                                    │
+ │ ▎   ★ Go subscription           !   rate l│                                                                    │
+ │ ▎     ci-bot · discovered            unsup│   Agent runtime Claude Code · provider Anthropic / Claude · usa…   │ h 5 min
+ │ ▎   Unsupported                         se│                                                                    │un 19:14
+ │ ▎   + Add account…                        │   Credential source                                                │:14
+ │                                           │ ▎(●) 1Password item / field  (recommended)                         │
+ │                                           │ ▎( ) Local agent folder                                            │n 10 h
+ │                                           │ ▎( ) Plain-text API key                                            │
+ │                                           │                                                                    │
+ │                                           │   1Password reference                                              │ api key
+ │                                           │   not chosen                                           ▎Choose…    │d not respond
+ │                                           │                                                                    │25 min
+ │                                           │                                                                    │
+ │                                           │                                                                    │
+ │                                           │                                                                    │authenticated account
+ │                                           │                                                                    │ authenticated account
+ │                                           │                                                                    │
+ │                                           │             ▎Enter plain text instead  ▎Validate  ▎Cancel  ▎Save   │
+ │                                           ╰────────────────────────────────────────────────────────────────────╯
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │ ▎Refresh all   ▎Add account…
+ ╰───────────────────────────────────────────────────╯ │
+
+                                                        Tab Next field  Enter Edit / Save  Esc Cancel

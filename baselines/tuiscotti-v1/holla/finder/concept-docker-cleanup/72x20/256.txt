@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           no project  devbox · development
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ docker clean                                         scope ‹ here ›
+
+    Results · 7
+  › Clean Docker completely  plan    on devbox             destructive
+    Prune builder cache      docker  on devbox             destructive
+    Stop all containers      docker  on devbox
+    Prune unused networks    docker  on devbox
+    Prune unused volumes     docker  on devbox             destructive
+    Remove all unused imag…  docker  on devbox             destructive
+    Stop and remove all co…  docker  on devbox             destructive
+
+
+    → docker stop acme-api-1 acm…acme-redis-1 · on devbox · destructive
+
+ /work/scratch                                       256 colors · 72×20
+  Type Search  ↑↓ Move  Enter Review…  Alt+Enter More  Tab Preview  …

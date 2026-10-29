@@ -1,0 +1,24 @@
+  jackin❯    File   Edit   View   Session   Help
+            ╭────────────────────────────────────╮
+  1 Mix (3) │  New tab                  Ctrl+B c │
+ ━━━━━━━━━━━│  Split right              Ctrl+B % │─────────────────────────────
+╭─ Claude Co│  Split below              Ctrl+B " │Primary) ○───────────────────╮
+│  +  const │ ────────────────────────────────── │d 1,204.50 EUR, got 1,204.49││
+│  +  let de│  Export selected file…             │g precedes FX conversion in ││
+│  -  for at│  Export selected file and reveal…  │                            ││
+│  +  for at│ ────────────────────────────────── │38 s · 12.4k tokens         ││
+│           │  Close pane               Ctrl+B x │                            ┃│
+│● Bash carg╰────────────────────────────────────╯                            ┃│
+│  running 6 tests … 6 passed (1.42 s│││╰──────────────────────────────────────╯
+│                                    │││────────────────────────────────────────
+│● Edit src/settlement/mod.rs        ┃││╭─ Shell ──────────────────────────────╮
+│  +  pub use retry::{MAX_ATTEMPTS, R┃│││    Checking settlement v0.9.2 (crate││
+│                                    ┃│││    Finished dev [unoptimized] target││
+│● Retries now back off 250 ms → 4 s,┃│││payments-platform ❯ ls docs/adr      ││
+│  One more edit: expose the policy i┃│││0001-record-architecture.md  0004-led││
+│                                    ┃│││0002-settlement-batches.md   0005-fx-││
+│▶ Allow edit to src/settlement/confi┃│││0003-retry-policy.md         0007-ret││
+│❯                                   ┃│││payments-platform ❯                  ┃│
+╰─────────────────────────────────────╯│╰──────────────────────────────────────╯
+ PR #482 · Settlement retry backoff                   Session ━━━━━━━━─── 76%
+ ← → Menu  ↑↓ Move  …   Attached to payments-platform · tabs and panes restored

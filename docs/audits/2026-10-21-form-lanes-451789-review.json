@@ -1,0 +1,70 @@
+{
+  "reviewed_commit": "451789d519caf396c16818ed50f571271255ccbe",
+  "review_kind": "Independent read-only Rust/API/interaction review at medium effort. No product or screenshot acceptance.",
+  "decision": "changes_requested",
+  "source_worktree": "/private/tmp/termrock-form-lanes-review-451789",
+  "commands": [
+    {
+      "command": "cargo nextest run --locked -p termrock-forms --all-targets",
+      "cargo": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/cargo",
+      "timeout_seconds": 225,
+      "exit_code": 0,
+      "result": "57 tests passed; zero skipped",
+      "log": "native.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/form-lanes-public-probes/Cargo.toml",
+      "timeout_seconds": 225,
+      "exit_code": 100,
+      "result": "Two external consumer regressions failed; zero passed, zero skipped",
+      "log": "public-probes.log"
+    }
+  ],
+  "findings": [
+    {
+      "priority": "P1",
+      "file": "crates/termrock-forms/src/form.rs",
+      "line": 1694,
+      "title": "Clip partially scrolled field content instead of redrawing its beginning",
+      "evidence": "A ten-option radio occupies rows0..11; following Recipient field occupies rows12..14. With a six-row viewport and focus on Recipient, scrolling produces base9. The radio top0 is saturated to viewport offset0 and its Modes label and alpha/beta options are redrawn at the top, although these source rows precede base9. Radio paints through the next field at viewport row3. External public test partially_scrolled_field_does_not_repeat_header fails with rendered frame in public-probes.log.",
+      "requested_fix": "Preserve the original virtual field layout and clip/translate its visible intersection through shared rendering and registration logic, so hidden header/options do not become visible or interactive and adjacent controls cannot overlap. Fix the shared field placement/clipping contract; do not add an application painter or hide an expected assertion.",
+      "attribution": "New lane draw path duplicates a pre-existing linear Form algorithm at lines1614..1640; this is an unmet new lane contract and existing shared defect, not evidence of a newly introduced baseline application regression."
+    },
+    {
+      "priority": "P2",
+      "file": "crates/termrock-forms/src/form.rs",
+      "line": 1023,
+      "title": "Reserve trailing spacer rows before allocating Fill height",
+      "evidence": "FormLayout preflight explicitly permits Spacer rows after Fill. A single Fill(TextArea min4)+Spacer(2) in a12-row lane allocates12 rows to Fill then2 spacer rows, incorrectly creating14-row content and visible scrollbar. External fill_reserves_following_fixed_spacer fails.",
+      "requested_fix": "Resolve fixed rows, including allowed trailing spacers, before distributing remaining height to Fill subject to its minimum. Prove no overflow when minimum plus spacers fits, and correct overflow when it does not."
+    }
+  ],
+  "additional_observations": [
+    {
+      "file": "crates/termrock-forms/src/form.rs",
+      "line": 1430,
+      "observation": "update_lanes reads cx.area(form), but draw_lanes registers only lane scroll IDs and field IDs, and reports Form LayoutFacts without logical_area. Therefore the update planner currently receives an empty Rect for an ordinary public consumer. Most current row heights are width-independent, limiting immediate effects, but resolved update/draw geometry is not actually shared. Publish/read the real prepared logical area rather than relying on an absent Form registry area."
+    }
+  ],
+  "coverage_assessment": "The five added Form lanes tests exercise measurement, static rejection, group/visibility validation and draw bounds. None drives lane scrolling/input, independent lane state after reorder, pointer activation of fixed actions, or clipping after intermediate offsets. Existing57 green tests do not establish those promised contracts. The external probes demonstrate this gap.",
+  "compatible_parts_observed": [
+    "Borrowed stable lane/field IDs and additive Form API preserve existing public FieldSpec/FormData shapes.",
+    "try_layout rejects malformed static descriptors; final group and live visibility completeness are separately revalidated.",
+    "Invalid draw/update abort before source child registration or state reconciliation, emit bounded runtime diagnostics, and measurement uses a pure constrained empty fallback.",
+    "Canonical SplitModel is reused for lane and paired field widths."
+  ],
+  "limitations": [
+    "No application migration or frozen CLI visual comparison performed.",
+    "No sections/lifecycle changes accepted or reviewed.",
+    "No full workspace or CI acceptance; native scoped tests and two independent public consumers only.",
+    "External probe crate and logs are evidence outside the source repository; no source or repository tests edited."
+  ],
+  "artifacts": {
+    "consumer-Cargo.lock": "bb5250f987b637f71315ec1b2bf98bdabf605c1cfa13ed5b9e7f59c36c78e7af",
+    "consumer-Cargo.toml": "cd00583079b13f6049afff412929dbc77c77848c58d9d5613b1a318723adde02",
+    "public-probes.log": "b0b9d44f50de5b650c97fe8fe3c63b8e5a828b89a580f8e91848890cf3ed7d6d",
+    "native.log": "e9a2c41dabe6ea5dad8dc4659d47310a007254b08632d96976641a6c73457980",
+    "public-probes.rs": "06e86b6319672b0fc2ded0cc7bb349fb2b03856c4d8acfc4ce41054ca1734e3f"
+  },
+  "source_status": ""
+}

@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                      acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                  scope ‹ parent ›
+
+
+
+
+
+
+
+
+
+                                 No project root above ~/work/acme
+
+                          Esc clears the query · Ctrl+↓ narrows the scope
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme   main   ↑1                   scope parent · acme                   truecolor · 100×30
+     Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  …   Scope parent · no root above

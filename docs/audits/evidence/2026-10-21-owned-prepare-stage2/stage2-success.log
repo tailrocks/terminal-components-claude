@@ -1,0 +1,465 @@
++ patch --batch --forward -V none -p1 -i /private/tmp/ci-doc-inventory-20261021/tools/frozen_cli_pair.patch
++ /Users/donbeave/Library/Application Support/mbx/bin/cargo --version --verbose
++ /Users/donbeave/.cargo/bin/rustup -vV
++ /Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.148/cargo-nextest --version
++ /Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15 --version
++ /Users/donbeave/.cargo/bin/rustup which rustc
++ /Users/donbeave/.cargo/bin/rustup which cargo
++ /usr/bin/xcrun --show-sdk-path
++ /usr/bin/xcrun --show-sdk-version
++ /usr/bin/xcode-select -p
++ /Users/donbeave/.cargo/bin/rustup show active-toolchain
++ /Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/rustc -vV
++ /Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/rustc --print sysroot
++ /Users/donbeave/Library/Application Support/mbx/bin/cargo --version --verbose
++ /Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/cargo --version --verbose
++ /Users/donbeave/.cargo/bin/rustup --version
++ /usr/bin/cc --version
++ /usr/bin/clang --version
++ /usr/bin/ld -v
++ /usr/bin/xcrun --version
++ /usr/bin/xcode-select -version
++ cargo nextest list --locked --manifest-path /Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/live-source/Cargo.toml -p junie-tui --test visual_baseline --message-format json
+{
+  "frozen_source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+  "live_source_sha256": "74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430",
+  "patch_sha256": "17de30ad69fea9c7f514cd6530727283637d090958020ebe13a311aad4506ff4",
+  "helper_sha256": "d656a3aea96f17ed6e31b237fabdc138d4732a209d3cc4944b08cfcb4681571c",
+  "module_sha256": "d656a3aea96f17ed6e31b237fabdc138d4732a209d3cc4944b08cfcb4681571c",
+  "extension_manifest_sha256": "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8",
+  "extension_manifest_copy_sha256": "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8",
+  "extension_source_sha256": "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9",
+  "extension_module_sha256": "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9",
+  "extension_case_count": 174,
+  "reference_decisions_sha256": null,
+  "fresh_capture_cohort": {
+    "cohort_id": "frozen-20261021-serial-nonincr-r1-r2",
+    "cohort_registry_sha256": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+    "review_registry_sha256": "65d1343138d5c817186bbd9486e6149ef554fc0fd4b3a96bf70cb916f0883718",
+    "decision_sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+    "evidence_index_sha256": "7333d762ddbbc25f7fafbc78fd49fe016358b787123dbfdabce422172121ba2c",
+    "binary_sha256": {
+      "showcase": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+      "tablepro": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+      "jackin-preview": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+      "holla": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf"
+    },
+    "binary_file_identity": {
+      "showcase": {
+        "device": 16777229,
+        "inode": 1345489779,
+        "mode": 33133,
+        "size": 20826552,
+        "mtime_ns": 1792522609416263270,
+        "ctime_ns": 1792522762299545418
+      },
+      "tablepro": {
+        "device": 16777229,
+        "inode": 1345489775,
+        "mode": 33133,
+        "size": 12634296,
+        "mtime_ns": 1792522605012523020,
+        "ctime_ns": 1792522762282883952
+      },
+      "jackin-preview": {
+        "device": 16777229,
+        "inode": 1345489772,
+        "mode": 33133,
+        "size": 15499328,
+        "mtime_ns": 1792522607551519756,
+        "ctime_ns": 1792522762274651574
+      },
+      "holla": {
+        "device": 16777229,
+        "inode": 1345489777,
+        "mode": 33133,
+        "size": 16997832,
+        "mtime_ns": 1792522609231743637,
+        "ctime_ns": 1792522762290233200
+      }
+    },
+    "binary_dir": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin",
+    "candidate_comparison_eligible": false,
+    "checkpoint_reference_approval": "none",
+    "product_acceptance_eligible": false
+  },
+  "extension_inventory_sha256": "c0350f7c4b3100bf0800943d2b39d8e0798c9698447f0ea4d1a64410bbd3fcc4",
+  "frozen_snapshots_sha256": "6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8",
+  "live_snapshots_sha256": "6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8",
+  "changed_files": [
+    "tests/visual_baseline/frozen_cli_extensions.json",
+    "tests/visual_baseline/frozen_cli_extensions.rs",
+    "tests/visual_baseline/frozen_cli_pair.rs",
+    "tests/visual_baseline/main.rs",
+    "tests/visual_baseline/scenarios/interact.rs",
+    "tests/visual_baseline/scenarios/mod.rs",
+    "tests/visual_baseline/support.rs"
+  ],
+  "preparation_environment": {
+    "policy": "only-explicit-allowlisted-keys-passed; omitted-parent-keys-are-removed",
+    "keys": [
+      "AR",
+      "CARGO_BUILD_JOBS",
+      "CARGO_HOME",
+      "CARGO_HTTP_MULTIPLEXING",
+      "CARGO_NET_OFFLINE",
+      "CARGO_TARGET_DIR",
+      "CC",
+      "CFLAGS",
+      "CLICOLOR",
+      "CLICOLOR_FORCE",
+      "COLORTERM",
+      "CPATH",
+      "CXX",
+      "CXXFLAGS",
+      "DEVELOPER_DIR",
+      "DYLD_LIBRARY_PATH",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "LC_CTYPE",
+      "LDFLAGS",
+      "LIBRARY_PATH",
+      "MACOSX_DEPLOYMENT_TARGET",
+      "NEXTEST_EXPERIMENTAL_LIBTEST_JSON",
+      "NO_COLOR",
+      "PATH",
+      "PKG_CONFIG_PATH",
+      "RUSTC",
+      "RUSTC_BOOTSTRAP",
+      "RUSTDOC",
+      "RUSTUP_HOME",
+      "RUSTUP_TOOLCHAIN",
+      "SDKROOT",
+      "TEMP",
+      "TERM",
+      "TERMINFO",
+      "TERMINFO_DIRS",
+      "TMP",
+      "TMPDIR",
+      "TZ",
+      "XDG_CACHE_HOME",
+      "XDG_CONFIG_HOME",
+      "XDG_DATA_HOME"
+    ],
+    "values": {
+      "AR": {
+        "present": false,
+        "value_sha256": null
+      },
+      "CARGO_BUILD_JOBS": {
+        "present": false,
+        "value_sha256": null
+      },
+      "CARGO_HOME": {
+        "present": true,
+        "value_sha256": "af6ff00989f6df12b1d08859eabed1d3784dbbbe3e87aa96b421c2d4215dd38d"
+      },
+      "CARGO_HTTP_MULTIPLEXING": {
+        "present": false,
+        "value_sha256": null
+      },
+      "CARGO_NET_OFFLINE": {
+        "present": false,
+        "value_sha256": null
+      },
+      "CARGO_TARGET_DIR": {
+        "present": true,
+        "value_sha256": "d7c544e0a139cd7b793d67ef4d62e45aca3244cb597d64b6069016c405455bd1"
+      },
+      "CC": {
+        "present": false,
+        "value_sha256": null
+      },
+      "CFLAGS": {
+        "present": false,
+        "value_sha256": null
+      },
+      "CLICOLOR": {
+        "present": false,
+        "value_sha256": null
+      },
+      "CLICOLOR_FORCE": {
+        "present": false,
+        "value_sha256": null
+      },
+      "COLORTERM": {
+        "present": true,
+        "value_sha256": "4a5e83365abe1ee0eeab886f5545aa9bb5f43a06b183e773a342bd6f00ae74b0"
+      },
+      "CPATH": {
+        "present": false,
+        "value_sha256": null
+      },
+      "CXX": {
+        "present": false,
+        "value_sha256": null
+      },
+      "CXXFLAGS": {
+        "present": false,
+        "value_sha256": null
+      },
+      "DEVELOPER_DIR": {
+        "present": false,
+        "value_sha256": null
+      },
+      "DYLD_LIBRARY_PATH": {
+        "present": false,
+        "value_sha256": null
+      },
+      "HOME": {
+        "present": true,
+        "value_sha256": "e9ac1f3c6c2d3f511fe7c3c48f9eba873612255490f54db6a8b5e73f0afb06ce"
+      },
+      "LANG": {
+        "present": true,
+        "value_sha256": "65ce8c93514741c928d27fcdbe7b0a754dfcaebcb2292111cd60305dc983f51f"
+      },
+      "LC_ALL": {
+        "present": true,
+        "value_sha256": "99fed2d548c2eb1022f4067f97fe838a2c3ea60ee0e0f53086788505c3ababad"
+      },
+      "LC_CTYPE": {
+        "present": true,
+        "value_sha256": "99fed2d548c2eb1022f4067f97fe838a2c3ea60ee0e0f53086788505c3ababad"
+      },
+      "LDFLAGS": {
+        "present": false,
+        "value_sha256": null
+      },
+      "LIBRARY_PATH": {
+        "present": false,
+        "value_sha256": null
+      },
+      "MACOSX_DEPLOYMENT_TARGET": {
+        "present": false,
+        "value_sha256": null
+      },
+      "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": {
+        "present": true,
+        "value_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+      },
+      "NO_COLOR": {
+        "present": true,
+        "value_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+      },
+      "PATH": {
+        "present": true,
+        "value_sha256": "a527ec6cad205bde5f21fe4fd36f07197543c52b8b7e30af50fa6b4e63a90d4a"
+      },
+      "PKG_CONFIG_PATH": {
+        "present": false,
+        "value_sha256": null
+      },
+      "RUSTC": {
+        "present": false,
+        "value_sha256": null
+      },
+      "RUSTC_BOOTSTRAP": {
+        "present": false,
+        "value_sha256": null
+      },
+      "RUSTDOC": {
+        "present": false,
+        "value_sha256": null
+      },
+      "RUSTUP_HOME": {
+        "present": true,
+        "value_sha256": "e6ade14dbfd69dfafa48d1541ef6157c1e261dc2dde50de5c5337dbc0c64b0cb"
+      },
+      "RUSTUP_TOOLCHAIN": {
+        "present": true,
+        "value_sha256": "0f65a320164e6f77b707966aac655cf7c523667828514ca7a03440b09b63773e"
+      },
+      "SDKROOT": {
+        "present": false,
+        "value_sha256": null
+      },
+      "TEMP": {
+        "present": false,
+        "value_sha256": null
+      },
+      "TERM": {
+        "present": true,
+        "value_sha256": "c8b24a57859de308e5686428d031f86a46a26291156d282ee4b9ae65f10bdaa1"
+      },
+      "TERMINFO": {
+        "present": true,
+        "value_sha256": "84761c4f6a3c0a4c407fe6f0dc8165b47a7300904333f9503190e057cb57597c"
+      },
+      "TERMINFO_DIRS": {
+        "present": false,
+        "value_sha256": null
+      },
+      "TMP": {
+        "present": false,
+        "value_sha256": null
+      },
+      "TMPDIR": {
+        "present": true,
+        "value_sha256": "b7559e15f36f7f742897599862a2649e8fa996b7fcb6fd3a63711fcb7b666df5"
+      },
+      "TZ": {
+        "present": false,
+        "value_sha256": null
+      },
+      "XDG_CACHE_HOME": {
+        "present": false,
+        "value_sha256": null
+      },
+      "XDG_CONFIG_HOME": {
+        "present": false,
+        "value_sha256": null
+      },
+      "XDG_DATA_HOME": {
+        "present": false,
+        "value_sha256": null
+      }
+    },
+    "sha256": "d1f414f6149d264294ad1691674c525d9ef48f56a84dfb1b62a84002ecf1c51b",
+    "raw_values_recorded": false,
+    "unknown_parent_environment_values_recorded": false
+  },
+  "preparation_tool_observation": {
+    "host": {
+      "system": "Darwin",
+      "release": "27.0.0",
+      "machine": "arm64"
+    },
+    "invocation_tools": {
+      "cargo": {
+        "path": "/Users/donbeave/Library/Application Support/mbx/bin/cargo",
+        "sha256": "9cfafb636d06f397aa5c48a68ac7755865d424f7acafe075e6fce3bcaa723843",
+        "file_identity": {
+          "device": 16777229,
+          "inode": 1245253629,
+          "mode": 33216,
+          "size": 488,
+          "mtime_ns": 1792297500646717226,
+          "ctime_ns": 1792297500661628257
+        },
+        "version": "cargo 1.99.1 (5f94df478 2026-08-27)\nrelease: 1.99.1\ncommit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e\ncommit-date: 2026-08-27\nhost: aarch64-apple-darwin\nlibgit2: 1.9.6 (sys:0.21.0 vendored)\nlibcurl: 8.7.1 (sys:0.4.90+curl-8.21.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.6.3 9 Jun 2026\nos: Mac OS 27.0.1 [64-bit]"
+      },
+      "rustc_path_entry": {
+        "path": "/Users/donbeave/.cargo/bin/rustup",
+        "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+        "file_identity": {
+          "device": 16777229,
+          "inode": 180615905,
+          "mode": 33261,
+          "size": 11319056,
+          "mtime_ns": 1788291513067094001,
+          "ctime_ns": 1789217644923417646
+        },
+        "version": "rustup 1.29.1 (d95a37b6a 2026-08-13)"
+      },
+      "cargo_nextest": {
+        "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.148/cargo-nextest",
+        "sha256": "aac4a0d9109efcfb4d83ec729c6e3204d5c15bf16ff554b5ee4476f6c5f60b37",
+        "file_identity": {
+          "device": 16777229,
+          "inode": 1094882598,
+          "mode": 33261,
+          "size": 43038544,
+          "mtime_ns": 1791430322000000000,
+          "ctime_ns": 1791575294702455350
+        },
+        "version": "cargo-nextest 0.9.148 (cd1d6d546 2026-10-07)\nrelease: 0.9.148\ncommit-hash: cd1d6d5467322dbc0d39a80cb671d000ac302798\ncommit-date: 2026-10-07\nhost: aarch64-apple-darwin"
+      },
+      "python": {
+        "path": "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+        "sha256": "75146f6f98972d4de8ea82fc9189a98df4a1113af442ec7db2d45a33283f9dac",
+        "file_identity": {
+          "device": 16777229,
+          "inode": 1118167390,
+          "mode": 33277,
+          "size": 19940208,
+          "mtime_ns": 1704067200000000000,
+          "ctime_ns": 1791681670244006531
+        },
+        "version": "Python 3.15.0"
+      }
+    },
+    "selected_toolchain": {
+      "cargo_path_entry": {
+        "available": true,
+        "path": "/Users/donbeave/Library/Application Support/mbx/bin/cargo",
+        "sha256": "9cfafb636d06f397aa5c48a68ac7755865d424f7acafe075e6fce3bcaa723843",
+        "version": "cargo 1.99.1 (5f94df478 2026-08-27)\nrelease: 1.99.1\ncommit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e\ncommit-date: 2026-08-27\nhost: aarch64-apple-darwin\nlibgit2: 1.9.6 (sys:0.21.0 vendored)\nlibcurl: 8.7.1 (sys:0.4.90+curl-8.21.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.6.3 9 Jun 2026\nos: Mac OS 27.0.1 [64-bit]"
+      },
+      "cargo_selected_toolchain": {
+        "available": true,
+        "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/cargo",
+        "sha256": "6d576d8058f8ca643e8fce55b64ee3c614ba64c9da2e536bae843e6a2e1f3951",
+        "version": "cargo 1.99.1 (5f94df478 2026-08-27)\nrelease: 1.99.1\ncommit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e\ncommit-date: 2026-08-27\nhost: aarch64-apple-darwin\nlibgit2: 1.9.6 (sys:0.21.0 vendored)\nlibcurl: 8.7.1 (sys:0.4.90+curl-8.21.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.6.3 9 Jun 2026\nos: Mac OS 27.0.1 [64-bit]"
+      },
+      "cargo_selection_method": "rustup which from frozen-source cwd",
+      "rustup": {
+        "available": true,
+        "path": "/Users/donbeave/.cargo/bin/rustup",
+        "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+        "version": "rustup 1.29.1 (d95a37b6a 2026-08-13)"
+      },
+      "active_toolchain": "1.99.1-aarch64-apple-darwin (overridden by environment variable RUSTUP_TOOLCHAIN)",
+      "rustc_selected_toolchain": {
+        "available": true,
+        "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/rustc",
+        "sha256": "1ba7bb8e273bd64125f4048d2ecce530e0a6470e565ab1b3aecf0b82b532f7b1",
+        "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1"
+      },
+      "rustc_selection_method": "rustup which from frozen-source cwd",
+      "rustc_host_triple": "aarch64-apple-darwin",
+      "llvm_version": "23.1.1",
+      "rustc_sysroot": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin",
+      "rustc_sysroot_identity_files": [
+        {
+          "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/lib/rustlib/components",
+          "sha256": "1d4d24a7194aea5e759695758088efb81cff49b963edd683df64638a467e08aa"
+        },
+        {
+          "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/lib/rustlib/multirust-channel-manifest.toml",
+          "sha256": "48419307eb32e389a25ac360b6bccd4d196f3c4f35ce9d67a223319eff017c6c"
+        }
+      ],
+      "cc": {
+        "available": true,
+        "path": "/usr/bin/cc",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      },
+      "clang": {
+        "available": true,
+        "path": "/usr/bin/clang",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      },
+      "linker": {
+        "available": true,
+        "path": "/usr/bin/ld",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": ""
+      },
+      "xcrun": {
+        "available": true,
+        "path": "/usr/bin/xcrun",
+        "sha256": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9",
+        "version": "xcrun version 72."
+      },
+      "xcode_select": {
+        "available": true,
+        "path": "/usr/bin/xcode-select",
+        "sha256": "49cf1e59551a8a401d86ac444aa6b2a9ab7ec6d3882c98c004dab02a0e484e53",
+        "version": "xcode-select version 2418."
+      },
+      "sdk_path": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+      "sdk_version": "27.0",
+      "xcode_developer_directory": "/Applications/Xcode.app/Contents/Developer",
+      "link_invocation": "not captured; cargo config and available linker identities are recorded as observations"
+    }
+  },
+  "test_inventory_sha256": "f98b90a93e3d45438be49eca4962ebbdbd83624ba7738ad448d783bb3046135f",
+  "original_test_inventory_sha256": "d260d2f0644d63a3a1b4c1611c0d7c61777e59e61249e3ca513d1d6217b0639c",
+  "registered_scenarios": 28895,
+  "extension_scenarios": 174,
+  "ordinary_checks": 20
+}

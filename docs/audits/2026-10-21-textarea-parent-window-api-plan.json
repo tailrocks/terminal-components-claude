@@ -1,0 +1,98 @@
+{
+  "status": "Read-only architecture plan for the required TextArea parent clipping contract. No source edits or acceptance claim.",
+  "inputs": [
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/form-lanes-review-c346/review.json",
+    "form-partial-row-clipping-api-plan.json"
+  ],
+  "decision": "Add one typed positive-coordinate vertical window descriptor to existing prepared layout reporting, then extend the existing ScrollRegion and TextArea renderers to consume it. Keep Form responsible for field placement and chrome, TextArea responsible for document editing, and ScrollRegion responsible for scrollbar mechanics. No global coordinate transform or second rendering/input engine.",
+  "evidence": [
+    {
+      "path": "crates/termrock-fields/src/textarea.rs:740-748,797-810,845-905,927-935,1145-1153,1186-1259",
+      "finding": "Current pointer, drag and secondary-click mapping add st.scroll.offset to local.y; menu anchor and cursor subtract the same offset from document line. Scroll viewport length and drawing both derive from the supplied body Rect. Parent source clipping must enter all of these paths, not only the line paint loop."
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/cx.rs:26-52,818-831; crates/termrock-runtime/src/ui/mod.rs:939-944",
+      "finding": "LayoutFacts is already non_exhaustive, default-constructible and reported per owner in a committed frame. Existing Ui::report_layout and Cx::layout provide the appropriate prepared lifecycle. A named optional typed field is compatible; overloading rows/content_len or using a global mutable draw cache is not."
+    },
+    {
+      "path": "crates/termrock-runtime/src/scroll_region.rs:112-120,160-206,209-254,298-361",
+      "finding": "ScrollRegion owns viewport/page sizing, logical thumb math, drag capture and track/thumb registration. Its present implementation assumes the entire track is physically visible, so the parent-window extension belongs here rather than in Form or TextArea repaint code."
+    },
+    {
+      "path": "crates/termrock-editors/src/code.rs:967-990",
+      "finding": "CodeEditor cursor_cell demonstrates a read-only component-owned document-to-cell mapping. Reuse this design shape in TextArea; do not copy the editor or add a broad editor trait without a real second implementation need."
+    },
+    {
+      "path": "visual-baseline:src/ui/scroll_view.rs:442-506,535-570; design f4867e9:src/ui/scroll_view.rs:480-508",
+      "finding": "Both references draw complete logical child content, copy the selected source window and translate hit regions, cuts, cursor and overlay shifts together. Follow-focus prefers the actual caret and remembers its last target. This proves that repeating source row zero or reindexing the document is wrong; it does not justify restoring the monolithic offscreen rendering package."
+    },
+    {
+      "path": "visual-baseline:src/widgets/textarea.rs:642-645; design f4867e9:src/widgets/textarea.rs:642-645",
+      "finding": "The child scroll viewport is its full logical body row count before parent clipping. Parent clipping must not silently replace that with the smaller visible height and change document page/scrollbar semantics."
+    }
+  ],
+  "stage_1_prepared_geometry": {
+    "owner": "Runtime author, serialized after current runtime integration. No simultaneous Ui/Cx/ScrollRegion writer.",
+    "files": [
+      "crates/termrock-runtime/src/ui/cx.rs",
+      "crates/termrock-runtime/src/author.rs or a small author window module",
+      "crates/termrock-runtime/src/lib.rs (only necessary additive exports)",
+      "focused runtime prepared-layout tests"
+    ],
+    "api": "A component-author VerticalWindow with private fields and validated constructors/accessors: positive visible body Rect, logical body row count and first visible source row. The visible row count cannot exceed logical_rows minus first_row. Empty or out-of-range intersections resolve safely to empty. A full(area) constructor represents zero parent offset.",
+    "storage": "Add pub vertical_window: Option<VerticalWindow> to the existing non_exhaustive LayoutFacts, initialized None by existing constructors, plus with_vertical_window. Existing external struct literals are already forbidden by non_exhaustive. Do not add fields to public exhaustive component structs. Report the final clipped descriptor through Ui::report_layout; update reads only Cx::layout(owner).vertical_window from the committed frame.",
+    "mapping": "Expose small pure row/range mapping helpers on the descriptor: visible_source_range, source_row_for_physical and physical_row_for_source. They operate only within this vertical child window; they do not modify Ui global coordinates or allocate a buffer. Use saturating/checked range arithmetic before any u16 conversion.",
+    "lifecycle": "Frame reset/commit already removes absent owner facts and publishes new facts after resize. Missing prepared geometry means no coordinate-dependent input action. Do not infer a window from cx.viewport, retain an application Rect, or publish an invisible control just to carry facts. Keep logical_area semantics unchanged rather than encoding an impossible negative origin."
+  },
+  "stage_2_scroll_region": {
+    "owner": "Same runtime owner; coordinate with the Fields implementation before landing.",
+    "files": [
+      "crates/termrock-runtime/src/scroll_region.rs",
+      "focused scrollbar/window interaction tests"
+    ],
+    "api": "Add a component-author ScrollRegion::draw_window(ui, VerticalWindow, &ScrollState, content_len) adapter. Existing draw delegates through VerticalWindow::full(area). Reuse existing viewport, thumb and pointer helpers, not a second scrollbar.",
+    "logical_view": "Apply the child scroll viewport using logical_rows, and retain document content_len separately. The parent first source row selects which of those logical viewport rows are physically visible. Report the window with ordinary LayoutFacts.viewport_len and rows still representing the logical child viewport/track, never an unrelated overloaded value.",
+    "painting": "Compute the full logical track and thumb intervals using existing ScrollState::thumb(logical_rows), intersect with the parent source window, then map only the intersections to physical cells. A clipped edge is not a new scrollbar cap: show the begin/end glyph only when original logical row0 or logical_rows-1 is visible. Register only actual visible track/thumb cells.",
+    "pointer_and_drag": "Translate a physical track point back to its original logical track row before existing offset_for_track_pos. Preserve the original thumb grab offset when its start is clipped. Retain any extra per-gesture logical grab metadata in existing component-private capture/cache facilities, checked against actual capture owner and origin, and clear it on release, cancellation or stale capture. Do not derive the grab repeatedly from a newly clipped thumb after each drag or maintain a second scroll offset.",
+    "customization": "Keep zero-offset slots/styles byte-for-byte compatible. Exercise custom Set/Clear glyphs and thumb states under a clipped window. If an existing arbitrary painter cannot represent a partial logical track, report that explicit compatibility gap before adding a window-aware slot; do not silently call it with a different logical meaning or fake a full track."
+  },
+  "stage_3_textarea": {
+    "owner": "Fields author, after the runtime window and ScrollRegion contract is reviewed; no concurrent theme/Grid ownership changes.",
+    "files": [
+      "crates/termrock-fields/src/textarea.rs",
+      "crates/termrock-fields/tests/textarea_window.rs",
+      "compiled public different-data consumer/example"
+    ],
+    "api": "Add TextArea::draw_window(ui, VerticalWindow, &TextAreaState) and matching draw_in_form_window and draw_secret_in_form_window adapters. Existing draw and form adapters delegate through a full zero-offset window. update signatures and the complete original TextTarget remain unchanged.",
+    "one_geometry": "Use one private TextArea geometry resolver. It combines the prepared parent source window, actual visible body and TEXT part rectangle, logical child scroll viewport, current document scroll and horizontal inset. Draw reports that window and actual TEXT/track geometry; update reads the same prepared facts and registered parts. Compute scrollbar presence and inner width once consistently so pointer columns, horizontal reveal and cursor cannot disagree by one cell.",
+    "document_mapping": "If child scroll offset is S and parent first source row is P, the first physically visible document line is S+P. Painting, selection, pointer Press/Drag/Secondary, caret and keyboard menu anchor all use that same conversion. Do not slice text or change document line numbering. Page movement and document ensure_visible use the original logical child viewport, as in the references; parent lane scroll remains a different state.",
+    "cursor": "Only emit a cursor when the actual focused editable owner caret maps inside the visible TEXT rectangle. Preserve the existing component cursor shape in zero-offset APIs; any separately discovered frozen shape discrepancy must be recorded rather than bundled into this clipping patch.",
+    "parent_reveal": "Expose a small read-only TextArea caret source-row/reveal-target accessor if needed by the real Form consumer, analogous to CodeEditor::cursor_cell. Form uses that source row after shared update to reveal the actual caret in its lane, not merely the field top. Track the last followed owner/target as derived layout information so an unchanged caret does not undo deliberate parent wheel scrolling; reference ScrollView::follow already does this.",
+    "menu_anchor": "Secondary-click uses its actual visible pointer point. Keyboard menu anchoring uses the same document-to-physical helper as the caret, never area.y plus an unadjusted document row. For an initially clipped caret, the real reference flow must establish whether parent caret reveal precedes menu opening; preserve that ordering with existing update/prepare lifecycle rather than opening at a negative, stale or invented point. Do not run menu domain effects from drawing. This edge is a required test before claiming complete menu behavior."
+  },
+  "stage_4_form_adapter": {
+    "owner": "Existing Forms author only after runtime/Fields adapters are available.",
+    "files": [
+      "crates/termrock-forms/src/form.rs",
+      "crates/termrock-forms/tests/form_lanes_consumer.rs",
+      "existing public Form clipping probes"
+    ],
+    "change": "Keep the corrected source-row intersection and chrome clipping from Radio. For Area, pass the original logical child body height and intersected first body source row into TextArea::draw_in_form_window. Read the stored field state once; do not clone and mutate it to simulate another scroll origin. Reuse the same adapter in linear and lane forms.",
+    "ownership": "Form retains lane scrolling and actual caret reveal; TextArea retains draft/editing/selection/document scrolling; ScrollRegion retains its scrollbar. No application is involved in geometry, cursor repair or hit registration.",
+    "existing_menu_gap": "Current Form does not expose or route TextAreaState::take_edit_menu_request at all. Therefore successful standalone window/menu tests do not establish a complete Form context-menu flow. Record this existing integration gap and assign its shared Form action/overlay contract separately before application acceptance, rather than claiming it is fixed by row clipping."
+  },
+  "regression_proof": [
+    "First reproduce a real overflowing Form TextArea showing the wrong original lines after parent scroll; keep the original expected input/document unchanged. Test top-only, bottom-only and both-edge clipping.",
+    "Use an independent public TextArea consumer with different text and nonzero child document scroll plus nonzero parent offset. Verify exact visible original lines, pointer original line/column, drag selection, Unicode wide/combining columns and no state mutation from repeated draw/measure.",
+    "Assert the same caret cell, visible TEXT bounds, hit region, menu anchor and selected document bytes after input and after resize-before-next-input. Missing/zero window and fully clipped caret must emit no cursor or interactive phantom region.",
+    "PageUp/PageDown uses logical child viewport. Parent wheel and child document wheel operate only their addressed scroll state. Verify caret-follow on movement and focus, while unchanged caret does not snap parent wheel back.",
+    "Compare full logical scrollbar math to its clipped physical portion, including partial thumb, original cap glyphs, track click and held drag grab offset after repeated resize and parent scrolling. Test pressed/hover and custom glyph Clear/Set paths.",
+    "Normal zero-offset TextArea APIs must retain existing cells, focus, draft, scroll, validation, secret masking, menu behavior and cursor shape across supported profiles. New parent clipping corrects a legacy Form defect; it is not proof of a newly introduced application baseline regression.",
+    "Run complete affected Runtime/Fields/Forms all-target nextest, scoped strict Clippy and formatting; keep public examples executable through generated CI testing configuration. Exact frozen CLI flows and a documented reference decision are still required where old artifacts disagree."
+  ],
+  "limits": [
+    "No source changes or helper agents.",
+    "This is a staged plan; TextArea clipping, scrollbar capture and Form menu gaps remain required until implemented and independently verified.",
+    "No frozen application parity, full workspace gate or CI acceptance is claimed."
+  ]
+}

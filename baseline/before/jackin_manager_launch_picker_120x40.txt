@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                           Workspaces › payments-platform  inside the Construct  2 running
+
+ ╭─ Workspaces ────────── 2 running ─╮ │  payments-platform                               saved workspace · 1 running
+ │ ▎   Current directory             │ │
+ │ ▎ ▾ payments-platform             │ │  Working dir   /workspace/payments-platform
+ │ ▎   ◉ 7f3a  the-archite…ude Code  │ │  Mounts        ~/src/payments-platform · rw worktree
+ │ ▎   ◌ c41e  reviewer · Codex   •  │ │                ~/src/shared-libs · ro shared
+ │ ▎ ▸ infra-control-plane           │ │  Roles         the-architect ★ · allowed 3 of 46
+ │ ▎ ▸ release-automation            │ │  Environments  5 vars · 2 [op]
+ │ ▎ ▸ customer-portal               │ │  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·
+ │ ▎   + New works╭──────────────────────────────────────────────────────────────────────────────────╮
+ │                │ Launch · choose Agent                          payments-platform › the-architect │ask
+ │                │ ▎▪ Claude Code  account Claude · Personal · provider d… choose at start  agents  │
+ │                │ ▎▪ Codex        account Codex · Primary · provider def… ready                    │aemon · 3 s ago
+ │                │ ▎▪ OpenCode     account OpenCode · Go subscription · p… ready                    │
+ │                │ ▎▪ Grok Build   account Grok · Team · provider default  ready                    │
+ │                │                                                                                  │
+ │                │                                                                                  │
+ │                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Launch   ▎Edit   ▎Prewarm   ▎Delete…
+ ╰───────────────────────────────────╯ │
+
+                                          ↑↓ Move  Enter Choose  Esc Cancel

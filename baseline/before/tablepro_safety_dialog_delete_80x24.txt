@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+
+  ≡╭────────────────────────────────────────────────────────────────────────╮
+ ──│                                                                        │──
+ ╭─│  This query may permanently modify or delete data                      │─╮
+ │ │                                                                        │ │
+ │ │  Action      DELETE without WHERE                                      │ │
+ │ │  Target      Production · production · acme_prod · orders              │ │
+ │ │  Scope       every row in orders (1.2 M rows)                          │ │
+ │ │  Risk        Removes all rows; dependent rows may go with ON DELETE    │ │
+ │ │              CASCADE.                                                  │ │
+ │ │  Reversible  Not reversible without a backup                           │ │
+ │ │  Safe Mode   Safe Mode · deliberate confirmation required              │ │
+ │ │                                                                        │ │
+ │ │  DELETE FROM orders                                                    │ │
+ │ │                                                                        │ │
+ │ │   Type orders to confirm                                               │ │
+ │ │ ▎                                                                      │ │
+ │ │                                                                        │ │
+ │ │                                                    ▎Cancel  ▎Execute   │ │
+ │ │                                                                        │ │
+ ╰─╰────────────────────────────────────────────────────────────────────────╯─╯
+
+ ← → Choose  Enter Confirm  Esc Cancel

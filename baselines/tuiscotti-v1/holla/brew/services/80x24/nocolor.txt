@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                            no project  mbp · local
+
+  Here › Homebrew services
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────
+  Homebrew services                                       mbp · live · 1 s ago
+
+  Source       brew services list --json · live
+  Cache        brew-services-v1 · 6 min ago · 1 names · hint for the next
+               start
+  Services     11
+  Cache write  fails on this host · listings still work · nothing is retried
+
+ ╭─ Detail ───────────────────────────────────────────── 12 lines · y copies ─╮
+ │  service                     status      actions                         ┃ │
+ │  svc00                       started     start · stop · restart          ┃ │
+ │  svc01                       stopped     start · stop · restart          │ │
+ │  svc02                       error       start · stop · restart          │ │
+ │  svc03                       started     start · stop · restart          │ │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+  Next   Restart svc00    Restart svc01    Restart svc02    Restart svc03
+
+ ~/work                  snapshot · read-only                  no color · 80×24
+                ↑↓ Scroll  y Copy  Tab Next actions  Esc Back

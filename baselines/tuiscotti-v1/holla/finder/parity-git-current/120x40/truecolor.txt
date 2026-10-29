@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                            svc · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Review 1 modified files git · parent
+  › Review 1 modified files    git      parent  1 modified · 0 untracked
+                                                                                 Does       show the changed files
+    Recent here                                                                             with their diff stat
+    nothing used here yet                                                                   before committing or
+                                                                                            syncing
+    Explore                                                                      Runs       git -C /Users/al…--short
+     Tasks   Git   Files   Disk   Services   System                                         git -C /Users/al… --stat
+    Parent · svc (Rust proje…  explore  parent  project root above this fol…     In         ~/work/svc
+    System · mbp               explore  host    available on this host           Host       mbp · local
+                                                                                 Scope      parent
+                                                                                 Why        1 modified · 0 untracked
+                                                                                 Changes    none · read-only
+                                                                                 Risk       read-only
+                                                                                 Data       live · 2 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Open in a Git TUI
+                                                                                            (lazygit) · Pin · Alias
+                                                                                            · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/svc/src/api   feature/x   ↓2 ↑1 • 1                                                          truecolor · 120×40
+           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

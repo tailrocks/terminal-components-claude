@@ -1,0 +1,110 @@
+
+running 98 tests
+test parity::tests::ansi_coordinates_ignore_sgr ... ok
+test parity::tests::source_dirty_fails_closed_on_malformed_status ... ok
+test parity::tests::source_binding_accepts_revision_changes_with_same_source_state ... ok
+test parity::tests::input_count_ignores_observation_steps ... ok
+test parity::tests::unknown_replay_step_fails_closed ... ok
+test parity::tests::source_dirty_ignores_generated_parity_outputs ... ok
+test historical_additions::tests::tampered_and_missing_artifacts_fail_closed ... ok
+test historical_additions::tests::exact_absent_artifact_is_the_only_addition_exception ... ok
+test parity::tests::first_difference_reports_owner_artifact_and_coordinates ... ok
+test historical_additions::tests::existing_base_blob_never_receives_an_exception_even_if_bytes_match ... ok
+test backend_free::tests::transitive_backend_mutation_is_rejected ... ok
+test backend_free::tests::missing_subject_or_workspace_union_cannot_pass ... ok
+test tests::a_key_pattern_expands_to_the_matrix_it_names ... ok
+test tests::application_scan_rejects_a_due_app_without_apps_root ... ok
+test tests::application_scan_rejects_a_due_app_without_manifest ... ok
+test tests::baseline_paths_are_classified_by_pattern ... ok
+test tests::binary_layout_gate_reports_wrong_owner_and_source ... ok
+test tests::a_blocking_marker_alone_refuses_nothing ... ok
+test tests::an_unchanged_tree_reports_no_moves ... ok
+test tests::capture_contract_rejects_axis_and_script_shortcuts ... ok
+test tests::a_moved_baseline_without_a_ledger_entry_fails ... ok
+test tests::capture_global_run_lock_and_session_namespace_are_contractual ... ok
+test tests::application_dispatch_gate_reports_broken_fixture_and_skips_tests ... ok
+test parity::tests::all_historical_steps_parse ... ok
+test tests::capture_matrix_covers_every_declared_cell ... ok
+test tests::capture_matrix_fails_closed_on_a_missing_cell ... ok
+test tests::a_regression_class_fails_the_guard ... ok
+test tests::a_moved_key_citing_a_first_generation_item_is_refused ... ok
+test tests::a_live_blocking_marker_refuses_every_digest_change ... ok
+test tests::capture_matrix_passes_theme_and_color_to_each_app ... ok
+test tests::a_discharged_blocking_marker_stops_refusing ... ok
+test tests::a_moved_truecolor_key_is_allowed_by_an_item_tagged_truecolor ... ok
+test tests::capture_names_cannot_escape_the_artifact_directory ... ok
+test tests::a_moved_truecolor_key_is_refused_outright ... ok
+test tests::cache_type_gate_ignores_test_only_cache_payloads ... ok
+test tests::a_citation_of_a_nonexistent_2010_item_fails ... ok
+test tests::capture_cleanup_and_hashing_reject_artifact_symlinks ... ok
+test tests::capture_run_ids_are_matrix_names_with_safe_suffixes ... ok
+test tests::an_unrecognised_scope_tag_is_mono_only_and_reported ... ok
+test tests::capture_runner_rejects_legacy_positional_arguments ... ok
+test tests::capture_preclean_preserves_a_published_generation_for_transactional_replace ... ok
+test tests::capture_matrix_rejects_a_symlinked_output_directory ... ok
+195d5c764a54679f66836c8fdfffa81f890f6b91
+test tests::capture_manifest_temp_file_does_not_follow_a_symlink ... ok
+test tests::capture_script_receives_canonical_paths_and_no_legacy_overrides ... ok
+test tests::closure_signature_gate_rejects_optional_and_nested_optional_results ... ok
+test tests::closure_signature_gate_rejects_tuple_geometry_and_wrong_slot_shapes ... ok
+test tests::component_doc_heading_contract_rejects_missing_or_reordered_sections ... ok
+test tests::deleted_perf_row_scan_reports_resurrection_and_ignores_comments ... ok
+test tests::capture_matrix_lock_recovers_staging_left_after_killed_creator ... ok
+test tests::doc_allow_list_rejects_stale_and_duplicate_entries ... ok
+test tests::doc_section_parser_reaches_the_authoritative_tail ... ok
+test historical_additions::tests::malformed_and_tampered_manifests_cannot_change_the_reviewed_map ... ok
+test tests::capture_matrix_lock_rejects_ownerless_published_directory ... ok
+test tests::capture_preclean_removes_legacy_flat_artifacts_without_touching_other_files ... ok
+test tests::frozen_evidence_fails_without_classification ... ok
+test tests::grid_model_surface_gate_rejects_non_structural_cells_and_align_sentinel ... ok
+test tests::grid_model_surface_gate_rejects_old_and_reintroduced_authorities ... ok
+test parity::tests::evidence_revision_is_a_real_commit ... ok
+test tests::legacy_forced_state_gate_rejects_production_and_skips_test_items ... ok
+test tests::missing_guard_base_is_refused_instead_of_defaulting_to_head ... ok
+test tests::non_test_lines_skips_only_the_cfg_test_item ... ok
+test tests::perf_baselines_ignore_the_ns_column_and_see_the_rest ... ok
+test tests::props_built_once_gate_fails_closed_on_an_empty_scan ... ok
+test tests::generic_component_copy_gate_reports_broken_fixture_and_allows_rain ... ok
+test tests::capture_matrix_lock_recovers_a_dead_owner_without_removing_live_lock ... ok
+test tests::props_built_once_gate_keys_per_module ... ok
+test tests::props_built_once_gate_keys_on_configuration_and_const_ids ... ok
+test tests::capture_matrix_lock_rejects_a_concurrent_owner ... ok
+test tests::props_built_once_gate_skips_test_items ... ok
+test tests::required_scan_roots_reject_missing_and_empty_inputs ... ok
+test tests::props_built_once_gate_reports_the_two_phase_construction ... ok
+test tests::showcase_coverage_rejects_dead_helpers_and_signature_only_mentions ... ok
+test tests::reference_rendering_gate_allows_only_fixture_and_application_paths ... ok
+test tests::showcase_coverage_gate_reports_missing_public_component ... ok
+test tests::showcase_nav_registry_is_structural_and_non_empty ... ok
+test tests::showcase_coverage_rejects_shared_demo_page_wrappers ... ok
+test tests::deleted_perf_rows_are_absent_from_every_live_baseline ... ok
+test tests::reference_rendering_gate_fails_closed_on_nested_production_calls ... ok
+test tests::the_ci_push_leg_gives_the_bless_guard_a_base ... ok
+test tests::the_2010_item_list_survives_the_split_tables ... ok
+test tests::the_2010_scope_tags_are_declared_where_the_guard_needs_them ... ok
+test tests::the_scope_tag_is_read_from_the_row_text ... ok
+test tests::showcase_page_contract_rejects_short_duplicate_and_dead_axes ... ok
+test tests::the_same_move_with_a_ledger_entry_passes ... ok
+test historical_additions::tests::invalid_or_unrelated_base_cannot_authorize_recovery ... ok
+test tests::the_baseline_inventory_is_not_empty ... ok
+test tests::invalid_explicit_guard_base_does_not_fall_back_to_pull_request_base ... ok
+test tests::closure_signature_gate_accepts_current_component_sources ... ok
+test tests::capture_provenance_rejects_fifo_state_without_blocking ... ok
+test tests::grid_model_surface_gate_accepts_fixture_and_current_source ... ok
+test parity::tests::frozen_manifest_and_mapping_cover_all_recipes ... ok
+test tests::capture_shell_state_reader_rejects_a_replaced_symlink ... ok
+test tests::capture_provenance_rejects_symlinked_parent_directories ... ok
+test tests::failed_capture_start_removes_its_partial_run_state ... ok
+test tests::capture_exec_uses_the_staged_binary_and_recorded_environment ... ok
+test tests::capture_tmux_entrypoint_executes_serialized_argv_without_shell_interpretation ... ok
+test tests::capture_provenance_failure_rolls_back_without_a_mixed_generation ... ok
+/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-capture-concurrent-shot-6859-1788827842039566000/shots/concurrent/html (80 x 24; run=concurrent-run; color=truecolor; provenance=/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-capture-concurrent-shot-6859-1788827842039566000/manifest.json)
+test tests::capture_shot_lock_serializes_concurrent_provenance ... ok
+
+test result: ok. 98 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.47s
+
+   Compiling xtask v0.1.0 (/Users/donbeave/Projects/terminal-components-historical-assets/xtask)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.58s
+     Running unittests src/main.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/deps/xtask-04ddc44049f0bf17)
+capture provenance: capture state is not a regular file: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-capture-fifo-6859-1788827842012769000/state
+mbx[savings]: every checkout believes it owns 67.1 GiB of outputs. the disk keeps one copy and says nothing.

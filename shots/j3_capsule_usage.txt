@@ -1,0 +1,36 @@
+  jackin❯    File   Edit   View   Session   Help
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ───────────────────────────━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────
+Amp 1.9.3 · ~/payments-platform
+                           ╭─ Usage ───────────────────────────────── read-only projection ─╮
+› Why is the controller rec│  ▎Overview   Claude Code · Work   Codex · Primary              │
+                           │  ─━━━━━━━━───────────────────────────────────────────────────  │
+⠿ Searching kube/controller│                                                                │
+⠿ Read kube/controllers/nod│  Claude Code · Work   ━━━━━━━━━━━━━━━━━━━━━━━━━──────── 76%    │
+                           │  Codex · Primary      ━━━━───────────────────────────── 12%    │
+The loop re-queues every ob│                                                                │
+(resyncPeriod = 30s) instea│                                                                │
+                           │                                                                │
+Suggested change:          │                                                                │
+  - .WithEventFilter(predic│                                                                │
+  + .WithEventFilter(predic│                                                                │
+                           │                                                                │
+Apply this edit? [Y/n]     │                                                                │
+›                          │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │                                                                │
+                           │  r refresh  Tab tabs/body  ←→ provider  Esc close              │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+ payments-platform › the-architect   PR #482 · Settlement retry backoff                       Session 38% · Weekly 33%
+ r Refresh  Tab Tabs / body  ← → Provider  Esc Close

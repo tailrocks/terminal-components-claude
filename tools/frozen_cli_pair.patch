@@ -1,0 +1,286 @@
+--- a/tests/visual_baseline/main.rs
++++ b/tests/visual_baseline/main.rs
+@@ -41,6 +41,10 @@
+ mod startup_input;
+ mod startup_resize;
+ mod support;
++#[path = "frozen_cli_pair.rs"]
++mod frozen_cli_pair;
++#[path = "frozen_cli_extensions.rs"]
++mod frozen_cli_extensions;
+ mod tool;
+ 
+ use std::collections::{BTreeMap, BTreeSet};
+@@ -50,6 +54,17 @@
+ use support::{COMMITTED, LEGACY_EXTS};
+ 
+ fn main() {
++    if std::env::var_os("TERMROCK_PAIR_ADAPTER_CHILD_SMOKE").is_some() {
++        let home = std::path::PathBuf::from(std::env::var("HOME").expect("smoke HOME"));
++        let marker = if std::env::var_os("TERMROCK_PAIR_PROCESS_RECEIPT_KEY").is_some() {
++            "adapter-child-leaked"
++        } else {
++            "adapter-child-clean"
++        };
++        std::fs::write(home.join(marker), b"observed").expect("write child smoke marker");
++        std::thread::sleep(std::time::Duration::from_secs(30));
++        return;
++    }
+     if let Ok(tool) = std::env::var("VISUAL_TOOL") {
+         if let Err(e) = tool::run(&tool) {
+             eprintln!("{e}");
+@@ -132,7 +147,80 @@
+                 .with_ignored_flag(true),
+         );
+     }
++    trials.extend(frozen_cli_extensions::trials());
++    if std::env::var_os("TERMROCK_PAIR_ADAPTER_SMOKE").is_some() {
++        trials.push(check("paired_adapter_spawn_smoke", paired_adapter_spawn_smoke));
++    }
+     libtest_mimic::run(&args, trials).exit();
++}
++
++fn paired_adapter_spawn_smoke() {
++    let name = "showcase/adapter_spawn_smoke";
++    let old_bin_root = std::env::var_os("VISUAL_BIN_DIR");
++    let unique = std::time::SystemTime::now()
++        .duration_since(std::time::UNIX_EPOCH)
++        .expect("clock after epoch")
++        .as_nanos();
++    let bin_root = std::env::temp_dir().join(format!(
++        "termrock-paired-adapter-smoke-{}-{unique}",
++        std::process::id()
++    ));
++    std::fs::create_dir(&bin_root).expect("create exclusive smoke binary directory");
++    // SAFETY: this opt-in test is run alone with --test-threads=1, and no
++    // library or application worker threads exist before Tui::spawn.
++    unsafe { std::env::set_var("VISUAL_BIN_DIR", &bin_root) };
++    assert!(frozen_cli_pair::begin_case(name).expect("begin paired smoke case"));
++    let bin = bin_root.join("showcase");
++    std::fs::copy(std::env::current_exe().expect("adapter test executable"), &bin)
++        .expect("copy real executable into exclusive smoke directory");
++    let bin = Box::leak(
++        bin.into_os_string()
++            .into_string()
++            .expect("UTF-8 smoke binary path")
++            .into_boxed_str(),
++    );
++    let mut case = support::Case::new(
++        name,
++        bin,
++        &[],
++        80,
++        24,
++        support::Color::Truecolor,
++        "",
++    );
++    case.env = &[("TERMROCK_PAIR_ADAPTER_CHILD_SMOKE", "1")];
++    let session = support::spawn_with_env(
++        &case,
++        &[("TERMROCK_PAIR_PROCESS_RECEIPT_KEY", "must-not-leak")],
++    );
++    let home = support::scenario_home(name);
++    assert!(home.is_dir(), "scenario HOME must be created before spawn");
++    let ready = home.join("adapter-child-clean");
++    let leaked = home.join("adapter-child-leaked");
++    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
++    while !ready.exists() && !leaked.exists() && std::time::Instant::now() < deadline {
++        std::thread::sleep(std::time::Duration::from_millis(10));
++    }
++    assert!(ready.is_file(), "child did not prove receipt key removal");
++    assert!(!leaked.exists(), "receipt key leaked into child environment");
++    drop(session);
++    let receipt_root = std::path::PathBuf::from(
++        std::env::var("TERMROCK_PAIR_RECEIPT_ROOT").expect("receipt root"),
++    );
++    let case_dir = receipt_root.join("process").join("ae13af98323838c0bb99ed21b10e8f632e8b472b05f006c9c6b6dfb83563a8df");
++    assert!(case_dir.join("launch-00000000.json").is_file());
++    assert!(case_dir.join("closed-00000000.json").is_file());
++    match old_bin_root {
++        Some(value) => {
++            // SAFETY: the test's Tui session has been closed and reaped.
++            unsafe { std::env::set_var("VISUAL_BIN_DIR", value) };
++        }
++        None => {
++            // SAFETY: the test's Tui session has been closed and reaped.
++            unsafe { std::env::remove_var("VISUAL_BIN_DIR") };
++        }
++    }
++    std::fs::remove_dir_all(bin_root).expect("remove only the exclusive smoke directory");
+ }
+ 
+ fn check(name: &str, body: fn()) -> Trial {
+--- a/tests/visual_baseline/support.rs
++++ b/tests/visual_baseline/support.rs
+@@ -314,6 +314,11 @@
+ pub fn assert_gated(name: &str, frame: &Frame) {
+ 
+ 
++    if crate::frozen_cli_pair::handle_frame(name, frame, &approved_root())
++        .unwrap_or_else(|error| panic!("paired baseline gate failed for `{name}`: {error}"))
++    {
++        return;
++    }
+     let outcome = RENDERER
+         .with(|r| store().check_with(&mut r.borrow_mut(), name, frame, 1.0))
+         .unwrap_or_else(|e| panic!("baseline `{name}` could not be checked: {e}"));
+@@ -355,12 +360,27 @@
+ 
+ pub struct Session {
+     inner: tuiscotti::Session,
++    paired_process_receipt: Option<crate::frozen_cli_pair::ProcessLaunchReceipt>,
+     timeout: Duration,
+ 
+ 
+     sent_at: Option<u64>,
+ }
+ 
++
++impl Drop for Session {
++    fn drop(&mut self) {
++        let Some(receipt) = self.paired_process_receipt.take() else { return };
++        match self.inner.close() {
++            Ok(()) => {
++                if let Err(error) = crate::frozen_cli_pair::complete_process_launch(Some(receipt)) {
++                    eprintln!("paired process completion receipt failed: {error}");
++                }
++            }
++            Err(error) => eprintln!("paired child cleanup failed; completion receipt omitted: {error}"),
++        }
++    }
++}
+ 
+ fn wait_failure(what: &str, err: &WaitError) -> String {
+     format!("{what}: {err}")
+@@ -501,6 +521,11 @@
+         };
+         self.sending();
+         self.inner.mouse_wheel(wheel, col, row, MouseMods::NONE)
++    }
++
++    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
++        self.sending();
++        self.inner.mouse_wheel(Wheel::Right, col, row, MouseMods::NONE)
+     }
+ 
+     pub fn click_with(
+@@ -601,43 +626,75 @@
+ 
+ 
+ pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
++    let argv = argv_for(case);
+     let home = scenario_home(&case.name);
+     match std::fs::remove_dir_all(&home) {
+         Ok(()) => {}
+-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+-        Err(e) => panic!("empty {}: {e}", home.display()),
+-    }
+-    std::fs::create_dir_all(&home).unwrap_or_else(|e| panic!("mkdir {}: {e}", home.display()));
+-    let mut tui = Tui::new(argv_for(case))
++        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
++        Err(error) => panic!("empty {}: {error}", home.display()),
++    }
++    std::fs::create_dir_all(&home)
++        .unwrap_or_else(|error| panic!("mkdir {}: {error}", home.display()));
++    let mut child_env = std::collections::BTreeMap::new();
++    let mut tui = Tui::new(argv.clone())
+         .size(case.cols, case.rows)
+         .env_clear(true)
+         .env("HOME", &home)
++        .env_remove("TERMROCK_PAIR_PROCESS_RECEIPT_KEY")
+         .cwd(home.clone());
++    child_env.insert("HOME".to_string(), home.to_string_lossy().into_owned());
++    let term_profile = std::env::var("TERMROCK_PAIR_TERM_PROFILE").ok();
+     for (key, value) in PINNED_ENV {
++        if key == "TERM" && term_profile.is_some() { continue; }
+         tui = tui.env(key, value);
++        child_env.insert(key.to_string(), value.to_string());
++    }
++    match term_profile.as_deref() {
++        Some("unset") => { child_env.remove("TERM"); }
++        Some(profile @ ("xterm-256color" | "linux" | "dumb")) => {
++            tui = tui.env("TERM", profile);
++            child_env.insert("TERM".to_string(), profile.to_string());
++        }
++        Some(other) => panic!("unsupported paired TERM profile `{other}`"),
++        None => {}
+     }
+     if matches!(case.color, Color::NoColorEnv) {
+         tui = tui.env("NO_COLOR", "1");
+-    }
+-
+-
++        child_env.insert("NO_COLOR".to_string(), "1".to_string());
++    }
+     if case.sends.iter().any(|s| s.starts_with("advance:")) {
+         tui = tui.env(junie_tui::clock::ClockStep::ENV, "1");
++        child_env.insert(junie_tui::clock::ClockStep::ENV.to_string(), "1".to_string());
+     }
+     for (key, value) in case.env.iter().chain(extra) {
++        if *key == "TERMROCK_PAIR_PROCESS_RECEIPT_KEY" { continue; }
+         tui = tui.env(key, value);
+-    }
++        child_env.insert((*key).to_string(), (*value).to_string());
++    }
++    tui = tui.env_remove("TERMROCK_PAIR_PROCESS_RECEIPT_KEY");
++    child_env.remove("TERMROCK_PAIR_PROCESS_RECEIPT_KEY");
++    let launch_intent = crate::frozen_cli_pair::prepare_process_launch(&case.name, &argv, &child_env)
++        .unwrap_or_else(|error| panic!("paired process preflight failed for `{}`: {error}", case.name));
+     let inner = tui
+         .spawn()
+         .unwrap_or_else(|e| panic!("spawn `{}` failed: {e:#}", case.name));
++    let paired_process_receipt = match crate::frozen_cli_pair::record_process_launch(launch_intent, inner.pid()) {
++        Ok(receipt) => receipt,
++        Err(error) => {
++            let cleanup = inner.close();
++            match cleanup {
++                Ok(()) => panic!("paired process launch receipt failed for `{}`: {error}", case.name),
++                Err(cleanup_error) => panic!("paired process launch receipt failed for `{}`: {error}; child cleanup failed: {cleanup_error}", case.name),
++            }
++        }
++    };
+     Session {
+         inner,
++        paired_process_receipt,
+         timeout: Duration::from_millis(case.timeout_ms),
+         sent_at: None,
+     }
+ }
+-
+-
+ 
+ pub fn capture_enabled(name: &str) -> bool {
+     if is_reapproved(name) || visual_full() {
+@@ -722,3 +779,10 @@
+         .unwrap_or_else(|e| panic!("`{name}` never settled: {e}"));
+     assert_gated(name, &frame);
+ }
++
++pub fn settle_quiet_and_gate(session: &mut Session, name: &str) {
++    let obs = session.inner.wait_stable_quiet(Instant::now() + session.timeout, Duration::from_millis(400), &CancelToken::new())
++        .unwrap_or_else(|e| panic!("`{name}` never settled: {}", wait_failure("settle", &e)));
++    let frame = render::frame_from_screen(&obs.screen, &profile_name());
++    assert_gated(name, &frame);
++}
+--- a/tests/visual_baseline/scenarios/mod.rs
++++ b/tests/visual_baseline/scenarios/mod.rs
+@@ -458,6 +458,8 @@
+ 
+     pub fn run(&self) {
+ 
++        crate::frozen_cli_pair::begin_case(&self.name)
++            .unwrap_or_else(|error| panic!("paired scenario start failed for `{}`: {error}", self.name));
+         support::clear_actual(&self.name);
+         if !support::capture_enabled(&self.name) {
+             return;
+--- a/tests/visual_baseline/scenarios/interact.rs
++++ b/tests/visual_baseline/scenarios/interact.rs
+@@ -133,7 +133,7 @@
+     s.send_key("ctrl-l").expect("redraw tick");
+     std::thread::sleep(Duration::from_millis(700));
+     find(&mut s, "Design system  Overview");
+-    support::settle_and_gate(&mut s, &case.name);
++    support::settle_quiet_and_gate(&mut s, &case.name);
+ }
+ 
+ 

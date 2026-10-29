@@ -1,0 +1,328 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "decision": "HOLD",
+  "reviewed_commit": "25d2a36137be15e5aba140e280becbd918427bb9",
+  "exact_parent_tested": "48c5fc33b81626925d67facb278c7656e625b887",
+  "prior_increment_review_sha256": "84ad78de4a0c6482c2e383d6f9acdcb6a3ac81f0941fe3cefc2873a92404a9af",
+  "frozen_reference": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "scope": "Incremental source inspection and exact-revision public Runtime/native probes in separate sparse detached copies. No moving tip followed, no product source edits or pushes, no helpers. Per-revision and, after rejecting a stale-inventory attempt, per-consumer Cargo targets. Commands were bounded to 200 seconds work plus 10 seconds TERM and four seconds KILL cleanup.",
+  "improvements": [
+    "The unused private draw_historical_manager implementation and HistoricalPalette module are removed, reducing duplicate application source. These deletions are useful cleanup; this review does not request restoring them.",
+    "Existing borrowed view-data extraction now supplies the same split under the detail and help paths. No new public Termrock API or required struct field is added by 25; its place_cursor parameter is private application code.",
+    "The existing shared HelpOverlay renderer remains in use for the card. Rendering through it alone does not establish actual state/update/layer ownership."
+  ],
+  "new_findings": [
+    {
+      "id": "D1",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "lines": [
+        9059,
+        9062,
+        9064,
+        9068
+      ],
+      "title": "New application pixel correction hides a shared manager focus bar after drawing the help card",
+      "evidence": "The new code paints a blank at fixed cell (3,3), using literal foreground/background RGB #173f1c, after paint_pinned_split and manager_help::draw. This is explicitly a visual correction for the manager gutter. It does not change actual focus, layer scope or input routing. It violates the requirement to fix focus/inactive-layer appearance in shared component/theme rules instead of repainting widget pixels in the application.",
+      "repair": "Remove the correction when the real shared manager/tree and modal help lifecycle own inactive-layer state. Pass the shared state/style policy once; do not move or rename this blanking patch, and do not restore HistoricalPalette."
+    }
+  ],
+  "newly_demonstrated_inherited_product_findings": [
+    {
+      "id": "D2",
+      "priority": "P1",
+      "paths": {
+        "crates/jackin-preview-app/src/app.rs": [
+          4747,
+          4575,
+          9059,
+          9971
+        ],
+        "crates/jackin-preview-app/src/app/manager_help.rs": [
+          90
+        ]
+      },
+      "title": "Visible manager help is a renderer without its modal input/update lifecycle",
+      "classification": "Present on both exact parent 48 and candidate 25; not claimed as newly introduced by 25.",
+      "evidence": "Opening ? leaves the top layer at LayerId(0). Down changes the background manager selection from Workspace(1) to Workspace(2). The real rendered Done control has a registration, but clicking it does not close help. The app sets help_open/status, draws HelpOverlay with a fresh default state, and never calls its update method or opens its layer. All three public Runtime probes fail on both revisions.",
+      "frozen_evidence": "Frozen app.rs:1058 constructs HelpOverlay::from_keymaps and calls open_layer; app_tests_layers.rs:155 requires a top HelpOverlay. Frozen app_tests_pointer.rs:56 drives its real scrollbar and checks changing scroll state.",
+      "repair": "Use the shared HelpOverlay layer, one persistent public HelpOverlayState, update/draw configuration, and typed close actions. Let the shared layer block background interaction and restore focus; remove manual underlay geometry and focus blanking."
+    },
+    {
+      "id": "D3",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "lines": [
+        6219,
+        6232,
+        6268,
+        9760
+      ],
+      "title": "The detail drawer paints focus for a detail control that was not rendered",
+      "classification": "Present on both exact parent 48 and candidate 25.",
+      "evidence": "After Tab at Returning/Paused/120x40, the screen paints the detail heading/focus gutter, while actual focus is Some(jackin.preview accounts) and the public manager DETAIL ID has no registered area. The selector explicitly uses Accounts focus as the trigger for the apparent detail frame. The unchanged public Runtime probe fails on both revisions.",
+      "repair": "Let the shared master-detail block resolve real detail geometry and focus ownership. Render its actual header/action controls and use that layout for input. Do not patch a focus gutter/title over an unrelated focused Accounts control."
+    }
+  ],
+  "prior_hold_disposition": [
+    {
+      "id": "M1",
+      "status": "persists",
+      "evidence": "ManagerSplit source is byte-identical across 48 and 25, SHA256 a5614c25b1a6202f0875270acda97364f9ca1fc08f50816cdd5a0752d263f82c. The same prohibited app-screen painter now also supplies detail/help underlays. Removing the old painter does not create generic Tree/Menu/Button state and action ownership."
+    },
+    {
+      "id": "M2",
+      "status": "persists",
+      "evidence": "The literal payments-platform lookup/fallback, fabricated three-second refresh age, fixed account wrapping, and exact viewport/scenario/motion/accent selectors remain."
+    },
+    {
+      "id": "M3",
+      "status": "persists; reproduced",
+      "evidence": "Painted Launch does not open the picker; clicking the actual registered LAUNCH does. Both revisions retain the same geometry mismatch."
+    },
+    {
+      "id": "M4",
+      "status": "persists; reproduced",
+      "evidence": "The supplied nonorigin area still permits writing outside its left/top bounds."
+    },
+    {
+      "id": "M5",
+      "status": "partially improved at 48, unchanged at 25",
+      "evidence": "Saved long labels remain fixed by shared truncation. Expanded secondary labels still erase the border in both revisions."
+    },
+    {
+      "id": "M6",
+      "status": "persists; reproduced",
+      "evidence": "Literal RGB selection appears under Mono, and the unchanged Returning Mono digest remains red on both revisions."
+    },
+    {
+      "id": "M7",
+      "status": "prior incompatible API change remains; no additional break in 25",
+      "evidence": "The fields added at 48 are unchanged by 25. The API-adapted consumer from the prior review compiles and executes unchanged on both exact revisions. This does not retroactively repair compatibility with 671."
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "jackin-preview-app",
+        "--lib",
+        "--no-fail-fast"
+      ],
+      "before": "24 run: 23 passed, one failed, zero skipped",
+      "after": "22 run: 21 passed, one failed, zero skipped",
+      "failure": "app::paint_contract_tests::historical_failure_and_action_labels_remain_readable_in_mono",
+      "inventory_change": "The deleted HistoricalPalette module also removes two passing tests: every_authored_pair_has_explicit_mono_contrast_in_both_builtin_themes and authored_pairs_keep_colliding_semantic_origins. Those are obsolete implementation tests once the module is deleted, but their useful semantic contrast/role contracts need proof in the real shared replacement. No lower test count is presented as improved coverage."
+    },
+    {
+      "scope": "Five unchanged real-application cases from the prior 48 review",
+      "before": "3 passed, two failed, zero skipped",
+      "after": "3 passed, two failed, zero skipped",
+      "failures": [
+        "unchanged_returning_mono_scene_digest",
+        "painted_launch_button_activates_the_real_launch_picker"
+      ],
+      "positive_control": "actual_registered_launch_still_opens_picker passes on both revisions. The other passing cases record Returning/HardCases frame and geometry facts, not acceptance."
+    },
+    {
+      "scope": "Six unchanged API-adapted manager probes from prior 48 review, final runs with dedicated per-consumer targets",
+      "before": "3 passed, three failed, zero skipped",
+      "after": "3 passed, three failed, zero skipped",
+      "failures": [
+        "nonorigin_area_keeps_paint_inside_bounds",
+        "expanded_long_workspace_does_not_erase_border",
+        "monochrome_ui_does_not_emit_rgb_selection_fill"
+      ]
+    },
+    {
+      "scope": "Four new unchanged public Runtime help/detail probes",
+      "before": "0 passed, four failed, zero skipped",
+      "after": "0 passed, four failed, zero skipped",
+      "failures": [
+        "manager_help_owns_a_modal_input_scope",
+        "manager_help_navigation_does_not_move_background_selection",
+        "visible_help_done_closes_the_overlay",
+        "tab_detail_focus_has_a_rendered_owner"
+      ]
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "48c5fc33b",
+        "25d2a361",
+        "--",
+        "crates/jackin-preview-app/src/app.rs"
+      ],
+      "exit": 0
+    }
+  ],
+  "review_test_integrity": {
+    "observation": "The first manager API run shared a target with a different external consumer having the same package name and version. Its log executed the wrong five-case inventory rather than the intended six-case API inventory. That result is rejected and preserved in before/after-api-consumer-stale-rejected.log.",
+    "correction": "Both API consumers were rerun with fresh before-api-target and after-api-target directories. The final logs list the expected six named API tests and show the expected three failures. Help probes use separate before-help-target and after-help-target directories. No product source or expected data was changed.",
+    "causal_limit": "This review does not attribute the artifact reuse to a particular Cargo/cache layer without further diagnosis. Different external consumer workspaces must not share a target for source-sensitive evidence."
+  },
+  "responsible_repair_sequence": [
+    "Keep the deletion of the obsolete private implementation; do not restore it to pass images.",
+    "Adopt the reviewed generic shared manager/master-detail/tree/action contracts with real data, keys, state, measurement and typed actions. Remove exact-state correction screen paths when actual component flows pass.",
+    "Wire manager HelpOverlay through its existing real layer and update contract, preserving state and focus restoration. Use shared inactive-layer styling instead of coordinate blanking.",
+    "Replace the fake detail drawer with actual shared detail focus and controls; remove raw title/border/hint patch loops.",
+    "Re-establish profile/contrast and semantic-role coverage against the shared implementation, then run frozen real-CLI paired flows before accepting any zero-cell claim."
+  ],
+  "coverage_limits": [
+    "No complete Jackin/Feedback integration suite, strict Clippy, whole-workspace formatting/tests, hosted CI, or twice-complete real CLI/Tuiscotti comparison was run in this incremental review.",
+    "No new frozen binary captures were taken. Frozen source/tests corroborate the real help-layer contract; native digest checks are supplementary regression evidence.",
+    "No screenshot author report or removed function name is accepted as proof of either product parity or reusable-library completion.",
+    "This review does not approve unrelated commits or incoming changes synchronized into the branch."
+  ],
+  "evidence_files": {
+    "after-api-consumer-Cargo.toml": {
+      "sha256": "0d331929da1bf8561d6d10667981383d0c350a32ea3f626de1da3fbf667cf47d",
+      "bytes": 411
+    },
+    "after-api-consumer-api-facts.txt": {
+      "sha256": "86d84e5083f3b24d2ae890736af92064bec9ba77822cb922e932629cfb22fa99",
+      "bytes": 5356
+    },
+    "after-api-consumer-lib.rs": {
+      "sha256": "4bbf9d7b24c09a0abc1af69e2158fbe11584cf7ed306f949ea54d75d7a3c85e8",
+      "bytes": 2550
+    },
+    "after-api-consumer-stale-rejected.log": {
+      "sha256": "2ebc481badd8b886b29d4be21eecc4e8d94894d559d7a0a7a7a0cb9d919a6ce5",
+      "bytes": 3638
+    },
+    "after-api-consumer.log": {
+      "sha256": "87736d81ece836ee3b0c514c47cffdc8b123bb577d0077bc3e49818175c7e822",
+      "bytes": 9626
+    },
+    "after-consumer-Cargo.toml": {
+      "sha256": "0d331929da1bf8561d6d10667981383d0c350a32ea3f626de1da3fbf667cf47d",
+      "bytes": 411
+    },
+    "after-consumer-app-facts.txt": {
+      "sha256": "531c9f8e9cc5dfa1483f8a2623be8df68a59e0d3e4941504f0ecbf7678870455",
+      "bytes": 30770
+    },
+    "after-consumer-hard-cases-facts.txt": {
+      "sha256": "83cb1a371389d930c1ebefc03962f22abc3c3cd4080ed08da66b0b44d8793ef4",
+      "bytes": 31032
+    },
+    "after-consumer-lib.rs": {
+      "sha256": "4fb39c9b7509942f197ed558751e4587607a0e54d766c9aa8a1ee94ae1f883bb",
+      "bytes": 2395
+    },
+    "after-consumer.log": {
+      "sha256": "bdeac540c80fa880510c3290763b9076a694f667579c25ca6c3a98c932828082",
+      "bytes": 9262
+    },
+    "after-help-consumer-Cargo.toml": {
+      "sha256": "0d331929da1bf8561d6d10667981383d0c350a32ea3f626de1da3fbf667cf47d",
+      "bytes": 411
+    },
+    "after-help-consumer-lib.rs": {
+      "sha256": "d906c63e3d0d6bed6f68996362cbfc42eead7d284c97d5c302ee0266350aac4f",
+      "bytes": 1540
+    },
+    "after-help-consumer.log": {
+      "sha256": "2df8053ee837a8296a2f35ad8971e36286e7a4701848e4d207f5e4d2f1c790c9",
+      "bytes": 10386
+    },
+    "after-nextest.log": {
+      "sha256": "21883eef4f828cc0cd3a0ebf4d86c0546217e47478e2fb9b542152430141d819",
+      "bytes": 10164
+    },
+    "api-consumer-status.json": {
+      "sha256": "7c42f0cb8184d0b39b14f0f62a48511b084de5192144a4152b04f601ac61d924",
+      "bytes": 355
+    },
+    "api-run.py": {
+      "sha256": "64874c9d9f140fc3b89119075e5e2456d6808561c581b37e4454346384556f2d",
+      "bytes": 999
+    },
+    "before-api-consumer-Cargo.toml": {
+      "sha256": "db9439bfeca477ff615fa59dc07029f2877de15bff6741917b2a592fe966af05",
+      "bytes": 414
+    },
+    "before-api-consumer-api-facts.txt": {
+      "sha256": "86d84e5083f3b24d2ae890736af92064bec9ba77822cb922e932629cfb22fa99",
+      "bytes": 5356
+    },
+    "before-api-consumer-lib.rs": {
+      "sha256": "4bbf9d7b24c09a0abc1af69e2158fbe11584cf7ed306f949ea54d75d7a3c85e8",
+      "bytes": 2550
+    },
+    "before-api-consumer-stale-rejected.log": {
+      "sha256": "71df49ca16f6644526ed75681ff4b00ecc9ff888d27dae82317aa73a0e9fabd4",
+      "bytes": 3657
+    },
+    "before-api-consumer.log": {
+      "sha256": "e0b215178688f4fb04b74f976a0a58759bc2e47642bba93d32299a5cae17243c",
+      "bytes": 9547
+    },
+    "before-consumer-Cargo.toml": {
+      "sha256": "db9439bfeca477ff615fa59dc07029f2877de15bff6741917b2a592fe966af05",
+      "bytes": 414
+    },
+    "before-consumer-app-facts.txt": {
+      "sha256": "531c9f8e9cc5dfa1483f8a2623be8df68a59e0d3e4941504f0ecbf7678870455",
+      "bytes": 30770
+    },
+    "before-consumer-hard-cases-facts.txt": {
+      "sha256": "83cb1a371389d930c1ebefc03962f22abc3c3cd4080ed08da66b0b44d8793ef4",
+      "bytes": 31032
+    },
+    "before-consumer-lib.rs": {
+      "sha256": "4fb39c9b7509942f197ed558751e4587607a0e54d766c9aa8a1ee94ae1f883bb",
+      "bytes": 2395
+    },
+    "before-consumer.log": {
+      "sha256": "b33b378a99cc220b3b1a7ab5c1b525f7286538de30c67e5aef316b5366bc64af",
+      "bytes": 9251
+    },
+    "before-help-consumer-Cargo.toml": {
+      "sha256": "db9439bfeca477ff615fa59dc07029f2877de15bff6741917b2a592fe966af05",
+      "bytes": 414
+    },
+    "before-help-consumer-lib.rs": {
+      "sha256": "d906c63e3d0d6bed6f68996362cbfc42eead7d284c97d5c302ee0266350aac4f",
+      "bytes": 1540
+    },
+    "before-help-consumer.log": {
+      "sha256": "8a46dc58a68de45cefcbf3b39123e001369ff00ea833400f55205b91fc95125e",
+      "bytes": 10521
+    },
+    "before-nextest.log": {
+      "sha256": "81f2a92662775600d51d76327ee6cdc78cb39d2cc849b510b2111c2772c88a52",
+      "bytes": 9991
+    },
+    "consumer-run.py": {
+      "sha256": "d5855b3f3166862c697f71243f83aa0fe989c852147180339bcc820d7a11b04d",
+      "bytes": 983
+    },
+    "consumer-status.json": {
+      "sha256": "089bc8f8da23fdb4bac5e193fb5840b6e0ab05760d49b89ec4bb25ffb87d6dea",
+      "bytes": 357
+    },
+    "help-consumer-status.json": {
+      "sha256": "bee6675dd87b8c7fa7c490bd85143582d21e48a42682b6fd672aeede7df84043",
+      "bytes": 354
+    },
+    "help-run.py": {
+      "sha256": "b213e19bbf8cc4695ec6321bdeb018b213c50fc3f082dc6deffc042a9fff079d",
+      "bytes": 1003
+    },
+    "native-run.py": {
+      "sha256": "cdcdd098a593ae792b8971f079d84c57b2a2cb769ccb4d5d29e9da4e4b54f4f3",
+      "bytes": 1000
+    },
+    "native-status.json": {
+      "sha256": "690193b04e7523f4de990bc306918ca442761ca18ef956036a6c3490b0fad953",
+      "bytes": 466
+    }
+  }
+}

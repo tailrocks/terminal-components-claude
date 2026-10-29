@@ -1,0 +1,88 @@
+{
+  "merge_commit": "57e803cf7",
+  "source_commit": "5cd181530ba61781cf6a2c69d97895a9b0741275",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-grid",
+        "-p",
+        "termrock-fields",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing",
+        "--status-level",
+        "fail",
+        "--final-status-level",
+        "fail"
+      ],
+      "exit_code": 100,
+      "log": "/private/tmp/termrock-parent-grid-5cd-0.log",
+      "sha256": "26e67b4b8350081ace94d46d0f5d627455e3807d9e9bd5c25384ab001dcc10a8"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-grid",
+        "-p",
+        "termrock-fields",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-grid-5cd-1.log",
+      "sha256": "758713c7e055f2f2497c4bf86ff97be8c4c8cbe9761727edd990ec14a9b85253"
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "termrock-grid",
+        "-p",
+        "termrock-fields",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-runtime",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-grid-5cd-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "nextest": {
+    "passed": 832,
+    "failed": 2,
+    "skipped": 3,
+    "failures": [
+      "ui::measure::tests::natural_width_follows_the_themed_glyph",
+      "all_73_junie_slots_match_reference_capability_output"
+    ]
+  },
+  "decision": "Protected integration only. Independent focus-measurement diagnosis required before PR38 delivery. Palette acceptance remains unresolved."
+}

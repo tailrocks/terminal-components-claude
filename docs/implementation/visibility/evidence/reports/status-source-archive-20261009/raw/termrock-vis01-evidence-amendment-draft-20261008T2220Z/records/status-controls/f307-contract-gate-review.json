@@ -1,0 +1,97 @@
+{
+  "schema": "termrock-e2e/affected-holla-f307-rust-gate-actual-review-v1",
+  "verdict": "READY_FOR_LOCAL_6_PATH_RECONCILIATION",
+  "reviewed_at_utc": "2026-10-08T21:49:36Z",
+  "runner": {
+    "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/run-affected-f307-r4.cjs",
+    "sha256": "14b57e85a9db72081a5fc1b7231d113a668e1efd84853d8e5dd8cf37668f7932",
+    "freeze_path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/runner-freeze-r4.json",
+    "freeze_sha256": "dfb124e45fb77fbfc9364f2b470fd3da9125c001c1146a500c34455860fddbb4",
+    "prior_focused_review": {
+      "path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/runner-review-r4.json",
+      "sha256": "307300879004e6161223e46ab91161d10bf5b8c12d0afb3513806b99b1acecad",
+      "verdict": "READY"
+    }
+  },
+  "actual_run": {
+    "receipt_path": "/private/tmp/termrock-vis02-holla-affected-f307-20261009/attempt-1/final-receipt.json",
+    "receipt_sha256": "11bbc2548897ff83126aa6585266e21dd657ce7556dc4195362489d64f81e4a8",
+    "sidecar_matches_receipt": true,
+    "status": "PASS",
+    "start_utc": "2026-10-08T21:45:49.897Z",
+    "end_utc": "2026-10-08T21:46:01.724Z",
+    "elapsed_ms": 11827,
+    "deadline_ms": 1200000,
+    "stages": ["list-holla", "list-shared", "contract"],
+    "completed_all_stages": true,
+    "timeouts": 0,
+    "source_suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+    "nextest_run_id": "fec35e1d-2bfb-4745-9a53-eefa72a7b919"
+  },
+  "raw_output_hashes": [
+    {"stage":"list-holla","stdout":"ca86b41f95b76634a452cbbd1bb701cd16fad01372c282829dc3c8155cc0fd11","stderr":"7419dd2e70c9d5274c126aa7bc1b49a943f3ad357324629b4810eaafa88dd15d","events":"65db30e6de4eae0d96ad5990245640684cdf2c4eededc0c0692579e9355b9075"},
+    {"stage":"list-shared","stdout":"0fe6c083171a0ea9257b3b135a86ccadc24f69a275c78ea7e880d93b1b3d4ef0","stderr":"fddc691d0b357caaafa141d41a0d3cdf71e67765e2d4ee9f06a8dbfea904d646","events":"07339fd54233edf7e3d4d41712c64bda35d995de4386ee941c8f89535e1ba715"},
+    {"stage":"contract","stdout":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","stderr":"e1f233aefb174a8eade96c090422e895bdaa6df81c26d48fb38459ada125b930","events":"0be5a60c139142f6287690b82cf82ddf52f6f6fc5c6f5517380331260269fa53"}
+  ],
+  "selection_and_results": {
+    "list_holla_raw_ids": ["holla_help_overlay", "holla_write_policy_preflight"],
+    "list_shared_raw_ids": ["holla_help_overlay_004", "jackin_editor_save_cancel_120x40_truecolor", "showcase_dialog_001", "tablepro_table_001_120x40_truecolor"],
+    "contract_filter": "test(=registry_contains_four_seed_cases_and_holla_checkpointed_preconditions)",
+    "contract_counts": {"selected":1,"binaries":1,"executed":1,"passed":1,"failed":0,"skipped":0,"other_tests_filtered":9},
+    "contract_raw_pass_line": "PASS [0.010s] (1/1) termrock-e2e::contract registry_contains_four_seed_cases_and_holla_checkpointed_preconditions",
+    "all_nine_raw_output_hashes_match_receipt": true
+  },
+  "source_and_tool_closure": {
+    "source_freeze_path": "/private/tmp/termrock-vis02-holla-compat-20261009/freeze.json",
+    "source_freeze_sha256": "ab23ea0c5258edba27753fe598c750213a3ad0ee00ad9df0a4b29ffe6ef9d3fd",
+    "source_file_count": 21,
+    "source_suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+    "independently_recomputed_current_source_matches_freeze_and_receipt": true,
+    "all_three_stage_before_after_source_member_snapshots_match": true,
+    "pinned_tool_before_after_records_rechecked": 30,
+    "all_tool_hashes_match_recorded_pins": true,
+    "compiled_build_output_path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/build/termrock-e2e-782e392adc52a292/output",
+    "compiled_build_output_sha256": "d78263f6e55c236f13f899303fe9d2d3a992e38d169f04e8c1ec8212c7c2ac33",
+    "compiled_output_suite_sha256": "f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361",
+    "compiled_rlib_path": "/private/tmp/termrock-4app-run03-controls-0c3745-20261009-attempt-r2-1/target/debug/deps/libtermrock_e2e-414fb51c3d5b79bf.rlib",
+    "compiled_rlib_sha256": "57522f30f4b1143a25461d198cb46b603725eadf799992f10f24b327a221c5d9",
+    "compiled_rlib_bytes": 24094064,
+    "compiled_rlib_rechecked_and_embeds_f307_digest": true
+  },
+  "reconciliation_preconditions": {
+    "proposal_path": "/private/tmp/termrock-vis02-reconciliation-f307-holla-compat-20261009.md",
+    "proposal_sha256": "5146c58384ca3987a0329eb958840e9028be8b3a05b1f61d257869b9e8990113",
+    "proposal_review_path": "/private/tmp/termrock-vis02-reconciliation-f307-holla-compat-20261009-independent-review.json",
+    "proposal_review_sha256": "ff7f95bebe0adf0b49512eeeb42686d7f899ebc075f1b08dd35afe32d13b8ce1",
+    "proposal_review_verdict": "READY",
+    "current_task_record_sha256": "76cb0eb1f0cf759640a4e91aa5064143a712a1a1a2836d2115af81ce2895cf18",
+    "current_queue_sha256": "478eaa8bb18f17889b97da71d079b75eab503bda81c02db1ee65fe5cee3fdb27",
+    "claim_token": "visibility-suite-20261008-02",
+    "claim_owner": "/root/suite_luna",
+    "queue_revision": 25,
+    "accepted_base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+    "allowed_paths": ["crates/termrock-e2e/**"],
+    "other_open_claim_overlaps": [],
+    "local_package_root": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/crates/termrock-e2e",
+    "local_current_file_count": 19,
+    "local_current_suite_sha256": "a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0",
+    "all_six_overlay_preconditions_match": true,
+    "overlay_replace_preimages": {
+      "Cargo.toml":"702dac135bc58215220797062ef67e948eb2960d2473eedf0efe03f609af39bf",
+      "Cargo.lock":"7d2811ca72f03c2c1946f302e53f10cda65225df466236d9c867333b41453bce",
+      "cases/registry.json":"7631aafc3f3699e027cd3b72610164efacea32936e3930814fdf58d4f3bf45c8",
+      "tests/contract.rs":"67f37f0737c692a746206acef3a4dc727b3a966baa3b1e571345bc232a337b1b"
+    },
+    "overlay_additions_absent": ["tests/command_lane.rs", "tests/shared_journeys.rs"],
+    "preserved_holla_test_sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5",
+    "task_and_queue_hashes_match_reused_q25_review": true
+  },
+  "findings": [],
+  "limitations": [
+    "Only the one non-product contract test executed; nine other tests were filtered, and the two Nextest list stages did not execute tests.",
+    "The legacy Holla acceptance test and shared Holla selector remain a single coverage case; this gate does not execute either product journey.",
+    "No product launch, RUN-03 command execution, screenshot review, expected-generation write, or admission is established.",
+    "Readiness here means the reviewed six-path local reconciliation preconditions match; it is not an instruction or claim that reconciliation has been applied."
+  ],
+  "local_effects": "No repository file, index, branch, tag, or ref was changed by this evidence review."
+}

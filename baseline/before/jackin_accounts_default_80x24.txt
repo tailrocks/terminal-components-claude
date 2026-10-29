@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help               Accounts › Overview  ⠋ refreshing 1
+
+ ╭─ Accounts ─────────────────────────────────── 12 · 4 ▲ · 4 ! · 1–11 of 23 ─╮
+ │ ▎   Overview                                                             ┃ │
+ │ ▎ ▾ Claude                                                         !   3 ┃ │
+ │ ▎   ★ Personal                                             current 4 min ┃ │
+ │ ▎     Archived contractor laptop profile — do not use for pro…  disabled ┃ │
+ │ ▎     Work                                              !   stale 47 min ┃ │
+ │ ▎ ▾ Codex                                                              2 │ │
+ │ ▎   ★ Primary                                              current 2 min │ │
+ │ ▎     Experiments                                           ⠋ refreshing │ │
+ │ ▎ ▾ Amp                                                            ▲   1 │ │
+ │ ▎     discovered                                       ▲   current 1 min │ │
+ │ ▎ ▾ Grok                                                               1 │ │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+   Overview                           12 accounts · 8 providers · Tab details
+
+   Health  degraded · 4 warnings · 1 exhausted · 2 stale · 1 refreshing · 3 …
+   Registry  12 accounts · 11 enabled · 1 disabled · 8 providers
+   Sources  7 registered · 5 discovered · 1Password available
+
+
+      Enter Details  r Refresh all  a Add…  / Filter  m Usage  Esc Back

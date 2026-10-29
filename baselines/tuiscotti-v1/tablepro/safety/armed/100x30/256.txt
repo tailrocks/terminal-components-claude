@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe        256 colors · 100×30  ? help
+
+  ≡ Query 1 ×                                                                                   +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Query 1 ───────────────────────────────────────────────────────────────────────────────────  ─╮
+ │   ›  1 UPDATE orders SET status = 'paid' WHERE id = 'x'                                        │
+ │           ╭────────────────────────────────────────────────────────────────────────╮           │
+ │           │                                                                        │           │
+ │           │  Execute write query?                                                  │           │
+ │           │                                                                        │           │
+ │           │  Action      UPDATE                                                    │           │
+ │           │  Target      Production · production · acme_prod · orders              │           │
+ │           │  Scope       matching rows in orders                                   │           │
+ │           │  Reversible  Reversible by a compensating UPDATE                       │           │
+ │           │  Safe Mode   Safe Mode · deliberate confirmation required              │           │
+ │           │                                                                        │           │
+ │           │  UPDATE orders SET status = 'paid' WHERE id = 'x'                      │           │
+ │           │                                                                        │           │
+ │           │   Type orders to confirm                                               │           │
+ │           │   orders                                                               │           │
+ │           │                                                                        │           │
+ │           │                                                                        │           │
+ │           │                                                     Cancel  ▎Execute   │           │
+ │           │                                                                        │           │
+ │           ╰────────────────────────────────────────────────────────────────────────╯           │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel                                      Connected to Production

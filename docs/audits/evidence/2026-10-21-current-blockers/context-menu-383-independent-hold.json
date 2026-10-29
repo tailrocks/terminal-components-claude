@@ -1,0 +1,109 @@
+{
+  "reviewer": "/root/context_menu_live_contract_review",
+  "candidate_commit": "383d72e9bc705f50e8ee79be4ad6250b50a279bd",
+  "prior_candidate": "541c57fb7d87f6514e27b0fc75c6beb01db54b51",
+  "original_parent": "6825b07e86bab75872866c6ed49e6877084db9bb",
+  "frozen_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "decision": "HOLD pending executable-chord width correction and inaccurate frozen audit statement. Four original geometry regressions are resolved. Bounded borrowed-hint/owner-part API and corrected geometry may be independently accepted after this narrow correction; it is not necessary to implement the separate runtime resize contract in the same increment. Actual resize and inherited separator parity remain explicit unresolved required work and receive no acceptance credit.",
+  "original_findings": {
+    "CONTEXT-LIVE-1": "RESOLVED for absent-hint/chord rows: no unconditional gap; real MenuBar all-four-profile width36 restored.",
+    "CONTEXT-LIVE-2": "RESOLVED: absent/rejected hint label clip row.width\u22123.",
+    "CONTEXT-LIVE-3": "RESOLVED: title inset2 plus trailing1 gives inner.width\u22123.",
+    "CONTEXT-LIVE-4": "RESOLVED: hint/chord right inset1.",
+    "CONTEXT-LIVE-5": "OPEN: actual resize layer x41 while owner moves x51; no workaround or false clearance. This is a separate runtime/layout ownership contract."
+  },
+  "new_finding": {
+    "id": "CONTEXT-LIVE-6",
+    "severity": "P1",
+    "path": "crates/termrock-overlays/src/menu.rs:517",
+    "documentation_path": "docs/audits/2026-10-21-context-menu-live-data-contract.md:11",
+    "title": "Use the frozen three-cell gap for executable chords too",
+    "evidence": "Correction branches display hints with +3, executable chords with +2. Frozen src/widgets/menu.rs:427-431 computes width(label)+width(shortcut)+3 for any Some(shortcut), then adds chrome6 at437. Independent public measure of label30 and one-cell o returns39 instead of40 in TrueColor, Ansi256, Ansi16, Mono. Same exact probe fails original parent6825 (39), passes first candidate541c57f (40), fails correction383d72e (39). This is an inherited baseline discrepancy reintroduced by the correction, not a newly discovered original-parent regression. The audit statement executable shortcut reserves its frozen two cells is factually incorrect.",
+    "required_fix": "Change executable-chord gap to3, add exact40 regression assertion instead of only width > plain, and correct audit text. Preserve zero gap for absent hint/chord. Do not preserve arbitrary old-candidate dimensions as frozen authority."
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path <correction-consumer>/Cargo.toml --tests --no-fail-fast",
+      "exit": 100,
+      "result": "10 tests run:8 passed,2 failed,0 skipped. Original unchanged9 probes now8/9 pass; actual resize remains red. Additional frozen chord-width probe red across all4 profiles."
+    },
+    {
+      "command": "cargo nextest run -p termrock-overlays --lib -E test(menu::tests::) --no-fail-fast",
+      "exit": 0,
+      "result": "16 pass,57 filtered; not full overlays or product gate."
+    },
+    {
+      "command": "cargo nextest run --manifest-path <541c57f-consumer>/Cargo.toml --test chord_width --no-fail-fast",
+      "exit": 0,
+      "result": "Unchanged chord-width regression probe1/1 passes at541c57f; all4 profiles width40."
+    },
+    {
+      "command": "cargo nextest run --manifest-path <6825-consumer>/Cargo.toml --test chord_width --no-fail-fast",
+      "exit": 100,
+      "result": "Same probe1/1 fails at original parent; all4 profiles width39."
+    }
+  ],
+  "positive_scope": [
+    "Borrowed MenuItem hint remains separate from executable chord, no false binding introduced. Independent live display-only hint rejects 2 and pointer activates typed action. Existing native dynamic remap/remove/chord fallback test remains green.",
+    "Public owner-part anchor works for rendered owner and removal closes real layer. Fixed constructors and layer API preserved. New builder fields remain private; no public state struct or enum variant compatibility change.",
+    "Real MenuBar dropdown all4 profiles returns original/frozen unhinted width36 again. Direct label/title/hint positions tested against fixed frozen source, not just arbitrary candidate output.",
+    "No new fake control/cursor registration. Existing retained-cursor implementation unchanged.",
+    "Zero/narrow rendered regions remain safe in independent external consumer."
+  ],
+  "limits": [
+    "Runtime resize reanchor HOLD and full-width separator versus frozen inset HOLD remain. No application adoption, Showcase/catalog, full interaction Unicode/remap-with-explicit-hint/reordered-owner matrix, or real CLI parity approval.",
+    "No product source edits, helpers, captures, or expected updates. Separate detached correction source and exclusive correction target roots; prior541 and parent6825 use their own revision-specific target roots.",
+    "Initial correction-consumer manifest replacement accidentally changed dependency path to nonexistent correction directory; two initial metadata-only failed logs preserved. Corrected manifest then ran final actual10 tests."
+  ],
+  "paths": {
+    "source": "/private/tmp/context-menu-independent-383d72e-20261021",
+    "external_target": "/private/tmp/context-menu-independent-383d72e-target-20261021",
+    "native_target": "/private/tmp/context-menu-independent-383d72e-native-target-20261021"
+  },
+  "artifacts": {
+    "all-final.log": {
+      "sha256": "0882b3876bd5993518abc1db172942567a81c4baa837f1fe3fb4f379c5a02725",
+      "bytes": 18932
+    },
+    "chord-width-after.log": {
+      "sha256": "903b1fd2c14b3140d83a286759b69d778740dbb01fb0a7fdf44a8746509158a6",
+      "bytes": 1035
+    },
+    "chord-width-before.log": {
+      "sha256": "d36582225b4d1d404122d5fecc2ed6195559892fbd89f787f4dac48b94b91505",
+      "bytes": 1831
+    },
+    "chord-width.log": {
+      "sha256": "9079c57caf72d1940c587ae5caa4ef695d545430285dc8a05b6db28c57a5b782",
+      "bytes": 187
+    },
+    "consumer/Cargo.toml": {
+      "sha256": "4a452dbe016a983ec1f0fd9abf47893fa081c628cc1042e482fdf5994aeb808b",
+      "bytes": 425
+    },
+    "consumer/src/lib.rs": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "consumer/tests/chord_width.rs": {
+      "sha256": "d17fb21f80aac19cc5fef418632b37161899bf19437e74dcc0c99fed82d59d78",
+      "bytes": 1065
+    },
+    "consumer/tests/live.rs": {
+      "sha256": "9a7db4ea0246a6d1780fadb74f5eb0134a91ffe639a6ddda24cb1359736ff4ee",
+      "bytes": 2970
+    },
+    "consumer/tests/probes.rs": {
+      "sha256": "445b7715f10f1b26fb75d2b1bc087c5b4f848fca2fcbe5d1138de7497efc2aa9",
+      "bytes": 3500
+    },
+    "native-menu.log": {
+      "sha256": "4b0d486999ed719c8b302b495ea1cca697c48d5b51632c8fa1e8f12d5862f203",
+      "bytes": 7188
+    },
+    "unchanged-nine.log": {
+      "sha256": "9079c57caf72d1940c587ae5caa4ef695d545430285dc8a05b6db28c57a5b782",
+      "bytes": 187
+    }
+  }
+}

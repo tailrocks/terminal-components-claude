@@ -1,0 +1,464 @@
+[
+ {
+  "name": "showcase/dialogs/open/80x24/16",
+  "before": {
+   "manifest_sha256": "12b2ce1a162feb3c068063010eb4958a77beb57cc3e52d6a960ea488a38c04fe",
+   "ansi_sha256": "69e815cdecf1b153cb02eb9a759b7eb48eb4382eb17c846a305144122f683e55",
+   "generation": "78795c2adc5def89aeb9576e351ed6e2bad7eca6a8a31c140e6b053abafdc1a6"
+  },
+  "after": {
+   "manifest_sha256": "67536134de39aab6ceee2d89c02b8029c4a2c0af5f8387e1c44e27ace922cf54",
+   "ansi_sha256": "db518536dd825cd06e3d02f65663fd596075b701a86507504170b51fe7e92e73",
+   "generation": "582f4c7915ae2bb5f86baa0f704027e9c2ffd069e8bc956518da506482ce87cc"
+  },
+  "snap_before_ansi_sha256": "69e815cdecf1b153cb02eb9a759b7eb48eb4382eb17c846a305144122f683e55"
+ },
+ {
+  "name": "showcase/dialogs/open/80x24/none",
+  "before": {
+   "manifest_sha256": "0b4b91ab756e9ebc851b495415bb4919fe0393eb116c30ae20d612f452da0e3c",
+   "ansi_sha256": "521dfc300fd21deddfd921962ab5460acb90218280f76e8d94064afaf433887d",
+   "generation": "c100edbc94a368dd2fb1d529c299356ec3033b2755f6eda930d558fbcfb4353b"
+  },
+  "after": {
+   "manifest_sha256": "b1e7f21944b15c633e561fdb2a2f39cdb34d4f570fd0633bd34444e1edec58d6",
+   "ansi_sha256": "9de83a18aaa3d23286a2471747457f611c7ad648aff046ae950b861b57f111b7",
+   "generation": "a90661d1c5b82100670f1bcd82dcc0d5ef6cb86ce2518fb9d33d574b954fff74"
+  },
+  "snap_before_ansi_sha256": "521dfc300fd21deddfd921962ab5460acb90218280f76e8d94064afaf433887d"
+ },
+ {
+  "name": "showcase/dialogs/open/80x24/nocolor",
+  "before": {
+   "manifest_sha256": "f2cab5ab7f4046bdee2e539e0e903413e6ca8480d5d5948de82ccdf2bde2b54e",
+   "ansi_sha256": "ca3b3180f0779b956cd3f569d09bd1c84c21d73ca401b0769aae60abac859ff2",
+   "generation": "41d2a5083568e56fc15680e7170ac0594910930c8e808a2030ac9898ba0cd12e"
+  },
+  "after": {
+   "manifest_sha256": "82f456bc55acf58482505ac4efbece5ee61fc262590a116ee329974083eeec2d",
+   "ansi_sha256": "ee8ba8b660a4b235030d8640bdd526e3ad8272514d5af9fc34a4f114d26e75d6",
+   "generation": "b5174e94ff2b87feb5c57fe089f02e00caf8a448a5ce06c0a3cf3403a808bbd4"
+  },
+  "snap_before_ansi_sha256": "ca3b3180f0779b956cd3f569d09bd1c84c21d73ca401b0769aae60abac859ff2"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/72x20/16",
+  "before": {
+   "manifest_sha256": "a3c816ec31d364e2de0ec4f734708bdd23422bb6495f529bd2f1bdab97665fef",
+   "ansi_sha256": "ba99fde0056abd20650f0abec449e96efa0c87f464833fb767a2fdd668c5773c",
+   "generation": "574736c03342818d7a5a71f2ae83c832463a7fa37cb3a8ce568942eb71233391"
+  },
+  "after": {
+   "manifest_sha256": "3fce63342d7fe5fd110a503412a8a11cd7ec8c9322e2007b1daa756d9bdf5579",
+   "ansi_sha256": "9a0db2a7120104fd586c4f332a606b949896349c717d6ee3e3653adca9900f3f",
+   "generation": "bc48e803071cfcb31d92f14896a2ec42e9f93756466ffeabd5d5e62df3f4e111"
+  },
+  "snap_before_ansi_sha256": "38db2f908d6cb504712a2c0a6caed5415fe0798ab80075e57904db1e688caf09"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/72x20/16",
+  "before": {
+   "manifest_sha256": "9f6c8d58034c566982cba965e8058201dc206daf220e840f3842ee54d07371d2",
+   "ansi_sha256": "8f4e4801f14218d0c0b52dcb2cc3aa14b179c80672382a047ad241904bc68098",
+   "generation": "8ec547c6637a036ba02408e9db1e79f9ea23382555a5efa2d401254920cc0993"
+  },
+  "after": {
+   "manifest_sha256": "8b22faf035db597a644c67b3a5f5c408df78e6df399b915ed5e4a51bdd7f66a9",
+   "ansi_sha256": "54b1fd8a556040f1adf136bb4177e5abf0157d28d44c9d8d19967ab86329c3ce",
+   "generation": "ab12bbad2b99ad0d187c691d3662d78455b4cbddd92624d2795aeb9ddb06dfc0"
+  },
+  "snap_before_ansi_sha256": "dbd0f684510211e7ba9a6c03de83fcbea287846a799cb4d3d4e9d71d2e7f8575"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/72x20/none",
+  "before": {
+   "manifest_sha256": "311bc5f5a8794098ba48a6b2446e4d768561824cb1c04238cb6ea5397519d0f1",
+   "ansi_sha256": "20c98d896cc5644783d402e01f4840d6d33dc6b17471bf5f646b884299c81e44",
+   "generation": "a3087428d79039c892ff5a0e6ae4cea4ad5a48e69ce7f1a960623ea9db0a40be"
+  },
+  "after": {
+   "manifest_sha256": "a1c2f0a15d8fb0cc763da812a19044f85f17241377adbd9cac491acc24cdea23",
+   "ansi_sha256": "94080777a1455b6747e6d1be0f08954cebb1682f56e39c0953ab3919fd33bec3",
+   "generation": "08c191e7c126128b4af53259286417c0bdd5951c1c3b37a3051b3cdf25e15891"
+  },
+  "snap_before_ansi_sha256": "ff0ee8ea18569e575324450601a1960f899af21df0a06feb58df923bb9cb677b"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/72x20/none",
+  "before": {
+   "manifest_sha256": "0aa63a37450881c54d70805ddec9f5f5c19975831985599e7ce31d5a0b176852",
+   "ansi_sha256": "37a8024a99dbea7dcb9e7834a3509feffac0e4f1c82b54bc3d0dd03ad4246529",
+   "generation": "94e891490e77a7c3de3fc613eebcee32272b60631c8288e45246231240eec94a"
+  },
+  "after": {
+   "manifest_sha256": "f68d2bc0d18b4c4e1cdc66e169d558bcfde52e1b0c7d97c317ed296d0b08924b",
+   "ansi_sha256": "dfb629eb42fb3a800d4bb276d7e115d3a073a55550daa7e79d8f108bd797d6e8",
+   "generation": "19fb1fb1de6996e61a3a1d700cdb6f1603e86a091e8bb9b2fa72f74e5ea84b97"
+  },
+  "snap_before_ansi_sha256": "7875db48cecd8b48558cd750fd81e8994e0a6dba006e44924569164e5ea7ab11"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/72x20/nocolor",
+  "before": {
+   "manifest_sha256": "2e81943ce600cffcfbc7de21d3e849b5719615788747b504c563e06da6412e13",
+   "ansi_sha256": "c907a717a2d602af9f2304c66e90c65d91deec8311506b91ac05d8ec6fd866d4",
+   "generation": "7749e77cb17f55d89f623f9ead1e87c9a568088097785cfcbbc6ea124715d81b"
+  },
+  "after": {
+   "manifest_sha256": "a74bcf411b230fdd69f0f05648da5c93b4485fe4029da22764e399c6417755ed",
+   "ansi_sha256": "7997268e56f3be4186cf4946424f208a128d332e424e0be1ae78147cda205c1d",
+   "generation": "6790acd742b55bc19a6eacbbed5161c0c6f46697252d90b5e73939a3d752dcda"
+  },
+  "snap_before_ansi_sha256": "df1df4f13fb2a5b56c5217cb975caf2e156cf82f5082f13d99e92e45e8403119"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/72x20/nocolor",
+  "before": {
+   "manifest_sha256": "70ef6c385473cda55297db98a0899fe4e9fe7aa40079b7da2e3ca24f9a1999b1",
+   "ansi_sha256": "a18bc18591ef95b88adc45fb31f9631986963a4dfa44aee843ec853e9ba2387a",
+   "generation": "c1106299edd75f446182afac17f5dd03a8fd59e88c94dc2900efedbf0b6f6228"
+  },
+  "after": {
+   "manifest_sha256": "2e0207fa0b339d2cea29dcf9570ba7dc11f9bcef75f9fee5b847ee188ccfaf94",
+   "ansi_sha256": "38717fd6308521f1775a6ae8d3267827c3ea64f309645929029903f65023a21f",
+   "generation": "11e61c508bbabbe4143d583725066bea3f13a8a8e1f18baf665577c4b5bee855"
+  },
+  "snap_before_ansi_sha256": "8ad938bd479a51c1aa7abd64d69891666f409a6f7598c398ad151ee8fa82ede6"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/80x24/16",
+  "before": {
+   "manifest_sha256": "d0e15ad67a098af7f555a9f02eba9d342265bb4675c94f97bb6c74c5b65a63b9",
+   "ansi_sha256": "33f4002db92eee577e41a1e0d78a99362368b0715a529550eca80891de9c6506",
+   "generation": "9f2cc3b6cd947b22b5c7323e9adf282ff2fb2e6707f473cd9c43e5b9531578bb"
+  },
+  "after": {
+   "manifest_sha256": "3f4831b905d7fcbc9021881f78daf4cdb272ea1d0f52c3f3f4139dbfb1374165",
+   "ansi_sha256": "9e73377a12d97fadc76c205d280838f9d0e4b10519670843f6401af5a69bf1bc",
+   "generation": "d57f39b9a86b78a77e51340c18c656fa6065448e122eb4488796fd24f0f82495"
+  },
+  "snap_before_ansi_sha256": "3665bb1a7e7418862207eca955f78a9096effd1d5c71fee33e3523cefb4e19b1"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/80x24/16",
+  "before": {
+   "manifest_sha256": "8dd8ea66766ecbb02caa37d045764541e0f54b19d3f3333a1e43bd05422c5d21",
+   "ansi_sha256": "826955d217b692a618462459b277e130c4832309b152905a840baac6cf50c953",
+   "generation": "b42221c8dbc6e5577e7dc759e1ce9f5d8d578cf4ce74b3851fc94914bc0e723c"
+  },
+  "after": {
+   "manifest_sha256": "a5484cc1ff5485298353619de6e88c57938fc6994326039d9fd3a424cb0661cc",
+   "ansi_sha256": "43a873bc0235a71721273de087da1497ebcf147e0986f2f060b665691f6025c1",
+   "generation": "535866e4f0cd27ed253f1ef75ad502e32d5f2a1d59162cf1a8e66f7bc664fed1"
+  },
+  "snap_before_ansi_sha256": "67c17959d30f2ff9b025aef33612e03632a32add5cd2f585939b616de4dca7ad"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/80x24/none",
+  "before": {
+   "manifest_sha256": "e648853185b6772444f2aaf3189a881de982124dca914e98c2ff0b3f2dc853fc",
+   "ansi_sha256": "b88e463ae5f1b3eba9ad762d284a98be50c76cfe922d98ac470307c756390439",
+   "generation": "1f0f83752a59daf20d37d96f8fd349e3f8cb943a493e0b0736ce9a7d62c61d8e"
+  },
+  "after": {
+   "manifest_sha256": "cbf8e7a6c21459bbde7741ed984f3df1b4873e8ef5d4372d525a9608ef946e73",
+   "ansi_sha256": "29f7c570bcc08f0250c2c66d15e5b4927440208908bfb012476255df52980b9c",
+   "generation": "c5e73a39e6a7376b8412bd6c223a566b492b4789bb60773cb40c5be89b2bb023"
+  },
+  "snap_before_ansi_sha256": "cb133fa1d6febc84ab717bbcefc5fa9fcd274b1a8bf27b680efc8a7eaa4d4b8d"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/80x24/none",
+  "before": {
+   "manifest_sha256": "2fde70683bbad4cec7c07254ceb6e70808ea8860a4e50f67acdafcb0b5b75662",
+   "ansi_sha256": "c7ec4e82e339733e5667f3566774a70d0f92776e4b98a3ac4739957831011dd5",
+   "generation": "1b5396bc736225ebaac03873d74f9bdcdc476f72496e71bc2a556533052a23c6"
+  },
+  "after": {
+   "manifest_sha256": "be7706779291e7d4aecff60550e3d665882fb8deae9f895e9ce0becf13768937",
+   "ansi_sha256": "2329bf1d489f6e0314f069ce2d9b2900a206484ef6ecc574be34a5f059267b6d",
+   "generation": "1be74b675438f6509014cd1c73ebfd06fd73371800fc1ae70bf43ff035acf329"
+  },
+  "snap_before_ansi_sha256": "a32742183ac67604b67ecad0c6971595dbe0a4d275e2d36b819eab8b73d0a15c"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/80x24/nocolor",
+  "before": {
+   "manifest_sha256": "b61d57d8b88b18ae11d6691baf7a98f7822b54821c6df4bb23acc0d46da8a7d0",
+   "ansi_sha256": "ceaf2485a3fb2def2e4ced1d34fdd7701d655a7d3781c8b24cec0020014ebcbb",
+   "generation": "446a09aac2392258b67cbc5b15465818db131e320bc997f47864fa06f1e693f3"
+  },
+  "after": {
+   "manifest_sha256": "3136e6a6c12312b054302f5a2669f0c1fa119e173e77268881034f92fc8bd77f",
+   "ansi_sha256": "9ae20ab88dbc7a703917cb42cace69dfd6e07cad7a5b65a8c103301a9fff2864",
+   "generation": "c9622716ab345239e5fa75238e140298d1cc16b943fecf1690a4f40ed8e92bc1"
+  },
+  "snap_before_ansi_sha256": "3b3a2421f8b805ffce331e43951349cc79f8d9147c05757f2f89cbf9cfcc54a0"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor",
+  "before": {
+   "manifest_sha256": "622dc521941ea10e137469bf27a4f3defeaa0b309ca74993e3eabcf98275b312",
+   "ansi_sha256": "d98fbf940b0ba8e03cdd9c9e5e4ab24d61afb79a2cfbca6cd4daea64eef72584",
+   "generation": "a2cef572280ee9de83e03501e978595a0e79d847cb7f25d02ec158b6f2f7ad16"
+  },
+  "after": {
+   "manifest_sha256": "6724a8fce6476e0c08a2ea689b06d71f03092a1cc90a339217008a15d2a78a0f",
+   "ansi_sha256": "6dffd43f49a34ded8bc4f934e394e02585425b315a4edf78a05b681f0222b3db",
+   "generation": "fa5ac34a9b9a618ca171eb27b13c4ffdefdf92f8654e06c29a526ca1191fef5d"
+  },
+  "snap_before_ansi_sha256": "065c3eac43c937fcd26f3d9674422548ba68590c170e7809d405c5efaacca4c8"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/100x30/16",
+  "before": {
+   "manifest_sha256": "b7c439cda4558258ca9096201936d304ce670c3789a928ec1814d0cdd22bc9dc",
+   "ansi_sha256": "5bf86cabadd69ef85e404fa9aad318417df7427523757a3ebc077359f13e513e",
+   "generation": "61aa33b355c8445df654983db7f6f911fc76f65beb1cc1cf3909e25ec8ac6049"
+  },
+  "after": {
+   "manifest_sha256": "67e8221f1fae3420c45ea499ea312091f637e43cd7bffde1f75f53eed36f87db",
+   "ansi_sha256": "8bc8b779913fd2cd22983f84c88bb70fa3d46ae12069d7f508a4347c59bd868c",
+   "generation": "fbf94c395415d637b9c75f25b30f99a35c4c764a455b2c62a31b508612953fa4"
+  },
+  "snap_before_ansi_sha256": "80b15912df75bdb4c4d4f7377e716a3901450b7abc5f5cfcdcaacc694f5f7c9c"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/100x30/16",
+  "before": {
+   "manifest_sha256": "522d91835f00bcc4762c6e2415f46845d3fdacf9c7d0b6b5e2c3a2079694c018",
+   "ansi_sha256": "aaf1b66a48a0bb8bba413aac61bd5fb1c6ce9a2f8704c154f10664930a8edd07",
+   "generation": "80dab076737c5f125ebcf6fa3b6da6c1b9145bec52f24155c1c31bb867a580a9"
+  },
+  "after": {
+   "manifest_sha256": "d200a883bc8f48e1294daea5f3f3a637d461ae199eecb04e58fc107a1863f55b",
+   "ansi_sha256": "9147a338baea4dd4ae2ca3f4de7abc9a2cab89bb12911b98f2ef42e0060270cb",
+   "generation": "06512df87135c03cdcd7789c39e6359ef419b390da34e9674f827aa44bcaabd2"
+  },
+  "snap_before_ansi_sha256": "6c1ae13bf073ac11571b9b3bbb0a9de1b7895eca974a54b685eca1e284dcce8e"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/100x30/none",
+  "before": {
+   "manifest_sha256": "512df558bb3badd6dad9cf86abc1165d30d9c86a30a6684c069f9e97071a5cc4",
+   "ansi_sha256": "abe4e24e181e40b3e4560e47ff735641613d92c197dfd93ff720d818fb80de87",
+   "generation": "3ffc0e8fa262ede09edf15f8c9f298640bdcdcd3399cbe059895f69b39171efd"
+  },
+  "after": {
+   "manifest_sha256": "1c3de29f2672d6d507438e3a445dd6a81732235449ceabded51a9c5d5f32ec9d",
+   "ansi_sha256": "b0852e0f22aa083d57a6185feb5a2719181acd251fef2a603c558e974a9afcf2",
+   "generation": "4f67f90918274bad1daeb15327f9a64297668f03a241910eec9f04186ba5ecf2"
+  },
+  "snap_before_ansi_sha256": "e1e78a7283af1629e74ea671d856db6284c87f7dbaf062818f3cd9c713fc82f6"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/100x30/none",
+  "before": {
+   "manifest_sha256": "b0949ecdff67d2425bc175c0870cbc31070df4a3d1dad5f25238d9ffde99d8f9",
+   "ansi_sha256": "9af4a65c7f0329fa282ee42749115a3cfaa5bb8a0bb8237540e75fd1cf37f48a",
+   "generation": "61e089a2ce63d7c38470f2c2f37d1c24ab2da6d86fdd37b19ea8d96c3e70e992"
+  },
+  "after": {
+   "manifest_sha256": "0071ac04ec0e5a4b131a5d7b82e3afc8fc78a48187dcbeffb741f8e421390ff7",
+   "ansi_sha256": "de88fccae7814d5be9728d819de82c92b1528749b80ef6f0dd249098b3696490",
+   "generation": "9644b6cc76626c0e2c59ebfd7fd1d530d1972c0097594a5a7611a5869449e676"
+  },
+  "snap_before_ansi_sha256": "a21d0cd2985b4719510b71937e36c452b7b39344a943f8897a002cd9aa17cb2a"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/100x30/nocolor",
+  "before": {
+   "manifest_sha256": "fd75bf883efd38d11ff278d5722b506a6e76d2412812c52ae0e80b7a2fd02fe2",
+   "ansi_sha256": "f29bac35d52813860fa42e552c7d5a96a5df3515f75ddc5f1754bd1435e56e12",
+   "generation": "4a96408c46b0cf456b374e632171657c60155282634beda20aeaa07c8fcac7fa"
+  },
+  "after": {
+   "manifest_sha256": "cb4ccfb87005c70fd5a000f1a4b50da6d7b60a41a68e23c3b31cf2aea65a142e",
+   "ansi_sha256": "f16a273dca35ab4a72e304d01ae3470c64c28d276bae816d31f57342b8ed9e91",
+   "generation": "86fdf863e3f922ed299b4816bf5d31f77ef32645cc2ceccab87a2a075180904c"
+  },
+  "snap_before_ansi_sha256": "979e25b428de9f82b31eab1f0469657ef0e5dc8f88322192639c488b6fa07c0e"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/100x30/nocolor",
+  "before": {
+   "manifest_sha256": "42f1a6ce8c847bdae1f7a23485f811e741278cc6d5281250a6f247676d7b7a4a",
+   "ansi_sha256": "f33259ced3023551dd3df7e7cd6d7a2bf9995186a9f7e12ea57ae783ad87c5dc",
+   "generation": "e689d823be3b1549905a36e1272673ffb370dceecbf7c220d7945b17365951ab"
+  },
+  "after": {
+   "manifest_sha256": "8775387ebdb524e90c7d9c76e2a4c86be7f06ed87bd22078fd9e54c919038b99",
+   "ansi_sha256": "fdf773436a05d88a9532cf33571eb330b8d5596fd2f81029221b833636b7178f",
+   "generation": "e69ce2b1768e0b4b0397ac65759698eeb888024ed1cae379232b4699851c95a0"
+  },
+  "snap_before_ansi_sha256": "dcf1dda0c33ee40ad641f8a8b70a4bef92d5a5fc699c9b256255a10c805d6059"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/120x40/16",
+  "before": {
+   "manifest_sha256": "efa0a683ff4c74133dee218b2a167d1d30f271f7ed86cd90cc708bebd8118239",
+   "ansi_sha256": "7d6248c218007deaa6c64ee673c1141f3f706604f10e42b03544c3790d9412b7",
+   "generation": "340af7bed776f31efae8438df21916b76df16045f73690c6a076d64d883cf07f"
+  },
+  "after": {
+   "manifest_sha256": "e1fb77e180d2a30452f029a0294d3a1317f1127c42a6181c7294d96bf8eb8378",
+   "ansi_sha256": "261aad4a4861338e1397fd1bfd03056029f3978a7133bf5a3ca2430cfa21469c",
+   "generation": "bfa5b10e70c23c50e22045c621e6e087c97425cb6c3d80bb40e5b2dd31234d90"
+  },
+  "snap_before_ansi_sha256": "01370717b9fe97a6e16d390dc8f6e5206593175c00d571ee9d9bbf9c5ac84dd2"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/120x40/16",
+  "before": {
+   "manifest_sha256": "486d90b9fabec25f0be2d4a5872e63230b7b53da8499d31c2623d792dc96dc11",
+   "ansi_sha256": "302fdc2e78a93213d7b31c98132fbfa3b2d9a8bf87324efc7c39e67b2d1d7a2d",
+   "generation": "69d0cc673136be357dc2ad2acaab109e609ddd6f62ef4fd836990a142ba70fb3"
+  },
+  "after": {
+   "manifest_sha256": "944a25d7c318f5261318c32000800fe0525864de94b0974abc449997f0b3f6c1",
+   "ansi_sha256": "825df4ea9de8f1fd179cfc94c77e4981dab47abd791705d4d02c904593b2d40f",
+   "generation": "658da76f95b0179399f175c66145744e1bf2bbe8291604c7904c4bbbf4647cf6"
+  },
+  "snap_before_ansi_sha256": "cc6ab2f3e0d5453fda8c77c090be98c6094f908d15fe923a8d17e3fedd086b6e"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/120x40/none",
+  "before": {
+   "manifest_sha256": "7441af7e6f6e7efb58c58c7e9364a2dda458982fd09737d135956f8f482b790b",
+   "ansi_sha256": "4e43bef16e972e2cd6459647f3b3f8f0de4a1b6d27f94a1c0fd348b4df17a6ec",
+   "generation": "38df87cc54b4ab62c0a26d44bd7dd5df71a6f47fc19cd9fd8d5e4547731a76de"
+  },
+  "after": {
+   "manifest_sha256": "218aa5307873e6373de92ba25aa120d112d22105093572c8f43bd3f4ed9c167a",
+   "ansi_sha256": "b9d91788ca0572a497c98032f95dd220d911e407e39ab22b8ce1839c788bedb1",
+   "generation": "25ac0d3ddd407b4aeaebc3c2b9ee22e0828dc13dfd9c4731e7f4b425c5ecec17"
+  },
+  "snap_before_ansi_sha256": "cb364d6be6eabdb58297560c7477a48c466ae4aed0a59ba3a340dff2800d6e0c"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/120x40/none",
+  "before": {
+   "manifest_sha256": "4e286e4bafd7605c68aacf90557e524e7ee215aadb2f86b3d0ed294d9e5b5ec6",
+   "ansi_sha256": "a7c192fac39484d7c52fb386a4c801553ebf24e162d5d259fa3e2463f395a95e",
+   "generation": "f3ee712ddc3a50f9f68308dc551f8cc704294055f5511d9526fe43cc6a8d17b2"
+  },
+  "after": {
+   "manifest_sha256": "29e9ef8f627899e34183e9c5dd9219c77bc82bc8839e6fa8b767e432a087ad71",
+   "ansi_sha256": "5191c9b51baa18a7e10859ea7355182fbf0d0660780091eb520d47df1947785f",
+   "generation": "eb41e664692500602ece1bd411516ba6e6864647bb4b7085b947b72f671469df"
+  },
+  "snap_before_ansi_sha256": "08dfc796af1a15f8ff28ae3653c264cb394731682ff42bf8342cc6ee31d27448"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/120x40/nocolor",
+  "before": {
+   "manifest_sha256": "17dd8ec0ca0b6ed4280c0bc052f63ebf6878ca2a3011b3fc108b6a744bdea74c",
+   "ansi_sha256": "ca617f7dd18b6f51fcdec0eee286ab4dee0ce8241747e384e3a90251b3fb750d",
+   "generation": "889366ee8817e6c975f8a5f720964190acd03096f44f2cdae325f8a70c601c35"
+  },
+  "after": {
+   "manifest_sha256": "0ca35e36b13af65a5173caced4a7800ef5372be4c861cfd8e6f795227f809f16",
+   "ansi_sha256": "f52be12a6c6ebdd1889e670e430bcb49e023c592343fec48bdb04456ff4be7fa",
+   "generation": "dc43b6dbc0cfa0ed47cba03015693e2d837d418cb4c310acdfeeb8dfadf45429"
+  },
+  "snap_before_ansi_sha256": "523d09a1a98251202a83da48abf02f0c304470fc015703109ecad3ac4f9d3a47"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/120x40/nocolor",
+  "before": {
+   "manifest_sha256": "874f7bb95e8447b2e04cf649b805a6a5ce56621f7c03b2d19897a31d03b650bb",
+   "ansi_sha256": "305374f749447d59dbaba668485b150f155fa2a0c6c9eaf4b2a8dc2287258917",
+   "generation": "59592bfa6c7e026c92734eb0d408915618e46df6d6330c1d41eb5f1808a10400"
+  },
+  "after": {
+   "manifest_sha256": "79f3a94468bd57edc8e28c3664bd83fe8369812fe270dcdc828acee2c9f729ca",
+   "ansi_sha256": "711ec21bad76b7cde73d99dd10338cd3d6418f739d8fdc9bba15e8754b7e19ed",
+   "generation": "304bc5f473c95bf93d55df8b37b8f4b2995884fe8021791470ad95d96973b422"
+  },
+  "snap_before_ansi_sha256": "543bf92b2be8170372c0f504f2c18188e4e5209caec5b669a7eeaade7f6ad088"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/160x50/16",
+  "before": {
+   "manifest_sha256": "6ea5a9e24cf19e4a4e8292a1e21d58f7768241dfe5f035b217ed47a4849c74d5",
+   "ansi_sha256": "5804f61d899f6d83e2a09c4c1e1a7541a206d577308d37265d8ecf9deca65ef2",
+   "generation": "f83eb516c31d2319b9f8cbf12010bc715e929d7a7cf5e4409f9171991a2e7970"
+  },
+  "after": {
+   "manifest_sha256": "e41dd0dd0ba59f52165d6500b6053bb817e76e84438cb8ddd2ec2d18a824bb50",
+   "ansi_sha256": "73037a03b811b799c188a909418054c434366319c3c2e25b3a51e577b15fa1ba",
+   "generation": "62f69b1812c574309d31f0964ae8e7ccef9f4c18822b252fb667637ce9d6a1bf"
+  },
+  "snap_before_ansi_sha256": "54f51363a65b2594220a4fec01eed083803da641f56fedac4c30bfc4af365ce1"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/160x50/16",
+  "before": {
+   "manifest_sha256": "3a047f75d9d516e96e01a5e3e7d350e5d29c0bef834a33c43d0c968a53fbbaa4",
+   "ansi_sha256": "7fcc90d848f5f2058751fdbc505b6cd8bdf148429e87bee08f1515d90a32f7f8",
+   "generation": "397b69f22b278ec5d98f807dcced98828749e2406381f07b1e94aca0f0cc7155"
+  },
+  "after": {
+   "manifest_sha256": "e5f18f335d5451f2689d4df0fc54ea1dc091fab2c3c186f82b825af11d55608a",
+   "ansi_sha256": "7d2cb2dec7338b363ad3b4785d86eb57784b9d24963e79d20fd10e907ac08ba3",
+   "generation": "e567ff9b306b1dc44b4d4342e113f2308fc27dcf973fad999b48dcb7298bf12d"
+  },
+  "snap_before_ansi_sha256": "8f8eb0e68f92a00d073abd2fbc77af215c9b2ea6de1e00e852a17db515c21bba"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/160x50/none",
+  "before": {
+   "manifest_sha256": "3381401aa4d421c87ab4f4ca95bd2b6a559172ac3cf4ade5ff1f63a01d485209",
+   "ansi_sha256": "2163c433a5f80756ebf299e1dd6e973dbbf962469af5a9cbe7a0421bdf718207",
+   "generation": "dbbefe0fc8990776392e8ba882300561e39696cab0850ebad79330a15256aed2"
+  },
+  "after": {
+   "manifest_sha256": "1f0319475c4386de7d0e6a8298789d112da03b7b6cb0906a2ed3ab63b7118cb1",
+   "ansi_sha256": "13e4fcb2e7e824b937916503debacb611ff86583fccd8fd046dd8073986e2aed",
+   "generation": "2ff5e3225d83e27dbe13f09d003c6050c84c06943970cc12c7d8de1d7d620cf6"
+  },
+  "snap_before_ansi_sha256": "ec4772e7dcda26e1499e06fdedec174055980a7239df6b0b955c57446518e329"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/160x50/none",
+  "before": {
+   "manifest_sha256": "ed685a3447e9fcc931227ff4744b40334351e561b485d751afe85a54054c1307",
+   "ansi_sha256": "b03fec3dfa83ffe8515eeb36e1f925fcd405ca5e8f8f59d82eb3c3910a8f6220",
+   "generation": "b699121f24a595f6b8de339106c7b4d62e5137a2f6ffbe6e47d69d7bde53c182"
+  },
+  "after": {
+   "manifest_sha256": "696066b23581bf93e359bb6fb2cfa290919d909d7af6426674e99a93c705d1e3",
+   "ansi_sha256": "4c88042dd9b6af6ce219c3ea9bbac07dc4d9a616dcd607de62bbb8bd72d68def",
+   "generation": "94993a20e6aec4708fda59a7c524ae10b4aeea8f0669c054273f89fab811e2f8"
+  },
+  "snap_before_ansi_sha256": "1275b387108fb843f7cabf87b689246d1c4a6b79e168a1f6f456339d87259216"
+ },
+ {
+  "name": "tablepro/workbench/overlay-picker-open/160x50/nocolor",
+  "before": {
+   "manifest_sha256": "09382ef6c9720b529ee331e08da1bf99d74a27f1c2d6816afd5544756e477e81",
+   "ansi_sha256": "6c7acf46de14dbecccb1130bebff85eed51847e769632bd5810b1aa8d55ab4d4",
+   "generation": "430eb7e557f1b72011e3e181575ac5f98a3485b84f664c3d6c65075a4b1225b6"
+  },
+  "after": {
+   "manifest_sha256": "1062ae53f628bd876fa4a4e1a8b5095883818c38635b1ff4e9826138fc251b0e",
+   "ansi_sha256": "11574af0a8af59db378bbac04ce6ac318d82faf0d41debcdd1da34c17c4302e4",
+   "generation": "65de09ff9c9a2233f14836f436cd462e034729dd18045ed0914a538df106be61"
+  },
+  "snap_before_ansi_sha256": "76aa1da74ba5bfe2ff0f7ac3ae8d0f23fe5686fae62787a8e4f660542258abd2"
+ },
+ {
+  "name": "tablepro/workbench/overlay-safemode-picker/160x50/nocolor",
+  "before": {
+   "manifest_sha256": "168ff00a48c2ba339f2709cbc346f1793c139017511183e039daf6392d95238f",
+   "ansi_sha256": "60ef3d3a7d7480b671e1b4a4a74d9d1891343da5a9bbe90c17c53ab00eb7dac4",
+   "generation": "79895133033780f942a62677dfafa50d622bf15af3867357beed767b1589b4aa"
+  },
+  "after": {
+   "manifest_sha256": "9c701f269effcf8417c6790ba73be153a32304c1dcfb7e084f720dad6ce6140b",
+   "ansi_sha256": "446d572a7a77ae4113eb46310fd07688fa7fa970c741f9bbf9e35f85c196afe8",
+   "generation": "74afec331f40a51894b03d73b934fbb6abced9fd6248478c6e2358dce7c27adf"
+  },
+  "snap_before_ansi_sha256": "7dd458a4be43427ad33e67e72573fd63c1e51bd3bff8ad554832b8d0ce02f74a"
+ }
+]

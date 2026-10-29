@@ -1,0 +1,4 @@
+
+thread 'main' (293514052) panicked at src/bin/jackin_preview/screens/capsule.rs:1183:65:
+end byte index 8 is out of bounds for string of length 7
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

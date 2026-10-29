@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Terminal                                no color · 120×40   i Inspector   ? Help
+
+   Foundations            Terminal  Viewport with scrollback, selection and copy · drag the seam · step rail reports a…
+   Overview
+                          ╭─ Viewport ───────────────────── 37 lines · following ─╮ │  Step rail                7 of 7
+   Components             │    layer 02/12   19%                                │ │ │
+   Buttons                │    layer 03/12   34%                                │ │ │   ✓ 01 Resolve workspace  0.8 s
+   Inputs                 │    layer 04/12   50%                                │ │ │   ✓ 02 Pull base image    2.1 s
+   Text areas             │    layer 05/12   65%                                │ │ │   ✓ 03 Build container    3.2 s
+   Forms                  │    layer 06/12   80%                                │ │ │     04 Mount sources     cached
+   Lists                  │    layer 07/12   96%                                ┃ │ │   ✓ 05 Resolve credenti…  1.4 s
+   Trees                  │  ✓ Pull base image                                  ┃ │ │   ✓ 06 Start agent        1.1 s
+   Tables                 │  ▶ Build container                                  ┃ │ │   ✓ 07 Ready              0.1 s
+   Editable tables        │    #1 RUN apt-get install -y build-essential        ┃ │ │
+   Panels                 │    #2 COPY rust-toolchain.toml ./                   ┃ │ │
+   Sidebars               │    #3 RUN cargo fetch --locked                      ┃ │ │
+   Dialogs                │    #4 RUN cargo build --release                     ┃ │ │
+   Progress               │    #5 RUN apt-get install -y build-essential        ┃ │ │
+   Scrolling              │    #6 COPY rust-toolchain.toml ./                   ┃ │ │
+▎› Terminal               │    #7 RUN cargo fetch --locked                      ┃ │ │
+   Code editor            │    #8 RUN cargo build --release                     ┃ │ │
+   Diff                   │    #9 RUN apt-get install -y build-essential        ┃ │ │
+   Data grid              │    #10 COPY rust-toolchain.toml ./                  ┃ │ │
+   Chips & selects        │    #11 RUN cargo fetch --locked                     ┃ │ │
+   Pickers                │    #12 RUN cargo build --release                    ┃ │ │
+   Chrome                 │    #13 RUN apt-get install -y build-essential       ┃ │ │
+                          │    #14 COPY rust-toolchain.toml ./                  ┃ │ │
+   Screens                │  ✓ Build container                                  ┃ │ │
+   Settings               │  ▶ Resolve credentials                              ┃ │ │
+   Task runner            │    1Password  Engineering › Anthropic · Work › crede┃ │ │
+                          │  ✓ Resolve credentials                              ┃ │ │
+                          │  ▶ Start agent                                      ┃ │ │
+                          │    claude --resume  pid 4188                        ┃ │ │
+                          │  ✓ Start agent                                      ┃ │ │
+                          │  ▶ Ready                                            ┃ │ │
+                          │  ✓ Ready                                            ┃ │ │
+                          │  payments-platform ❯                                ┃ │ │   Run    Run with a failure
+                          ╰───────────────────────────────────────────────────────╯ │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

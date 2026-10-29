@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Settings       i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Trees          [0m│  [0m[1mProject settings[0m  Composed: tabs, form, editable … [0m
+   Tables         │                                                     [0m
+   Editable tabl… │   General   [0m[1m Members  [0m  Environment                 [0m
+   Panels         │  ───────────━━━━━━━━━━──────────────────────────────[0m
+   Sidebars       ┃                                                     [0m
+   Dialogs        ┃   ▎[0m[1mMembers[0m                    6 members · 1–5 of 6  [0m
+   Progress       ┃                                                     [0m
+   Scrolling      ┃       Name                   Email              …   [0m
+   Terminal       ┃       Mira Okafor            mira@acme.dev       ┃  [0m
+   Code editor    ┃    [0m[1m▎  Jonas Weber            jonas@acme.dev      [0m┃  [0m
+   Diff           ┃       Ana Costa              ana@acme.dev        ┃  [0m
+   Data grid      ┃       Kai Tanaka             kai@acme.dev        ┃  [0m
+   Chips & selec… ┃    [0m[2m   Sofia Rossi            sofia@acme.dev      [0m│  [0m
+   Pickers        ┃                                                     [0m
+   Chrome         ┃     Invite    Remove…   cursor: Jonas Weber         [0m
+[0m[2m › Settings       [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓ ← →[0m Cell  [0m[1mEnter[0m Edit  [0m[1ms[0m Sort  [0m[1mTab[0m Next                             [0m

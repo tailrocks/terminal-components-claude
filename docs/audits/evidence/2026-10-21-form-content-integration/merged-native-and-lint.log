@@ -1,0 +1,92 @@
+['cargo', 'nextest', 'run', '--locked', '-p', 'termrock-forms', '--all-targets']
+   Compiling termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-viewport)
+   Compiling termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+   Compiling termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.16s
+────────────
+ Nextest run ID e31edda0-c73e-43f7-9b76-f33d964470c6 with nextest profile: default
+    Starting 71 tests across 6 binaries
+        PASS [   0.015s] ( 1/71) termrock-forms form::tests::declaration_reorder_preserves_field_state_by_id
+        PASS [   0.020s] ( 2/71) termrock-forms form::tests::chooser_activation_emits_chose_with_the_field_id
+        PASS [   0.020s] ( 3/71) termrock-forms form::tests::changing_options_between_frames_does_not_rebuild_props
+        PASS [   0.022s] ( 4/71) termrock-forms form::tests::at_most_one_action_per_frame_in_declaration_order
+        PASS [   0.015s] ( 5/71) termrock-forms form::tests::direct_owner_flip_redacts_rendered_text_before_update
+        PASS [   0.019s] ( 6/71) termrock-forms form::tests::direct_secret_editing_uses_the_sealed_text_target
+        PASS [   0.018s] ( 7/71) termrock-forms form::tests::dirty_is_set_by_a_commit_not_by_a_keystroke
+        PASS [   0.016s] ( 8/71) termrock-forms form::tests::dynamic_disabled_state_is_inherited_by_configured_control
+        PASS [   0.016s] ( 9/71) termrock-forms form::tests::dynamic_secret_transition_keeps_form_error_generic_until_update
+        PASS [   0.012s] (10/71) termrock-forms form::tests::every_declared_field_resolves_a_value
+        PASS [   0.019s] (11/71) termrock-forms form::tests::effective_enter_binding_can_be_removed_or_remapped
+        PASS [   0.015s] (12/71) termrock-forms form::tests::field_height_is_a_pure_function_of_spec_and_design_tokens
+        PASS [   0.015s] (13/71) termrock-forms form::tests::first_draw_registers_fields_before_update_reconciles_state
+        PASS [   0.017s] (14/71) termrock-forms form::tests::focused_radio_scroll_reveals_the_live_cursor_row_from_update
+        PASS [   0.014s] (15/71) termrock-forms form::tests::form_action_variants_carry_no_value
+        PASS [   0.039s] (16/71) termrock-forms form::tests::enter_submits_only_when_the_focused_control_is_not_editing
+        PASS [   0.019s] (17/71) termrock-forms form::tests::form_reconciles_secret_and_text_values_in_both_directions
+        PASS [   0.017s] (18/71) termrock-forms form::tests::form_update_classifies_secret_before_retaining_local_error
+        PASS [   0.016s] (19/71) termrock-forms form::tests::hidden_dynamic_secret_transition_redacts_error_and_draft
+        PASS [   0.018s] (20/71) termrock-forms form::tests::hidden_field_registers_no_ring_entry_and_keeps_its_draft
+        PASS [   0.018s] (21/71) termrock-forms form::tests::inactive_dynamic_secret_transition_redacts_error_and_draft
+        PASS [   0.018s] (22/71) termrock-forms form::tests::intrinsic_chooser_clips_unicode_safely_in_narrow_and_wide_regions
+        PASS [   0.021s] (23/71) termrock-forms form::tests::intrinsic_chooser_paints_value_before_trailing_button_and_hits_only_button
+        PASS [   0.017s] (24/71) termrock-forms form::tests::malformed_dynamic_secret_error_does_not_reappear_after_downgrade
+        PASS [   0.012s] (25/71) termrock-forms form::tests::malformed_dynamic_secret_is_redacted_for_non_text_slots
+        PASS [   0.017s] (26/71) termrock-forms form::tests::nonclone_secret_path_masks_without_materialising_plaintext
+        PASS [   0.034s] (27/71) termrock-forms form::tests::intrinsic_note_rows_use_live_count_and_role_tones
+        PASS [   0.016s] (28/71) termrock-forms form::tests::note_rows_register_only_decorative_regions
+        PASS [   0.018s] (29/71) termrock-forms form::tests::open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover
+        PASS [   0.013s] (30/71) termrock-forms form::tests::partially_scrolled_radio_draws_source_window_without_repeating_chrome
+        PASS [   0.016s] (31/71) termrock-forms form::tests::partially_scrolled_intrinsic_note_starts_at_source_row
+        PASS [   0.017s] (32/71) termrock-forms form::tests::radio_field_paints_one_row_per_option
+        PASS [   0.013s] (33/71) termrock-forms form::tests::reconciling_same_shape_secret_fields_redacts_existing_errors
+        PASS [   0.017s] (34/71) termrock-forms form::tests::reference_form_targets_only_one_child
+        PASS [   0.011s] (35/71) termrock-forms form::tests::resolved_plain_dynamic_text_and_area_errors_stay_generic_after_secret_transition
+        PASS [   0.015s] (36/71) termrock-forms form::tests::scroll_reveals_the_focused_field_from_update_not_draw
+        PASS [   0.033s] (37/71) termrock-forms form::tests::reference_form_registers_no_controls_or_parts_for_any_field_kind
+        PASS [   0.018s] (38/71) termrock-forms form::tests::secret_area_frame_is_masked_instead_of_painting_plaintext
+        PASS [   0.017s] (39/71) termrock-forms form::tests::secret_field_errors_are_generic_in_the_frame_and_cleared_on_zeroize
+        PASS [   0.019s] (40/71) termrock-forms form::tests::secret_field_frame_masks_even_without_control_policy
+        PASS [   0.014s] (41/71) termrock-forms form::tests::secret_validator_error_is_generic_before_form_state_retention
+        PASS [   0.012s] (42/71) termrock-forms form::tests::select_field_options_come_from_form_data
+        PASS [   0.018s] (43/71) termrock-forms form::tests::sensitive_form_state_clone_and_equality_do_not_copy_draft
+        PASS [   0.012s] (44/71) termrock-forms form::tests::state_holds_no_props
+        PASS [   0.019s] (45/71) termrock-forms form::tests::space_stays_child_owned_and_unrelated_intents_stay_ignored
+        PASS [   0.017s] (46/71) termrock-forms form::tests::submit_chord_is_declared_on_the_action_not_baked_in
+        PASS [   0.016s] (47/71) termrock-forms form::tests::submit_skips_hidden_fields_during_validation
+        PASS [   0.019s] (48/71) termrock-forms form::tests::submit_commits_the_in_flight_edit_before_validating
+        PASS [   0.016s] (49/71) termrock-forms form::tests::submit_validates_every_visible_field_then_focuses_the_first_error
+        PASS [   0.015s] (50/71) termrock-forms form::tests::tab_order_follows_declaration_order_skipping_hidden
+        PASS [   0.012s] (51/71) termrock-forms form::tests::textarea_parent_window_intersects_the_logical_form_body
+        PASS [   0.013s] (52/71) termrock-forms form::tests::unreconciled_field_errors_stay_generic_until_sensitivity_is_known
+        PASS [   0.012s] (53/71) termrock-forms form::tests::value_and_options_is_a_single_borrow
+        PASS [   0.012s] (54/71) termrock-forms form::tests::zeroize_overwrites_every_secret_draft
+        PASS [   0.014s] (55/71) termrock-forms wizard::tests::enabled_steps_register_root_owned_keyed_label_parts
+        PASS [   0.015s] (56/71) termrock-forms wizard::tests::disabled_step_registers_no_activation_part
+        PASS [   0.013s] (57/71) termrock-forms wizard::tests::rewind_retains_per_step_state
+        PASS [   0.017s] (58/71) termrock-forms::form_lanes_consumer borrowed_lanes_resolve_live_data_into_the_drawn_field_bounds
+        PASS [   0.017s] (59/71) termrock-forms::form_lanes_consumer fill_reserves_trailing_fixed_spacers_before_allocating_height
+        PASS [   0.018s] (60/71) termrock-forms::form_lanes_consumer clipped_radio_row_pointer_activates_through_the_real_form
+        PASS [   0.021s] (61/71) termrock-forms::form_lanes_consumer fixed_form_action_pointer_activates_after_scrolling_and_lane_reorder
+        PASS [   0.021s] (62/71) termrock-forms::form_lanes_consumer immediate_radio_navigation_updates_values_through_flat_and_lane_forms
+        PASS [   0.015s] (63/71) termrock-forms::form_lanes_consumer live_radio_options_match_measurement_to_rendered_lane_extent
+        PASS [   0.016s] (64/71) termrock-forms::form_lanes_consumer lane_update_reads_the_last_drawn_form_area_after_resize
+        PASS [   0.014s] (65/71) termrock-forms::form_lanes_consumer malformed_layouts_fail_closed_before_a_form_can_be_drawn
+        PASS [   0.020s] (66/71) termrock-forms::form_lanes_consumer narrow_and_zero_width_lane_layouts_are_safe_and_data_aware
+        PASS [   0.018s] (67/71) termrock-forms::form_measurement data_measurement_matches_visible_radio_area_and_paired_half_rows
+        PASS [   0.018s] (68/71) termrock-forms::form_lanes_consumer visibility_and_final_group_are_revalidated_before_any_registration
+        PASS [   0.017s] (69/71) termrock-forms::form_measurement narrow_public_consumer_measures_and_draws_without_panicking
+        PASS [   0.020s] (70/71) termrock-forms::form_textarea_window clipped_form_text_area_keeps_original_document_rows
+        PASS [   0.019s] (71/71) termrock-forms::form_textarea_window pointer_focus_and_cursor_stay_inside_the_visible_text_window
+────────────
+     Summary [   0.317s] 71 tests run: 71 passed, 0 skipped
+['cargo', 'clippy', '--locked', '-p', 'termrock-forms', '--all-targets', '--no-deps', '--', '-D', 'warnings']
+    Checking termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-viewport)
+    Checking termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+    Checking termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.91s
+['cargo', 'check', '--locked', '-p', 'termrock-forms', '--example', 'form_intrinsic_content']
+    Checking termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-viewport)
+    Checking termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+    Checking termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.89s
+['cargo', 'fmt', '--check']

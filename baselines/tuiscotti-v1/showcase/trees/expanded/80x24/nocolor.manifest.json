@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "f471a18fb727ebe2d025dc01034298320e662cbe2805785885c7147912d04b02",
+  "artifacts": {
+    "ansi": {
+      "bytes": 2278,
+      "file": "showcase/trees/expanded/80x24/nocolor.ansi",
+      "sha256": "f471a18fb727ebe2d025dc01034298320e662cbe2805785885c7147912d04b02"
+    },
+    "ascii": {
+      "bytes": 1289,
+      "file": "showcase/trees/expanded/80x24/nocolor.ascii",
+      "sha256": "662608cd1aca6b21ac31d5886dc4645282d46d92c6db251bc7194dc5a08b0e57"
+    },
+    "ascii_loss_json": {
+      "bytes": 4977,
+      "file": "showcase/trees/expanded/80x24/nocolor.ascii.loss.json",
+      "sha256": "9dc3b15866b7d9594cd7aa03675f5ebc33602f6c77b232f0ae5d64d74facc080"
+    },
+    "frame_json": {
+      "bytes": 429273,
+      "file": "showcase/trees/expanded/80x24/nocolor.frame.json",
+      "sha256": "85d8171505f69a1235edb3a6306c1c6fad67bb4b3c43029bd3a229df63513d5d"
+    },
+    "html": {
+      "bytes": 356739,
+      "file": "showcase/trees/expanded/80x24/nocolor.html",
+      "sha256": "8fcde834206c29e688449b515a4430760e346189a3ef84963b66e3643a6dda73"
+    },
+    "observations_json": {
+      "bytes": 461,
+      "file": "showcase/trees/expanded/80x24/nocolor.observations.json",
+      "sha256": "d48183e2dc3f692c1e47ec6223bb6ca6344ead5ddb86e458bc53b9f86e077816"
+    },
+    "png": {
+      "bytes": 261930,
+      "file": "showcase/trees/expanded/80x24/nocolor.png",
+      "sha256": "b455dfca946944c4d2287b5db23b70ff7396d59672d0c72721c63463467c7dfe"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "showcase/trees/expanded/80x24/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1395,
+      "file": "showcase/trees/expanded/80x24/nocolor.txt",
+      "sha256": "8496028df0dbb1b9aac87f1c4d3999382f3d29c637de7afe403b5af7aad57a56"
+    }
+  },
+  "ascii_substitutions_count": 53,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 5542201065619662494,
+  "frame_sha256": "85d8171505f69a1235edb3a6306c1c6fad67bb4b3c43029bd3a229df63513d5d",
+  "generation": "7df54d5e0cac1bc32486e72ab5db1648a13675aad5d9f1fc2dd1f6e54c942147",
+  "html_sha256": "8fcde834206c29e688449b515a4430760e346189a3ef84963b66e3643a6dda73",
+  "legacy_name": "showcase/flows/trees/expanded/80x24/nocolor",
+  "name": "showcase/trees/expanded/80x24/nocolor",
+  "png_sha256": "b455dfca946944c4d2287b5db23b70ff7396d59672d0c72721c63463467c7dfe",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:06Z",
+  "txt_sha256": "8496028df0dbb1b9aac87f1c4d3999382f3d29c637de7afe403b5af7aad57a56"
+}

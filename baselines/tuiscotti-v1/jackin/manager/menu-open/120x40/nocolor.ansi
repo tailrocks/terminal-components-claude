@@ -1,0 +1,40 @@
+ [0m[1m jackin❯ [0m  [0m[1m File [0m  Go   Help                                               Workspaces  inside the Construct  2 running [0m
+            ╭─────────────────────────╮                                                                                 [0m
+ ╭─[0m[1m Workspac│  New workspace…       [0mn[0m[1m [0m││  Current directory · payments-platform                       saved workspace   [0m
+ │ [0m[1m▎   Curre│  Edit workspace…      [0me ││                                                                                [0m
+ │   ▸ payme│  Launch…          Enter ││  Working dir   /workspace/payments-platform                                    [0m
+ │   ▸ infra│  Prewarm              w ││  Mounts        ~/src/payments-platform · rw worktree                           [0m
+ │   ▸ relea│  Delete workspace…    d ││                ~/src/shared-libs · ro shared                                   [0m
+ │   ▸ custo│ ─────────────────────── ││  Roles         the-architect ★ · allowed 3 of 46                               [0m
+ │     + New│  Refresh             F5 ││  Environments  5 vars · 2 [op]                                                 [0m
+ │          │ ─────────────────────── ││  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·       [0m
+ │          │  Quit            Ctrl+Q ││                Grok · Team ★ · OpenCode · Go subscription ★                    [0m
+ │          ╰─────────────────────────╯│  Policies      git pull enabled · keep awake on · dirty exit ask               [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │  [0m[1mInstances[0m                                                  daemon · 3 s ago   [0m
+ │                                   │ │  ◉ 7f3a  the-architect · Claude Code · running                                 [0m
+ │                                   │ │  ◌ c41e  reviewer · Codex · preserved · dirty                                  [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │  Launch    Edit                                                                [0m
+ ╰───────────────────────────────────╯ │                                                                                [0m
+                                                                                                                        [0m
+                                      [0m[1m← →[0m Menu  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Close                                        [0m

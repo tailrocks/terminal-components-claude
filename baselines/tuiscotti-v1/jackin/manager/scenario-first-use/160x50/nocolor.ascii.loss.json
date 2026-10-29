@@ -1,0 +1,18 @@
+{
+  "lossy": true,
+  "substitutions": [
+    {
+      "original": "…",
+      "replacement": ".",
+      "x": 88,
+      "y": 25
+    },
+    {
+      "original": "❯",
+      "replacement": "?",
+      "x": 82,
+      "y": 48
+    }
+  ],
+  "substitutions_count": 2
+}

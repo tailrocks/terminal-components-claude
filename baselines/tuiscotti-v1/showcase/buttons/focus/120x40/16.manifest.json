@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "148329fd438a4e523f07b7cf60f8589efcdb8d8a1dedde2249c72660da0d297b",
+  "artifacts": {
+    "ansi": {
+      "bytes": 10762,
+      "file": "showcase/buttons/focus/120x40/16.ansi",
+      "sha256": "148329fd438a4e523f07b7cf60f8589efcdb8d8a1dedde2249c72660da0d297b"
+    },
+    "ascii": {
+      "bytes": 1661,
+      "file": "showcase/buttons/focus/120x40/16.ascii",
+      "sha256": "216a4d62db15aea7b66752073f49b20ebab1a0edd8f9691b365cba48c2e06c86"
+    },
+    "ascii_loss_json": {
+      "bytes": 2105,
+      "file": "showcase/buttons/focus/120x40/16.ascii.loss.json",
+      "sha256": "141bb1c6fa54978d3d2ed7cb8de76d7bb80f1494668c6dda988c0efa946f67ca"
+    },
+    "frame_json": {
+      "bytes": 1116807,
+      "file": "showcase/buttons/focus/120x40/16.frame.json",
+      "sha256": "ad492a0658bedbd096ec0395789a46e524740eb71959469696dfc5bf66d68530"
+    },
+    "html": {
+      "bytes": 520439,
+      "file": "showcase/buttons/focus/120x40/16.html",
+      "sha256": "dc0bba9641a9575a86c6262fcefcaa2bd1e8bff7e715fbaa1b01bbdcdee877f5"
+    },
+    "observations_json": {
+      "bytes": 453,
+      "file": "showcase/buttons/focus/120x40/16.observations.json",
+      "sha256": "935c2c5f9b9fb06e27704ba3c5ab0f15a338c38ac492d9c5ccbdc8a91871f3dd"
+    },
+    "png": {
+      "bytes": 368756,
+      "file": "showcase/buttons/focus/120x40/16.png",
+      "sha256": "f43f9bd019b875a570529e6150d8060d4b9e4cf648d8906ef7ad1bb45caa01ef"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "showcase/buttons/focus/120x40/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1700,
+      "file": "showcase/buttons/focus/120x40/16.txt",
+      "sha256": "3469db950784893b1a68e01f0741ba966a4fc641370ae98bfe58c876e14faa81"
+    }
+  },
+  "ascii_substitutions_count": 22,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 17245124677804458288,
+  "frame_sha256": "ad492a0658bedbd096ec0395789a46e524740eb71959469696dfc5bf66d68530",
+  "generation": "2fc9c33ea15c0a7b535b0c1cb1025e87fd3b8265a31502d057c72ce9bcfe4c9c",
+  "html_sha256": "dc0bba9641a9575a86c6262fcefcaa2bd1e8bff7e715fbaa1b01bbdcdee877f5",
+  "legacy_name": "showcase/flows/buttons/focus/120x40/16",
+  "name": "showcase/buttons/focus/120x40/16",
+  "png_sha256": "f43f9bd019b875a570529e6150d8060d4b9e4cf648d8906ef7ad1bb45caa01ef",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:23Z",
+  "txt_sha256": "3469db950784893b1a68e01f0741ba966a4fc641370ae98bfe58c876e14faa81"
+}

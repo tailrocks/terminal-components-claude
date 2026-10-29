@@ -1,0 +1,94 @@
+{
+  "schema": "termrock.stage3d.stage2-operational-result.independent-review.v1",
+  "decision": "ADMIT stage2 live-source preparation only. Exact live source, approved harness-only changes, fixed binary cohort, inventory commitments, tool observations, and preserved old receipt metadata match. No plan, key, capture, replay, candidate comparison, or application acceptance is admitted.",
+  "findings": [],
+  "evidence": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage2-result-independent-evidence-20261021.json",
+    "sha256": "0272e7bdde4b829cf1ba255c73b208f9d6e3ac59bb53cd08a50f160021419a94"
+  },
+  "operation": {
+    "run_id": "parent-v12-stage2-20261021-0425",
+    "reported_parent_wrapper_exit_status": 0,
+    "worker_exit_status": 0,
+    "worker_elapsed_seconds": 23.301,
+    "elapsed_scope": "23.301 seconds is the event worker duration, not an independently observed total including wrapper preflight/finalization.",
+    "worker_reaped": true,
+    "timed_out": false,
+    "work_budget_seconds": 199,
+    "total_inclusive_seconds": 220,
+    "deadline_scope": "monotonic budget bounds user-space work and child cleanup; kernel-blocked filesystem calls may outlast deadline, are checked on return, and fail closed",
+    "event_sha256": "e8d22eebf16dfb578ef7d701dba46919b50317a87f3fcceba659b6ab78fd0817",
+    "log_sha256": "e87bbc54cc7bb34d65feb9e3a28740aa4aeba90853272f119ff8350d4e0ffd18",
+    "complete_log_manifest_matches_published_manifest": true,
+    "argv_digest_recomputed": true,
+    "wrapper_receipt_scope": "The parent reported completed session 32995, exact pinned Python/V12 invocation, and exit status 0. This reviewer independently checked complete persisted event/log/source/review identities and receipt fields, but did not observe the wrapper process exit or claim a cryptographic wrapper-exec receipt."
+  },
+  "implementation_binding": {
+    "supervisor_source_sha256": "12a3dd78de61bd38a95dfe3b44ed43804380aa8df039b89168f666c7a231e5f9",
+    "supervisor_independent_review_sha256": "6ff4c1015c4b51fa666da014eeac3c2eb85ba174268cafe684a4002c66858fb5",
+    "canonical_runner_sha256": "e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80",
+    "canonical_review_sha256": "15feeaf89d5b07cbf6b9204299b6f9170a2552fd8070e33ad901a20367da5090"
+  },
+  "source_admission": {
+    "root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+    "manifest_sha256": "8fc52aa144847276fd9df62b133f7d8815995c50ba9a0cc0001b6b5da46ad75a",
+    "independent_frozen_source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+    "independent_live_source_sha256": "74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430",
+    "live_source_matches_old_fixed_plan": true,
+    "changed_files": [
+      "tests/visual_baseline/frozen_cli_extensions.json",
+      "tests/visual_baseline/frozen_cli_extensions.rs",
+      "tests/visual_baseline/frozen_cli_pair.rs",
+      "tests/visual_baseline/main.rs",
+      "tests/visual_baseline/scenarios/interact.rs",
+      "tests/visual_baseline/scenarios/mod.rs",
+      "tests/visual_baseline/support.rs"
+    ],
+    "source_symlink_targets_preserved": true,
+    "snapshot_hash_scope": "The canonical successful stage records frozen/live snapshot digest 6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8, matching admitted stage1. This reviewer checked 12,625 files and 3,100,617,792 bytes in each snapshot tree, no symlink files, and all live snapshot files read-only. No new 3 GB content rehash was performed. Original snapshot content preservation relies on admitted stage1 plus reviewed canonical stage2 digest result, not metadata alone."
+  },
+  "pin_checks": {
+    "four_cohort_binaries": "All four freshly rehashed and exact file identities match the fixed cohort manifest. No binary was launched.",
+    "nine_harness_inputs": "All nine current files independently rehashed and matched event pins.",
+    "fifteen_tool_hashes": "All fifteen selected executable/sysroot identity files independently rehashed; map matches event, and complete recorded preparation tool observation equals old fixed plan. No tool was executed.",
+    "environment": "Recorded preparation environment differs from old fixed plan only at CARGO_TARGET_DIR; new target path hash independently verified. Ambient environment was not replayed or reconstructed.",
+    "inventory": "New manifest full digest f98b90a93e3d45438be49eca4962ebbdbd83624ba7738ad448d783bb3046135f equals independently reconstructed old anchored inventory: 28,895 original visual plus 174 extensions = 29,069 visual; 20 ordinary. Original-only digest independently reconstructed as d260d2f0644d63a3a1b4c1611c0d7c61777e59e61249e3ca513d1d6217b0639c. Reviewer did not rerun Nextest discovery; successful reviewed canonical invocation validates current discovery against these commitments."
+  },
+  "old_evidence_preservation": {
+    "old_plan_external_hash_unchanged": true,
+    "nine_receipt_envelope_file_hashes_unchanged": true,
+    "canonical_json_ordered_chain_checked": true,
+    "checkpoint_count": 288,
+    "new_hmac_authentication": false,
+    "key_bytes_read": false,
+    "captured_frame_or_failed_partial_content_rehash": false,
+    "credit_transferred_to_new_run": false
+  },
+  "new_outputs": {
+    "root_entries": [
+      "live-source",
+      "live-source.json",
+      "live-target",
+      "provenance.json",
+      "source"
+    ],
+    "new_key_custody_absent": true,
+    "new_plan_absent": true,
+    "new_run_absent": true,
+    "temporary_manifest_absent": true
+  },
+  "cleanup_scope": "Reviewed owned canonical CLI exit zero and direct-child reap support the declared fixed subprocess/broker scope. No independently preserved per-descendant or PTY process inventory is claimed. Kernel-stalled filesystem/output calls remain outside a hard completion guarantee while blocked.",
+  "reviewer_actions": {
+    "read_only_metadata_and_hashes": true,
+    "actual_preflight": false,
+    "actual_prepare_live": false,
+    "nextest_inventory_invocation": false,
+    "key_access": false,
+    "application_launch": false,
+    "capture": false,
+    "replay": false,
+    "candidate_comparison": false,
+    "source_or_reference_edits": false
+  },
+  "next_gate": "Stages3\u20138 remain disabled in V12. Any later operational step needs its own implementation, exact-source review, bounded ownership/deadline contract, and separately reviewed result. Stage2 admission grants no product or library parity credit."
+}

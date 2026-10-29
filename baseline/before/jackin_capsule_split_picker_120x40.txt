@@ -1,0 +1,40 @@
+  jackin❯    File   Edit   View   Session   Help        payments-platform › the-architect  jackin-payments-pl…form-7f3a
+
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ───────────────━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────
+payments-platform ❯ git status -sb
+## feature/settlement-backoff…origin/feature/settlement-backoff [ahead 2]
+ M src/settlement/retry.rs
+ M src/settlement/mod.rs
+?? docs/adr/0007-retry-backoff.md
+payments-platform ❯ carg╭──────────────────────────────────────────────────────────────────────╮
+    Checking settlement │ Split → Right                                                        │
+    Finished dev [unopti│ ▎ Type to search…                                                    │
+payments-platform ❯ ls d│                                                                      │
+0001-record-architecture│ ▎▪ Claude Code  2 accounts · choose at start                 agents  │
+0002-settlement-batches.│ ▎▪ Codex        Primary                                              │
+0003-retry-policy.md    │ ▎▪ OpenCode     Go subscription                                      │
+payments-platform ❯     │ ▎▪ Grok Build   Team                                                 │
+                        │ ▎$ Shell        zsh                                          shells  │
+                        │                                                                      │
+                        │                                                                      │
+                        ╰──────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ PR #482 · Settlement retry backoff   • 4 changed · 1 unpushed        shell   3 tabs · 1 pane        no account · shell
+                                    Type Filter  ↑↓ Move  Enter Choose  Esc Cancel            Nothing to zoom: one pane

@@ -1,0 +1,48 @@
+    Blocking waiting for file lock on package cache
+   Compiling termrock-test-support v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-test-support)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.04s
+────────────
+ Nextest run ID fac9a5e3-77d0-476b-846d-1483d2ad3625 with nextest profile: default
+    Starting 39 tests across 1 binary (1 test skipped)
+        SKIP [         ] (─────) termrock-test-support digest::tests::bless_worker
+        PASS [   0.028s] ( 1/39) termrock-test-support harness_scoped_targets::tests::missing_needle_fails_with_screen_text
+        PASS [   0.030s] ( 2/39) termrock-test-support conformance::tests::reports_status_requires_busy_and_error
+        PASS [   0.032s] ( 3/39) termrock-test-support conformance::tests::composite_root_control_and_scroll_ids_do_not_collapse
+        PASS [   0.043s] ( 4/39) termrock-test-support conformance::tests::fixture_distinguishes_live_from_forced_empty
+        PASS [   0.044s] ( 5/39) termrock-test-support conformance::tests::selects_alone_requires_selected
+        PASS [   0.046s] ( 6/39) termrock-test-support conformance::tests::pointer_gestures_are_exactly_click_and_double_click
+        PASS [   0.053s] ( 7/39) termrock-test-support harness_scoped_targets::tests::ambiguous_needle_fails_closed
+        PASS [   0.059s] ( 8/39) termrock-test-support harness_scoped_targets::tests::band_scopes_an_otherwise_ambiguous_needle
+        PASS [   0.063s] ( 9/39) termrock-test-support harness::tests::resolved_reports_the_family_the_component_actually_queried
+        PASS [   0.066s] (10/39) termrock-test-support harness_scoped_targets::tests::needle_table_collapses_size_branches
+        PASS [   0.070s] (11/39) termrock-test-support harness_scoped_targets::tests::below_stays_inside_the_grid
+        PASS [   0.040s] (12/39) termrock-test-support harness_scoped_targets::tests::shift_col_past_the_edge_fails_closed
+        PASS [   0.087s] (13/39) termrock-test-support conformance::tests::force_couples_and_clears_real_disabled_state
+        PASS [   0.043s] (14/39) termrock-test-support harness_scoped_targets::tests::unique_needle_resolves_with_label
+        PASS [   0.060s] (15/39) termrock-test-support harness_scoped_targets::tests::needle_table_with_no_match_fails_loudly
+        PASS [   0.044s] (16/39) termrock-test-support harness_state_waits::tests::missing_text_times_out_with_screen_text
+        PASS [   0.039s] (17/39) termrock-test-support harness_state_waits::tests::state_wait_sees_focused_flag
+        PASS [   0.099s] (18/39) termrock-test-support harness_scoped_targets::tests::below_last_row_fails_closed
+        PASS [   0.038s] (19/39) termrock-test-support harness_state_waits::tests::text_appearing_after_ticks_is_found
+        PASS [   0.037s] (20/39) termrock-test-support harness_typed_input::tests::click_and_wheel_deliver_on_grid
+        PASS [   0.065s] (21/39) termrock-test-support harness_state_waits::tests::focus_wait_on_unknown_id_times_out
+        PASS [   0.035s] (22/39) termrock-test-support harness_typed_input::tests::drag_to_off_grid_fails_closed
+        PASS [   0.093s] (23/39) termrock-test-support harness_scoped_targets::tests::shift_col_derives_offsets_from_content
+        PASS [   0.128s] (24/39) termrock-test-support digest::tests::a_missing_baseline_prints_the_frame_it_would_record
+        PASS [   0.030s] (25/39) termrock-test-support harness_typed_input::tests::hover_off_grid_fails_closed
+        PASS [   0.058s] (26/39) termrock-test-support harness_typed_input::tests::click_off_grid_fails_closed
+        PASS [   0.024s] (27/39) termrock-test-support perf::tests::sampled_sections_exclude_setup_and_include_each_measured_allocation
+        PASS [   0.032s] (28/39) termrock-test-support perf::tests::hit_registry_mismatch_still_fails_in_release
+        PASS [   0.037s] (29/39) termrock-test-support perf::tests::reachable_ring_mismatch_fails_in_release
+        PASS [   0.058s] (30/39) termrock-test-support harness_typed_input::tests::drag_validates_both_endpoints
+        PASS [   0.059s] (31/39) termrock-test-support harness_typed_input::tests::frame_size_reports_the_live_grid
+        PASS [   0.100s] (32/39) termrock-test-support harness_state_waits::tests::focus_wait_returns_once_focused
+        PASS [   0.046s] (33/39) termrock-test-support perf::tests::missing_region_metric_fails_in_release
+        PASS [   0.062s] (34/39) termrock-test-support harness_typed_input::tests::hover_delivers_a_typed_move_on_grid
+        PASS [   0.047s] (35/39) termrock-test-support perf::tests::region_metrics_accept_hit_tolerance_and_exact_ring
+        PASS [   0.384s] (36/39) termrock-test-support digest::tests::update_baseline_is_an_alias_with_bless_precedence
+        PASS [   0.388s] (37/39) termrock-test-support digest::tests::non_bless_run_fails_loudly_and_never_writes
+        PASS [   0.436s] (38/39) termrock-test-support digest::tests::concurrent_bless_keeps_every_entry
+        PASS [   0.727s] (39/39) termrock-test-support digest::tests::baseline_false_values_do_not_write_or_leak_environment_values
+────────────
+     Summary [   0.729s] 39 tests run: 39 passed, 1 skipped

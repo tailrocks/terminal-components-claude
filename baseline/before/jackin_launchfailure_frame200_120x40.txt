@@ -1,0 +1,40 @@
+  jackin❯  entering the Construct  2 running  Launch › payments-platform › the-architect            5/11 stages  ? help
+
+                                                                                                  H               Z
+                                                        jackin❯                       q                           q
+                                 Loading the-architect into workspace payments-platform
+                       Claude Code · Anthropic / Claude · account Claude · Work (session choice)
+                                     stage 7 of 11 · Workspace · 5 done · 1 skipped   <
+
+                                      ▎✓ 01 Identity                        1.4 s
+                                      ▎✓ 02 Role                            1.8 s
+                                      ▎✓ 03 Credentials                     2.6 s
+                                      ▎✓ 04 Construct                       3.0 s   0
+                                      ▎  05 Agent Binaries                skipped   A
+                                      ▎✓ 06 Derived Image                   9.1 s   <
+                                      ▎⠋ 07 Workspace                               M
+                                      ▎  08 Network                        queued
+                                      ▎  09 Sidecar                        queued
+                                      ▎  10 Capsule                        queued
+                                      ▎  11 Hardline                       queued
+                                H
+                                  credentials  5 accounts · Claude · Work (1Password) · Claude · Personal · Codex · P…
+                                               resolved in memory · discarded after injection · quota readable · sess…
+                                b                             I X                            J
+                                                              [ 8   Z                        Q
+                                                                9   \                        m
+                                                                %   W                        8
+                                                                    @
+
+
+                                                      O
+                                                      *
+                                                      w
+                                                      <
+
+
+
+ ⠋ Mounting the Workspace…                                                               jackin-payments-platform-b5df
+ 44 lines · b build log
+
+                          b Build log  i Container info  c Cancel  Ctrl+Q Quit  Ctrl+C Abort

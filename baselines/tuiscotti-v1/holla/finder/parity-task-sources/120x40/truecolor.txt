@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                    poly · Node project · yarn  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               just build             recipe · here
+  › just build    recipe   here  .justfile here
+    just lint     recipe   here  .justfile here                                  Does       Just build from
+    just test     recipe   here  .justfile here                                             .justfile · the recipe
+    make all      target   here  Makefile here                                              runs through just
+    make build    target   here  Makefile here                                   Runs       just build
+                                                                                 In         ~/work/poly
+    Recent here                                                                  Host       mbp · local
+    nothing used here yet                                                        Scope      here
+                                                                                 Why        .justfile here
+    Explore                                                                      Changes    see the command
+     Tasks   Git   Files   Disk   Services   System                              Risk       mutating
+    System · mbp  explore  host  available on this host                          Data       live · 0 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/poly                                                                                         truecolor · 120×40
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

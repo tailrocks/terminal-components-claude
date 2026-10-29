@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
+
+  Here › Arguments
+ ━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────
+  Find the process on a port… · arguments
+  field name, expected value, default and validation · secrets stay masked
+
+   port *
+ ▎ 5173
+
+
+   Command
+
+   lsof -nP '-iTCP:5173' -sTCP:LISTEN
+
+                                                                                                        Cancel    Run
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/holla   main   ↓3 • 5                                                                        16 colors · 120×40
+                                     Enter Edit  Tab Next  Ctrl+S Run  Esc Cancel

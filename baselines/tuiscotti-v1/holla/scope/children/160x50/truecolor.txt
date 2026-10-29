@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                  acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                                                            scope ‹ children ›
+
+    Children · 3 projects · 11 entries                                                                           Clean developer artifacts unde… plan · child
+  › Clean developer artifacts under ~/wo…  plan  child  2 candidates in 3 projects               destructive
+    Run //apps/frontend:build              task  child  defined by ~/work/acme/apps/frontend/m…                  Does       Cargo targets, Gradle outputs
+    Run //apps/frontend:dev                task  child  defined by ~/work/acme/apps/frontend/m…                             and Node dependency trees
+    Run //apps/frontend:lint               task  child  defined by ~/work/acme/apps/frontend/m…                             beneath their owning projects as
+    Run //apps/frontend:test               task  child  defined by ~/work/acme/apps/frontend/m…                             a plan · shared targets
+    Run //services/api:dev                 task  child  defined by ~/work/acme/services/api/mi…                             serialised, independent projects
+    Run //services/api:migrate             task  child  defined by ~/work/acme/services/api/mi…                             in parallel
+    Run //services/api:test                task  child  defined by ~/work/acme/services/api/mi…                  Runs       cargo clean
+    Run //tools/worker:dev                 task  child  defined by ~/work/acme/tools/worker/mi…                             ./gradlew clean
+    Run //tools/worker:test                task  child  defined by ~/work/acme/tools/worker/mi…                             trash '<node_modules>'
+                                                                                                                            pnpm store prune
+                                                                                                                 In         ~/work/acme
+                                                                                                                 Host       mbp · local
+                                                                                                                 Scope      child
+                                                                                                                 Why        2 candidates in 3 projects
+                                                                                                                 Changes    ~6.9 GB reclaimable · recent and
+                                                                                                                            unverifiable data stays
+                                                                                                                            unselected
+                                                                                                                 Risk       destructive
+                                                                                                                 Data       live · 0 s ago
+                                                                                                                 Gate       two gates · type REMOVE ALL
+                                                                                                                            BUILD ARTIFACTS UNDER
+                                                                                                                            /Users/alex/work/acme
+                                                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme   main   ↑1                                             scope children · 3 projects                                             truecolor · 160×50
+                                  Type Search  ↑↓ Move  Enter Review…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Here         Scope children · 3 projects

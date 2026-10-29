@@ -1,0 +1,214 @@
+{
+  "decision": "HOLD",
+  "before": "3360d98f43ddb35f8e234691686b0ff0c0450050",
+  "after": "f95593776c9b2d2c3368140af0b578cf82131a85",
+  "actual_parent": "3854e3155ee341f0b4d1611aee9b59fed297ef25",
+  "reference": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "attribution": "Actual foreignf955 changes only private editor_view151 lines and matrix2 lines; App is byte-identical336/f955 (SHA256 bcdfbcbe9f67bee4c4f918628a95777269553204168b9c5dbd6b0811497af323). Requested336..f955 also contains independently reviewed Menu integration385 and associated tests/records. The extra Capsule prefix failure was reproduced at385, before the Env increment; it is separate from new Env regressions.",
+  "tests": {
+    "native": {
+      "command": "cargo nextest run -p jackin-preview-app --all-targets --no-fail-fast",
+      "before": {
+        "run": 182,
+        "passed": 176,
+        "failed": 6,
+        "skipped": 0
+      },
+      "after": {
+        "run": 182,
+        "passed": 175,
+        "failed": 7,
+        "skipped": 0
+      },
+      "extra_failure": "capsule_prefix_m_paints_the_change_title_cell, app_tests_chrome.rs:181, BOLD modifier assertion.",
+      "parent_isolation": {
+        "source": "3854e3155ee341f0b4d1611aee9b59fed297ef25",
+        "command": "cargo nextest run -p jackin-preview-app --all-targets --no-fail-fast -E test(capsule_prefix_m_paints_the_change_title_cell)",
+        "run": 1,
+        "passed": 0,
+        "failed": 1,
+        "filtered_out": 181,
+        "result": "Same BOLD failure already present beforef955. The181 filtered cases are unrun, never passes."
+      }
+    },
+    "prior_editor_public9": {
+      "both": {
+        "run": 9,
+        "passed": 4,
+        "failed": 5,
+        "skipped": 0
+      },
+      "failing": [
+        "third_mount_is_visible_or_scrollable",
+        "painted_mounts_tab_is_clickable",
+        "general_name_renders_pending_draft",
+        "dirty_mounts_render_pending_draft_values",
+        "dirty_general_indicator_remains_visible_at_adjacent_sizes"
+      ]
+    },
+    "prior_roles_public7": {
+      "both": {
+        "run": 7,
+        "passed": 3,
+        "failed": 4,
+        "skipped": 0
+      },
+      "failing": [
+        "down_moves_visible_role_cursor",
+        "end_reveals_last_role",
+        "checkbox_click_changes_pending_policy",
+        "pending_policy_is_rendered"
+      ]
+    },
+    "new_environment_public8": {
+      "before": {
+        "run": 8,
+        "passed": 4,
+        "failed": 4,
+        "skipped": 0
+      },
+      "after": {
+        "run": 8,
+        "passed": 4,
+        "failed": 4,
+        "skipped": 0
+      },
+      "new_passes": [
+        "custom_pending_key_is_live",
+        "empty_env_does_not_invent_database"
+      ],
+      "new_regressions": [
+        "dirty_env_badge_at_adjacent_sizes",
+        "large_env_does_not_paint_over_footer"
+      ],
+      "still_failing": [
+        "down_moves_env_selection",
+        "visible_add_opens_form"
+      ],
+      "retained_passes": [
+        "role_override_uses_pending_data",
+        "collect_environment_facts (observation only)"
+      ]
+    },
+    "execution": "Detached sparse exact-revision copies; each consumer workspace and revision uses its own Cargo target. All commands use cargo nextest under200-second process-group deadlines; maximum observed group36.9 seconds. Fixtures are identical before/after. No expectations or product source changed."
+  },
+  "findings": [
+    {
+      "id": "V1",
+      "priority": "P1",
+      "status": "Prohibited replacement rendering expanded",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:33-51,546-623; crates/jackin-preview-app/src/app.rs:9828-9843",
+      "evidence": "Environments now joins full-root canvas clearing under exact120x40/Returning/Paused/TrueColor/exact-accent selector, followed by private whole-App painting of rows, selection gutter, disclosure marker, Add links and footer. Shared Ui.paint_str/paint_cell primitives do not provide shared component interaction or ownership.",
+      "repair": "Replace with real shared configurable list/form/section/header/toolbar components using borrowed semantic view data and typed actions. Remove the selector and private painter together rather than move or rename it."
+    },
+    {
+      "id": "V2",
+      "priority": "P1",
+      "status": "New Env dirty-status regression",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:37-49,78-96",
+      "evidence": "Adding Env to chrome excludes it from the only dirty badge branch. Public Runtime at119/120/121 before shows dirty indicator at all3; after shows [(119,true),(120,false),(121,true)]. Prior General/Mounts/Role dirty header holds remain.",
+      "repair": "One shared editor header must render explicit draft dirty state through the resolved responsive layout; verify all tabs and adjacent widths without a per-screen correction."
+    },
+    {
+      "id": "V3",
+      "priority": "P1",
+      "status": "New large-data body/footer overlap",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:548-610,612-623",
+      "evidence": "All pending environment and role-override rows are painted with an unbounded saturating y counter, no body clip or scroll state. With40 variables, KEY_30 paints at row37 next to Cancel and Save. Same public probe passes before and fails after; actual row preserved in after-env.log.",
+      "repair": "A shared scroll area/list must allocate a body region separate from the footer and own measured viewport, scrolling and clipping. Do not silently truncate data or special-case40 rows."
+    },
+    {
+      "id": "V4",
+      "priority": "P1",
+      "status": "Persisting inert controls and focus mismatch",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:552-564,584-610,661-663",
+      "evidence": "selected is fixed index==0. Real Down with two pending vars leaves first row gutter at2,7; second never selected. Clicking visible Add environment variable at16,7 with empty data does not open the form. Both fail before/after. Actual environment-page focus is manager Id with bounds(2,3,11,1), cursorNone, while painter shows environment-row focus gutter. No actual row/Add/disclosure controls are registered.",
+      "repair": "Shared section/list/form controls must own real stable IDs, hit regions, selection, disclosure and focus/cursor behavior from one layout. Preserve the valid existing form implementation and integrate actual list actions; no invisible controls or application hit shims."
+    },
+    {
+      "id": "V5",
+      "priority": "P2",
+      "status": "Incomplete frozen semantic contract",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:584-610,636-648",
+      "evidence": "Pending env/role_env data is now genuine, but role sections are always expanded and omit empty overrides; values are always masked with no reveal state; pending-vs-original changes/deleted rows/invalid key presentation are absent. Frozen config.rs builds semantic RowKey sections, folded state, changed/deleted rows, problems and unmasked state. This review source-compares those contracts; it does not claim exhaustive real-CLI behavior proof.",
+      "repair": "Keep domain-to-view-data adaptation in Jackin, including change/error/value-source metadata. Shared sections/list/editor components own mechanics and presentation, with the frozen actions verified through paired real CLI tests."
+    },
+    {
+      "id": "V6",
+      "priority": "P2",
+      "status": "Text/profile/general-layout contract still missing",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:626-628,658-684 and paint_str helpers",
+      "evidence": "Fixed columns4/28/54/117 and literal colors remain; text widths and right alignment use chars().count() casts rather than terminal-cell/grapheme tools. Source labels are padded but not bounded by column slots. Actual selector only enables replacement in one profile. Wide/combining/long input and zero-region behavior were not exhaustively verified here and remain missing evidence.",
+      "repair": "Use shared measured content slots, cell-aware truncation/wrapping and semantic theme tokens with generic bounds and explicit overflow policies."
+    }
+  ],
+  "valid_improvements": [
+    "Environment keys, values and role overrides now come from editor.pending rather than the persisted first workspace: retain this correct draft ownership.",
+    "Custom host-env data and empty-list public probes now pass; no invented DATABASE_URL when no variables exist.",
+    "Domain-to-label conversion for Plain/OnePassword/HostEnv is useful application data adaptation, but must feed real components."
+  ],
+  "test_integrity": "No public API or tests changed in f955. Native inventory remains182; six prior failures retained, extra prefix failure explicitly isolated to parent385. Equal4pass/4fail Env totals hide two new regressions and two gains; exact named outcomes recorded. Author-only zero-cell matrix claims remain unadmitted.",
+  "limitations": [
+    "No full paired real-CLI tuiscotti scenario inventory, frozen output capture, terminal modes/cleanup/cursor-shape gate was run.",
+    "No full workspace fmt/clippy or standalone library/external architecture acceptance gate in this bounded RED audit.",
+    "Menu parent one-case check is scoped; it does not revoke or replace a separate Menu reviewer packet without responsible-layer diagnosis.",
+    "All four application acceptance gates remain incomplete."
+  ],
+  "ownership_sequence": [
+    "Shared sections/list/scroll/form/header contract owner provides measurement, state, interaction and theme rules.",
+    "Jackin adapter supplies pending/original environment view data and domain actions; remove private correction painter and selectors in real adoption.",
+    "Independently replay unchanged named probes and native cases, then paired pinned CLI/full frame gates before accepting the increment."
+  ],
+  "artifact_sha256": {
+    "actual-parent-prefix.log": "211e874ca27bb4b2e36ede0a384c4ad6a376aff5e8b98c306669ab6d13ea72db",
+    "after-consumer/Cargo.lock": "e40ed2bb65baa352bb761c34d18d2f1c43f91b84110701c1d843ab522bc9d3d5",
+    "after-consumer/Cargo.toml": "cb49ec15242625e05592da62ba21daec61ba2da067c28097257ec11d33b5173f",
+    "after-consumer/facts.txt": "ffb87b6a365f90d91709d05e0251a4e99492362f24052121d2b679c88b067b60",
+    "after-consumer/src/lib.rs": "a4f4181bf38613a861eb1b81e35aedeff74ea35c78880086a8efad7921cef6bc",
+    "after-consumer.log": "5eb13e3cdd28432e05b3629dd61d32720ad8e18ed47326fdbe6eba32f937532b",
+    "after-env-consumer/Cargo.lock": "15921ef0f6d0899038a9c516a6ba422786bd0348ca108cfef3f0c2e3efea0e8e",
+    "after-env-consumer/Cargo.toml": "909de03f4e41ad73a43df7576063c869d3e428fcbabdfbbd4a9d81f2ef41eba7",
+    "after-env-consumer/facts.txt": "cff7a5eb4589b209df353b2b54d5a566fd9d2c76dd0beda0276c07415051a7ff",
+    "after-env-consumer/src/lib.rs": "2d2831af4d84a8a72ae675d0eb4b6f25a6842c27ff4a2af0a75c733094a66833",
+    "after-env.log": "6dfba8e58b23f64f79c47e7e8904d6a8a0c30cf3ffd82253d7b658059ab1b1b9",
+    "after-nextest.log": "bd0276e09d48f885389ebdca07161d42e47b8612f1fb414861809ca0a02a333f",
+    "after-roles-consumer/Cargo.lock": "f80d4d90a4b249956bb8d1a35aba952e586b1f018a4b4be99bd6060f18dd2951",
+    "after-roles-consumer/Cargo.toml": "81262b61eacce065c5ead2186e38657c9473fd47339398d3ff88f7404a935e6e",
+    "after-roles-consumer/facts.txt": "e576b3c041087e2c32a5bf684067ce608609fe031873fa0963bdc243b10b53ba",
+    "after-roles-consumer/src/lib.rs": "8811131126c472b40ab73c665dffce555e029519236d2a2b189d7ff196a8e6d9",
+    "after-roles.log": "82855697a0268d62b5c7e5967ff093fe76b277967584eadf7390d73c14214e5f",
+    "after-source/crates/jackin-preview-app/src/app/editor_view.rs": "3041134620d03abe179be3a196566f1a58230bb34164dd82ed7f41c08a572c96",
+    "after-source/crates/jackin-preview-app/src/app.rs": "bcdfbcbe9f67bee4c4f918628a95777269553204168b9c5dbd6b0811497af323",
+    "before-consumer/Cargo.lock": "e40ed2bb65baa352bb761c34d18d2f1c43f91b84110701c1d843ab522bc9d3d5",
+    "before-consumer/Cargo.toml": "bdfccb5730199c99e5fde77a027baad1d5ad8f5aa701b20c42509044470d4cae",
+    "before-consumer/facts.txt": "ffb87b6a365f90d91709d05e0251a4e99492362f24052121d2b679c88b067b60",
+    "before-consumer/src/lib.rs": "a4f4181bf38613a861eb1b81e35aedeff74ea35c78880086a8efad7921cef6bc",
+    "before-consumer.log": "5342b2b67b3f48d60ea14bcc48eca1539cf244832007f5abe36f21182addc071",
+    "before-env-consumer/Cargo.lock": "15921ef0f6d0899038a9c516a6ba422786bd0348ca108cfef3f0c2e3efea0e8e",
+    "before-env-consumer/Cargo.toml": "54b38db2e3b302fa305d2412811c18ac66c766009f0a4a490040477d70fd25d4",
+    "before-env-consumer/facts.txt": "2ac4d0fdad2852b94dddf94fcf4008b0dc8b5343f429292f0e3a25ac567a97e8",
+    "before-env-consumer/src/lib.rs": "2d2831af4d84a8a72ae675d0eb4b6f25a6842c27ff4a2af0a75c733094a66833",
+    "before-env.log": "a2796e2f7e5a27f23001c70a1ee1cb7c06b35e4523fa9d334f9b236b0f123f30",
+    "before-nextest.log": "8aa245d87ef545c6402b69ac1dd7f0f1e780ac609220a940f109662272103d36",
+    "before-roles-consumer/Cargo.lock": "f80d4d90a4b249956bb8d1a35aba952e586b1f018a4b4be99bd6060f18dd2951",
+    "before-roles-consumer/Cargo.toml": "855e7cde6672d171276b83e2b873932da77afc6d9b4e996831c4e0d55148b12d",
+    "before-roles-consumer/facts.txt": "e576b3c041087e2c32a5bf684067ce608609fe031873fa0963bdc243b10b53ba",
+    "before-roles-consumer/src/lib.rs": "8811131126c472b40ab73c665dffce555e029519236d2a2b189d7ff196a8e6d9",
+    "before-roles.log": "cc8af6932d48c2148d9affb9fa4ae54daae6a8da7a99cc83e8f8f647eeb092c8",
+    "before-source/crates/jackin-preview-app/src/app/editor_view.rs": "a73006c9fd17845e293350c4dec2b179c58cbba8da45b508b5db3995d741923b",
+    "before-source/crates/jackin-preview-app/src/app.rs": "bcdfbcbe9f67bee4c4f918628a95777269553204168b9c5dbd6b0811497af323",
+    "consumer-run.py": "d5855b3f3166862c697f71243f83aa0fe989c852147180339bcc820d7a11b04d",
+    "consumer-status.json": "8add5539b41b446bc29fc23991ac616bd6a3dda3e430ddf8ac77a046c424f36f",
+    "env-run.py": "57d14bfe685c904f928ff6d9a4b6cc1c7a15d9c8723bda9f48431143725018df",
+    "env-status.json": "ec90a436967a00328d09bcd0083e60ae56defddb03e3272b9421efd86ec1a6d7",
+    "frozen-config-environment-source.txt": "a24c2f429689192991f6212a59fd1d974296468eb08ad5d79f0f5b7c48c30bec",
+    "increment.diff": "092ee50e524edd18b318086f2042f0ca2102442f06043d65994cf849e4e8f037",
+    "native-run.py": "208250bb937c81025517e32b90fde3ba8258b1dc2ba5dfbd1c41790e63eba693",
+    "native-status.json": "c0cd2549d4a588645dcfd7df6cb2e62f3f2035df4f99c00b687bf9fed344c5a3",
+    "parent-prefix-run.py": "d91adbecdac7148d712e61e342ff8fdcd0819eaf0104e1743f4016a3864d4940",
+    "parent-prefix-status.json": "e6922acbe68c0af00aad26301543d21341c74dc8515fc7f25c305348fc29df69",
+    "requested-range.diff": "43974d6e0fe345feec07d475f63c96a4cf45a74632e22eaf2823e24f444dcc5e",
+    "roles-run.py": "426952d5d5762eb92790f4e1b8e2cca8491ca368a0fb98c989e3e52cf1071ce1",
+    "roles-status.json": "ab78a6862ddd18c45e785ecbfc73679445961451b79be645d6cc0108de215340"
+  }
+}

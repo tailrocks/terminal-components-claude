@@ -1,0 +1,125 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T06:39:43.693410+00:00",
+  "reviewer": "/root/menu_reason_independent_review",
+  "reviewed_commit": "098aacd5035a94eb739ed08ac17cc4fd279d95ff",
+  "parent_commit": "5ac1ae24b9f0548bc064d6609de26245e62695ea",
+  "decision": "BOUNDED_SOURCE_CLEARANCE",
+  "findings": [],
+  "scope": "Runtime private underlay operation-order correction only. No full product, Menu, Mono theme, application architecture or performance clearance.",
+  "reviewer_availability": {
+    "requested_default_reviewer": "rust_reviewer",
+    "startup_failure": "Selected model at capacity; reported by coordinator before work.",
+    "fallback": "Existing independent reviewer performed source review and unchanged external red/green checks; no reduced checks and no author-only approval."
+  },
+  "closed_findings": [
+    {
+      "id": "5AC-R1",
+      "path": "crates/termrock-runtime/src/ui/layer_buf.rs:88",
+      "evidence": "Ordered Paint applies insert-add then remove-sub, preserving Ratatui remove-wins including inherited BOLD. Explicit Patch separately removes then adds, retaining its documented add-wins semantics. Unchanged inherited-BOLD public differential fails5ac, passes860 and098."
+    },
+    {
+      "id": "5AC-R2",
+      "path": "crates/termrock-runtime/src/ui/layer_buf.rs:17",
+      "evidence": "Per-cell private ordered Paint/Patch/Fade/ResetSourceInk operations replace the aggregate masks and single overwritten fade. Fade guards are evaluated at each operation against current background and REVERSED state. Three unchanged repetition/background/reverse public regressions fail5ac, pass860 and098. Native four-profile additional DIM-removal, explicit foreground and semantic-role patch-after-fade comparisons pass."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-runtime --all-targets --no-fail-fast",
+      "exit": 0,
+      "passed": 414,
+      "failed": 0,
+      "skipped": 3,
+      "log": "native-nextest.log",
+      "qualification": "Three inherited default-skipped tests remain unexecuted; no workspace-wide acceptance claim."
+    },
+    {
+      "command": "cargo nextest run --all-targets --no-fail-fast (unchanged external public consumer at098)",
+      "exit": 100,
+      "passed": 18,
+      "failed": 3,
+      "skipped": 0,
+      "log": "public-098.log",
+      "failure_attribution": [
+        "underlay_honors_border_patch",
+        "underlay_keeps_chord",
+        "underlay_keeps_disabled_style"
+      ],
+      "qualification": "Three pre-existing Menu renderer failures, not ignored or classified green. Runtime correction has no Menu source changes."
+    },
+    {
+      "command": "cargo nextest run --all-targets --no-fail-fast -E selected-four-regressions (exact5ac)",
+      "exit": 100,
+      "passed": 0,
+      "failed": 4,
+      "filtered": 17,
+      "log": "public-5ac.log"
+    },
+    {
+      "command": "cargo nextest run --all-targets --no-fail-fast -E selected-four-regressions (exact860)",
+      "exit": 0,
+      "passed": 4,
+      "failed": 0,
+      "filtered": 17,
+      "log": "public-860.log",
+      "qualification": "Filtered cases are not acceptance passes. Candidate runs all21 unchanged tests."
+    },
+    {
+      "command": "cargo clippy -p termrock-runtime --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "clippy.log"
+    },
+    {
+      "command": "cargo fmt --check",
+      "exit": 0,
+      "log": "fmt.log"
+    },
+    {
+      "command": "git diff --exit-code; git status --porcelain",
+      "exit": 0,
+      "log": "diff.log",
+      "qualification": "Exact detached candidate source remained clean."
+    }
+  ],
+  "implementation_review": {
+    "pipeline": "Existing ascending LayerDraw compositor resolves inherited channels from actual nearest lower destination at composition. No second renderer or input engine. Strong admitted-UPPER fixture passes, explicitly checking layer admission and actual upper paint; page color is different from lower-layer ink.",
+    "channels": "Final source cell supplies symbol and transport metadata; inherited foreground, background, underline and modifiers are replayed in order. Explicit background fill clears its semantic role; raw full-cell writes cancel intent. Move transfers cloned intent and ResetSourceInk handles vacated source underline/modifiers. Four-profile modal semantic-role comparisons, clip/zero/wide matrix, right-aligned vacated reset, ForcedWidth page reset and underline public probes pass.",
+    "fast_path": "Optional sparse HashMap starts None and allocates only for underlay use. Ordinary no-intent composition clones only source cell, not destination. Per-cell operation vectors exist only for actual underlay cells and clear each frame. Structural review only; no latency/allocation benchmark.",
+    "api_safety": "Private implementation change; no public signature changes, application dependencies, expected frames, unsafe code or new concurrency primitive found. No new actionable defect found within bounded scope."
+  },
+  "fixture_integrity": {
+    "consumer_sha256": "b511d5a5530172a9b43bb6abd4976a3cbf114e2acf6bd9b0855554a050bc6dff",
+    "unchanged": true,
+    "candidate_worktree": "/private/tmp/runtime-underlay-review-098aacd5-20261021",
+    "before860_worktree": "/private/tmp/runtime-underlay-review-860-before-20261021",
+    "before5ac_worktree": "/private/tmp/underlay-5ac-review-20261021",
+    "distinct_revision_targets": true,
+    "weak_nested_fixture": "Historical underlay_keeps_nearest_lower_layer_ink ignores Tick error and never admitted UPPER; its PASS is not credited. original_nested_fixture_tick_was_rejected explicitly preserves diagnosis. admitted_upper_layer_keeps_nearest_ink is the accepted strong fixture."
+  },
+  "remaining_holds": [
+    "Inherited three Menu painter failures remain in this revision; Menu unification has its separate exact-commit review.",
+    "Known Mono Menu active/hidden appearance issue remains outside this Runtime correction.",
+    "No real application paired Tuiscotti capture, full workspace validation, hosted CI or full product/library acceptance performed.",
+    "No performance benchmark, exhaustive operation/modifier powerset, deep resize stack stress, allocation-failure or backend-failure injection."
+  ],
+  "prior_evidence": {
+    "5ac_review_sha256": "95db7806e8092f26a364959aea39f73d54163a0b7be4a1b1d5e86c235d6ec708",
+    "5ac_review": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/runtime-underlay-5ac1ae24-independent-review-20261021/review.json"
+  },
+  "process": "Reviewer used isolated detached copies and separate revision targets, no helpers, no product source edits, no commits or pushes. Owned command groups had explicit <=210-second subprocess timeouts.",
+  "artifacts": {
+    "before5ac-Cargo.toml": "02d14d91fd2579a898a27832613ba4eee2f9125f5b724e13d4a9a7cdb93d943f",
+    "before860-Cargo.toml": "6a140dff3e1d6cdbc8d8bd2ca84955297781db428405c3520e78ab615f881fb7",
+    "candidate-Cargo.toml": "a0ee3b4f4629acc14a468e9dcec553c5df2ef64d557a8b02d559ae4356c8d07b",
+    "clippy.log": "5c87cd56c0515b08d570319904d98be464b0e4345557960f512486089d62caf8",
+    "consumer.rs": "b511d5a5530172a9b43bb6abd4976a3cbf114e2acf6bd9b0855554a050bc6dff",
+    "diff.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-nextest.log": "18f9e019c48134bcddcc736c4b9a5468ec885e753f19c821c7aa2713095e8998",
+    "public-098.log": "5a4430bbd331af711425d95f2145fbd6209048c29af439a7250fc84a08934dd1",
+    "public-5ac.log": "849595f6d71a3e221e299b387035b525f8cd47ade39d71f343aeccad00c1f9be",
+    "public-860.log": "22ca5d3eeeb83fc2c6546271e502776379c94229e33a0a4bb55a8e77e3129fac",
+    "source.diff": "a1835a934a4863ca793ef7ba225ac3edad39a166ad02aff588aca28d7983c12d"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "2e5f51b4046960f0aa4a8cbabe28404d86758b265cdfee7a594eef7281801fbf",
+  "artifacts": {
+    "ansi": {
+      "bytes": 2872,
+      "file": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor.ansi",
+      "sha256": "2e5f51b4046960f0aa4a8cbabe28404d86758b265cdfee7a594eef7281801fbf"
+    },
+    "ascii": {
+      "bytes": 1759,
+      "file": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor.ascii",
+      "sha256": "968633356167bceaeaa2944be078ce1973e11ae370a6c8c779bfe70dd7ad6ca3"
+    },
+    "ascii_loss_json": {
+      "bytes": 36185,
+      "file": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor.ascii.loss.json",
+      "sha256": "f450ece595386f6bcc89152dc79d4fb81dfbbc3b8b919e4b56f79f911d1b16dd"
+    },
+    "frame_json": {
+      "bytes": 430012,
+      "file": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor.frame.json",
+      "sha256": "b346b5259e82a5b05fb1a0c4ebd6367eb1b1438a50e0613649ebd556d693021c"
+    },
+    "html": {
+      "bytes": 468487,
+      "file": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor.html",
+      "sha256": "9c4204dc659d7907dd38e54aea3d8e5f949a56042e4267be8598e05ceef319d6"
+    },
+    "observations_json": {
+      "bytes": 483,
+      "file": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor.observations.json",
+      "sha256": "d63f7a449dc48c11ff4c8863858af190ea6c2341f45dae01b9de2095a9203e13"
+    },
+    "png": {
+      "bytes": 344964,
+      "file": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor.png",
+      "sha256": "b1c71e3294a2498828942b987c8f5c086768aca086a02a175de97a529e8f876c"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2531,
+      "file": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor.txt",
+      "sha256": "2d9849dbfa0c7214944d282a85a0950db607ac9a05a762a6f29c1a6902dc0a37"
+    }
+  },
+  "ascii_substitutions_count": 391,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 6944684751511279904,
+  "frame_sha256": "b346b5259e82a5b05fb1a0c4ebd6367eb1b1438a50e0613649ebd556d693021c",
+  "generation": "ee5b5b7cb0f3313da86dde4204b959e42c19a11aa1c689586ace209af0aa3203",
+  "html_sha256": "9c4204dc659d7907dd38e54aea3d8e5f949a56042e4267be8598e05ceef319d6",
+  "legacy_name": "tablepro/overlays/tablist_tables/80x24/nocolor",
+  "name": "tablepro/workbench/overlay-tablist-tables/80x24/nocolor",
+  "png_sha256": "b1c71e3294a2498828942b987c8f5c086768aca086a02a175de97a529e8f876c",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:24Z",
+  "txt_sha256": "2d9849dbfa0c7214944d282a85a0950db607ac9a05a762a6f29c1a6902dc0a37"
+}

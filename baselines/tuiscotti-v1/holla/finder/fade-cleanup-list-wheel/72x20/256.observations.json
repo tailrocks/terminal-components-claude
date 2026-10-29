@@ -1,0 +1,22 @@
+{
+  "cell_count": 1440,
+  "cols": 72,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 10603326407648716064,
+  "legacy_name": "holla/fade/cleanup_list_wheel/72x20/256",
+  "name": "holla/finder/fade-cleanup-list-wheel/72x20/256",
+  "non_empty_cells": 475,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 20
+}

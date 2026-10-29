@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Inputs                                                                         truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Inputs  Focus is a bar; editing is a cursor. Enter to edit, Esc to revert.
+▎  Overview
+                            Playground                                                                             Enter Edit · Esc Cancel · Tab Commit + next
+   Components
+▎  Buttons                    Project name *                                                     Branch  optional
+▎› Inputs                   ▎ payments-gateway                                                 ▎ feat/…
+▎  Text areas                 Used as the working directory name                                 Leave empty to work on a detached checkout
+▎  Forms                      Owner email *                                                      API token  optional
+▎  Lists                    ▎ mira@example                                               !     ▎ jb_live_••••••••••••
+▎  Trees                      Enter a valid email address                                        Managed by the organization
+▎  Tables                     Search files  optional                                             API key  optional
+▎  Editable tables          ▎ Type a path or symbol…                                           ▎ ••••••••••••••••••••••••c1f2
+▎  Panels                     Selection: Shift+← →  ·  words: Ctrl+← →  ·  clear: Ctrl+U         Masked while typing; the last four characters show once comm…
+▎  Sidebars
+▎  Dialogs
+▎  Progress
+▎  Scrolling
+▎  Terminal
+▎  Code editor
+▎  Data grid
+▎  Chips & selects          State reference                                                                                                             static
+▎  Pickers
+▎  Chrome                   default         ▎ payments-gateway
+                            placeholder     ▎ (feat/…)
+   Screens                  hover           ▎ payments-gateway
+▎  Settings                 focused         ▎ payments-gateway
+▎  Task runner              editing         ▎ payments-gateway
+                            error           ▎ mira@example                  !
+                            error + focus   ▎ mira@example                  !
+                            disabled        ▎ jb_live_••••
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

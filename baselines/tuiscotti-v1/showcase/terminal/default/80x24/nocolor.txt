@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Terminal            i Inspector   ? Help
+
+   Overview       ┃  Terminal  Viewport with scrollback, selection and copy · …
+   Buttons        ┃
+   Inputs         ┃  ╭─ Viewp… ─ 37 lines · following ─╮ │  Step rail   7 of 7
+   Text areas     ┃  │    #9 RUN apt-get install -y b│ │ │
+   Forms          ┃  │    #10 COPY rust-toolchain.tom│ │ │   ✓ 01 Resolve wo…
+   Lists          ┃  │    #11 RUN cargo fetch --locke│ │ │   ✓ 02 Pull base …
+   Trees          ┃  │    #12 RUN cargo build --relea│ │ │   ✓ 03 Build cont…
+   Tables         ┃  │    #13 RUN apt-get install -y │ │ │     04 Mount sour…
+   Editable tabl… ┃  │    #14 COPY rust-toolchain.tom│ │ │   ✓ 05 Resolve cr…
+   Panels         ┃  │  ✓ Build container            │ │ │   ✓ 06 Start agent
+   Sidebars       ┃  │  ▶ Resolve credentials        │ │ │   ✓ 07 Ready
+   Dialogs        ┃  │    1Password  Engineering › An│ │ │
+   Progress       ┃  │  ✓ Resolve credentials        │ │ │
+   Scrolling      ┃  │  ▶ Start agent                ┃ │ │
+▎› Terminal       ┃  │    claude --resume  pid 4188  ┃ │ │
+   Code editor    ┃  │  ✓ Start agent                ┃ │ │
+   Diff           ┃  │  ▶ Ready                      ┃ │ │
+   Data grid      │  │  ✓ Ready                      ┃ │ │
+   Chips & selec… │  │  payments-platform ❯          ┃ │ │   Run    Run with…
+   Pickers        │  ╰─────────────────────────────────╯ │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

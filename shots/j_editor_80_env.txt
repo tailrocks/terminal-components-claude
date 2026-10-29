@@ -1,0 +1,24 @@
+ ▪  Jackin  inside the Construct  2 running
+
+
+  ▎General   ▎Mounts   ▎Roles   ▎Environments   ▎Auth
+  ───────────────────────────────━━━━━━━━━━━━━────────────────────────────────
+
+      Workspace                                                        4 vars
+  ▎›    DATABASE_URL        ****************    plain
+  ▎     STRIPE_KEY          ****************    [op] Engineering › Stripe · …
+  ▎     LOG_LEVEL           *****               plain
+  ▎     GH_TOKEN            $GH_TOKEN           host env
+  ▎     + Add environment variable
+    ▾ Role: the-architect                                              0 vars
+  ▎     + Add the-architect environment variable
+    ▾ Role: backend                                                    1 vars
+  ▎     OPENAI_API_KEY      ****************    [op] Engineering › OpenAI · …
+  ▎     + Add backend environment variable
+    ▾ Role: reviewer                                                   0 vars
+  ▎     + Add reviewer environment variable
+
+
+                                                         ▎Cancel    ▎Save…
+
+ Enter Edit  m Show  p 1Password…  s Scope…  d Remove…  a Add…  [ ] Switch tab

@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Screens / Task runner            i Inspector   ? Help
+
+   Text areas     │  Task runner  Composed: tree, live progress, following log…
+   Forms          │
+   Lists          │    Targets                         Pipeline    0 of 6 done
+   Trees          ┃
+   Tables         ┃     ▾ payments-gateway             compile       queued
+   Editable tabl… ┃       ▾ build                      lint          queued
+   Panels         ┃           compile                  typecheck     queued
+   Sidebars       ┃           lint                     unit          queued
+   Dialogs        ┃           typecheck                integration   queued
+   Progress       ┃       ▾ test                       e2e           queued
+   Scrolling      ┃           unit
+   Terminal       ┃           integration               Run pipeline
+   Code editor    ┃           e2e
+   Diff           ┃       ▾ deploy
+   Data grid      ┃           staging                  Log         · following
+   Chips & selec… ┃           production
+   Pickers        ┃     ▾ shared-libs                  Ready. Press r or Ru…
+   Chrome         ┃         compile
+   Settings       ┃         publish
+▎› Task runner    ┃
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

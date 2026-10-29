@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Code editor       256 colors · 100×30   i Inspector   ? Help
+
+   Overview          Code editor  Blocks, tones, diagnostics and completion; the gutter says where…
+   Buttons
+   Inputs             ▎retry.rs                            3 blocks      State
+   Text areas
+   Forms                   1 // Retry a request with exponential …┃      Mode         navigating
+   Lists                   2 pub async fn fetch(url: &str) -> Res…┃      Cursor       ln 18 · col…
+   Trees                   3     let mut delay = 200;             ┃      Block        2 of 3
+   Tables                  4     for attempt in 1..=5 {           ┃      Runs         1
+   Editable tables         5         match client().get(url).awai…┃      Last run     77 ms
+   Panels                  6             Ok(body) => return Ok(bo…┃      Diagnostics  1
+   Sidebars                7             Err(e) if e.is_transient…┃      Completion   closed
+   Dialogs                 8                 log::warn!("attempt …┃
+   Progress                9                 sleep(delay).await;  ┃
+   Scrolling              10                 delay *= 2;          ┃
+   Terminal               11             }                        ┃      Diagnostics
+ › Code editor            12             Err(e) => return Err(e), ┃
+   Diff                   13         }                            ┃      ! ln 19 · unwrap() panic…
+   Data grid              14     }                                ┃
+   Chips & selects        15     Err(Error::Exhausted)            ┃
+   Pickers                16 }                                    │
+   Chrome                 17                                      │
+   Settings            ▎› 18 fn client() -> Client {              │
+   Task runner          ! 19     Client::builder().timeout(10).bu…│
+                          20 }                                    │
+                        unwrap() panics on Err; … ln 18/26 · col 1
+
+
+ i Edit  Ctrl+R Run block  { } Blocks  / Find  Tab Next                          Block ran in 77 ms

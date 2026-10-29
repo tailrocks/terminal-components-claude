@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                                            Workspaces  inside the Construct  no instances
+
+ ╭─ Workspaces ─────── no instances ─╮ │  Current directory                                                 not saved
+ │ ▎   Current directory             │ │
+ │ ▎   + New workspace               │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                ╭──────────────────────────────────────────────────────────────────────────────────╮
+ │                │ Launch · choose Agent                    ~/src/payments-platform › the-architect │
+ │                │                                    No matches                                    │
+ │                │                                                                                  │
+ │                │                                                                                  │
+ │                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ │                                   │ │                    Create a workspace from this directory.
+ │                                   │ │
+ │                                   │ │         ~/src/payments-platform is mounted at its own path inside the
+ │                                   │ │     Construct. Enter launches with defaults; n creates a saved workspace.
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Launch   ▎Create workspace
+ ╰───────────────────────────────────╯ │
+
+                                          ↑↓ Move  Enter Choose  Esc Cancel

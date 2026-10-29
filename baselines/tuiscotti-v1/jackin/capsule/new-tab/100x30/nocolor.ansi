@@ -1,0 +1,30 @@
+  jackin❯    File   Edit   View   Session   Help                  payments-platform › the-architect [0m
+                                                                                                    [0m
+  1 Mix (3) ●    2 Shell    3 docs ●                                                                [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
+╭─ Claude Code (Work) ●─────────────────────────╮│╭─ Codex (Primary) ○─────────────────────────────╮[0m
+│● Read src/settlement/mod.rs (88 lines)       ││││  22 passed · 1 failed · 1 ignored (6.8 s)     ││[0m
+│             ╭──────────────────────────────────────────────────────────────────────╮            ││[0m
+│● The loop re│ [0m[1mNew tab[0m                                                              │ncy         ││[0m
+│  exponential│ ▎ Type to search…                                                    │49 EUR      ││[0m
+│             │                                                                      │n ledger/fx.││[0m
+│● Edit src/se│ [0m[1m▎[0m▪[0m[1m Claude Code  [0m2 accounts · choose at start[0m[1m                 [0magents[0m[1m [0m │            ┃│[0m
+│  +  const MA│  ▪ Codex        Primary                                              │            ┃│[0m
+│  +  let dela│  ▪ OpenCode     Go subscription                                      │            ┃│[0m
+│  -  for atte│  ▪ Grok Build   Team                                                 │            ┃│[0m
+│  +  for atte│  $ Shell        zsh                                          shells  │─────────────╯[0m
+│             │                                                                      │──────────────[0m
+│● Bash cargo │                                                                      │─────────────╮[0m
+│  running 6 t╰──────────────────────────────────────────────────────────────────────╯            ││[0m
+│                                              ┃│││?? docs/adr/0007-retry-backoff.md              ││[0m
+│● Edit src/settlement/mod.rs                  ┃│││payments-platform ❯ cargo clippy -p settlement ││[0m
+│  +  pub use retry::{MAX_ATTEMPTS, RetryPolicy┃│││    Checking settlement v0.9.2 (crates/settleme││[0m
+│                                              ┃│││    Finished dev [unoptimized] target(s) in 3.1││[0m
+│● Retries now back off 250 ms → 4 s, capped at┃│││payments-platform ❯ ls docs/adr                ││[0m
+│  One more edit: expose the policy in settleme┃│││0001-record-architecture.md  0004-ledger-precis││[0m
+│                                              ┃│││0002-settlement-batches.md   0005-fx-rounding.m││[0m
+│▶ Allow edit to src/settlement/config.rs? (y/n┃│││0003-retry-policy.md         0007-retry-backoff││[0m
+│❯                                             ┃│││payments-platform ❯                            ┃│[0m
+╰───────────────────────────────────────────────╯│╰────────────────────────────────────────────────╯[0m
+ PR #482 · Settlement retry backoff   Claude Code · Work · needs input    Session ━━━━━━━━─── 76%   [0m
+    [0m[1mType[0m Filter[0m[1m  ↑↓ M[0move  [0m[1mEnter C[0mhoose  …   Attached to payments-platform · tabs and panes restored [0m

@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      batch · project …lection  mbp · local
+
+  Here    emit a burst ✓ ×
+ ────────━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────
+  emit a burst · succeeded · 1 s · exit 0
+  $ ./emit-burst · started by Emit a burst
+
+ ╭─ output ── following · 500 earlier lines dropped · last 4000 kept ─╮
+ │  burst line 4492                                                 │ │
+ │  burst line 4493                                                 │ │
+ │  burst line 4494                                                 │ │
+ │  burst line 4495                                                 │ │
+ │  burst line 4496                                                 │ │
+ │  burst line 4497                                                 │ │
+ │  burst line 4498                                                 │ │
+ │  burst line 4499                                                 ┃ │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ ~/work/batch             succeeded · 1 s              no color · 72×20
+        ↑↓ Scroll  f Follow  / Find  …   emit a burst finished · exit 0

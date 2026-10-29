@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Scrolling                              truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Scrolling  Wheel under the pointer, keys on the focused container, thumb shows where you are
+▎  Overview
+                           ▎Wrapped text   1–31 of 120      Long list      7–37 of 120      Log
+   Components
+▎  Buttons                  Junie works through a    ┃      ▎  Row 007       flagged │       150.96s  info   Resolv… │
+▎  Inputs                   task the way a careful   ┃      ▎  Row 008               │       151.33s  info   Fetchi… │
+▎  Text areas               engineer would: it reads ┃      ▎  Row 009               ┃       151.70s  info   Compil… │
+▎  Forms                    the relevant code, forms ┃      ▎  Row 010               ┃       152.07s  info   Compil… │
+▎  Lists                    a plan, makes focused    ┃      ▎  Row 011               ┃       152.44s  warn   unused… │
+▎  Trees                    changes, runs the tests, ┃      ▎  Row 012               ┃       152.81s  info   Compil… │
+▎  Tables                   and reports back with a  ┃      ▎  Row 013               ┃       153.18s  info   Runnin… │
+▎  Editable tables          summary you can review   ┃      ▎  Row 014       flagged ┃       153.55s  info   test a… │
+▎  Panels                   before anything is       │      ▎  Row 015               ┃       153.92s  info   test d… │
+▎  Sidebars                 merged.                  │      ▎  Row 016               ┃       154.29s  error  test c… │
+▎  Dialogs                                           │      ▎  Row 017               │       154.66s  info   test w… │
+▎  Progress                 Each step is visible.    │      ▎  Row 018               │       155.03s  info   Linkin… │
+▎› Scrolling                You can pause, redirect, │      ▎  Row 019               │       155.40s  info   Resolv… │
+▎  Terminal                 or take over at any      │      ▎  Row 020               │       155.77s  info   Fetchi… │
+▎  Code editor              point, and every change  │      ▎  Row 021       flagged │       156.14s  info   Compil… │
+▎  Data grid                lands as an ordinary     │      ▎  Row 022               │       156.51s  info   Compil… │
+▎  Chips & selects          diff in your working     │      ▎  Row 023               │       156.88s  warn   unused… │
+▎  Pickers                  tree.                    │      ▎  Row 024               │       157.25s  info   Compil… │
+▎  Chrome                                            │      ▎  Row 025               │       157.62s  info   Runnin… │
+                            The design system in     │      ▎  Row 026               │       157.99s  info   test a… │
+   Screens                  this prototype exists so │      ▎  Row 027               │       158.36s  info   test d… │
+▎  Settings                 that the terminal        │      ▎  Row 028       flagged │       158.73s  error  test c… │
+▎  Task runner              version of that          │      ▎  Row 029               │       159.10s  info   test w… │
+                            experience feels as      │      ▎  Row 030               │       159.47s  info   Linkin… │
+                            deliberate as the web    │      ▎  Row 031               │       159.84s  info   Resolv… │
+                            version: quiet surfaces, │      ▎  Row 032               │       160.21s  info   Fetchi… │
+                            one accent, clear focus, │      ▎  Row 033               │       160.58s  info   Compil… │
+                            and no decoration that   │      ▎  Row 034               │       160.95s  info   Compil… │
+                            does not carry           │      ▎  Row 035       flagged │       161.32s  warn   unused… │
+                            information.             │      ▎  Row 036               │       161.69s  info   Compil… ┃
+                                                     │      ▎  Row 037               │       162.06s  info   Runnin… ┃
+
+
+ ↑ ↓ Scroll  PgUp PgDn Page  g G Ends  Tab Next

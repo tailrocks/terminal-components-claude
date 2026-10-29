@@ -1,0 +1,68 @@
+{
+  "reviewed_commit": "7efe824fefeab1b26794b2fec9f749214d81041a",
+  "parents": [
+    "85b19ebbbca341d36effdcaea9abfcd951c99c7b",
+    "759d0d411ed9148e3d04f700bcc81d7b90b97a4a"
+  ],
+  "disposition": "No new actionable findings in the five-conflict editor integration resolution. Existing product, architecture, and package failures remain unresolved.",
+  "acceptance_complete": false,
+  "conflict_input": "/private/tmp/termrock-editor-integration-app-conflicts-20261021.rs",
+  "conflict_review": [
+    "The first draw-body conflict keeps live draw_query_editor and removes the blank-query keyboard-registration/private painter branch. Existing shared editor draw paths cover idle, query errors, plans, results and ordinary query content.",
+    "The empty-query painter conflict deletes paint_focused_empty_query and the superseded historical_empty_query helper; current semantic blank_sql remains.",
+    "The large helper conflict retains the current application connection form helpers but deletes private completion glyph/menu and SQL draft/query rendering replacements; those form helpers remain assigned migration work, not accepted architecture.",
+    "The legacy form/replay conflict does not restore paint_approved_form_new, paint_approved_form_advanced, historical form modules, or historical maximized replay.",
+    "The final draw conflict removes completion replacement drawing and retains only the pre-existing advanced-form correction as an explicitly tracked remaining bypass."
+  ],
+  "source_checks": [
+    "Shared core/editor/overlay/navigation, runtime lifecycle/Cx, and authoritative QueryTab source match cleared759d with no diff. The inherited Ui alignment change remains exactly the separately audited85b1 behavior.",
+    "Relative to parent85b1, tablepro-domain model changes only add CompletionKind::glyph; seeded history and ResultGrid data are retained. Relative to759d, updated Form/history/maximized parent content remains present.",
+    "Completion configuration, provider view data, update and draw share query_editor; SQL tokenization and completion data remain in application domain crates.",
+    "Removed symbols are absent: paint_focused_empty_query, paint_approved_form*, historical_workbench_maximized, paint_completion_menu, sql_completion_offer, publish_sql_completion_tab, set_undrawn_top_bar_cursor and COMPLETION_SQL.",
+    "The one remaining register_keyboard_editor call is connection filter ownership, outside this editor conflict resolution. No query ghost owner registration was restored."
+  ],
+  "independent_verification": {
+    "public_probes": {
+      "run": 20,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "log": "/private/tmp/termrock-editor-7efe-probes.log",
+      "source": "/private/tmp/termrock-editor-7efe-probes",
+      "method": "Unchanged20 probe bodies; dependency paths point to a separate exact-merge source copy.",
+      "log_sha256": "292b7df560ff79b1643a42011f84c9959a274e43ac6eafe115cfdadab55a7cbf"
+    },
+    "real_tablepro_focused": {
+      "command": "cargo nextest run --locked -p tablepro-ui --test app_tests --no-fail-fast -E test(query_editor)|test(ctrl_t_focuses)|test(preloaded_and_replaced)|test(keyboard_flow_full_journey)",
+      "run": 4,
+      "passed": 4,
+      "failed": 0,
+      "intentionally_filtered": 38,
+      "log": "/private/tmp/termrock-editor-7efe-tablepro-focused.log",
+      "coverage": [
+        "Immediate Ctrl+T entry and first character",
+        "preloaded/replaced state ownership",
+        "multiline Unicode/completion cursor through resize",
+        "full keyboard query journey"
+      ],
+      "log_sha256": "1fdca6f762e8b87453fa3092d820105e99cd0025cc3399fb47a40f24b0a50166"
+    }
+  },
+  "parent_evidence_crosscheck": {
+    "source": "docs/audits/2026-10-21-editor-integration-checks.json at7efe",
+    "all_five_log_hashes_match": true,
+    "native": "744run743pass1known fingerprint failure3ignored driver fixtures",
+    "tablepro_and_domain": "194run180pass14fail0skip",
+    "scope": "These broad checks were run by the parent. I inspected their logs and verified the committed hashes, but did not rerun the full broad inventory.",
+    "strict_shared_clippy": "Parent log digest verified; passed.",
+    "expanded_clippy": "Existing seeded function169/100-line blocker remains recorded; parent-base model diff confirms only the additive completion glyph change."
+  },
+  "remaining_work": [
+    "Assigned Form migration still must remove manual form rendering, exact-size selectors, invisible registration/correction paths and associated red tests.",
+    "Inherited Ui semantic-role loss, generic RGB lookup, unscrolled Grid afterpainter and focus-insensitive maximization/tab-footer issues remain assigned from the85b1 audit.",
+    "Full package/native gates remain red and complete frozen CLI parity remains unverified."
+  ],
+  "source_edits": false,
+  "expected_artifact_edits": false,
+  "worktree_clean": true
+}

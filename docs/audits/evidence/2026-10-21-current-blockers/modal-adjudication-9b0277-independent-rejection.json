@@ -1,0 +1,117 @@
+{
+  "reviewed_commit": "9b0277bc62bd5035c4244c3721af1b1775250db2",
+  "reviewed_path": "docs/audits/2026-10-21-modal-backdrop-adjudication.md",
+  "status": "Adjudication requires correction. Shared mapper/source-versus-artifact conflict is supported; accepted live reference decision and candidate parity claims are not supported.",
+  "method": "Read-only exact-commit source/history review, artifact hashing, selected source-file comparison to the fixed tag, and offline rendering through the installed Tuiscotti binary under the fixed a1ea27f... tool path (reports tuiscotti0.2.0). No preparation, build, key access, PTY launch, capture, snapshot blessing, expected update, branch mutation, or production source edit was performed.",
+  "prior_independent_packet": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-dim-independent-review-ffa723642/review.json",
+    "sha256": "7257382a92be0845c9b5d5567e799e0cd64db348b736e87d3aa123c113bc18a1",
+    "verified": true,
+    "conclusion": "The prior reviewer already identified one shared source mapper, native candidate digest misattribution, stale Showcase approval history, and the requirement for repeated pinned real-CLI evidence. It did not claim a fresh capture or an approved reference decision."
+  },
+  "supported_conclusions": [
+    "Frozen source4169783 has one shared Theme::backdrop rule adding DIM to nonblank collided cells or Ansi16/Mono underlay. Dialog and Picker route through that mapper. Keeping the previously cleared candidate mapper unchanged is supported as a bounded source-preservation decision, not full application acceptance.",
+    "The alternate prepared source metadata identifies the fixed tag/source/tree/Tuiscotti revision. Its theme.rs, ui/ctx.rs, widgets/dialog.rs, widgets/picker.rs, Cargo.lock and rust-toolchain.toml were independently compared and are byte-identical to the fixed commit. This review did not rehash the entire extracted source/snapshot tree.",
+    "The alternate build output files exist and independently hash to declared showcaseca3a3114aef32288b998f0fc1976d9b968f2b1d462c8451c39d74360056601a6 and tablepro9c82d9afeae293198d7187e095d49d3dc1d5f859eeb2004742f1ce1d3a46f2d0. Their build observation is real retained diagnostic evidence, not the selected sealed executable cohort.",
+    "There is a direct immutable reference-data conflict: pinned Tuiscotti decodes frozen raw Showcase16 to0DIM, frozen raw TablePro16/none to4660DIM with visible Bar cursor(20,12); admitted TablePro corpus16/none frames have83DIM and hidden Block cursor(0,0). Both versions must be preserved while deciding reference treatment."
+  ],
+  "required_corrections": [
+    {
+      "id": "ADJ-PROV-1",
+      "priority": "P1",
+      "location": "docs/audits/2026-10-21-modal-backdrop-adjudication.md:71-90",
+      "problem": "The claimed fresh pinned runner evidence was captured by tools/capture.sh using tmux capture-pane, then counted by a custom SGR interpreter. This is not the pinned Tuiscotti real-CLI paired runner required by the task. All eight retained loose fresh ANSI files independently fail the pinned Tuiscotti offline canonical ANSI decoder: six unsupported SGR parameter0, two nonrectangular row width0 versus119. This is a format/input-contract rejection, not proof that observed terminal DIM itself is false.",
+      "required_action": "Label these files as nonconforming diagnostic observations only. Do not count them as accepted pinned captures or full decoded frame comparisons. Preserve originals and the parser rejection evidence. Use the authorized sealed cohort and reviewed Tuiscotti runner for any subsequent gate evidence."
+    },
+    {
+      "id": "ADJ-PROV-2",
+      "priority": "P1",
+      "location": "docs/audits/2026-10-21-modal-backdrop-adjudication.md:71-90",
+      "problem": "The only directly associated capture-provenance record found for dialog16 has status=failed, every artifact missing, exit not observed and capture-stop termination. It records tmux3.8, no controlled SOURCE_DATE_EPOCH/TZ and no ordered input/checkpoint receipts. It does identify the ca3a copied executable, but cannot authenticate eight unrelated loose ANSI files or repeated identical runs. No two-run complete frame/cursor comparison receipts were supplied.",
+      "required_action": "Withdraw the assertion that repeated controlled frozen output settled the reference conflict. Retain the failed record without repairing or deleting it. Record which claims are mere loose-file observations and leave repeatable full-state proof open."
+    },
+    {
+      "id": "ADJ-PROV-3",
+      "priority": "P1",
+      "location": "docs/audits/2026-10-21-modal-backdrop-adjudication.md:76-83",
+      "problem": "Matching controlled-baseline-a/provenance.json proves matching extraction metadata, not matching sealed binaries or build recipe. Alternate build-provenance status is observed-not-hermetic and admission eligible=false; the two build stages even yield different application hashes. The selected sealed cohort hashes d54a.../212c... were independently rechecked and differ from ca3a.../9c82.... The alternate build uses Cargo default dev/implicit target observations rather than the separately reviewed serial nonincremental fixed-cohort recipe.",
+      "required_action": "Do not substitute the alternate executable cohort into the authorized plan or call it the fixed selected reference. Keep the alternate build as a separately identified diagnostic cohort with its own limitations. No source/tag/cohort/reference decision is changed by this audit."
+    },
+    {
+      "id": "ADJ-HISTORY-4",
+      "priority": "P2",
+      "location": "docs/audits/2026-10-21-modal-backdrop-adjudication.md:95-110",
+      "problem": "The DIM introduction is attributed to d720a1c2e, but d720's parent already contains the exact branch. git show e40c2c08f2095bee2554057537b889df8d614ed7 adds the branch on2026-10-16. The raw Showcase artifact last changed at20ce5014 on2026-09-14, while raw TablePro last changed at923bfa33 on2026-10-17 afterDIM. The corpus admission historical_oracle_commit4a79 does not identify the generating revision of every subsequently updated raw snapshot.",
+      "required_action": "Correct the chronology and distinguish per-artifact history from corpus-admission metadata. Preserve the supported stale-Showcase diagnosis without claiming every bundled artifact came from4a79 or that d720 introduced DIM."
+    },
+    {
+      "id": "ADJ-FRAME-5",
+      "priority": "P2",
+      "location": "docs/audits/2026-10-21-modal-backdrop-adjudication.md:25-46 and113-122",
+      "problem": "The adjudication gives raw picker16/none4656DIMcells, but canonical pinned Tuiscotti independently decodes4660, matching prior packet725738. It also omits the raw-to-corpus visible-Bar versus hidden-Block cursor conflict. A numeric run/printed-character counter is not complete terminal-cell parity. The metadata admission pin is a47c9a..., different from the fixed a1ea27... pin. A wrong tuple/source/profile or historical conversion defect is proven as a conflict; the exact causal claim that conversion specifically dropped modifiers is not independently diagnosed here.",
+      "required_action": "Use canonical decoded cells/modifiers/cursor numbers and record the older admission tool pin. Require full-state comparison in any future conversion decision. Do not reduce remediation to a DIM-only check or assert an unproven conversion implementation cause."
+    },
+    {
+      "id": "ADJ-ACCEPT-6",
+      "priority": "P1",
+      "location": "docs/audits/2026-10-21-modal-backdrop-adjudication.md:124-158 and matrix Modal backdrop DIM adjudication section",
+      "problem": "The document and matrix promote a native candidate quick-switcher digest af463... to the correct reference result and call current candidate failures correct failures against defective data. No fixed-cohort repeated full-frame/cursor comparison of that candidate exists in the supplied evidence. Matching one source mechanism or a mutable candidate digest cannot establish exact product behavior or authorize expected regeneration.",
+      "required_action": "Keep the bounded mapper implementation and record the source/stored-artifact conflict as unresolved reference integrity. Withdraw broad candidate NO-DEFECT/parity and settled-reference claims. Do not update any expected result or reference revision until documented independent reference decision and permitted fixed-runner evidence exist."
+    }
+  ],
+  "preservation_decision": {
+    "keep_immutable": [
+      "Frozen tag object2718a6b8127a522a3d351d0b4bdb7542fc8da542 and source4169783ae883788186d161af09ba9c481bd84e5c.",
+      "Selected sealed binaries showcase d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55 and tablepro212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0, and all existing authenticated fresh-plan artifacts/receipts.",
+      "All original raw snapshots, admitted corpus frame blobs, prior725738 review, alternate build provenance/binaries and nonconforming loose capture streams."
+    ],
+    "current_code": "Retain the independently cleared shared mapper pending valid product evidence. Do not introduce per-app/viewport/test backdrop variants or change DIM just to match stale data.",
+    "reference_status": "Reference-data conflict diagnosed; final reference approval remains open. No new expected frame is approved, no capture/replay checkpoint credit is granted, and no candidate comparison or application acceptance is established.",
+    "next_step": "The coordinator should correct the committed adjudication/matrix claims and link this packet. Any future live diagnostic must use existing approved cohort/runner policy, identical environment/input/time controls, repeated decoded full-state comparisons and independent review. This review starts none of that work."
+  },
+  "checks": {
+    "offline_tuiscotti_fresh_files": {
+      "attempted": 8,
+      "decoded": 0,
+      "rejected": 8
+    },
+    "offline_tuiscotti_fixed_raw": {
+      "attempted": 3,
+      "decoded": 3
+    },
+    "corpus_json_inspected": 3,
+    "rust_tests_run": 0,
+    "fresh_sessions_started": 0,
+    "keys_read": 0
+  },
+  "evidence_sha256": {
+    "adj-dialog16-open.ansi": "3965073d676d9261698208dc7513d68001656af1ed87d098bbb185e029b10bb1",
+    "adj-fresh-picker-none.ansi": "ab73917d1a074df7a1eb000918bc802adc00bd9d30deb39ebee187bedd0b3e02",
+    "decoded-fixed-tablepro16.json": "d6c874caf042f4ea669f7df94241885686da13219eafbb4f4893b273647f1a71",
+    "adj-fresh-picker-16.ansi": "a9db3c9f5afa4b3b33885976c51cb6a9f75d94a3e3e673a583f0635f3ac22613",
+    "corpus-none.frame.json": "63348c08deec0ba12e3cc6f2e6c7b118d12a5a2cba4a973219e69859a357a2a5",
+    "alternate-build-provenance.json": "1a3b109b71f48554a241d2deaf3844252ca4b6dc67baa44efafb1799ad0342a0",
+    "adj-picker16-cap.ansi": "dad2f6d28442441adc4eda780822206b782047c8adc15192bb9fd231570c3c87",
+    "adj-fresh-dialog-16.ansi": "3894c1b532f12ba0ce2b8b0bd320c3978b8ff2838c159754e8dec2d083b5a74d",
+    "reviewed-adjudication.md": "237e406eb655b0a1f36a6208888fcca066fa34606f58627719c7cb9c745987a3",
+    "decoded-fixed-tableproNone.json": "01232f54ccbbbcf10df02e0fcba151cff1babeba8130c9f4342b1d594dbd6cef",
+    "adj-fresh-picker-truecolor.ansi": "7718165a41d01b3fa3bf4c1e0a6aa1b3b43ee6baed4168589b606f9bf5ceb246",
+    "fixed-raw-showcase16.ansi": "69e815cdecf1b153cb02eb9a759b7eb48eb4382eb17c846a305144122f683e55",
+    "failed-dialog16-metadata-summary.json": "0494ca09f87b7372a52f475b14d0be95844af4b346aaf890f619a09a1d64e245",
+    "decoded-fixed-showcase16.json": "44ab3c6130067553cb502370a16b3d9626af4f29a69657eaf222c106f9a6be5b",
+    "alternate-build.json": "541d4e2de2d98bbd42b4c64c33ba1ca5a2c1aba0f0236edc3069e5930ff396a2",
+    "fixed-raw-tableproNone.ansi": "cb364d6be6eabdb58297560c7477a48c466ae4aed0a59ba3a340dff2800d6e0c",
+    "adj-fresh-dialog-none.ansi": "724c92d316589a091c8d7c53a814789942219a527d14b5b5856b57724f8393a4",
+    "prior-independent-review-725738.json": "7257382a92be0845c9b5d5567e799e0cd64db348b736e87d3aa123c113bc18a1",
+    "alternate-provenance.json": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+    "corpus-256.frame.json": "a9ff927c418b8477ea7829f76002b45ff9bd46b82816354ab1836abc4ae831e0",
+    "corpus-16.frame.json": "d3223fa701589cd4555bf8514e0898756aeadb0ae1988394515ed796f32dc698",
+    "adj-fresh-dialog-truecolor.ansi": "3965073d676d9261698208dc7513d68001656af1ed87d098bbb185e029b10bb1",
+    "adj-dialog16-fresh.ansi": "28ffa70e05972b1cd039b35a65e12ecdf4040a8b18fd3af1091707cb331e16b8",
+    "adj-fresh-picker-256.ansi": "04ae87a9343ddfc43be1ccd8fd4adc8a92510364f953fc212c2f9abd2880639c",
+    "fixed-raw-tablepro16.ansi": "01370717b9fe97a6e16d390dc8f6e5206593175c00d571ee9d9bbf9c5ac84dd2",
+    "offline-decoding.json": "19ed10351d513c131813a24c7bc024c4b014d1792a6c76679021547458510b51",
+    "adj-fresh-dialog-256.ansi": "7e8efdbe25a842f4914f86984616b66383687426d819b0aa17250eb3677968fd"
+  },
+  "product_parity_claim": false
+}

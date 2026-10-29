@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+  ╭──────────────────────────────────────────────────────────────────────────╮
+  │ Open Quickly                                             All · Tab scope │
+ ─│ ▎ Search tables, views, schemas, tabs, queries…                          │─
+ ╭│                                                                          │╮
+ ││ ▎T change_log                       audit · Prod…       Tables         ┃ ││
+ ││ ▎T customers                        public · Pro…                      ┃ ││
+ ││ ▎T daily_revenue                    analytics · …                      ┃ ││
+ ││ ▎T events                           analytics · …                      ┃ ││
+ ││ ▎T login_attempts                   audit · Prod…                      ┃ ││
+ ││ ▎T order_items                      public · Pro…                      ┃ ││
+ ││ ▎T orders                           public · Pro… open                 ┃ ││
+ ││ ▎T organizations                    public · Pro…                      │ ││
+ ││ ▎T payments                         public · Pro…                      │ ││
+ ││ ▎T products                         public · Pro…                      │ ││
+ ││ ▎T subscriptions                    public · Pro…                      │ ││
+ ││ ▎V active_customers                 public · Pro…       Views          │ ││
+ ││ ▎V cohort_retention                 analytics · …                      │ ││
+ ││ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close ││
+ │╰──────────────────────────────────────────────────────────────────────────╯│
+ │   rows 1–11 of 500 loaded · 1,203,338 total · cols 1–2 of 14               │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+

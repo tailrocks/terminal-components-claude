@@ -1,0 +1,171 @@
+{
+  "review_type": "Independent read-only exact-source Jackin/Dialog review",
+  "candidate": "49da9ae391582b783cd7aeeec745294c1c2f2f64",
+  "predecessor": "adf334b21745b9f713c26275987d09bf22eeda16",
+  "direct_parent": "7b073316c089c494e84db801d6bfb861db75224c",
+  "frozen_baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "fixed_design_reference": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "decision": "Useful removal and alignment API verified at bounded component level. Not full product or library acceptance; one new strict-Clippy regression must be repaired. Existing functional and architecture gaps remain blocking acceptance.",
+  "findings": [
+    {
+      "id": "J49-1",
+      "severity": "P1",
+      "kind": "Remaining prohibited production mechanism / library gate",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "line": 7134,
+      "evidence": "launch_cockpit_scene still selects the replacement full-screen painter only for Route::Cockpit, Motion::Paused, Scenario::LaunchRunning and frame()==40; draw calls it at 9420 after ordinary shared screen composition. Expanding this painter to 120x40 removes tables but preserves captured-condition selection of a different screen implementation.",
+      "related": "crates/jackin-preview-app/src/app/launch_cockpit.rs:21 accepts whole App, builds raw Buffer and cell-blits it; literal ROLE/WORKSPACE/AGENT/CREDENTIALS, fixed SPINNER at19, rain frame40 at108, fixed-column bold patches at51-72, raw color downgrade/fade at599 remain. These are evidence of private screen/component mechanics, not reusable Termrock composition.",
+      "attribution": "Private painter and predicate pre-exist; this increment expands that path to the formerly replayed 120x40 scene.",
+      "fix": "Use semantic app-owned view data/actions with shared steps/status/button/chrome/layout blocks; remove the captured scenario/frame predicate and fixed correction painter when real shared components pass paired tests. Do not merely relocate this module into Termrock or restore removed tables."
+    },
+    {
+      "id": "J49-2",
+      "severity": "P1",
+      "kind": "Unresolved baseline functional mismatch",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "line": 1465,
+      "evidence": "Debug info is generic Dialog::info with static Vec<String> paint_lines, updated at3131 and drawn at8664. Frozen cockpit.rs:421 uses InfoDialog with PropsList, read-only meta and copyable Container/Run id; frozen info_dialog.rs:204 forwards navigation/copy; props.rs:473 moves cursor and emits Copy. Exact real-App Down probe and y on all eight attempted rows fail both before and after49da; no selection change or clipboard copy.",
+      "attribution": "Pre-existing missing mechanics exposed by replacing replay with live rendering; no claim this increment first introduced them.",
+      "fix": "Reuse current public PropsList/PropsState/PropsRow/PropsAction::Copy(ItemKey), preserve stable keys and copyable domain values, and add typed composition adapters described below. Keep navigation, selection and scrolling in PropsList; map typed copy key to app-owned value and existing clipboard service."
+    },
+    {
+      "id": "J49-3",
+      "severity": "P1",
+      "kind": "Unresolved modal input isolation",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "line": 4801,
+      "evidence": "Real-App i opens Debug info; x while info remains open also opens cancel dialog. Same unchanged probe fails on exact adf334 and49da. CMD_COCKPIT_CANCEL uses capture-phase app key binding and checks route/failure/cancel_open, not the active modal scope.",
+      "attribution": "Pre-existing on exact predecessor; not attributed as a new49da regression.",
+      "fix": "Repair shared command/input scope ownership so background route commands cannot act through an active modal. Do not scatter popup-open checks into each app command. Preserve allowed modal-owned actions and focus restoration; add real component/app regression."
+    },
+    {
+      "id": "J49-4",
+      "severity": "P2",
+      "kind": "New required-check regression",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "line": 4709,
+      "evidence": "New unqualified ScreenAlign import makes existing termrock::ScreenAlign::Center unnecessarily qualified. Candidate scoped strict Clippy reports ten errors including this unused-qualifications error; exact predecessor reports the same other nine errors but not this one.",
+      "fix": "Use the imported ScreenAlign consistently (or avoid the import), then rerun exact scoped checks. Preserve and separately resolve the other nine existing lint failures."
+    }
+  ],
+  "retained_progress": {
+    "removed_mechanisms": "historical_cockpit_info.rs, historical_cockpit_cancel.rs, launch_dialog_plate.rs, presentation launch_running.rs and its export removed; no remaining Rust source references to their deleted renderers found. Commit49da reports 7794 deletions. No tests or expected snapshots changed by this increment.",
+    "real_dialog_path": "Cancel and info draw unconditionally through ui.layer and shared Dialog at every size/profile where app draws layers. Old plate predicates and explicit skip of shared modal painter removed.",
+    "alignment_api": "Dialog::align(ScreenAlign) is additive; field is private, constructors initialize None, omitted alignment resolves to exactly existing modal default Anchor::Screen(Center). Explicit GeometricCenter changes only layer anchor; measurement/update/draw renderer remain existing implementation. Scoped Overlays strict Clippy and both changed-package formatting pass.",
+    "real_functional_progress": "Unchanged real-App cancel x/Right/Enter confirmation now closes modal and shows Launch cancelled; same probe fails adf334. Four-profile adjacent-size resize/open-close/keep-launching matrix passes49da and fails predecessor. These are bounded functional improvements, not exact frozen frame proof."
+  },
+  "available_shared_repair_contract": {
+    "existing_api": "termrock-controls/src/props.rs exposes PropsList, PropsState, PropsRow and typed PropsAction::Copy(ItemKey), reexported via navigation/facade. No current shared InfoDialog type was found.",
+    "low_level_proof": "External props_slot.rs consumer uses existing Dialog::draw body callback with PropsList::draw, Dialog/PropsList update once each, and LayerSpec::initial_focus(props_id). Down selects stable key17, y emits Copy, Tab reaches close control, ShiftTab restores property focus, Esc closes. Passed. Dialog.update does not force its close button over explicit initial_focus for info dialogs. Body callback executes via ui.with_area within current modal layer; PropsList registers real control/bindings in that scope.",
+    "composition_gap": "Low-level proof alone does not satisfy Goal consumer API. termrock/src/slots.rs has PickerSlotExt only; composition.rs has button/tabs/steps/editor adapters, no PropsList or Dialog body-slot adapter. Runtime LayerSlot::new is pub(crate). Application must not acquire new Rect callback helper to cover this gap.",
+    "bounded_owner_plan": [
+      "Shared composition/runtime author-API owner adds the minimal typed Dialog layer/body-slot wrapper and PropsList composition adapter, delegating existing measure/draw and retaining layer/owner/state identity; any nested slot constructor belongs to the component-author boundary. No second painter or input system.",
+      "Existing PropsList owner verifies focus, copy, scrolling, empty/long/Unicode rows and disabled/inactive states with different data, plus published cursor/part behavior. No Jackin-specific variants.",
+      "Jackin application owner supplies property data/stable keys, copyability and domain copy action. Its view composes through public typed slots and holds PropsState; no private property navigation or raw painting.",
+      "Shared runtime command-scope owner repairs capture-key modal barrier separately. Test exact i/x sequence plus explicit modal actions, dismissal/focus restore.",
+      "Retain the unchanged RED probes, then require GREEN on repaired source and separate frozen paired CLI checks; do not bless current output."
+    ]
+  },
+  "test_results": {
+    "exact_candidate_native": {
+      "command": "cargo nextest run -p termrock-overlays -p jackin-preview-app --lib",
+      "run_id": "0650da4c-7852-4730-ab7e-9d58da735308",
+      "run": 95,
+      "passed": 93,
+      "failed": 2,
+      "skipped": 0,
+      "failures": [
+        "app::paint_contract_tests::capsule_menu_80_paints_the_approved_frame: actual cursor None, expected (3,19)",
+        "app::paint_contract_tests::capsule_split_vertical_paints_the_approved_120x40_frame: actual cursor(39,6), expected(28,16)"
+      ]
+    },
+    "predecessor_native_reproduction": {
+      "command": "cargo nextest run -p jackin-preview-app --lib -E test(capsule_menu_80_paints_the_approved_frame) | test(capsule_split_vertical_paints_the_approved_120x40_frame)",
+      "run": 2,
+      "passed": 0,
+      "failed": 2,
+      "filtered_skipped": 23,
+      "result": "Both same failures and same cursor actual/expected pairs independently reproduced. This filtered reproduction is not a full native gate."
+    },
+    "candidate_real_app_and_alignment": {
+      "run_id": "a97f8893-a0d9-41b9-bbc4-6be3076fca23",
+      "run": 6,
+      "passed": 3,
+      "failed": 3,
+      "skipped": 0,
+      "passed_cases": [
+        "Real info/cancel open-close, resize and keep-launching at119x39,120x40,121x41,80x24 across TrueColor/256/16/Mono",
+        "Real cancel destructive confirmation",
+        "Initial alignment smoke"
+      ],
+      "failed_cases": [
+        "Debug info Down selection",
+        "Debug info copyable Run id",
+        "Info modal barrier against x"
+      ]
+    },
+    "predecessor_same_real_app_probes": {
+      "run_id": "b26e2afa-4c2a-4465-99a7-97b14894f052",
+      "run": 5,
+      "passed": 0,
+      "failed": 5,
+      "skipped": 0,
+      "byte_identical_public_test_sources": true,
+      "source_sha256": "83fac24afa84ec694d664b7d5a870f97c2f353794eab7097b15c7bcbae490507",
+      "note": "Alignment override is additive and not compiled against predecessor. Same real-App tests all RED on predecessor; functional absence and modal barrier therefore pre-exist49da."
+    },
+    "stronger_component_adapters": {
+      "run_id": "fd1669c3-a775-492a-98ae-de3df545c9e5",
+      "run": 2,
+      "passed": 2,
+      "skipped": 0,
+      "cases": [
+        "Dialog default Center versus explicit Center/GeometricCenter anchors and vertical positions over zero/narrow/adjacent and resized windows",
+        "Live PropsList in Dialog body with stable-key Down, typed Copy, close-button Tab and ShiftTab, Esc"
+      ]
+    },
+    "clippy": "Candidate scoped strict Clippy FAIL10; predecessor FAIL9. New unnecessary qualification identified separately. Overlays-only strict Clippy PASS.",
+    "formatting": "Changed-package formatting PASS. Workspace cargo fmt --all -- --check FAIL in unchanged showcase-demos/src/pages/chrome.rs; candidate and predecessor file hashes equal.",
+    "external_probe_notes": "Probe packages are external artifacts only, not production edits. Some discarded fixture Responses produce unused-must-use warnings. Initial stronger alignment assertion incorrectly assumed floor rounding for Ratatui horizontal centering; removed that unsupported arithmetic assumption, preserving anchor and vertical-position checks. Initial log preserved. Harness catches/retries AreaChanged during backend resize; resulting settled Harness pass is not independent proof of production resize prepare/dispatch invariants."
+  },
+  "evidence": {
+    "/private/tmp/jackin-49da-review-native.log": "d8af676dcb0c115ade04657c06514eaa454d641a763c1a669d8b792d0eeb29f0",
+    "/private/tmp/jackin-adf334-base-native.log": "acc01f4573275d3ce761a226ccdc976d4ce2fa4241441882f18f37028c8cb29a",
+    "/private/tmp/jackin-49da-public-exact.log": "8be0eabd64f7686fc0ef7ced9064a652dac74c257c6ebeda96d790cd9a7d6eb7",
+    "/private/tmp/jackin-adf334-public-exact.log": "6e1a80dcfc02e95c7b0a63bb30261d48f59e7601a21a22c818e8683bba6f5ed1",
+    "/private/tmp/jackin-49da-adapters.log": "bc9044118d59067a0418cd6fa7416d97b3a09d6dca9ad683d08d8115b7f3b01d",
+    "/private/tmp/jackin-49da-adapters-final.log": "ed195d5d29c5d6993398a9536749892f89f780d49a315bfd1a0a2c4dffc3ee7b",
+    "/private/tmp/jackin-49da-clippy.log": "485f082af7ca25343b85de055727a809b776214efe8ce8a087a7682b84967aae",
+    "/private/tmp/jackin-adf334-clippy.log": "8e08d2d2b6e530882b273ad15b0530f3f93087496e856b8e1dba0e18bc877168",
+    "/private/tmp/jackin-49da-fmt.log": "c73d2f1c687cc9dd8cfa7b778d13d350c37278007b6c2c4f610d4fd5043ccb62",
+    "/private/tmp/jackin-49da-scoped-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/private/tmp/jackin-49da-overlays-clippy.log": "43b30e4f57f0cb07435c8022389b4c33ecd5f5948421675168740c1a7a5a184e"
+  },
+  "probe_files": {
+    "/private/tmp/jackin-49da-probes/tests/props_slot.rs": "162bc3387355f0d32505143d5bf2448d19ba47f844de5961c4aff48ea37c96a7",
+    "/private/tmp/jackin-49da-probes/tests/alignment.rs": "69f85720e57120e072bc4a0c0e68b06614346084b2711694e8c4c5882c780e6b",
+    "/private/tmp/jackin-49da-probes/tests/public.rs": "83fac24afa84ec694d664b7d5a870f97c2f353794eab7097b15c7bcbae490507"
+  },
+  "source_hashes": {
+    "crates/termrock-overlays/src/dialog.rs": "165e3e5895f125d49976b550fa39be8fd0064b59db215c3e69933d823119e426",
+    "crates/jackin-preview-app/src/app.rs": "757577da3e0d9be154a2896349bf6cf78f0796f02b92a407bf05b26d24e9b5b6",
+    "crates/jackin-preview-app/src/app/launch_cockpit.rs": "3dcf25b0ce7e0c0499c2a0d1df02285192c4ac05a7c1c523f8de7762e021b18e"
+  },
+  "unchanged_formatting_source": {
+    "path": "crates/showcase-demos/src/pages/chrome.rs",
+    "candidate_sha256": "748eccb1f2f973fcdbd4fce6841e3e50d26db2dd666d1edeeae711e1e57ac8ac",
+    "predecessor_sha256": "748eccb1f2f973fcdbd4fce6841e3e50d26db2dd666d1edeeae711e1e57ac8ac"
+  },
+  "coverage_gaps": [
+    "No frozen paired real-CLI tuiscotti captures were executed in this review. No claim of exact cell/color/attribute/cursor shape/timing parity.",
+    "Pointer press/drag/release and outside-click policy, functional copy exact value, all routes, data permutations, empty rows, covered-state styling, terminal modes/cleanup and full focus restoration remain unverified here.",
+    "Runtime backdrop allocation/provenance repairs separately owned and not reviewed here.",
+    "All other replay/private application UI paths remain outside this bounded delta; this review does not approve them.",
+    "Full workspace nextest/lint/format/product gate is not green."
+  ],
+  "read_only_custody": {
+    "source_changes": [],
+    "tracked_target_artifact_changes": 1301,
+    "note": "Existing1301 tracked target deletions preserved; no staging/restoration/deletion/source edits performed. Separate predecessor copy used for actual before tests. No helpers activated."
+  }
+}

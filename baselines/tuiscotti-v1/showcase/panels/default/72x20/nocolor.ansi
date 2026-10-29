@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Panels      i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mPanels[0m  Cards group; a frame only where a pane ne… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃    Titled card  surface    ╭─ Framed…   1–5 of 50 ─╮[0m
+   Text areas     ┃                            │  Junie works        ┃ │[0m
+   Forms          ┃    A card is a filled      │  through a task the │ │[0m
+   Lists          ┃    surface. Its title      │  way a careful      │ │[0m
+   Trees          ┃    sits in the top-left    │  engineer would: it │ │[0m
+   Tables         ┃    and metadata on the     │  [0m[2mreads the relevant [0m│ │[0m
+   Editable tabl… ┃                            ╰───────────────────────╯[0m
+[0m[1m▎› Panels         [0m┃                                                     [0m
+   Sidebars       ┃                              Card · scr… 1–3 of 60  [0m
+   Dialogs        │    Untitled card. Same                              [0m
+   Progress       │    surface, content             0.00s  info   R… ┃  [0m
+   Scrolling      │    starts at the                0.37s  info   F… │  [0m
+   Terminal       │    padding edge.                0.74s  info   C… │  [0m
+[0m[2m   Code editor    [0m│                                                     [0m
+                     Target                                             [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

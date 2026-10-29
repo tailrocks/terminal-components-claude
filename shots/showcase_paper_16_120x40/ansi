@@ -1,0 +1,40 @@
+[38;5;0m[48;5;15m [38;5;12m▪[38;5;0m [1mJunie[0m[38;5;0m[48;5;15m [38;5;8mDesign system[38;5;0m [38;5;8m/ Foundations / Overview[38;5;0m                              [38;5;8m16 colors · 120×40[38;5;0m  [38;5;8m i Inspector [38;5;0m [38;5;8m ? Help [38;5;0m 
+                                                                                                                        
+[1m[38;5;8m   Foundations          [0m[38;5;0m[48;5;15m  [1mOverview[0m[38;5;0m[48;5;15m  [38;5;8mTokens and principles behind every component[38;5;0m                                        
+[1m[38;5;12m▎›[38;5;0m Overview             [0m[38;5;0m[48;5;15m                                                                                                
+                            [38;5;8mTokens[38;5;0m                                          [38;5;8mPrinciples[38;5;0m                                  
+[1m[38;5;8m   Components           [0m[38;5;0m[48;5;15m                                                                                                
+[38;5;15m▎[38;5;0m  [38;5;8mButtons             [38;5;0m         [38;5;8m▏[38;5;0m canvas                      [38;5;8m#000000[38;5;0m       [1mOne hue[0m[38;5;0m[48;5;15m                                     
+[38;5;15m▎[38;5;0m  [38;5;8mInputs              [38;5;0m         [38;5;8m▏[38;5;0m surface                     [38;5;8m#111111[38;5;0m       [38;5;8mGreen means focus, primary action or[38;5;0m        
+[38;5;15m▎[38;5;0m  [38;5;8mText areas          [38;5;0m         [38;5;8m▏[38;5;0m surface.elevated            [38;5;8m#18181b[38;5;0m       [38;5;8mselection. Everything else is achromatic.[38;5;0m   
+[38;5;15m▎[38;5;0m  [38;5;8mForms               [38;5;0m         [38;5;8m▏[38;5;0m surface.overlay             [38;5;8m#27272a[38;5;0m                                                   
+[38;5;15m▎[38;5;0m  [38;5;8mLists               [38;5;0m         [38;5;8m▏[38;5;0m field                       [38;5;8m#1e1e22[38;5;0m       [1mAlpha ladder[0m[38;5;0m[48;5;15m                                
+[38;5;15m▎[38;5;0m  [38;5;8mTrees               [38;5;0m     [48;5;7m    [38;5;8m[48;5;15m▏[38;5;0m popover                     [38;5;8m#3f3f46[38;5;0m       [38;5;8mText and borders step down in white[38;5;0m         
+[38;5;15m▎[38;5;0m  [38;5;8mTables              [38;5;0m         [38;5;8m▏[38;5;0m border.subtle             [38;5;8mwhite 15%[38;5;0m       [38;5;8mopacity, never in arbitrary grays.[38;5;0m          
+[38;5;15m▎[38;5;0m  [38;5;8mEditable tables     [38;5;0m     [48;5;7m    [38;5;8m[48;5;15m▏[38;5;0m border.strong             [38;5;8mwhite 30%[38;5;0m                                                   
+[38;5;15m▎[38;5;0m  [38;5;8mPanels              [38;5;0m     [48;5;0m    [38;5;8m[48;5;15m▏[38;5;0m text.primary                [38;5;8m#ffffff[38;5;0m       [1mState is geometry[0m[38;5;0m[48;5;15m                           
+[38;5;15m▎[38;5;0m  [38;5;8mSidebars            [38;5;0m     [48;5;8m    [38;5;8m[48;5;15m▏[38;5;0m text.secondary            [38;5;8mwhite 70%[38;5;0m       [38;5;8mHover lifts the surface, focus adds a bar,[38;5;0m  
+[38;5;15m▎[38;5;0m  [38;5;8mDialogs             [38;5;0m     [48;5;8m    [38;5;8m[48;5;15m▏[38;5;0m text.muted                [38;5;8mwhite 50%[38;5;0m       [38;5;8mselection adds a marker, editing shows the[38;5;0m  
+[38;5;15m▎[38;5;0m  [38;5;8mProgress            [38;5;0m     [48;5;8m    [38;5;8m[48;5;15m▏[38;5;0m text.faint                [38;5;8mwhite 30%[38;5;0m       [38;5;8mcursor.[38;5;0m                                     
+[38;5;15m▎[38;5;0m  [38;5;8mScrolling           [38;5;0m     [48;5;12m    [38;5;8m[48;5;15m▏[38;5;0m accent                      [38;5;8m#48e054[38;5;0m                                                   
+[38;5;15m▎[38;5;0m  [38;5;8mTerminal            [38;5;0m     [48;5;12m    [38;5;8m[48;5;15m▏[38;5;0m accent.hover                [38;5;8m#3ab343[38;5;0m       [1mThree planes[0m[38;5;0m[48;5;15m                                
+[38;5;15m▎[38;5;0m  [38;5;8mCode editor         [38;5;0m     [48;5;12m    [38;5;8m[48;5;15m▏[38;5;0m accent.pressed              [38;5;8m#2b8632[38;5;0m       [38;5;8mCanvas, surface, elevated. Depth comes[38;5;0m      
+[38;5;15m▎[38;5;0m  [38;5;8mData grid           [38;5;0m         [38;5;8m▏[38;5;0m accent.bg                 [38;5;8mgreen 20%[38;5;0m       [38;5;8mfrom lightness, not borders.[38;5;0m                
+[38;5;15m▎[38;5;0m  [38;5;8mChips & selects     [38;5;0m     [48;5;1m    [38;5;8m[48;5;15m▏[38;5;0m error                       [38;5;8m#e44545[38;5;0m                                                   
+[38;5;15m▎[38;5;0m  [38;5;8mPickers             [38;5;0m     [48;5;1m    [38;5;8m[48;5;15m▏[38;5;0m warning                     [38;5;8m#f59e09[38;5;0m       [1mQuiet chrome[0m[38;5;0m[48;5;15m                                
+[38;5;15m▎[38;5;0m  [38;5;8mChrome              [38;5;0m     [48;5;4m    [38;5;8m[48;5;15m▏[38;5;0m info                        [38;5;8m#8787ff[38;5;0m       [38;5;8mBold is reserved for the focused control.[38;5;0m   
+                                                                            [38;5;8mNo box around a thing unless the box[38;5;0m        
+[1m[38;5;8m   Screens              [0m[38;5;0m[48;5;15m                                                    [38;5;8mcarries meaning.[38;5;0m                            
+[38;5;15m▎[38;5;0m  [38;5;8mSettings            [38;5;0m                                                                                                 
+[38;5;15m▎[38;5;0m  [38;5;8mTask runner         [38;5;0m                                                                                                 
+                                                                            [38;5;8mState language[38;5;0m                              
+                                                                                                                        
+                                                                            [38;5;12m▎[38;5;0m  [38;5;8mfocus[38;5;0m                                    
+                                                                            [38;5;8m░[38;5;0m  [38;5;8mhover lifts the surface[38;5;0m                  
+                                                                            [38;5;12m›[38;5;0m  [38;5;8mcurrent / chosen[38;5;0m                         
+                                                                            [38;5;12m✓[38;5;0m  [38;5;8mchecked[38;5;0m                                  
+                                                                            [38;5;1m![38;5;0m  [38;5;8merror[38;5;0m                                    
+                                                                                                                        
+                                                                          [38;5;12mAuthor component · click or Tab[38;5;0m               
+                                                                                                                        
+ [1m↑ ↓[0m[38;5;0m[48;5;15m [38;5;8mMove[38;5;0m  [1mEnter[0m[38;5;0m[48;5;15m [38;5;8mOpen[38;5;0m  [1mTab[0m[38;5;0m[48;5;15m [38;5;8mInto page[38;5;0m  [1mq[0m[38;5;0m[48;5;15m [38;5;8mQuit[38;5;0m                                                                            

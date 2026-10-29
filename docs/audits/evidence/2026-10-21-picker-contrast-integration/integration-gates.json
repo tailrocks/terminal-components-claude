@@ -1,0 +1,52 @@
+{
+  "integration_base": "8e502d7fb9e40420b844964ec933bac497ebb2ae",
+  "incoming_tip": "c932adb5ee29ef8ed9f90cc022c39cb9c0472e5d",
+  "source_head_before_integration": "5b3097acab788ed4e189bc7e6aab27f1b6a6ee65",
+  "unique_target_dir": "/private/tmp/pr38-picker-contrast-target-20261021",
+  "gates": {
+    "cargo nextest run -p termrock-navigation --lib": {
+      "exit": 0,
+      "summary": "112 passed, 0 skipped"
+    },
+    "cargo nextest run -p termrock-navigation --test item_row_columns --no-fail-fast": {
+      "exit": 100,
+      "summary": "14 passed, 1 failed, 0 skipped; inherited constructor_defaults_match_the_pre_policy_full_cell_fixture"
+    },
+    "cargo nextest run -p termrock-runtime --lib": {
+      "exit": 0,
+      "summary": "261 passed, 0 skipped"
+    },
+    "cargo nextest run -p termrock --lib": {
+      "exit": 0,
+      "summary": "11 passed, 0 skipped"
+    },
+    "cargo check -p termrock --example picker_row_defaults": {
+      "exit": 0,
+      "summary": "compiled public consumer example"
+    },
+    "cargo run -p termrock --example picker_row_defaults": {
+      "exit": 0,
+      "summary": "ran public consumer example"
+    },
+    "cargo clippy -p termrock-runtime -p termrock-navigation -p termrock --all-targets -- -D warnings": {
+      "exit": 0,
+      "summary": "passed"
+    },
+    "cargo fmt --all --check": {
+      "exit": 0,
+      "summary": "passed"
+    },
+    "git diff --check": {
+      "exit": 0,
+      "summary": "passed"
+    },
+    "protected expected blob assertion against 52e1572ca": {
+      "exit": 0,
+      "summary": "all seven path/blob IDs equal"
+    }
+  },
+  "full_app_parity_claimed": false,
+  "also_merged_remote": "bfefea9ce4b3ab91f846239d5f315534ccc2ff43",
+  "tested_local_head": "7ca251723a6783a9fffca79acebb5bf0c4fff731",
+  "scope_note": "Named package tests and public example only; no approval for the separately unreviewed Session/Alt source in the also_merged_remote commit, and no application parity claim."
+}

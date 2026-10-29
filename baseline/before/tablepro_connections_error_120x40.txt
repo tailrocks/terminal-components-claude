@@ -1,0 +1,40 @@
+ ▪  TablePro  Connections  6 saved                                                           truecolor · 120×40  ? help
+
+ ╭─ Connections ─────────────────── 6 ─╮    Analytics
+ │                                     │
+ │ ▎ Filter connections                │    Engine       MySQL
+ │ ▎▾ Personal                         │    Host         analytics.acme.io:3306
+ │ ▎    · Local PostgreSQL         pg  │    Database     warehouse
+ │ ▎    · Scratch              sqlite  │    User         analyst
+ │ ▎▾ Acme                             │    Environment  production
+ │ ▎    · Development              pg  │    Safe Mode    Read-Only · Writes are refused. Reads and exports
+ │ ▎    ◇ Staging                  pg  │                 still work.
+ │ ▎    ◆ Analytics             mysql  │    SSL / SSH    on / off
+ │ ▎    ◆ Production               pg  │    Last used    last week
+ │                                     │
+ │                                     │    ! Could not reach the host
+ │                                     │      Connection timed out after 10 s (analytics.acme.io:3306). The
+ │                                     │      host may be behind a VPN or the port may be blocked.
+ │                                     │    ▎Reconnect   ▎Edit   ▎Duplicate   ▎Delete…
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ ╰─────────────────────────────────────╯
+
+ ↑ ↓ Move  Enter Connect  / Filter  Ctrl+N New  Tab Next

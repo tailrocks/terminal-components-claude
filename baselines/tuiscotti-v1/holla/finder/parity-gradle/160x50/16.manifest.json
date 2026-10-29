@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "aa2037c4c3fab4304a92f4eb8049bf28d8bb881124d8f2a7864d4b88c453ba73",
+  "artifacts": {
+    "ansi": {
+      "bytes": 12474,
+      "file": "holla/finder/parity-gradle/160x50/16.ansi",
+      "sha256": "aa2037c4c3fab4304a92f4eb8049bf28d8bb881124d8f2a7864d4b88c453ba73"
+    },
+    "ascii": {
+      "bytes": 3684,
+      "file": "holla/finder/parity-gradle/160x50/16.ascii",
+      "sha256": "20bb37b7d5c2fcc47fe2efac60408b48087919955bd24e1da5492a518db9fc54"
+    },
+    "ascii_loss_json": {
+      "bytes": 17161,
+      "file": "holla/finder/parity-gradle/160x50/16.ascii.loss.json",
+      "sha256": "0a578d49b5c90d87f6ebf8f706f28d5ec0b52e6e77a6841af233a820a1a91fd3"
+    },
+    "frame_json": {
+      "bytes": 1864677,
+      "file": "holla/finder/parity-gradle/160x50/16.frame.json",
+      "sha256": "9c5bad54ac411cf2cc63ad29e762164ee218520f0579d6f4a4cfc3d8e7560168"
+    },
+    "html": {
+      "bytes": 687455,
+      "file": "holla/finder/parity-gradle/160x50/16.html",
+      "sha256": "a793845a75179e23f6020b758d21fb8d29ceca97d9f0a689f459218687e66170"
+    },
+    "observations_json": {
+      "bytes": 449,
+      "file": "holla/finder/parity-gradle/160x50/16.observations.json",
+      "sha256": "6bdd5dd4a5eb6175fca28a4bb5f9b85128392984be430fe7429c61ec3a5fd3e5"
+    },
+    "png": {
+      "bytes": 495598,
+      "file": "holla/finder/parity-gradle/160x50/16.png",
+      "sha256": "1419d040dce12cfbe87c2b2ef102251ecb8e151187b3efe508b9acd63ab1ded2"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/parity-gradle/160x50/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 4040,
+      "file": "holla/finder/parity-gradle/160x50/16.txt",
+      "sha256": "2f8db6fe236d36521a3c71b895a472641d9647be03d6402ce2fde2c3ff3b0d58"
+    }
+  },
+  "ascii_substitutions_count": 185,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 17983185402617894040,
+  "frame_sha256": "9c5bad54ac411cf2cc63ad29e762164ee218520f0579d6f4a4cfc3d8e7560168",
+  "generation": "6edec6c5931fac779e96174174af65de4129b9ce86134af8b0bb78c85fbb79aa",
+  "html_sha256": "a793845a75179e23f6020b758d21fb8d29ceca97d9f0a689f459218687e66170",
+  "legacy_name": "holla/parity/gradle/160x50/16",
+  "name": "holla/finder/parity-gradle/160x50/16",
+  "png_sha256": "1419d040dce12cfbe87c2b2ef102251ecb8e151187b3efe508b9acd63ab1ded2",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:28Z",
+  "txt_sha256": "2f8db6fe236d36521a3c71b895a472641d9647be03d6402ce2fde2c3ff3b0d58"
+}

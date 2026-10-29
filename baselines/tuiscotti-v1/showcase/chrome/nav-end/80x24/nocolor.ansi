@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Foundations / Overview           i Inspector   ? Help  [0m
+                                                                                [0m
+[0m[2m   Text areas     [0m│  [0m[1mOverview[0m  Tokens and principles behind every component     [0m
+   Forms          │                                                             [0m
+   Lists          │    Tokens                                                   [0m
+   Trees          ┃                                                             [0m
+   Tables         ┃        ▏ canvas                   ▏ text.muted              [0m
+   Editable tabl… ┃        ▏ surface                  ▏ text.faint              [0m
+   Panels         ┃        ▏ surface.elevated         ▏ accent                  [0m
+   Sidebars       ┃        ▏ surface.overlay          ▏ accent.hover            [0m
+   Dialogs        ┃        ▏ field                    ▏ accent.pressed          [0m
+   Progress       ┃        ▏ popover                  ▏ accent.bg               [0m
+   Scrolling      ┃                                                             [0m
+   Terminal       ┃                                                             [0m
+   Code editor    ┃    State language                                           [0m
+   Diff           ┃                                                             [0m
+   Data grid      ┃    ▎  focus                                                 [0m
+   Chips & selec… ┃    ░  hover lifts the surface                               [0m
+   Pickers        ┃    ›  current / chosen                                      [0m
+   Chrome         ┃    ✓  checked                                               [0m
+   Settings       ┃    !  error                                                 [0m
+[0m[1m▎  Task runner    [0m┃                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Scrolling           i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused c… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃   ▎[0m[1mWra… 4–18 of[0m …      Lon… 1–15 of …      Log 1986–2000 …  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃    [0m[2ma careful    [0m┃         Row 001   ┃      [0m[2m 734.45s  in… [0m│  [0m
+   Lists          ┃    engineer     │         Row 002   │       734.82s  in… │  [0m
+   Trees          ┃    would: it    │         Row 003   │       735.19s  in… │  [0m
+   Tables         ┃    reads the    │         Row 004   │       735.56s  in… │  [0m
+   Editable tabl… ┃    relevant     │         Row 005   │       735.93s  er… │  [0m
+   Panels         ┃    code, forms  │         Row 006   │       736.30s  in… │  [0m
+   Sidebars       ┃    a plan,      │         Row 007   │       736.67s  in… │  [0m
+   Dialogs        ┃    makes        │         Row 008   │       737.04s  in… │  [0m
+   Progress       ┃    focused      │         Row 009   │       737.41s  in… │  [0m
+ › Scrolling      ┃    changes,     │         Row 010   │       737.78s  in… │  [0m
+   Terminal       ┃    runs the     │         Row 011   │       738.15s  in… │  [0m
+   Code editor    ┃    tests, and   │         Row 012   │       738.52s  wa… │  [0m
+   Diff           ┃    reports back │         Row 013   │       738.89s  in… │  [0m
+   Data grid      │    with a       │         Row 014   │       739.26s  in… │  [0m
+   Chips & selec… │    [0m[2msummary you  [0m│      [0m[2m   Row 015   [0m│       739.63s  in… ┃  [0m
+[0m[2m   Pickers        [0m│                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Scroll  [0m[1mPgUp PgDn[0m Page  [0m[1mg G[0m Ends  [0m[1mTab[0m Next                                 [0m

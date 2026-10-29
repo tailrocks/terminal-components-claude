@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "80a744c3c91b7e66bcde3b3b7b1da2379d1680db610ac30ece479834256bfa44",
+  "artifacts": {
+    "ansi": {
+      "bytes": 15373,
+      "file": "holla/finder/concept-launch-failure/160x50/16.ansi",
+      "sha256": "80a744c3c91b7e66bcde3b3b7b1da2379d1680db610ac30ece479834256bfa44"
+    },
+    "ascii": {
+      "bytes": 7035,
+      "file": "holla/finder/concept-launch-failure/160x50/16.ascii",
+      "sha256": "15b19f88a604bd4325c2dda0f6ded4eaf35fff1482aafd41aefdb27b63dc533b"
+    },
+    "ascii_loss_json": {
+      "bytes": 50681,
+      "file": "holla/finder/concept-launch-failure/160x50/16.ascii.loss.json",
+      "sha256": "504383e1e5c93a75542634c25923e8a9d4054b70a3763f3f44f41ef596e0dce2"
+    },
+    "frame_json": {
+      "bytes": 1864879,
+      "file": "holla/finder/concept-launch-failure/160x50/16.frame.json",
+      "sha256": "d597e373c2539a5948f090fcbc56c59612c37681e88434d0ed30e2fd31791c19"
+    },
+    "html": {
+      "bytes": 604120,
+      "file": "holla/finder/concept-launch-failure/160x50/16.html",
+      "sha256": "76bf2873632da4d7a4313ebfa3d07255f0d1da16da9a27b88e97365e52cd524a"
+    },
+    "observations_json": {
+      "bytes": 466,
+      "file": "holla/finder/concept-launch-failure/160x50/16.observations.json",
+      "sha256": "21dffc01c3d4216eadc4e3c91ab4d544f2770ac2b7b5be374d8f32d69adad102"
+    },
+    "png": {
+      "bytes": 424710,
+      "file": "holla/finder/concept-launch-failure/160x50/16.png",
+      "sha256": "b5cce409426f6ba6c2691a16b71bb6a678524632bd2a4f669b1060ab66a7cb35"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/concept-launch-failure/160x50/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 8114,
+      "file": "holla/finder/concept-launch-failure/160x50/16.txt",
+      "sha256": "977fbe71626241e36105519b189f876c20d636df40beb12442fc60ad993c993b"
+    }
+  },
+  "ascii_substitutions_count": 546,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 5572287836104602624,
+  "frame_sha256": "d597e373c2539a5948f090fcbc56c59612c37681e88434d0ed30e2fd31791c19",
+  "generation": "d76e86154f0da6b53860ae4a1c80922af62e565b75a9fe7f493232f7be0a9e8a",
+  "html_sha256": "76bf2873632da4d7a4313ebfa3d07255f0d1da16da9a27b88e97365e52cd524a",
+  "legacy_name": "holla/concept/launch-failure/160x50/16",
+  "name": "holla/finder/concept-launch-failure/160x50/16",
+  "png_sha256": "b5cce409426f6ba6c2691a16b71bb6a678524632bd2a4f669b1060ab66a7cb35",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:00Z",
+  "txt_sha256": "977fbe71626241e36105519b189f876c20d636df40beb12442fc60ad993c993b"
+}

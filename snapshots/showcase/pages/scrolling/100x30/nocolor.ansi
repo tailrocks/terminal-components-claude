@@ -1,0 +1,31 @@
+ ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mScrolling[0m                no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+ [0m[1mComponents[0m      54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb show… [0m
+ ──────────────────                                                                                 [0m
+    Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                  [0m
+  ▸ Tables             Wrapped … 1–7 of 153      Long list 1–7 of 120      Log    1995–2000/2000   ┃[0m
+  ▸ Navigation         ────────────────────      ────────────────────      ─────────────────────   ┃[0m
+  ▸ Overlays           Junie works        ┃         Row 001         ┃      [0m[2m 737.78s  info   C… [0m┆   ┃[0m
+  ▸ Feedback           through a task the ┆         Row 002         ┆       738.15s  info   C… ┆   ┃[0m
+  ▾ Layout             way a careful      ┆         Row 003         ┆       738.52s  warn   u… ┆   ┃[0m
+      Panels           engineer would: it ┆         Row 004         ┆       738.89s  info   C… ┆   ┃[0m
+ [0m[1m▎  › Scrolling    [0m    reads the relevant ┆         Row 005         ┆       739.26s  info   R… ┆   ┃[0m
+      Splits & st…     code, forms a      ┆         Row 006         ┆       739.63s  info   t… ┃   ┃[0m
+      Master-deta…     [0m[2mplan, makes        [0m┆      [0m[2m   Row 007         [0m┆      ━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┃[0m
+      Pane tree                                                                                    ┃[0m
+  ▸ Text & code                                                                                    ┃[0m
+  ▸ Screens            Hand-drawn                   Divider or bar      Cursor                     ┃[0m
+                       ───────────────────────      ──────────────      ────────────────────────   ┃[0m
+                       Host          Region …       fits    over        row 1 · vertical           ┃[0m
+                       api-01        ap-sout…┃      ite… │  ite… ┃      wrap off · skip disable…   ┆[0m
+                       auth-01       ap-sout…┆      ite… │  ite… ┆      RowFn: 108 of 120 open     ┆[0m
+                       billing-01    ca-cent…┆      ite… │  ite… ┆      Last: no key yet           ┆[0m
+                       cache-01      eu-cent…┆      ite… │  ite… ┆      KeyStep: Nav · Type        ┆[0m
+                       [0m[2mdb-01         eu-nort…[0m┆      ite… │  ite… ┆      Moved: To · Stayed · Ig…   ┆[0m
+                       ━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄       ite… │  ite… ┆      Desktop · 1s · shortcut…   ┆[0m
+                                                                                                   ┆[0m
+                                                                                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
+[?25l

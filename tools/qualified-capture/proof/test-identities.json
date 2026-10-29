@@ -1,0 +1,198 @@
+[
+  {
+    "target": "Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-83c69f301cd312ff)",
+    "identity": "corrupt_imports_rejected_explicitly"
+  },
+  {
+    "target": "Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-83c69f301cd312ff)",
+    "identity": "cursor_only_change_detected"
+  },
+  {
+    "target": "Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-83c69f301cd312ff)",
+    "identity": "dimension_mismatch_is_an_error_not_a_diff"
+  },
+  {
+    "target": "Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-83c69f301cd312ff)",
+    "identity": "identical_frames_match_and_digest_is_stable"
+  },
+  {
+    "target": "Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-83c69f301cd312ff)",
+    "identity": "indexed_and_rgb_colors_resolve"
+  },
+  {
+    "target": "Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-83c69f301cd312ff)",
+    "identity": "json_round_trip_preserves_everything"
+  },
+  {
+    "target": "Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-83c69f301cd312ff)",
+    "identity": "provenance_excluded_from_digest"
+  },
+  {
+    "target": "Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-83c69f301cd312ff)",
+    "identity": "style_only_change_detected"
+  },
+  {
+    "target": "Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-83c69f301cd312ff)",
+    "identity": "text_change_detected"
+  },
+  {
+    "target": "Running tests/pty.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/pty-f0bf8983dbef3e7d)",
+    "identity": "exit_resize_and_cleanup"
+  },
+  {
+    "target": "Running tests/pty.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/pty-f0bf8983dbef3e7d)",
+    "identity": "keys_drive_fixture_app_screen"
+  },
+  {
+    "target": "Running tests/pty.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/pty-f0bf8983dbef3e7d)",
+    "identity": "timeout_fails_with_screen_evidence"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "box_braille_icons_render_ink"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "cjk_keeps_two_cell_geometry"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "clipping_and_wrapping_match_terminal"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "cursor_styles_render"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "dark_vs_light_theme_changes_pixels"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "deterministic_reruns_are_byte_identical"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "emoji_tofu_keeps_two_cell_advance"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "every_modifier_changes_pixels"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "font_hash_pinned_and_documented"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "geometry_pin_fails_loudly"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "glyph_change_changes_pixels"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "svg_and_ansi_outputs_carry_content"
+  },
+  {
+    "target": "Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-1786f791de7365e2)",
+    "identity": "themes_change_pixels_and_sizes_change_dims"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "accept_then_match_round_trip"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "changed_snapshot_reports_cells_and_diff_image"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "concurrent_different_names_are_safe"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "corrupt_approval_is_explicit"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "corrupt_approved_png_is_an_explicit_error"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "dimension_mismatch_status"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "missing_approval_fails_closed_but_writes_actuals"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "no_env_var_can_auto_accept"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "relaxed_threshold_still_gates_dimensions"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "report_embeds_images_and_frame_json"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "same_name_concurrent_checks_are_safe"
+  },
+  {
+    "target": "Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-b6d60559bc5a6ae7)",
+    "identity": "script_embed_round_trips_hostile_symbols"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "autowrap_off_does_not_shift_wide_glyph_left_at_margin"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "autowrap_off_overwrites_last_cell_then_can_be_reenabled"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "dim_blending_uses_full_precision_before_narrowing"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "formatted_intensity_roundtrip_clears_each_independent_flag"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "formatted_terminal_modes_preserve_autowrap_disable_and_restore"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "hidden_and_blink_are_canonical_and_hidden_does_not_paint"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "literal_paste_preserves_lf_and_rejects_protocol_delimiters"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "ratatui_preserves_combined_flags_and_wide_styles"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "raw_ansi_preserves_combined_flags_and_wide_styles"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "right_margin_cursor_is_physical_without_losing_pending_wrap"
+  },
+  {
+    "target": "Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-72100539b5082c8e)",
+    "identity": "schema_two_is_not_silently_reinterpreted"
+  },
+  {
+    "target": "Running tests/visual.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/visual-c23e49b0e9ec41f9)",
+    "identity": "fixture_visual_gates"
+  }
+]

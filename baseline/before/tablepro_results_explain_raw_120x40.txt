@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+  ≡ Query 1 ×                                                                                                       +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ─────────────────────────────────────────────────────────────────── 402 ms ─╮
+ │                           │ │  ▎›  1 …CT * FROM orders WHERE notes LIKE '%gift%' ORDER BY created_at LIMIT 10      │
+ │ ▎ Filter objects          │ │                                                                                      │
+ │ ▎▾ D acme_prod            │ │                                                                                      │
+ │ ▎  ▾ S public             │ │                                                                                      │
+ │ ▎    ▾ Tables             │ │                                                                                      │
+ │ ▎      ▸ T organizations  │ │                                                                                      │
+ │ ▎      ▸ T customers      │ │                                                                                      │
+ │ ▎      ▸ T products       │ │                                                                                      │
+ │ ▎      ▸ T orders         │ │                                                                                      │
+ │ ▎      ▸ T order_items    │ │                                                                                      │
+ │ ▎      ▸ T payments       │ │                                                                                      │
+ │ ▎      ▸ T subscriptions  │ │                                                                                      │
+ │ ▎    ▸ Views              │ │   EXPLAIN ANALYZE ×                                                                  │
+ │ ▎    ▸ Functions          │ │  ━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────── │
+ │ ▎    ▸ Sequences          │ │   Planning 0.300 ms · Execution 401.701 ms                                           │
+ │ ▎  ▸ S analytics          │ │    EXPLAIN · raw                                                            r Tree   │
+ │ ▎  ▸ S audit              │ │                                                                                      │
+ │                           │ │    Limit  (cost=18179.07..18179.12 rows=10 width=64) (actual time=0.031..401.30…     │
+ │                           │ │          Actual rows: 10                                                             │
+ │                           │ │      ->  Sort  (cost=18179.07..18660.40 rows=96267 width=64) (actual time=0.031…     │
+ │                           │ │            Sort Key: created_at                                                      │
+ │                           │ │            Sort Method: external merge  Disk: 12033kB                                │
+ │                           │ │        ->  Gather  (cost=1000.00..16253.73 rows=96267 width=64) (actual time=0.…     │
+ │                           │ │              Workers Planned: 2                                                      │
+ │                           │ │          ->  Parallel Seq Scan on public.orders  (cost=0.00..15053.73 rows=9626…     │
+ │                           │ │                Filter: (notes ~~* '%gift%')                                          │
+ │                           │ │                Rows Removed by Filter: 1,107,071                                     │
+ │                           │ │    Planning Time: 0.300 ms                                                           │
+ │                           │ │    Execution Time: 401.701 ms                                                        │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑ ↓ Move  Tab Next

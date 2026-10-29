@@ -1,0 +1,30 @@
+ [0m[1m jackin❯ [0m   File   Go   Help           Workspaces › payments-platform › edit  inside the Construct [0m
+                                                                                                    [0m
+                                                                                                    [0m
+   General    Mounts    Roles   [0m[1m Environments  [0m  Accounts                                           [0m
+  ──────────────────────────────━━━━━━━━━━━━━━━───────────────────────────────────────────────────  [0m
+                                                                                                    [0m
+      [0m[1mWorkspace[0m                                                                            4 vars   [0m
+  [0m[1m▎›    DATABASE_URL        ****************    plain                                             [0m  [0m
+        STRIPE_KEY          ****************    [op] Engineering › Stripe · sandbox › credential    [0m
+        LOG_LEVEL           *****               plain                                               [0m
+        GH_TOKEN            $GH_TOKEN           host env                                            [0m
+        + Add environment variable                                                                  [0m
+      [0m[1mRole overrides[0m                                            1 configured · 46 in the registry   [0m
+    ▾ [0m[1mRole: backend[0m                                                                         1 var   [0m
+        OPENAI_API_KEY      ****************    [op] Engineering › OpenAI · Codex Primary › cred…   [0m
+        + Add backend environment variable                                                          [0m
+        + Add role override…                                                                        [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                              Cancel     [0m[2mSave… [0m     [0m
+                                                                                                    [0m
+   [0m[1mEnter[0m Edit  [0m[1mm[0m Show  [0m[1mp[0m 1Password…  [0m[1ms[0m Scope…  [0m[1md[0m Remove…  [0m[1ma[0m Add…  [0m[1m[ ][0m Switch tab  [0m[1mCtrl+S[0m Save  …    [0m

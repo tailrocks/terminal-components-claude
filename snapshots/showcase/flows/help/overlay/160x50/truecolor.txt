@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Foundations / Overview                                                                      truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Overview  Tokens and principles behind every component
+ › Overview
+                            Tokens                                          Principles
+   Components
+   Buttons                      ▏ canvas                      #000000       One hue
+   Inputs                       ▏ surface                     #111111       Green means focus, primary action or selection. Everything else is achromatic.
+   Text areas                   ▏ surface.elevated            #18181b
+   Forms                        ▏ surface.overlay             #27272a       Alpha ladder
+   Lists                        ▏ field                       #1e1e22       Text and borders step down in white opacity, never in arbitrary grays.
+   Trees                        ▏ popover                     #3f3f46
+   Tables                       ▏ border.subtle             white 15%       State is geometry
+   Editable tables              ▏ border.strong             white 30%       Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows
+   Panels                       ▏ text.primary                #ffffff       the cursor.
+   Sidebars                     ▏ text.secondary            white 70%
+   Dialogs                      ▏ text.muted ╭────────────────────────────────────────────────────────────────────╮
+   Progress                     ▏ text.faint │                                                                    │from lightness, not borders.
+   Scrolling                    ▏ accent     │  Keyboard & mouse                                                  │
+   Terminal                     ▏ accent.hove│                                                                    │
+   Code editor                  ▏ accent.pres│  Tab / Shift+Tab   move keyboard focus                             │l. No box around a thing unless the box
+   Diff                         ▏ accent.bg  │  ↑ ↓ ← →           move inside the focused control                 │
+   Data grid                    ▏ error      │  Enter / Space     activate · start editing                        │
+   Chips & selects              ▏ warning    │  Esc               cancel editing · back to navigation             │
+   Pickers                      ▏ info       │  [ ]               previous / next page                            │
+   Chrome                                    │  0                 jump to navigation                              │
+                                             │  i                 toggle state inspector                          │
+   Screens                                   │  q                 quit                                            │
+   Settings                                  │                                                                    │
+   Task runner                               │  Mouse: hover to preview, click to focus and activate, wheel to    │
+                                             │  scroll, drag the scrollbar thumb.                                 │
+                                             │                                                                    │
+                                             │                                                           ▎Close   │
+                                             │                                                                    │
+                                             ╰────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ← → Choose  Enter Confirm  Esc Cancel

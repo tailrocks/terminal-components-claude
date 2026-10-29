@@ -1,0 +1,228 @@
+{
+  "schema": "termrock.stage3d.stage3-operational-result.independent-evidence.v1",
+  "artifacts": {
+    "event": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v13-parent-v13-stage3-20261021-051425-stage-03-event.json",
+      "sha256": "9b601b6243bb16e5db47bf8b6e937ccc49fc3cb83fb2031fb076172e38033057"
+    },
+    "log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v13-parent-v13-stage3-20261021-051425-stage-03.log",
+      "sha256": "089c39dd2855577159a60bd644ff68672413e41eabcdf51b120c2ade960d71f5"
+    },
+    "fresh-plan-stage3d-atomic-supervisor-v13-stage3-20261021.py": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v13-stage3-20261021.py",
+      "sha256": "49a10dcc5cf82775287459ababbd22012d61c92f802c504dcf1264b92b834808"
+    },
+    "stage3d-supervisor-v13-stage3-independent-review-20261021.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-independent-review-20261021.json",
+      "sha256": "e8a00010bb24e66a2f1b64ff965b8316206c73fca3853ac8b49ee7c27aa13618"
+    },
+    "canonical-stage3-runner-f82b2bf4-20261021.py": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-runner-f82b2bf4-20261021.py",
+      "sha256": "e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257"
+    },
+    "canonical-stage3-independent-review-5891c872-20261021.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-5891c872-20261021.json",
+      "sha256": "21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20"
+    },
+    "stage3d-stage2-result-independent-review-20261021.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage2-result-independent-review-20261021.json",
+      "sha256": "37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994"
+    },
+    "stage3d-stage2-result-independent-evidence-20261021.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage2-result-independent-evidence-20261021.json",
+      "sha256": "0272e7bdde4b829cf1ba255c73b208f9d6e3ac59bb53cd08a50f160021419a94"
+    },
+    "manifest": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/live-source.json",
+      "sha256": "8fc52aa144847276fd9df62b133f7d8815995c50ba9a0cc0001b6b5da46ad75a"
+    },
+    "provenance.json": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/provenance.json",
+      "sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098"
+    },
+    "prior_refusal": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage3-v13-preflight-environment-refusal-parent-observation-20261021.json",
+      "sha256": "81d39647a6b547328928897b28ca92e94ab1cddfe76efe08078126b7d0703911"
+    }
+  },
+  "actual_canonical_output_matches_immutable_manifest": true,
+  "receipt_fields_and_argv_digest_checked": true,
+  "sources_independently_rehashed": {
+    "source": {
+      "sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+      "files": 1152,
+      "bytes": 90561173
+    },
+    "live-source": {
+      "sha256": "74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430",
+      "files": 1155,
+      "bytes": 90740667
+    }
+  },
+  "snapshots_metadata_only": {
+    "source": {
+      "files": 12625,
+      "bytes": 3100617792,
+      "writable_files": 12625,
+      "symlink_files": 0
+    },
+    "live-source": {
+      "files": 12625,
+      "bytes": 3100617792,
+      "writable_files": 0,
+      "symlink_files": 0
+    }
+  },
+  "snapshot_digest_scope": "Immutable manifest plus successful reviewed canonical verify-live records frozen/live digest6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8. Independent current inspection compared full snapshot metadata to admitted stage2, without a new3GB content rehash.",
+  "fixed_binary_checks": {
+    "showcase": {
+      "sha256": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+      "file_identity": {
+        "device": 16777229,
+        "inode": 1345489779,
+        "mode": 33133,
+        "size": 20826552,
+        "mtime_ns": 1792522609416263270,
+        "ctime_ns": 1792522762299545418
+      }
+    },
+    "tablepro": {
+      "sha256": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+      "file_identity": {
+        "device": 16777229,
+        "inode": 1345489775,
+        "mode": 33133,
+        "size": 12634296,
+        "mtime_ns": 1792522605012523020,
+        "ctime_ns": 1792522762282883952
+      }
+    },
+    "jackin-preview": {
+      "sha256": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+      "file_identity": {
+        "device": 16777229,
+        "inode": 1345489772,
+        "mode": 33133,
+        "size": 15499328,
+        "mtime_ns": 1792522607551519756,
+        "ctime_ns": 1792522762274651574
+      }
+    },
+    "holla": {
+      "sha256": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf",
+      "file_identity": {
+        "device": 16777229,
+        "inode": 1345489777,
+        "mode": 33133,
+        "size": 16997832,
+        "mtime_ns": 1792522609231743637,
+        "ctime_ns": 1792522762290233200
+      }
+    }
+  },
+  "nine_harness_input_hashes": {
+    "docs/audits/2026-10-21-fresh-baseline-capture-eligibility.json": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+    "docs/audits/2026-10-21-fresh-baseline-capture-evidence-index.json": "7333d762ddbbc25f7fafbc78fd49fe016358b787123dbfdabce422172121ba2c",
+    "docs/audits/2026-10-21-fresh-capture-resumable-runner-contract.json": "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb",
+    "tools/frozen-cli-frame-support/src/lib.rs": "d656a3aea96f17ed6e31b237fabdc138d4732a209d3cc4944b08cfcb4681571c",
+    "tools/frozen_cli_build_cohort_reviews.json": "65d1343138d5c817186bbd9486e6149ef554fc0fd4b3a96bf70cb916f0883718",
+    "tools/frozen_cli_build_cohorts.json": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+    "tools/frozen_cli_extensions.json": "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8",
+    "tools/frozen_cli_extensions.rs": "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9",
+    "tools/frozen_cli_pair.patch": "17de30ad69fea9c7f514cd6530727283637d090958020ebe13a311aad4506ff4"
+  },
+  "fifteen_tool_hashes": {
+    "tools.invocation_tools.cargo": "9cfafb636d06f397aa5c48a68ac7755865d424f7acafe075e6fce3bcaa723843",
+    "tools.invocation_tools.cargo_nextest": "aac4a0d9109efcfb4d83ec729c6e3204d5c15bf16ff554b5ee4476f6c5f60b37",
+    "tools.invocation_tools.python": "75146f6f98972d4de8ea82fc9189a98df4a1113af442ec7db2d45a33283f9dac",
+    "tools.invocation_tools.rustc_path_entry": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+    "tools.selected_toolchain.cargo_path_entry": "9cfafb636d06f397aa5c48a68ac7755865d424f7acafe075e6fce3bcaa723843",
+    "tools.selected_toolchain.cargo_selected_toolchain": "6d576d8058f8ca643e8fce55b64ee3c614ba64c9da2e536bae843e6a2e1f3951",
+    "tools.selected_toolchain.cc": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+    "tools.selected_toolchain.clang": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+    "tools.selected_toolchain.linker": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+    "tools.selected_toolchain.rustc_selected_toolchain": "1ba7bb8e273bd64125f4048d2ecce530e0a6470e565ab1b3aecf0b82b532f7b1",
+    "tools.selected_toolchain.rustc_sysroot_identity_files[0]": "1d4d24a7194aea5e759695758088efb81cff49b963edd683df64638a467e08aa",
+    "tools.selected_toolchain.rustc_sysroot_identity_files[1]": "48419307eb32e389a25ac360b6bccd4d196f3c4f35ce9d67a223319eff017c6c",
+    "tools.selected_toolchain.rustup": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+    "tools.selected_toolchain.xcode_select": "49cf1e59551a8a401d86ac444aa6b2a9ab7ec6d3882c98c004dab02a0e484e53",
+    "tools.selected_toolchain.xcrun": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9"
+  },
+  "controlled_environment_changed_keys_vs_old_plan": [
+    "CARGO_TARGET_DIR"
+  ],
+  "controlled_environment_digest_recomputed_from_recorded_value_hashes": "466f20b8e6bb2c798e8613c106daa9e468abe042ff2d6290732819c1e94e071c",
+  "tool_observations_exact_old_plan": true,
+  "old_receipt_file_hashes_unchanged": [
+    {
+      "ordinal": 0,
+      "sha256": "4cfadf3ce45982129085d290ad66ab63c4ddfaf24f57f27798a9e16473f78d8a",
+      "previously_admitted_checkpoint_count": 32
+    },
+    {
+      "ordinal": 1,
+      "sha256": "91cf2eba3e12176c12edeed0fde67cd7d1e5529c767c712b0cd956b3c7470cb3",
+      "previously_admitted_checkpoint_count": 32
+    },
+    {
+      "ordinal": 2,
+      "sha256": "42dabdc941ffd7b975d52e9cb0cafba7e810851aca427180b6095f7fe96bb1e1",
+      "previously_admitted_checkpoint_count": 32
+    },
+    {
+      "ordinal": 3,
+      "sha256": "9bdf6d2dbdef0476b1e9075f61f42a0640d9090a52f72d94c07829e1023bedd0",
+      "previously_admitted_checkpoint_count": 32
+    },
+    {
+      "ordinal": 4,
+      "sha256": "7744670ad33d8e85f3696882ebf05a89fe15bf96458da37e774912d4b876dcd8",
+      "previously_admitted_checkpoint_count": 32
+    },
+    {
+      "ordinal": 5,
+      "sha256": "5715cc586c0dc978590c653fe79570900f74984d7c81d9c30f04e4961378045f",
+      "previously_admitted_checkpoint_count": 32
+    },
+    {
+      "ordinal": 6,
+      "sha256": "12ca4d1d1002daa136ce11212b8ee5576bf7268bde307619549980fe486979f2",
+      "previously_admitted_checkpoint_count": 32
+    },
+    {
+      "ordinal": 7,
+      "sha256": "4a607ffd7b6070be6f1c1f8dec49b7eea1515b840b47639f4d4ecb23bc70d6a1",
+      "previously_admitted_checkpoint_count": 32
+    },
+    {
+      "ordinal": 8,
+      "sha256": "1d3025733b77c05ac540718492b070b48896c7994087905cd4d542ef92f2b122",
+      "previously_admitted_checkpoint_count": 32
+    }
+  ],
+  "old_checkpoint_total_from_prior_admission": 288,
+  "old_receipt_hmac_members_extracted_or_authenticated": false,
+  "old_key_read": false,
+  "root_entries": [
+    "live-source",
+    "live-source.json",
+    "live-target",
+    "provenance.json",
+    "source"
+  ],
+  "absent_outputs": [
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/fresh-capture-plan.json",
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/fresh-runs",
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/fresh-run.json",
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/.live-source.json.tmp",
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-atomic-run-key-custody"
+  ],
+  "review_elapsed_seconds": 3.593,
+  "scope": [
+    "Read-only JSON/source/bin/tool hashing and metadata inspection only; no operational verification or tool execution.",
+    "No new HMAC authentication and no extraction of old receipt HMAC members; receipt files compared as opaque SHA-256 bytes.",
+    "No old captured frame or failed partial rehash.",
+    "No private key bytes read; no plan, run, capture, replay, ordinary CLI, or candidate comparison performed."
+  ]
+}

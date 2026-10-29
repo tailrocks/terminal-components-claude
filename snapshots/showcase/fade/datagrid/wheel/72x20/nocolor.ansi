@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Data grid   i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Inputs         [0m│  [0m[1mData grid[0m  Typed cells, a pending-change queue, p… [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃    cus… rows 7–16 of 40 loaded · ~4,812 total · c…  [0m
+   Lists          ┃                                                     [0m
+   Trees          ┃          ⚷ id       customer                  6›    [0m
+   Tables         ┃    [0m[2m    7 1007       Wide World Importers         [0m│  [0m
+   Editable tabl… ┃        8 1008       Adventure Works              │  [0m
+   Panels         ┃        9 1009       Proseware Studio             ┃  [0m
+   Sidebars       ┃       10 1010       Woodgrove Bank               ┃  [0m
+   Dialogs        ┃       11 1011       Alpine Ski House             │  [0m
+   Progress       ┃       12 1012       Coho Winery                  │  [0m
+   Scrolling      ┃       13 1013       Lucerne Publishing           │  [0m
+   Terminal       │       14 1014       Margie's Travel              │  [0m
+   Code editor    │       15 1015       Trey Research                │  [0m
+   Diff           │    [0m[2m   16 1016       Humongous Insurance          [0m│  [0m
+[0m[1;2m▎› Data grid      [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

@@ -1,0 +1,41 @@
+  ▪ [0m[1m TablePro [0m Connections  7 saved                                                          no color · 120×40  ? help  [0m
+                                                                                                                        [0m
+ ╭─[0m[1m Connections [0m─────────────────── 7 ─╮    Production                                                                  [0m
+ │                                     │    ──────────────────────────────────────────────────────────────────          [0m
+ │   Filter connections                │    Engine       PostgreSQL                                                     [0m
+ │  ▾ Personal                         │    Host         prod-db-1.acme.io:5432                                         [0m
+ │        Local PostgreSQL         pg  │    Database     acme_prod                                                      [0m
+ │        Scratch              sqlite  │    User         acme_ops                                                       [0m
+ │  ▾ Acme                             │    Environment  production                                                     [0m
+ │      · Development              pg  │    Safe Mode    Safe Mode · Writes ask for confirmation and a                  [0m
+ │      ◇ Staging                  pg  │                 deliberate acknowledgement.                                    [0m
+ │      ◆ Analytics             mysql  │    SSL          ✓ on                                                           [0m
+ │ [0m[1m▎    [0m◆[0m[1m Production               pg [0m │    SSH          bastion.acme.io                                                [0m
+ │      ◆ Production (Copy)        pg  │    Last used    1 hour ago                                                     [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │     [0m[1;7mConnect [0m   Edit    Duplicate    Delete…                                    [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ ╰─────────────────────────────────────╯                                                                                [0m
+                                                                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Connect  [0m[1me[0m Edit…  [0m[1md[0m Delete…  [0m[1mAlt+D[0m Duplicate  [0m[1m/[0m Filter  [0m[1mCtrl+N[0m New  [0m[1mShift+F10[0m Menu  …        Duplicated [0m
+[?25l

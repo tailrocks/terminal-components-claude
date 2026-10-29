@@ -1,0 +1,50 @@
+ [0m[1m jackin❯ [0m   File   Go   Help                                                         Accounts › Claude › Work  ⠋ refreshing 1  inside the Construct  2 running [0m
+                                                                                                                                                                [0m
+ ╭─ Accounts ─────────────────────── 12 · 4 ▲ · 4 ! ─╮ │ ▎[0m[1mClaude · Work[0m                                                                   account · exhausted   [0m
+ │     Overview                                      │ │                                                                                                        [0m
+ │   ▾ Claude                                 !   3  │ │  Provider            Anthropic / Claude                                                                [0m
+ │     ★ Personal                     current 4 min  │ │  Agent runtime       Claude Code                                                                       [0m
+ │       Archived contractor laptop prof…  disabled  │ │  Usage surface       Claude                                                                            [0m
+ │       Work                      !   stale 47 min  │ │  Identity            alexey@chainargos.com                                                             [0m
+ │   ▾ Codex                                      2  │ │  Plan                Team                                                                              [0m
+ │     ★ Primary                      current 2 min  │ │  Credential          1Password · Engineering › Anthropic · Work › credential                           [0m
+ │       Experiments                   ⠋ refreshing  │ │                      chainargos.1password.com · op://v_eng01/it_ant01/credential · ••••••••…3c9e       [0m
+ │   ▾ Amp                                    ▲   1  │ │  Provenance          configured source · confidence authoritative · registered                         [0m
+ │       discovered               ▲   current 1 min  │ │  Lifecycle           available                                                                         [0m
+ │   ▾ Grok                                       1  │ │  Default             no                                                                                [0m
+ │     ★ Team                         current 9 min  │ │  Enabled             yes                                                                               [0m
+ │   ▾ Z.AI                                   ▲   1  │ │  Purpose             work                                                                              [0m
+ │       discovered                   ▲   stale 2 h  │ │  Used by             Workspace choice in payments-platform                                             [0m
+ │   ▾ Kimi                                   !   1  │ │                                                                                                        [0m
+ │       discovered                !   needs secret  │ │  [0m[1mQuota[0m                                                                  stale · last good 47 min ago   [0m
+ │   ▾ MiniMax                                !   1  │ │  Session · 5-hour    [0m[1m  76%                     [0m            resets in 1 h 5 min                         [0m
+ │       discovered                 !   unavailable  │ │  Weekly · all models [0m[1m  88%                         [0m        resets Sun 19:14                            [0m
+ │   ▾ OpenCode                               !   2  │ │  Weekly · Opus       [0m[1m 100%                             [0m    resets Sun 19:14 · exhausted                [0m
+ │     ★ Go subscription           !   rate limited  │ │  Extra usage credits [0m[1m  28%     [0m                            1,420 / 5,000 USD · $14.20 of $50.00        [0m
+ │       ci-bot · discovered            unsupported  │ │                                                                                                        [0m
+ │     Unsupported                         sentinel  │ │  Validation          ✓ material   ✓ identity   ✓ quota access · quota readable                         [0m
+ │     + Add account…                                │ │  Status              Usage stale · last good 47 min ago · retry  in 13 min · retryable                 [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │  Refresh    Validate    Edit…    Set default    Disable    Remove…                                     [0m
+ ╰───────────────────────────────────────────────────╯ │                                                                                                        [0m
+                                                                                                                                                                [0m
+                                                               [0m[1m↑↓[0m Scroll  [0m[1mTab[0m Actions  [0m[1mEsc[0m Back                                                                 [0m

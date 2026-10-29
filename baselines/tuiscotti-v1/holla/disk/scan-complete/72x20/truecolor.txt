@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                    no project  mbp · local
+
+  Here › Disk › Usage
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────
+  Disk usage · ~/work/data
+  ▲ 2 unreadable · grant Full Disk Access to include them · scan comp…
+
+    largest first · allocated · noise folded
+ ▎▾   data                                            852.0 KiB · 100%
+    ▸   many                                          724.0 KiB ·  85%
+    ▸   media                                          52.0 KiB ·   6%
+    ▸   skip-me                                        32.0 KiB ·   4%
+    ▸   .hidden                                        20.0 KiB ·   2%
+        sparse.img                                     12.0 KiB ·   1%
+    ▸   cloud                                4.0 KiB ·   0% · dataless
+    ▸   locked                      4.0 KiB ·   0% · permission denied
+
+
+ ~/work/data             0 selected · 0 B             truecolor · 72×20
+    ↑↓ Move  ← → Fold / open  Space Select  s Sort  f Fold noise  …

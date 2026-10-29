@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Screens / Settings               i Inspector   ? Help
+
+   Inputs         │  Project settings  Composed: tabs, form, editable table, l…
+   Text areas     │
+   Forms          ┃   General    Members    Environment
+   Lists          ┃  ━━━━━━━━━━─────────────────────────────────────────────────
+   Trees          ┃
+   Tables         ┃    General
+   Editable tabl… ┃
+   Panels         ┃      Project name *               Visibility
+   Sidebars       ┃      payments-gateway            (●) Private
+   Dialogs        ┃                                  ( ) Internal
+   Progress       ┃      Description                 ( ) Public
+   Scrolling      ┃      Handles checkout, in…
+   Terminal       ┃                                  ○── Auto-merge approved …
+   Code editor    ┃                                  ──● Protect main branch
+   Diff           ┃
+   Data grid      ┃
+   Chips & selec… ┃
+   Pickers        ┃
+   Chrome         ┃     Save changes   No changes
+▎› Settings       │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

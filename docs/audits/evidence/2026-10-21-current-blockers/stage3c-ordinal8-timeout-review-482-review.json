@@ -1,0 +1,297 @@
+{
+  "schema": "termrock.independent-stage3c-ordinal8-timeout-diagnosis.v1",
+  "reviewer": "/root/button_theme_contract_review",
+  "runner_revision": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+  "input_sha256": "12eeab4ab93a13f91e919495996db69c8f3a24a993df40d946dcc58001f8dc52",
+  "plan_creation_sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+  "plan_self_sha256": "4be7c01d0aecbe3fec1fff8416ab89c03fb25dfec8acbb73a1b26039e8293a31",
+  "run_id": "8470dddf86b24e1e8dcf3293d2625b1f",
+  "decision": "HOLD operational execution pending reviewed deadline/resource decision. Existing authenticated plan/prefix remain structurally resumable at ordinal8, not9. No receipt can be derived from partial data. No new capture/retry or plan change approved or performed by this audit.",
+  "root_cause_ranking": [
+    {
+      "rank": 1,
+      "cause": "Provenance/metadata revalidation and repeated large immutable-tree hashing consumed most single-advance budget.",
+      "confidence": "high for verification-stage timeout; exact slow call/CPU-vs-I/O attribution uninstrumented",
+      "evidence": [
+        "Log birth00:06:31.865Z; attempt creation00:09:01.564Z:149.699sec initial verification.",
+        "Nextest invocation logged00:09:26.985Z, after175.120sec; partial report written00:09:33.987Z at182.122sec.",
+        "Expected frames frozen0444 by00:09:34.030Z proves execution reached post-run sealing and precedes second verify_fresh_run at runner3362.",
+        "Source and live snapshots each12625files/3100617792bytes; verify_fresh_plan calls verify_source plus verify_live_source, which repeatedly hashes both snapshots.",
+        "Committed prefix0..7 sums1466796547bytes. verify_fresh_run verifies full committed/expected prefix, then advance explicitly verifies prefix again; post-run does it again.",
+        "Current bounded read-only full-prefix check took6.178sec, source verification10.184sec. These current timings do not reconstruct historical contention."
+      ]
+    },
+    {
+      "rank": 2,
+      "cause": "Resource contention/cache variation amplified verification overhead.",
+      "confidence": "plausible inference, not independently established",
+      "evidence": [
+        "Prior successful ordinal6 elapsed102.138sec; ordinal7 elapsed113.99sec; ordinal8 initial preflight alone149.699sec.",
+        "No historical CPU, I/O wait or scheduler trace available. Do not identify a particular concurrent process as cause."
+      ]
+    },
+    {
+      "rank": 3,
+      "cause": "Aggregate32case PTY capture workload exceeded deadline.",
+      "confidence": "contradicted for this attempt",
+      "evidence": [
+        "Nextest completed32/32 in2.867sec; run_live_chunk report elapsed7.0sec with no failure."
+      ]
+    },
+    {
+      "rank": 4,
+      "cause": "One specific case or application cleanup stalled.",
+      "confidence": "contradicted for observed application workload",
+      "evidence": [
+        "All32 selected cases have success events, checkpoint and launch/closed receipts. All32 appPIDs absent in current read-only ps."
+      ]
+    }
+  ],
+  "partial_output_status": {
+    "trusted_completed_ordinal": false,
+    "runner_report_status": "passed",
+    "successful_test_events": 32,
+    "checkpoint_count": 32,
+    "process_receipt_count": 32,
+    "process_pid_count": 32,
+    "nextest_run_id": "62d23543-c7fe-4acb-a52a-64b301fc77aa",
+    "nextest_seconds": 2.867,
+    "run_live_chunk_seconds": 7.0,
+    "expected_files": 64,
+    "partial_file_count": 707,
+    "partial_bytes": 174178040,
+    "original_manifest707_entries_verified_unchanged": true,
+    "partial_report_hmac_limit": "Process receipt key is ephemeral; report claims original verifier passed all launch/close bindings, but independent partial reauthentication is not asserted. No authenticated journal ordinal8 exists.",
+    "original_summary_correction": "The original result correctly denies journal credit. Its last_logged_command description does not establish where execution stalled because nextest run is quiet and its success appears in preserved nested logs/report."
+  },
+  "journal_integrity": {
+    "pure_hmac_validation": "passed using original private key in memory, no key bytes logged/exported",
+    "completed_steps": 8,
+    "planned_steps": 1822,
+    "completed_checkpoints": 256,
+    "ordinals": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "full_committed_and_expected_artifacts_verification": "passed without cached shortcuts",
+    "journal_files": [
+      {
+        "name": "step-00000000.json",
+        "sha256": "4cfadf3ce45982129085d290ad66ab63c4ddfaf24f57f27798a9e16473f78d8a"
+      },
+      {
+        "name": "step-00000001.json",
+        "sha256": "91cf2eba3e12176c12edeed0fde67cd7d1e5529c767c712b0cd956b3c7470cb3"
+      },
+      {
+        "name": "step-00000002.json",
+        "sha256": "42dabdc941ffd7b975d52e9cb0cafba7e810851aca427180b6095f7fe96bb1e1"
+      },
+      {
+        "name": "step-00000003.json",
+        "sha256": "9bdf6d2dbdef0476b1e9075f61f42a0640d9090a52f72d94c07829e1023bedd0"
+      },
+      {
+        "name": "step-00000004.json",
+        "sha256": "7744670ad33d8e85f3696882ebf05a89fe15bf96458da37e774912d4b876dcd8"
+      },
+      {
+        "name": "step-00000005.json",
+        "sha256": "5715cc586c0dc978590c653fe79570900f74984d7c81d9c30f04e4961378045f"
+      },
+      {
+        "name": "step-00000006.json",
+        "sha256": "12ca4d1d1002daa136ce11212b8ee5576bf7268bde307619549980fe486979f2"
+      },
+      {
+        "name": "step-00000007.json",
+        "sha256": "4a607ffd7b6070be6f1c1f8dec49b7eea1515b840b47639f4d4ecb23bc70d6a1"
+      }
+    ],
+    "ordinal8_final_chunk_exists": false,
+    "failed_publications_path_exists": false,
+    "partial_untrusted_failure_marker_exists": false,
+    "replay_or_candidate_eligible": false
+  },
+  "cleanup_and_identity": {
+    "supervisor_deadline_seconds": 205,
+    "runner_requested_timeout_seconds": 200,
+    "plan_max_timeout_seconds": 225,
+    "outer_source_behavior": "Supervisor creates runner in new session, SIGTERMs runner process group, waits3sec then SIGKILL/reaps if needed.",
+    "nested_source_behavior": "Runner run() independently starts nextest in another new session; SIGTERM of outer group alone cannot guarantee cleanup of all arbitrary nested session descendants. This task did not have an active nextest at timeout.",
+    "historical_outer_pid_or_pgid_recorded": false,
+    "independent_entire_group_cleanup_proven": false,
+    "application_receipt_pids": [
+      25345,
+      25346,
+      25347,
+      25348,
+      25349,
+      25350,
+      25351,
+      25352,
+      25368,
+      25369,
+      25370,
+      25371,
+      25372,
+      25373,
+      25374,
+      25375,
+      25428,
+      25430,
+      25431,
+      25432,
+      25434,
+      25435,
+      25436,
+      25437,
+      25453,
+      25456,
+      25457,
+      25460,
+      25461,
+      25462,
+      25463,
+      25465
+    ],
+    "application_process_start_identity_count": 32,
+    "observed_app_path_hash_identity_match_count": 32,
+    "current_ps_stdout": "  PID  PPID  PGID STARTED                      COMM\n",
+    "current_ps_exit": 1,
+    "processes_killed_by_reviewer": []
+  },
+  "resume_protocol": {
+    "supported_unchanged_behavior": "advance verifies anchored plan, authenticated run manifest, contiguous journal prefix and committed artifacts; chooses ordinal=completed_steps(8). It requires no finalchunk8, generates new random .attempt8 directory, and does not consume abandoned partial attempts. Existing707-file stage may remain preserved.",
+    "not_supported": [
+      "Appending ordinal9 or crediting subset32 output from unreceipted attempt.",
+      "Renaming partial attempt into finalchunk or manufacturing journal receipt.",
+      "Editing sealed plan chunk size, source identity or timeout policy under same anchor.",
+      "Changing environment to bypass recorded tool/environment checks.",
+      "Skipping prefix hashes or reusing a cached verification without a separately reviewed equivalence/integrity contract."
+    ],
+    "operational_recommendation": [
+      "Keep exact plan/journal/key/partial attempt unchanged and preserve these diagnostic artifacts.",
+      "Have original operational owner review bounded preflight/postflight timing under the exact anchored environment and available resources; no capture launch needed for that diagnosis.",
+      "An unchanged same32-case ordinal8 retry is structurally supported, but this review does not authorize it or establish completion within current200/205sec envelope. Any allowed timeout adjustment requires an explicit reviewed supervisor policy within225plan ceiling and command limits.",
+      "If worst-case full verification cannot fit, create a separately reviewed bounded runner/protocol decision with timing instrumentation and equivalent full integrity guarantees, then a newly anchored plan if runner/chunk policy changes. Preserve old plan and journal as historical evidence; do not recredit them into new plan without an explicit independently reviewed migration contract.",
+      "Do not reduce chunk size merely to address this incident: actual32case workload is only2.867sec and more chunks increase repeated-prefix verification cost."
+    ],
+    "required_runner_followup": [
+      "Instrument monotonic stage durations for provenance verification, inventory/tool probes, prefix hashing, capture, sealing and final publication; record nonsecret process PID/start identity/PGID.",
+      "Apply deadline checks during long synchronous verification, not only before/after it; reserve bounded cleanup/publication time without weakening content verification.",
+      "Review cumulative O(prefix) repeated validation per advance and total O(number_of_chunks squared) work before broad continuation.",
+      "Review nested session cleanup model and timeout regression tests independently; no kill-by-name or killing unowned processes."
+    ]
+  },
+  "preserved_evidence": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-capture-ordinal8-TIMEOUT-INDEPENDENT-result-20261021.json",
+      "sha256": "12eeab4ab93a13f91e919495996db69c8f3a24a993df40d946dcc58001f8dc52",
+      "bytes": 202993
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-capture-ordinal8-20261021.log",
+      "sha256": "047b30353422f823691dc8a652922bd72ba99dbcf9c20132d60dd6d0a3e7b32f",
+      "bytes": 2762
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-advance-ordinal6to9-supervisor-20261021.py",
+      "sha256": "b8ae6dbfcd1f18d656ab37c34309790fc4d7bac5a3092df50b9c134483848993",
+      "bytes": 3879
+    },
+    {
+      "path": "/private/tmp/ci-doc-inventory-20261021/tools/frozen_baseline.py",
+      "sha256": "f2a7583e155c7e85b7c8782c1b163b60bd0bf83038f5e736abe52271724139a8",
+      "bytes": 257800
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-capture-plan.json",
+      "sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+      "bytes": 19613217
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-capture/58b38fb0b1a1007f14230337f8f1a225/baseline-capture/.attempt-00000008-8c17ea3b1cd28b72/runner/baseline-capture/chunk-00008/report.json",
+      "sha256": "df62bddac18029bb9a6d7e30aae4c3af2a8ff956d91b8b00e2df657738d741d4",
+      "bytes": 3572
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-capture/58b38fb0b1a1007f14230337f8f1a225/baseline-capture/.attempt-00000008-8c17ea3b1cd28b72/runner/baseline-capture/chunk-00008/logs/stderr.log",
+      "sha256": "2fa0619437d8e6fb11c3398fd992a9bee65d924c2e7f7360da3c1e3ea8c31280",
+      "bytes": 6374
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-capture/58b38fb0b1a1007f14230337f8f1a225/baseline-capture/.attempt-00000008-8c17ea3b1cd28b72/runner/baseline-capture/chunk-00008/logs/stdout.jsonl.gz",
+      "sha256": "d8594bcd3671a37eeec384b98159d0553aea0f61e36c1c75a33a622a20f043ea",
+      "bytes": 1248
+    },
+    {
+      "path": "/private/tmp/stage3c-ordinal8-readonly-validation.log",
+      "sha256": "b5906cd24e938e923a675b1eb5ac299f5595792fea97c8587a7f68331e689db9",
+      "bytes": 428
+    },
+    {
+      "path": "/private/tmp/stage3c-ordinal8-readonly-source-validation.log",
+      "sha256": "f4e23e3a72c9f47929746ad608c953880f1ad1110e3ff0d0456cc57b0c73cada",
+      "bytes": 160
+    }
+  ],
+  "chunk_storage_inventory": [
+    {
+      "name": ".attempt-00000008-8c17ea3b1cd28b72",
+      "files": 707,
+      "bytes": 174178040
+    },
+    {
+      "name": "chunk-00000",
+      "files": 707,
+      "bytes": 179314139
+    },
+    {
+      "name": "chunk-00001",
+      "files": 707,
+      "bytes": 183257420
+    },
+    {
+      "name": "chunk-00002",
+      "files": 707,
+      "bytes": 188230720
+    },
+    {
+      "name": "chunk-00003",
+      "files": 707,
+      "bytes": 200223403
+    },
+    {
+      "name": "chunk-00004",
+      "files": 707,
+      "bytes": 205651556
+    },
+    {
+      "name": "chunk-00005",
+      "files": 683,
+      "bytes": 167134373
+    },
+    {
+      "name": "chunk-00006",
+      "files": 699,
+      "bytes": 170909708
+    },
+    {
+      "name": "chunk-00007",
+      "files": 707,
+      "bytes": 172075228
+    }
+  ],
+  "scope_limits": [
+    "No full exact-environment verifier executed; direct pure HMAC journal validator, full committed-artifact verifier and full frozen-source verifier were read-only and sufficient for bounded integrity diagnosis.",
+    "No retry, capture, plan/journal/key/attempt modification, cleanup, source edit, helper activation, or Rust test run.",
+    "No new product acceptance or checkpoint-reference approval."
+  ]
+}

@@ -1,0 +1,40 @@
+ ▪  TablePro  Connections  6 saved                                                           16 colors · 120×40  ? help
+
+ ╭─ Connections ─────────────────── 6 ─╮    Production
+ │                                     │
+ │   Filter connections                │    Engine       PostgreSQL
+ │  ▾ Personal                         │    Host         prod-db-1.acme.io:5432
+ │      · Local PostgreSQL         pg  │    Database     acme_prod
+ │      · Scratch              sqlite  │    User         acme_ops
+ │  ▾ Acme                             │    Environment  production
+ │      · Development              pg  │    Safe Mode    Safe Mode · Writes ask for confirmation and a
+ │      ◇ Staging                  pg  │                 deliberate acknowledgement.
+ │      ◆ Analytics             mysql  │    SSL / SSH    on / bastion.acme.io
+ │      ◆ Production               pg  │    Last used    1 hour ago
+ │                                     │
+ │                                     │
+ │                               ╭────────────────────────────────────────────────────╮
+ │                               │                                                    │
+ │                               │  Delete connection?                                │
+ │                               │                                                    │
+ │                               │  Production (acme_ops@prod-db-1.acme.io) will be   │
+ │                               │  removed from connections.json. Its password       │
+ │                               │  stays in the keychain until you remove it there.  │
+ │                               │                                                    │
+ │                               │                                 ▎Cancel   Delete   │
+ │                               │                                                    │
+ │                               ╰────────────────────────────────────────────────────╯
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ │                                     │
+ ╰─────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer

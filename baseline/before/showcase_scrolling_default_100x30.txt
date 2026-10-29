@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Scrolling          truecolor · 100×30   i Inspector   ? Help
+
+▎  Overview          Scrolling  Wheel under the pointer, keys on the focused container, thumb show…
+▎  Buttons
+▎  Inputs              Wrapped text               Long list                  Log
+▎  Text areas
+▎  Forms               Junie works through ┃      ▎  Row 001          ┃       143.56s  warn   u… │
+▎  Lists               a task the way a    ┃      ▎  Row 002          ┃       143.93s  info   C… │
+▎  Trees               careful engineer    ┃      ▎  Row 003          ┃       144.30s  info   R… │
+▎  Tables              would: it reads the │      ▎  Row 004          │       144.67s  info   t… │
+▎  Editable tables     relevant code,      │      ▎  Row 005          │       145.04s  info   t… │
+▎  Panels              forms a plan, makes │      ▎  Row 006          │       145.41s  error  t… │
+▎  Sidebars            focused changes,    │      ▎  Row 007          │       145.78s  info   t… │
+▎  Dialogs             runs the tests, and │      ▎  Row 008          │       146.15s  info   L… │
+▎  Progress            reports back with a │      ▎  Row 009          │       146.52s  info   R… │
+▎› Scrolling           summary you can     │      ▎  Row 010          │       146.89s  info   F… │
+▎  Terminal            review before       │      ▎  Row 011          │       147.26s  info   C… │
+▎  Code editor         anything is merged. │      ▎  Row 012          │       147.63s  info   C… │
+▎  Data grid                               │      ▎  Row 013          │       148.00s  warn   u… │
+▎  Chips & selects     Each step is        │      ▎  Row 014          │       148.37s  info   C… │
+▎  Pickers             visible. You can    │      ▎  Row 015          │       148.74s  info   R… │
+▎  Chrome              pause, redirect, or │      ▎  Row 016          │       149.11s  info   t… │
+▎  Settings            take over at any    │      ▎  Row 017          │       149.48s  info   t… │
+▎  Task runner         point, and every    │      ▎  Row 018          │       149.85s  error  t… │
+                       change lands as an  │      ▎  Row 019          │       150.22s  info   t… │
+                       ordinary diff in    │      ▎  Row 020          │       150.59s  info   L… │
+                       your working tree.  │      ▎  Row 021          │       150.96s  info   R… ┃
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

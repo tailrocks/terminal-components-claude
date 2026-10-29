@@ -1,0 +1,40 @@
+ [0m[1m jackin❯ [0m   File   Go   Help                    Workspaces › payments-platform › edit  inside the Construct  2 running [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+   General    Mounts   [0m[1m Roles  [0m  Environments    Accounts                                                               [0m
+  ─────────────────────━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────  [0m
+                                                                                                                        [0m
+    [0m[1mAllowed roles  3 of 46[0m                                                                   default ★ the-architect    [0m
+  [0m[1m▎›   [✓] the-architect ★  registry · trusted · Full-stack design and refactoring; Claude Code default              [0m┃  [0m
+       [✓] backend          registry · trusted · Rust and Postgres services                                          ┃  [0m
+       [✓] reviewer         registry · trusted · Read-mostly code review with limited write scope                    ┃  [0m
+       [ ] sre              registry · trusted · Infrastructure, Terraform, Kubernetes                               ┃  [0m
+       [ ] data-eng         ! load error · trust required                                                            ┃  [0m
+       [ ] writer           ~/roles/writer · not in registry                                                         ┃  [0m
+       [ ] svc-001          registry · trusted · ledger service agent #1                                             ┃  [0m
+       [ ] svc-002          registry · trusted · search service agent #2                                             ┃  [0m
+       [ ] svc-003          registry · trusted · notify service agent #3                                             ┃  [0m
+       [ ] svc-004          registry · trusted · ingest service agent #4                                             ┃  [0m
+       [ ] svc-005          registry · trusted · auth service agent #5                                               ┃  [0m
+       [ ] svc-006          registry · trusted · billing service agent #6                                            ┃  [0m
+       [ ] svc-007          registry · trusted · ledger service agent #7                                             ┃  [0m
+       [ ] svc-008          registry · trusted · search service agent #8                                             ┃  [0m
+       [ ] svc-009          registry · trusted · notify service agent #9                                             ┃  [0m
+       [ ] svc-010          registry · trusted · ingest service agent #10                                            ┃  [0m
+       [ ] svc-011          registry · trusted · auth service agent #11                                              ┃  [0m
+       [ ] svc-012          registry · trusted · billing service agent #12                                           │  [0m
+       [ ] svc-013          registry · trusted · ledger service agent #13                                            │  [0m
+       [ ] svc-014          registry · trusted · search service agent #14                                            │  [0m
+       [ ] svc-015          registry · trusted · notify service agent #15                                            │  [0m
+       [ ] svc-016          registry · trusted · ingest service agent #16                                            │  [0m
+       [ ] svc-017          registry · trusted · auth service agent #17                                              │  [0m
+       [ ] svc-018          registry · trusted · billing service agent #18                                           │  [0m
+       [ ] svc-019          registry · trusted · ledger service agent #19                                            │  [0m
+       [ ] svc-020          registry · trusted · search service agent #20                                            │  [0m
+       [ ] svc-021          registry · trusted · notify service agent #21                                            │  [0m
+       [ ] svc-022          registry · trusted · ingest service agent #22                                            │  [0m
+  [0m[2m     [ ] svc-023          registry · trusted · auth service agent #23                                              [0m│  [0m
+                                                                                                                        [0m
+                                                                                                  Cancel     [0m[2mSave… [0m     [0m
+                                                                                                                        [0m
+            [0m[1mSpace[0m Allow  [0m[1mEnter[0m Set default  [0m[1ma[0m Load role…  [0m[1m/[0m Filter  [0m[1m[ ][0m Switch tab  [0m[1mCtrl+S[0m Save  [0m[1mEsc[0m Back               [0m

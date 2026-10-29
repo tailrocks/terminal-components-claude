@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                   no project  devbox · development [0m
+                                                                                                                                                                [0m
+  Here › Upgrade everything                                                                                                                                     [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  Upgrade everything · devbox                                                                                        8 steps · 7 included · 1 excluded · ~16 s  [0m
+  upgrade Debian packages and global mise tools on devbox                                                                                                       [0m
+                                                                                                                                                                [0m
+         step                         needs  lane  note                                                    06 Upgrade selected mise tools            optional   [0m
+  [✓] 01 Preflight                    –      ·     sudo                                                                                                         [0m
+  [✓] 02 Refresh Debian metadata      01     a     sudo                                                    Runs     mise upgrade --exclude go                   [0m
+  [✓] 03 Review Debian upgrades       02     a                                                             In       / · devbox                                  [0m
+  [✓] 04 Apply Debian upgrades        03     a     sudo                                                    Needs    05 Inspect global mise tools                [0m
+  [✓] 05 Inspect global mise tools    01     b                                                             Unlocks  08 Final verification                       [0m
+  [ ] 06 Upgrade selected mise tools  05     b     excluded                                                Lane     b · ordered                                 [0m
+  [✓] 07 Package cleanup              04  ╭──────────────────────────────────────────────────────────────────────────╮de 26.0.1 → 26.1.0 · python 3.13.5 →      [0m
+  [✓] 08 Final verification           04 0│                                                                          │13.7 · pnpm 10.4.0 → 10.6.2 · go          [0m
+                                          │  [0m[1mStart upgrade everything?[0m                                               │cluded                                    [0m
+    08 Final verification · blocked · need│                                                                          │cluded                                    [0m
+                                          │  Plan       Upgrade everything · upgrade Debian packages and global      │                                          [0m
+                                          │             mise tools on devbox                                         │                                          [0m
+                                          │  Host       devbox                                                       │                                          [0m
+                                          │  Steps      7 included · 1 excluded · ~16 s                              │                                          [0m
+                                          │  Privilege  sudo · cached for this session                               │                                          [0m
+                                          │  Debian     14 upgradable · 2 security                                   │                                          [0m
+                                          │  mise       4 outdated global tools · go excluded                        │                                          [0m
+                                          │  Reboot     required after the kernel upgrade                            │                                          [0m
+                                          │                                                                          │                                          [0m
+                                          │  cat /etc/os-release                                                     │                                          [0m
+                                          │  sudo -n true                                                            │                                          [0m
+                                          │  fuser /var/lib/dpkg/lock-frontend                                       │                                          [0m
+                                          │  df -h /                                                                 │                                          [0m
+                                          │  test -f /var/run/reboot-required                                        │                                          [0m
+                                          │  sudo apt-get update … 8 more                                            │                                          [0m
+                                          │                                                                          │                                          [0m
+                                          │                                                   ▎[0m[1mCancel [0m  [0m[1mStart plan [0m  │                                          [0m
+                                          │                                                                          │                                          [0m
+                                          ╰──────────────────────────────────────────────────────────────────────────╯                                          [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                       Cancel    Confirm plan   [0m
+                                                                                                                                                                [0m
+ ~                                                   review · 7 steps · 2 branches parallel                                                   no color · 160×50 [0m
+                                                [0m[1m  [0m       [0m[1m   ← →[0m Choose [0m[1m Enter[0m C[0m[1mo[0mnfirm  [0m[1mEsc [0mCancel  [0m[1m   [0m                             06 excluded · 08 now blocked [0m

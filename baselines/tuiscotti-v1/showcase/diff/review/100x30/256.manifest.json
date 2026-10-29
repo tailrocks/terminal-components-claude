@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "7d670366e635d02355ee9c115928a1b63f5db63733b07990b15716fb09357496",
+  "artifacts": {
+    "ansi": {
+      "bytes": 11050,
+      "file": "showcase/diff/review/100x30/256.ansi",
+      "sha256": "7d670366e635d02355ee9c115928a1b63f5db63733b07990b15716fb09357496"
+    },
+    "ascii": {
+      "bytes": 2521,
+      "file": "showcase/diff/review/100x30/256.ascii",
+      "sha256": "503119e3f477367c0cd528c290b6e3fb816843514bd35453c0e517c1ca00fe43"
+    },
+    "ascii_loss_json": {
+      "bytes": 37741,
+      "file": "showcase/diff/review/100x30/256.ascii.loss.json",
+      "sha256": "82db968aa5d0c80304900f282d292eb2418a4c9739ee2804e84b093a25fdf114"
+    },
+    "frame_json": {
+      "bytes": 704388,
+      "file": "showcase/diff/review/100x30/256.frame.json",
+      "sha256": "7343b01322bcf47abe47f23df9a83328a47d04a4fe4cf0199b6b04df1427b3ce"
+    },
+    "html": {
+      "bytes": 570462,
+      "file": "showcase/diff/review/100x30/256.html",
+      "sha256": "60511f1d35e1f70f408c2b92a61d1e8cb632e06c366618f64bb6cdbe8479dee4"
+    },
+    "observations_json": {
+      "bytes": 451,
+      "file": "showcase/diff/review/100x30/256.observations.json",
+      "sha256": "515dcfca109ffb4887daf7fc59f3e13b1dc5915c43c0974aec803baa386572dc"
+    },
+    "png": {
+      "bytes": 406119,
+      "file": "showcase/diff/review/100x30/256.png",
+      "sha256": "c6e7d3ac771de489f522f2784d55e49599568848bfd1d9cc4bc0b48e008925e5"
+    },
+    "png_fidelity_json": {
+      "bytes": 3023,
+      "file": "showcase/diff/review/100x30/256.png.fidelity.json",
+      "sha256": "41e09ec0cb6f28fcb9986e60a7eb5339cda11b632d0988fadc69638705b52dd6"
+    },
+    "txt": {
+      "bytes": 3315,
+      "file": "showcase/diff/review/100x30/256.txt",
+      "sha256": "7858d06fa49932b4c925b5db563f59fa1fb577ec7bb8f58f8efbd61d0f1b9a28"
+    }
+  },
+  "ascii_substitutions_count": 406,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 8967910495484234876,
+  "frame_sha256": "7343b01322bcf47abe47f23df9a83328a47d04a4fe4cf0199b6b04df1427b3ce",
+  "generation": "0c8006344aabbfddd7a2c1492e924bca7134752fd0ab4876aa98d647275fc74d",
+  "html_sha256": "60511f1d35e1f70f408c2b92a61d1e8cb632e06c366618f64bb6cdbe8479dee4",
+  "legacy_name": "showcase/flows/diff/review/100x30/256",
+  "name": "showcase/diff/review/100x30/256",
+  "png_sha256": "c6e7d3ac771de489f522f2784d55e49599568848bfd1d9cc4bc0b48e008925e5",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:12Z",
+  "txt_sha256": "7858d06fa49932b4c925b5db563f59fa1fb577ec7bb8f58f8efbd61d0f1b9a28"
+}

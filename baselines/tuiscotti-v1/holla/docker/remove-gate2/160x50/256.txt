@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                            no project  mbp · local
+
+  Here › Review
+ ━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Review · Stop and remove all containers · gate 1 of 2 · review the resolved facts, then continue deliberately
+
+  Action       stop the running containers, then remove every captured container on mbp (running and stopped) · images and volumes stay · rm runs only after
+               stop succeeds
+  Host         mbp · local
+  In           mbp · host-wide
+  Scope        host
+  Changes      6 containers removed · writable layers lost
+  Risk         destructive
+  Data         live · 2 s ago            ╭────────────────────────────────────────────────────────────────────────────╮
+  Includes     stopped containers and dan│                                                                            │
+  Recoverable  no · permanent            │  Stop and remove all containers · gate 2 of 2                              │
+  Provenance   built-in action · resolved│                                                                            │
+  Gate         second gate types the targ│  Action   stop the running containers, then remove every captured          │
+                                         │           container on mbp (running and stopped) · images and volumes      │
+ ╭─ Sequence · 2 commands ───────────────│           stay · rm runs only after stop succeeds                          │──────────────────────────── y copies ─╮
+ │  01  docker stop acme-db-1 acme-redis-│  Host     mbp · local                                                      │                                       │
+ │  02  docker rm acme-db-1 acme-redis-1 │  In       mbp · host-wide                                                  │                                       │
+ │                                       │  Scope    host                                                             │                                       │
+ │                                       │  Changes  6 containers removed · writable layers lost                      │                                       │
+ │                                       │  Risk     destructive                                                      │                                       │
+ │                                       │  Data     live · 2 s ago                                                   │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedu…  │                                       │
+ │                                       │  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedule…  │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │   Type REMOVE ALL CONTAINERS ON mbp to confirm                             │                                       │
+ │                                       │ ▎                                                                          │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │                                                         Cancel   Execute   │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       ╰────────────────────────────────────────────────────────────────────────────╯                                       │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                                                          Cancel    Continue…
+
+ ~/work/stack                                                     review · gate 1 of 2                                                      256 colors · 160×50
+                                                            ← → Choose  Enter Confirm  Esc Cancel

@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help               Accounts › Overview  ⠋ refreshing 1
+     ╭─ New account ───────────────────────────────────── form · unsaved ─╮
+ ╭─ A│   Display name *                                                  ┃│3 ─╮
+ │ ▎ │ ▎ Personal, Work, Team…                                           ┃│ ┃ │
+ │ ▎ │                                                                   ┃│ ┃ │
+ │ ▎ │                                                                   ┃│ ┃ │
+ │ ▎ │   Purpose label  optional                                         ┃│ ┃ │
+ │ ▎ │ ▎ personal · work · experiments                                   ┃│ ┃ │
+ │ ▎ │                                                                   ┃│ │ │
+ │ ▎ │                                                                   ┃│ │ │
+ │ ▎ │   Provider                                                        ┃│ │ │
+ │ ▎ │ ▎ Claude Code · Anthropic / Claude                             ▾  ┃│ │ │
+ │ ▎ │                                                                   ┃│ │ │
+ │ ▎ │                                                                   ┃│ │ │
+ ╰───│   Agent runtime Claude Code · provider Anthropic / Claude · usa…  ││───╯
+     │                                                                   ││
+   Ov│   Credential source                                               ││ls
+     │ ▎(●) 1Password item / field  (recommended)                        ││
+   He│ ▎( ) Local agent folder                                           ││ …
+   Re│                                                                    │
+   So│                                                                    │
+     │             ▎Enter plain text instead  ▎Validate  ▎Cancel  ▎Save   │
+     ╰────────────────────────────────────────────────────────────────────╯
+                Tab Next field  Enter Edit / Save  Esc Cancel

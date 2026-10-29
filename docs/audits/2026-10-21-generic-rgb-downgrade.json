@@ -1,0 +1,49 @@
+{
+  "scope": "Generic ANSI-256 conversion for custom RGB colors",
+  "reference": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "source": "src/theme.rs:3002-3033",
+    "contract": "ANSI-256 conversion applies the general nearest-color algorithm; it contains no exact-RGB lookup table. Semantic built-in color roles may retain authored indexes through capability palettes."
+  },
+  "finding": {
+    "prior_source": "9268b190e93c0d22bcee05dd562171f964a51166",
+    "issue": "The generic downgrade_color path special-cased five exact RGB values to reproduce frozen semantic indexes. This caused user-supplied #3a3a3a to map to index 238 rather than the general result 237.",
+    "independent_red_probe": {
+      "source": "/private/tmp/termrock-concurrent-85b1-probes/src/lib.rs",
+      "log": "/private/tmp/termrock-concurrent-85b1-probes.log",
+      "sha256": "6f902de3fe680efbf48b22ee2f13b9eab98ba1681529d56bbdb57399623ce7d3",
+      "assertion": "custom RGB #3a3a3a expected generic index 237 but received indexed color 238"
+    }
+  },
+  "change": {
+    "file": "crates/termrock-theme/src/downgrade.rs",
+    "resolution": "Removed the exact-color lookup and route all RGB values through nearest_256. Kept semantic palette projection in CapabilityPalettes unchanged.",
+    "regressions": [
+      "Custom RGB values #3a3a3a, #474747, #737373 and #808080 use their generic nearest ANSI-256 indexes.",
+      "A user-authored Theme::paper token follows generic conversion.",
+      "Junie semantic role indexes remain authored for ANSI-256 and Mono, and semantic Accent remains LightGreen in ANSI-16."
+    ],
+    "no_expected_frames_or_reference_artifacts_modified": true
+  },
+  "verification": {
+    "focused": {
+      "command": "cargo nextest run --locked -p termrock-theme -E 'test(custom_rgb_uses_generic_nearest_ansi256_conversion) | test(junie_semantic_roles_keep_capability_palette_indexes)' --no-fail-fast",
+      "run": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 131
+    },
+    "theme_suite": {
+      "command": "cargo nextest run --locked -p termrock-theme --all-targets --no-fail-fast",
+      "run": 133,
+      "passed": 133,
+      "failed": 0,
+      "skipped": 0,
+      "log": "/tmp/termrock-theme-rgb-fix-nextest.log",
+      "sha256": "6c1121e141e8ca296d6b4cda0649c7053781087a196600366d4bf5e398cfb06d"
+    },
+    "clippy": "cargo clippy --locked -p termrock-theme --all-targets -- -D warnings (passed)",
+    "format": "rustfmt --check --edition 2024 crates/termrock-theme/src/downgrade.rs and git diff --check (passed)"
+  },
+  "independent_review": "pending"
+}

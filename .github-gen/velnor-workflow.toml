@@ -1,0 +1,12 @@
+# Generator inputs for velnor-workflow (D19 guard).
+# BLOCKED (recovery ledger R-43): the current generator emits one reusable
+# unit workflow expanded per crate; with 44 members it exceeds GitHub's
+# 5 MiB template ceiling (99 callers = 8.24 MiB). Regenerate when the
+# generator chunks units or the workspace splits lanes.
+schema = 1
+
+[generator]
+repository = "tailrocks/terminal-components-claude"
+
+[workflow]
+velnor_labels = ["ubuntu-24.04"]

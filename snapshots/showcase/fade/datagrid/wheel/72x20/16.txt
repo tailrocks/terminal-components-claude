@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Data grid   i Inspector   ? Help
+
+   Inputs         │  Data grid  Typed cells, a pending-change queue, p…
+   Text areas     ┃
+   Forms          ┃    cus… rows 7–16 of 40 loaded · ~4,812 total · c…
+   Lists          ┃
+   Trees          ┃          ⚷ id       customer                  6›
+   Tables         ┃        7 1007       Wide World Importers         │
+   Editable tabl… ┃        8 1008       Adventure Works              │
+   Panels         ┃        9 1009       Proseware Studio             ┃
+   Sidebars       ┃       10 1010       Woodgrove Bank               ┃
+   Dialogs        ┃       11 1011       Alpine Ski House             │
+   Progress       ┃       12 1012       Coho Winery                  │
+   Scrolling      ┃       13 1013       Lucerne Publishing           │
+   Terminal       │       14 1014       Margie's Travel              │
+   Code editor    │       15 1015       Trey Research                │
+   Diff           │       16 1016       Humongous Insurance          │
+▎› Data grid      │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

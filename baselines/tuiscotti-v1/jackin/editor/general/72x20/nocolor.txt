@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ━━━━━━━━━━──────────────────────────────────────────────────────────
+
+      Name *
+      payments-platform
+      Directory basename by default
+
+    Working directory *
+    /workspace/payments-platform                          Choose…
+    Inside the Construct
+
+     [✓] Keep awake               macOS only
+     [✓] Git pull before launch
+
+      On dirty exit                               Cancel     Save…
+      ask · show the exit dialog                  ▾
+ ← → Tab  1–5 Jump  Enter Body  [ ] Switch tab  Ctrl+S Save  Esc Back

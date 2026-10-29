@@ -1,0 +1,19 @@
+# Visual oracle manifest (docs/visual-testing/plan.md §B4, §E).
+# Written by `cargo xtask visual import --oracle | seal`;
+# checked by the default-run test `oracle_integrity`.
+#
+# Pending: no capture imported yet, so the gate still reads snapshots/.
+# Oracle v0 (plan T18) is `cargo xtask visual import <capture> --oracle`.
+version = 0
+pending = true
+source_commit = ""
+tuiscotti_rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+harness_sha256 = ""
+approved_by = ""
+date = ""
+
+[scenarios]
+showcase = 0
+tablepro = 0
+jackin = 0
+holla = 0

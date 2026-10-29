@@ -1,0 +1,46 @@
+{
+  "status": "diagnostic-only-unadmitted",
+  "acceptance_complete": false,
+  "artifacts": [
+    {
+      "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/independent-ab-comparison.json",
+      "committed_copy": "docs/audits/2026-10-21-baseline-build-diagnostics/independent-ab-comparison.json",
+      "sha256": "851a89d1a193e8d20f3adf0b94c873153bab55cf0dd9fa80c488b84b2aa1b093"
+    },
+    {
+      "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/macho-diagnosis/summary.json",
+      "committed_copy": "docs/audits/2026-10-21-baseline-build-diagnostics/macho-summary.json",
+      "sha256": "0ec2ac722994d09522619a721983429a61045c59763c28e63a384866e8f07a8c"
+    },
+    {
+      "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/macho-diagnosis/build-control-source-review.json",
+      "committed_copy": "docs/audits/2026-10-21-baseline-build-diagnostics/build-control-source-review.json",
+      "sha256": "7b5dbdb7f1aa397c84231ac12b0f4990890045fc6b8dfcbe91f40606ca282164"
+    },
+    {
+      "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/macho-diagnosis/invocation-suffix-provenance.json",
+      "committed_copy": "docs/audits/2026-10-21-baseline-build-diagnostics/invocation-suffix-provenance.json",
+      "sha256": "0f3882aa654726309d4a4737300a6400d15c0d1af83b9b6c54391412e44215f8"
+    },
+    {
+      "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-metadata-independent-review.json",
+      "committed_copy": "docs/audits/2026-10-21-baseline-build-diagnostics/metadata-independent-review.json",
+      "sha256": "471b3bbfe53146e9837f2ced15d25e4004e70c48d7ccc262cf44f54e33495543"
+    },
+    {
+      "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/cargo-fingerprint-diagnosis.md",
+      "committed_copy": "docs/audits/2026-10-21-baseline-build-diagnostics/cargo-fingerprint-diagnosis.md",
+      "sha256": "e34bbc5a93a897d6f6ae698d8e0b61e2754d8baf31f9611ae6afaafbc9362495"
+    },
+    {
+      "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/frozen-completion-cursor-contract.json",
+      "committed_copy": "docs/audits/2026-10-21-frozen-completion-cursor-contract.json",
+      "sha256": "910bc4049e5bb8a23248e01a0dce4efcb8eeedef0db45795ee0da9c61c69ec08"
+    },
+    {
+      "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/external-completion-scrolled-review-1db-d371.json",
+      "committed_copy": "docs/audits/2026-10-21-external-completion-scrolled-review.json",
+      "sha256": "cc8720be4e761322c660b1dd2846443bdd0a10cdca95fe4ed859cc131cb34c3d"
+    }
+  ]
+}

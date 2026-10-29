@@ -1,0 +1,131 @@
+{
+  "advance": {
+    "elapsed_seconds": 113.99,
+    "exit": 0,
+    "log_sha256": "df09276614aa238f501a73d1fdf152ac6ded4b8b75889823b0f76cb9e4fc640c",
+    "receipt": {
+      "checkpoint_count": 32,
+      "chunk": 7,
+      "committed_chunk_sha256": "c93c5e0a401aadeb705d1576ecb14d236f5e6c0d9f90cf7b3670069ea2ab2b78",
+      "expected_tree_sha256": "d2b2b662cd82012b96331f583103a84ff94bee41290e01e453cb74ddc3306a3d",
+      "ordinal": 7,
+      "phase": "baseline-capture",
+      "receipt_file_sha256": "4a607ffd7b6070be6f1c1f8dec49b7eea1515b840b47639f4d4ecb23bc70d6a1"
+    }
+  },
+  "after_state": {
+    "candidate_comparison_eligible": false,
+    "capture_dirs": [
+      "chunk-00000",
+      "chunk-00001",
+      "chunk-00002",
+      "chunk-00003",
+      "chunk-00004",
+      "chunk-00005",
+      "chunk-00006",
+      "chunk-00007"
+    ],
+    "ordinary_exists": false,
+    "product_acceptance": false,
+    "replay_exists": false
+  },
+  "chunks": [
+    {
+      "chunk": 0,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "5029c75622cd3a8cbadd6ac0ea51406ff67f4cbaa432a660842853e1654d491f"
+    },
+    {
+      "chunk": 1,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "2d5be8ca4f5cf17b025ab6e65b975ec2a2f505ae2977eb4b4cc1dce0f306427e"
+    },
+    {
+      "chunk": 2,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "74df81f7f698eda2e1897a371eb4dcfb350e01194ee3f9fd6c1c8a3620413516"
+    },
+    {
+      "chunk": 3,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "9736b911aee3da3fc616c8c0f431fcfb359b8196af7ad8fb4cccd130a3cefd5e"
+    },
+    {
+      "chunk": 4,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "4704bd6f206ba84d7d2917c22fe43ae5454e1c219188c1265966fe54eba0b530"
+    },
+    {
+      "chunk": 5,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "d1e1d1e0a20fb4534751406b600c274ebcd000d36b8ced49eaaf5e3942bd08c0"
+    },
+    {
+      "chunk": 6,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "ea6a2237f44cfc3232fbf836d9cd29d16c14a7de178df926808a9cb94137c02b"
+    },
+    {
+      "chunk": 7,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "d2b2b662cd82012b96331f583103a84ff94bee41290e01e453cb74ddc3306a3d"
+    }
+  ],
+  "new_plan_checkpoints": 256,
+  "old310_chunks": [
+    {
+      "chunk": 0,
+      "matches": true,
+      "sha256": "5029c75622cd3a8cbadd6ac0ea51406ff67f4cbaa432a660842853e1654d491f"
+    },
+    {
+      "chunk": 1,
+      "matches": true,
+      "sha256": "2d5be8ca4f5cf17b025ab6e65b975ec2a2f505ae2977eb4b4cc1dce0f306427e"
+    },
+    {
+      "chunk": 2,
+      "matches": true,
+      "sha256": "74df81f7f698eda2e1897a371eb4dcfb350e01194ee3f9fd6c1c8a3620413516"
+    },
+    {
+      "chunk": 3,
+      "matches": true,
+      "sha256": "9736b911aee3da3fc616c8c0f431fcfb359b8196af7ad8fb4cccd130a3cefd5e"
+    },
+    {
+      "chunk": 4,
+      "matches": true,
+      "sha256": "4704bd6f206ba84d7d2917c22fe43ae5454e1c219188c1265966fe54eba0b530"
+    },
+    {
+      "chunk": 5,
+      "matches": true,
+      "sha256": "d1e1d1e0a20fb4534751406b600c274ebcd000d36b8ced49eaaf5e3942bd08c0"
+    }
+  ],
+  "old310_separate_checkpoints": 192,
+  "old310_six_hashes_match": true,
+  "plan_sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+  "run_id": "8470dddf86b24e1e8dcf3293d2625b1f",
+  "runner_revision": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+  "runner_sha256": "f2a7583e155c7e85b7c8782c1b163b60bd0bf83038f5e736abe52271724139a8",
+  "schema": "termrock.stage3c-capture-ordinal7-independent-result.v1",
+  "scope": "only capture ordinal 7; no replay, ordinary checks, candidate or acceptance.",
+  "supervisor_sha256": "b8ae6dbfcd1f18d656ab37c34309790fc4d7bac5a3092df50b9c134483848993",
+  "verify_run": {
+    "completed_steps": 8,
+    "elapsed_seconds": 90.988,
+    "env_tool_match": true,
+    "exit": 0,
+    "log_sha256": "daf8b78e26c9b4bd0ed1d4094fbfb3e7f30038e2e6d3fd0dd0e6b9e98ff541af"
+  }
+}

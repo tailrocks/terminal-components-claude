@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
+
+  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Deploy preview         custom · here
+    Follow acme-api-1 logs     docker    here   service is unhealthy
+    Inspect 10 GB of generat…  disk      here   10 GB generated artifacts        Does       push the current branch
+    Install missing tools · …  task      here   1 tool missing                              to the preview stack
+    Review cleanup candidates  cleanup   host   10.6 GiB across 4 categories     Runs       tools/deploy-pre…preview
+  › Deploy preview             custom    here   Current folder…                  In         ~/work/acme
+                                                                                 Host       mbp · local
+    Recent here                                                                  Scope      here
+    nothing used here yet                                                        Why        Current folder · ⚠
+                                                                                            unreviewed
+    Running                                                                      Changes    see the command
+    logs · api worker schedu…  activity  here   ⠋ running · 3 s                  Risk       mutating
+    api dev                    activity  child  ⠋ running · 3 s                  Data       live · 0 s ago
+    btm                        activity  host   ⠋ detached · 3 s                 Gate       trust required ·
+    frontend dev               activity  child  ⠋ running · 3 s                             ~/work/acme/.holla.toml
+                                                                                 Alt+Enter  Set an alias… · Show
+    Explore                                                                                 configuration
+     Tasks   Git   Files   Disk   Services   System                                         diagnostics · Pin ·
+    Children · 3 projects      explore   child  3 child projects discovered                 Alias · Why here?
+    System · mbp               explore   host   available on this host
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme   main   ↑1                                                              ⠋ 4 running    truecolor · 120×40
+        Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  …   api tests finished · exit 0

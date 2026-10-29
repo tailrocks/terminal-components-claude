@@ -1,0 +1,31 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe      no color · 100×30  ? help  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m  ≡ Query 1 ×                                                                                   +   [0m
+[0m[2m ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m › ╭─ Query 1 ────────────────────────────────────────────────────────────────────────────────────╮ [0m
+[0m[2m   │  [0m╭[0m[2m─────[0m─[0m[2m─────────[0m─[0m[2m──────────────────────────────────────────────────────────────────────╮    │ [0m
+[0m[2m E │  [0m│[0m[2m [0m[1;2mOpen Quickly[0m[2m                                                         All · Tab scope │    │ [0m
+[0m[2m x │  │ ▎ Search tables, views, schemas, tabs, queries…                                      │    │ [0m
+[0m[2m p │  │                                                                                      │    │ [0m
+[0m[2m l │  │ [0m[1;2;7m [0m[2;7mT[0m[1;2;7m change_log                        [0m[2;7maudit · Production[0m[1;2;7m             [0m[2;7mTables[0m[1;2;7m         [0m[2m┃ │    │ [0m
+[0m[2m o │  │  T customers                         public · Production                           ┃ │    │ [0m
+[0m[2m r │  │  T daily_revenue                     analytics · Production                        ┃ │    │ [0m
+[0m[2m e │  │  T events                            analytics · Production                        ┃ │─── │ [0m
+[0m[2m r │  │  T login_attempts                    audit · Production                            ┃ │    │ [0m
+[0m[2m   │  │  T order_items                       public · Production                           ┃ │    │ [0m
+[0m[2m   │  │  T orders                            public · Production                           ┃ │    │ [0m
+[0m[2m   │  │  T organizations                     public · Production                           ┆ │    │ [0m
+[0m[2m   │  │  T payments                          public · Production                           ┆ │    │ [0m
+[0m[2m   │  │  T products                          public · Production                           ┆ │    │ [0m
+[0m[2m   │  │  T subscriptions                     public · Production                           ┆ │    │ [0m
+[0m[2m   │  │  V active_customers                  public · Production            Views          ┆ │    │ [0m
+[0m[2m   │  │  V cohort_retention                  analytics · Production                        ┆ │    │ [0m
+[0m[2m   │  │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close             │    │ [0m
+[0m[2m   │  ╰──────────────────────────────────────────────────────────────────────────────────────╯    │ [0m
+[0m[2m   │                                                                                              │ [0m
+[0m[2m   │                                                                                              │ [0m
+[0m[2m   │                                                                                              │ [0m
+[0m[2m   ╰──────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                    [0m
+ [0m[1mType[0m Filter  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Cancel                           ✓ Connected to Production [0m
+[?25h[8;11H[6 q

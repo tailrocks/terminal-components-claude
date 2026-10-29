@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help             Workspaces  inside the Construct  ! instance index unreadable  ▲ daemon stale [0m
+                                                                                                                        [0m
+ ╭─ Workspaces ────────── 3 running ─╮ │  Current directory · payments-platform                       saved workspace   [0m
+ │     Current directory             │ │                                                                                [0m
+ │   ▸ payments-platform             │ │  Working dir   /workspace/payments-platform                                    [0m
+ │   ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree                           [0m
+ │   ▸ release-automation            │ │                ~/src/shared-libs · ro shared                                   [0m
+ │   ▸ customer-portal               │ │  Roles         the-architect ★ · allowed 3 of 126                              [0m
+ │   ▸ data-pipeline                 │ │  Environments  5 vars · 2 [op]                                                 [0m
+ │   ▸ docs-site                     │ │  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·       [0m
+ │     auth-servic╭──────────────────────────────────────────────────────────────────────────────────╮                  [0m
+ │     gateway    │ [0m[1mLaunch · choose Agent[0m                          payments-platform › the-architect │ask               [0m
+ │     mobile-app │ [0m[1m▎[0m▪[0m[1m Claude Code  [0maccount Claude · Personal · provider d…[0m[1m [0mchoose at start[0m[1m  [0magents[0m[1m [0m │                  [0m
+ │     ml-notebook│  ▪ Codex        account Codex · Primary · provider def… ready                    │stale · 3 s ago   [0m
+ │     search-inde│  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │                  [0m
+ │     staging-env│  ▪ Grok Build   account Grok · Team · provider default  ready                    │                  [0m
+ │     billing-rec│                                                                                  │                  [0m
+ │     legacy-mono│                                                                                  │                  [0m
+ │     + New works╰──────────────────────────────────────────────────────────────────────────────────╯                  [0m
+ │                                   │ │  ◌ b333  reviewer · Codex · restore available                                  [0m
+ │                                   │ │  ◌ b444  reviewer · Codex · exited                                             [0m
+ │                                   │ │  ◌ b555  reviewer · Codex · restore available                                  [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │  Launch    Edit                                                                [0m
+ ╰───────────────────────────────────╯ │                                                                                [0m
+                                                                                                                        [0m
+ [0m[1m     [0m       [0m[1m↑↓ [0mMove  …   [0m[1m▲[0m Could not confirm running instances: instance index unreadable · entered without the ritual [0m

@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                                no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                    scope ‹ here ›
+
+    Suggested here
+  › Follow acme-api-1 logs        docker   here  service is unhealthy
+    Follow acme-db-1 logs         docker   here  running
+    Follow acme-redis-1 logs      docker   here  running
+    Follow acme-scheduler-1 logs  docker   here  running
+    Follow acme-worker-1 logs     docker   here  running
+
+    Recent here
+    nothing used here yet
+
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · mbp                  explore  host  available on this host
+
+
+
+
+
+
+
+    → docker logs -f --since 10m acme-api-1 · here · read-only
+
+ ~/work/stack                                                                    truecolor · 100×30
+  Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

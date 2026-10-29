@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help                     Workspaces › payments-platform › edit  • 1 change [0m
+                                                                                                    [0m
+                                                                                                    [0m
+   General •    Mounts    Roles    Environments    Accounts                                         [0m
+  ━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────  [0m
+                                                                                                    [0m
+      Name *                                                                                        [0m
+      payments-platform                                                                             [0m
+      Directory basename by default                                                                 [0m
+                 ╭────────────────────────────────────────────────────────────────╮                 [0m
+    Working direc│                                                                │                 [0m
+    /workspace/pa│  [0m[1mSave workspace[0m                                                │                 [0m
+    Inside the Co│                                                                │                 [0m
+                 │  Workspace  payments-platform                                  │                 [0m
+     [ ] Keep awa│  Scope      workspace config · ~/.jackin/workspaces/payments…  │                 [0m
+     [✓] Git pull│  Changes    1 change                                           │                 [0m
+                 │                                                                │                 [0m
+      On dirty ex│  ~ keep_awake true → false                                     │                 [0m
+      ask · show │                                                                │                 [0m
+                 │                                               ▎[0m[1mCancel [0m  [0m[1mSave [0m  │                 [0m
+                 │                                                                │                 [0m
+                 ╰────────────────────────────────────────────────────────────────╯                 [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                              Cancel     Save…      [0m
+                                                                                                    [0m
+                  [0m[1m     [0m       [0m[1m← → C[0mhoose  [0m[1mEnter[0m Confirm  [0m[1mEsc Can[0mcel    [0m[1m   [0m                          [0m

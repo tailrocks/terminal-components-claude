@@ -1,0 +1,32 @@
+{
+  "merge_commit": "94c34bc8c111e8ec8a43801e965d76b5de6be9c7",
+  "python_tests_passed": 61,
+  "actual_anchored_plan_verification": "passed under exact committed safe allowlist recipe",
+  "visual_inventory": 29069,
+  "ordinary_inventory": 20,
+  "applications_launched": 0,
+  "capture_or_replay_performed": false,
+  "candidate_approval": false,
+  "logs": {
+    "termrock-parent-fresh-plan-fff-actual.log": {
+      "path": "/private/tmp/termrock-parent-fresh-plan-fff-actual.log",
+      "sha256": "72a38628f90d5f9785e20fae36b3640ce4f044760c792c934e35afdaea347f7b"
+    },
+    "termrock-parent-fresh-plan-fff-2.log": {
+      "path": "/private/tmp/termrock-parent-fresh-plan-fff-2.log",
+      "sha256": "5d9260503321988251063c49f7b14ff8d1f43000426da0bf9d1c360393312dbc"
+    },
+    "termrock-parent-fresh-plan-fff-3.log": {
+      "path": "/private/tmp/termrock-parent-fresh-plan-fff-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "termrock-parent-fresh-plan-fff-1.log": {
+      "path": "/private/tmp/termrock-parent-fresh-plan-fff-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "termrock-parent-fresh-plan-fff-0.log": {
+      "path": "/private/tmp/termrock-parent-fresh-plan-fff-0.log",
+      "sha256": "f7e4ed9c0b7a54a99e5dc0283a1ec7d70b8ee8eec3939c3c7474291faead9c89"
+    }
+  }
+}

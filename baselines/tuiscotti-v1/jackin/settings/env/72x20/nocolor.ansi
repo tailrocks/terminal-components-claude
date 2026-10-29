@@ -1,0 +1,20 @@
+ [0m[1m jackin❯ [0m   File   Go   Help          Settings › global › Environments [0m
+                                                                        [0m
+                                                                        [0m
+   General    Mounts   [0m[1m Environments  [0m  Agents    Trust                 [0m
+  ─────────────────────━━━━━━━━━━━━━━━────────────────────────────────  [0m
+                                                                        [0m
+      [0m[1mGlobal[0m                                                   3 vars   [0m
+  [0m[1m▎›    GH_TOKEN            global          ****************  [op] E… [0m  [0m
+        EDITOR              global          ****              plain     [0m
+        CARGO_NET_GIT_FET…  global          ****              plain     [0m
+        + Add environment variable                                      [0m
+      [0m[1mRole overrides[0m                1 configured · 46 in the registry   [0m
+    ▾ [0m[1mRole: sre[0m                                                 1 var   [0m
+        KUBECONFIG          role sre        ****************  plain     [0m
+        + Add sre environment variable                                  [0m
+        + Add role override…                                            [0m
+                                                                        [0m
+                                                  Cancel     [0m[2mSave… [0m     [0m
+                                                                        [0m
+   [0m[1mEnter[0m Edit  [0m[1mm[0m Show  [0m[1mp[0m 1Password…  [0m[1ms[0m Scope…  [0m[1md[0m Remove…  [0m[1ma[0m Add…  …     [0m

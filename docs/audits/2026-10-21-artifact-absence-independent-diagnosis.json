@@ -1,0 +1,141 @@
+{
+  "blocker": "Original missing-path event lacks contemporaneous filesystem/index/config snapshot. Exact causal actor/mechanism cannot be proven from current evidence. Do not attribute to Git checkout, sparse checkout, or a repository cleaner.",
+  "commands_and_status": [
+    {
+      "command": "git config --show-origin --show-scope --get-all <setting> (five settings above)",
+      "status": "completed; sparseCheckout/cone true, index.sparse false, extensions.worktreeConfig true; see git_configuration"
+    },
+    {
+      "command": "git sparse-checkout check-rules with source and target paths",
+      "exit_status": 0,
+      "result": "both paths matched"
+    },
+    {
+      "command": "git checkout --detach 42fb861c07228db39f40228b5ecaa2e3521d6239; git checkout --detach 69c1ed6aa2f18255dd92167d30f8534ad316bcd3",
+      "exit_status": "0 for both",
+      "result": "sample artifact remained present, status clean"
+    },
+    {
+      "command": "rg removal and target-root references in conformance/xtask/tools/scripts source files",
+      "exit_status": 0,
+      "result": "search completed; no target-root recursive cleaner found in relevant code"
+    },
+    {
+      "command": "git status --porcelain=v1",
+      "exit_status": 0,
+      "result": "empty after restoration and controlled probe"
+    }
+  ],
+  "controlled_checkout_probe": {
+    "42fb861c07228db39f40228b5ecaa2e3521d6239": {
+      "checkout_exit": 0,
+      "head": "42fb861c07228db39f40228b5ecaa2e3521d6239",
+      "index_flag": "H crates/termrock-conformance/target/tuiscotti-actuals/button_busy_live_14250_1792064859065930000/row_clip_02.json",
+      "output": "Previous HEAD position was 69c1ed6aa ci: omit empty Rust doctest jobs\nHEAD is now at 42fb861c0 fix(jackin): dim the 120x40 presentation frame for info and cancel",
+      "sample_exists": true,
+      "sample_size": 20701,
+      "status_lines": 0
+    },
+    "69c1ed6aa2f18255dd92167d30f8534ad316bcd3": {
+      "checkout_exit": 0,
+      "head": "69c1ed6aa2f18255dd92167d30f8534ad316bcd3",
+      "index_flag": "H crates/termrock-conformance/target/tuiscotti-actuals/button_busy_live_14250_1792064859065930000/row_clip_02.json",
+      "output": "Previous HEAD position was 42fb861c0 fix(jackin): dim the 120x40 presentation frame for info and cancel\nHEAD is now at 69c1ed6aa ci: omit empty Rust doctest jobs",
+      "sample_exists": true,
+      "sample_size": 20701,
+      "status_lines": 0
+    }
+  },
+  "final_worktree_status": "clean; target artifacts present; exact HEAD 69c1ed6aa2f18255dd92167d30f8534ad316bcd3",
+  "git_configuration": {
+    "core.ignoreCase": {
+      "exit": 0,
+      "output": "local\tfile:/Users/donbeave/Projects/terminal-components-claude/.git/config\ttrue"
+    },
+    "core.sparseCheckout": {
+      "exit": 0,
+      "output": "worktree\tfile:/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/holla-readonly-42fb861/config.worktree\ttrue"
+    },
+    "core.sparseCheckoutCone": {
+      "exit": 0,
+      "output": "worktree\tfile:/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/holla-readonly-42fb861/config.worktree\ttrue"
+    },
+    "extensions.worktreeConfig": {
+      "exit": 0,
+      "output": "local\tfile:/Users/donbeave/Projects/terminal-components-claude/.git/config\ttrue"
+    },
+    "index.sparse": {
+      "exit": 0,
+      "output": "worktree\tfile:/Users/donbeave/Projects/terminal-components-claude/.git/worktrees/holla-readonly-42fb861/config.worktree\tfalse"
+    }
+  },
+  "hypotheses_ranked": [
+    {
+      "confidence": "plausible but unproven",
+      "evidence": "The exact target paths and blob IDs are unchanged between 42fb861 and 69c1ed6. Controlled clean switches between those commits preserved files. Repo-source search found no recursive cleaner for this root. Other concurrent agents/worktrees and task runners existed, but no responsible process or event log was identified.",
+      "hypothesis": "External workspace/task cleanup removed these ignored target paths around the gate runs, or they were absent before the observed checkout.",
+      "rank": 1
+    },
+    {
+      "confidence": "low",
+      "evidence": "Worktree config has core.sparseCheckout=true and cone=true, but check-rules reports both sample source and artifact paths included; sample index flag H; controlled commit switches preserve files. This weakens sparse selection as cause. Historical flags/path state at original absence were not captured, so cannot fully exclude it.",
+      "hypothesis": "Sparse-checkout / index state explains the absence.",
+      "rank": 2
+    },
+    {
+      "confidence": "disproved for the reproduced clean state",
+      "evidence": "The 1,301 artifact paths and all blob IDs are identical between the two commits; controlled checkout away and back preserved them.",
+      "hypothesis": "Normal Git checkout deleted unchanged tracked blobs.",
+      "rank": 3
+    }
+  ],
+  "index_flags": "Sample target artifact showed H in `git ls-files -v` before and after controlled commit switches; not marked skip-worktree/assume-unchanged at observed times.",
+  "path_manifest": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/ci-worktree-artifact-probe-paths-69c1.json",
+  "repository_cleanup_search": {
+    "exit_status": 0,
+    "finding": "No recursive removal of the tracked conformance target roots found in conformance tests or xtask source. `button_busy_live.rs` creates timestamped output beneath target/tuiscotti-actuals. Conformance removals found only a single approval PNG, a single negative-control victim, and a companion fixture file.",
+    "relevant_matches": [
+      "crates/termrock-conformance/tests/tuiscotti_qualification.rs:231:    std::fs::remove_file(&approved_png).unwrap();",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h4.rs:522:        boot.contains(\"cargo clean \u00b7 900.0 MiB\"),",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h4.rs:530:        &[\"type:cargo clean\", \"wait:900.0 MiB\"],",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h4.rs:537:        \"\u203a cargo clean \u00b7 900.0 MiB\",",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h4.rs:570:        \"\u203a cargo clean \u00b7 900.0 MiB\",",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h4.rs:590:    assert_line_has(&boot, \"cargo clean \u00b7 1000.0 MiB\", \"destructive\", \"V1 row\");",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h4.rs:694:    assert_line_has(&boot, \"cargo clean \u00b7 1000.0 MiB\", \"destructive\", \"V1 row\");",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h4.rs:742:    assert_line_has(&boot, \"cargo clean \u00b7 2.0 MiB\", \"destructive\", \"V1 row\");",
+      "crates/termrock-conformance/tests/visual_baseline/support.rs:3072:        std::fs::remove_file(pair.approved_root.join(format!(\"{PROBE_NAME}.html\")))",
+      "crates/termrock-conformance/tests/visual_baseline/negative_controls_phase6a.rs:183:    std::fs::remove_file(&victim).expect(\"remove approved txt\");",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h1.rs:196:        &[\"type:cargo clean\", \"wait:900.0 MiB\"],",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h1.rs:202:    assert_line_has(&clean, \"\u203a cargo clean \u00b7 900.0 MiB\", \"destructive\", \"V1 row\");",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h1.rs:243:        \"\u203a cargo clean \u00b7 900.0 MiB\",",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h1.rs:264:            \"type:cargo clean\",",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h1.rs:318:        \"\u203a cargo clean \u00b7 900.0 MiB\",",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h1.rs:534:        \"cargo clean\",",
+      "crates/termrock-conformance/tests/visual_baseline/holla_pending_h1.rs:928:    waits::wait_state(&mut s, \"\u258e[\u2713] 02 cargo clean \u00b7 backend\", \"cursor down\");",
+      "crates/termrock-conformance/tests/visual_baseline/holla.rs:415:crate::baseline_case!(holla_flows_cargo_clean_120x40_truecolor => Case::new(\"holla/flows/cargo/clean/120x40/truecolor\", HOLLA, &[\"--scenario\", \"parity-cargo\", \"--motion\", \"paused\", \"--frame\", \"40\"], 120, 40, Color::Truecolor, \"holla\u276f\").sends(&[\"type:cargo clean\", \"wait:900.0 MiB\"]));",
+      "crates/termrock-conformance/tests/visual_baseline/holla.rs:416:crate::baseline_case!(holla_flows_cargo_clean_confirm_120x40_truecolor => Case::new(\"holla/flows/cargo/clean_confirm/120x40/truecolor\", HOLLA, &[\"--scenario\", \"parity-cargo\", \"--motion\", \"paused\", \"--frame\", \"40\"], 120, 40, Color::Truecolor, \"holla\u276f\").sends(&[\"type:cargo clean\", \"enter\", \"wait:Esc Cancel\"]));",
+      "crates/termrock-conformance/tests/visual_baseline/main.rs:745:    std::fs::remove_file(&companion_path).expect(\"remove companion file\");"
+    ]
+  },
+  "review_worktree": "/Users/donbeave/Projects/termrock-worktrees/holla-readonly-42fb861",
+  "reviewed_head_after_probe": "69c1ed6aa2f18255dd92167d30f8534ad316bcd3",
+  "safety": "Did not delete or modify external artifacts or baseline references. Restored only the exact 1,301 tracked artifact paths from reviewed HEAD in this owned read-only worktree; tree and blob IDs verify exact content.",
+  "scope": "Read-only diagnosis of 1,301 tracked conformance target artifacts absent across worktrees. No product edits, commits, external deletions, or shared Git config changes.",
+  "sparse_checkout_patterns": "/*\n!/*/\n/snapshots/\n!/snapshots/*/\n/.config/\n/.github/\n/.github-gen/\n/.velnor/\n/crates/\n/docs/\n/scripts/\n/snapshots/tablepro/\n/tests/\n/tools/\n",
+  "sparse_rule_probe": {
+    "command": "printf <source-path>\\n<target-artifact-path> | git sparse-checkout check-rules",
+    "exit_status": 0,
+    "matched_output": [],
+    "source_and_target_both_included": false
+  },
+  "tracked_tree_comparison": {
+    "base_commit": "42fb861c07228db39f40228b5ecaa2e3521d6239",
+    "base_only": 0,
+    "base_target_file_count": 1301,
+    "changed_common_blob_ids": 0,
+    "reviewed_target_file_count": 1301,
+    "same_paths_and_blob_ids": true,
+    "target_commit": "69c1ed6aa2f18255dd92167d30f8534ad316bcd3",
+    "target_only": 0
+  }
+}

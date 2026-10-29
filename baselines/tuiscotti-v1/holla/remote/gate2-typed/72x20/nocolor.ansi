@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                   ◆ prod-eu-1 · production [0m
+  ╭──────────────────────────────────────────────────────────────────╮  [0m
+  │                                                                  │  [0m
+ ━│  [0m[1mRestart payments · gate 2 of 2[0m                                  │─ [0m
+  │                                                                  │  [0m
+  │  Action   systemctl restart payments on prod-eu-1 · production   │  [0m
+  │           · in-flight requests are dropped                       │  [0m
+  │  Host     prod-eu-1 · production                                 │  [0m
+  │                                                                  │  [0m
+  │  sudo systemctl restart payments                                 │  [0m
+  │  systemctl status payments                                       │  [0m
+  │                                                                  │  [0m
+  │   [0m[1mType RESTART PAYMENTS ON prod-eu-1 to confirm                [0m  │  [0m
+ ╭│ ▎ [0m[4mRESTART PAYMENTS ON prod-eu-1[0m                                  │╮ [0m
+ ╰│                                                                  │╯ [0m
+  │                                                                  │  [0m
+  │                                               Cancel   Execute   │  [0m
+  │                                                                  │  [0m
+ /╰──────────────────────────────────────────────────────────────────╯  [0m
+ [0m[1m EDIT [0m  [0m[1m   [0m     [0m[1mType Phra[0mse  [0m[1mEnter[0m N[0m[1mext[0m  [0m[1mEsc[0m C[0m[1ma[0mncel                    [0m

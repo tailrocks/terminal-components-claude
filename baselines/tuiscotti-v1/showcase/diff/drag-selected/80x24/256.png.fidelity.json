@@ -1,0 +1,77 @@
+{
+  "profile": "tuiscotti-default",
+  "font_sha256": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a",
+  "font_desc": "vendored JetBrainsMonoNerdFontMono-Regular (SIL OFL 1.1)",
+  "scale": 2,
+  "approximate": false,
+  "faces_fell_back": [],
+  "missing": [],
+  "fallback_glyphs": [
+    {
+      "x": 38,
+      "y": 13,
+      "symbol": "東",
+      "codepoints": [
+        "U+6771"
+      ],
+      "faces": [
+        "vendored NotoSansCJKjp subset: kana, JIS X 0208 level-1 kanji, fullwidth forms (SIL OFL 1.1)"
+      ]
+    },
+    {
+      "x": 40,
+      "y": 13,
+      "symbol": "京",
+      "codepoints": [
+        "U+4EAC"
+      ],
+      "faces": [
+        "vendored NotoSansCJKjp subset: kana, JIS X 0208 level-1 kanji, fullwidth forms (SIL OFL 1.1)"
+      ]
+    },
+    {
+      "x": 66,
+      "y": 13,
+      "symbol": "東",
+      "codepoints": [
+        "U+6771"
+      ],
+      "faces": [
+        "vendored NotoSansCJKjp subset: kana, JIS X 0208 level-1 kanji, fullwidth forms (SIL OFL 1.1)"
+      ]
+    },
+    {
+      "x": 68,
+      "y": 13,
+      "symbol": "京",
+      "codepoints": [
+        "U+4EAC"
+      ],
+      "faces": [
+        "vendored NotoSansCJKjp subset: kana, JIS X 0208 level-1 kanji, fullwidth forms (SIL OFL 1.1)"
+      ]
+    },
+    {
+      "x": 42,
+      "y": 14,
+      "symbol": "☕",
+      "codepoints": [
+        "U+2615"
+      ],
+      "faces": [
+        "vendored NotoSansSymbols2 subset (SIL OFL 1.1)"
+      ]
+    },
+    {
+      "x": 70,
+      "y": 14,
+      "symbol": "☕",
+      "codepoints": [
+        "U+2615"
+      ],
+      "faces": [
+        "vendored NotoSansSymbols2 subset (SIL OFL 1.1)"
+      ]
+    }
+  ]
+}

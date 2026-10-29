@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                             no project  devbox · local
+
+  Here › Cl╭────────────────────────────────────────────────────────────────────────────╮
+ ━━━━━━━━━━│                                                                            │──────────
+  Review · │  Trash 1 items · gate 2 of 2                                               │tely
+           │                                                                            │
+  Action   │  Action        move to Trash 1 item under ~                                │
+  Host     │  Host          devbox · local                                              │
+  Mode     │  Mode          Trash · no Trash backend · every item will fail, never      │returns
+           │                fall back · space returns after the Trash is emptied        │
+  Estimate │  Estimate      124.0 KiB allocated · APFS clones may overcount ·           │d · not a
+           │                purgeable space excluded · not a free-space guarantee       │
+  Denied   │  Denied        none · every path passed the lexical, protected-root,       │nk rules
+  Revision │                user-data and symlink rules                                 │
+  Threat mo│  Revision      c4d729e20ca0805b · any change to paths, mode or dry run     │ rename
+           │                voids this review                                           │
+  Paths    │  Threat model  an unprivileged user · ancestors are re-resolved at commit  │
+           │                · a concurrent rename of the final path cannot be excluded  │
+ ╭─ Sequenc│  Paths         ~/Projects/app/node_modules                                 │ copies ─╮
+ │  01  tra│                                                                            │         │
+ │         │  /home/alex/Projects/app/node_modules                                      │         │
+ │         │                                                                            │         │
+ │         │   Type TRASH 1 UNDER /home/alex ON devbox to confirm                       │         │
+ │         │ ▎                                                                          │         │
+ ╰─────────│                                                                            │─────────╯
+           │                                                                            │
+           │                                                         Cancel   Execute   │ontinue…
+           │                                                                            │
+ ~/work/box╰────────────────────────────────────────────────────────────────────────────╯s · 100×30
+                              ← → Choose  Enter Confirm  Esc Cancel     1 item selected · 124.0 KiB

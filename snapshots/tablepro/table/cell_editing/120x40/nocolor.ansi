@@ -1,0 +1,41 @@
+  ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  acme_prod › public  ✓ safe                          no color · 120×40  ? help  [0m
+                                                                                                                        [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders [0m×[0m[1m  [0m                                                                                       +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ─── public   ‹ ─╮│╭─[0m[1m public › orders [0m────────────────────────────────────────────────────────── 14 cols ─╮ [0m
+ │                           │││  [0m[1m Data  [0m  Structure                                                                  │ [0m
+ │   Filter objects          │││  ━━━━━━━──────────────────────────────────────────────────────────────────────────── │ [0m
+ │  ▾ D acme_prod            │││                                                                                      │ [0m
+ │    ▾ S public             │││   ‹3    organization_id                       [0m[1mstatus   [0m    total_amount  curre… 8›   │ [0m
+ │      ▾ Tables             │││  [0m[1m▎  [0m  1[0m[1m 2bd03496-f7c6-428c-95c…2ef815fbb5d →  [0m[1;4m…ivered[0m[1m             25.90  USD       [0m┃ │ [0m
+ │        ▸ T organizations  │││       2 a1cc5725-426b-4be8-b1d…4c2d5a36aa8 →  pending           1617.64  USD       ┆ │ [0m
+ │        ▸ T customers      │││       3 45e4f51f-21b8-4d1a-bf0…43208da8925 →  pending           2236.65  EUR       ┆ │ [0m
+ │        ▸ T products       │││       4 216371dc-bcdb-491e-816…d0cc6d4df3e →  pending           2376.57  EUR       ┆ │ [0m
+ │ [0m[1m       ▸ [0mT[0m[1m orders        [0m │││       5 855a73fc-8e39-4909-829…7f93a51e6b3 →  refunded          2067.52  USD       ┆ │ [0m
+ │        ▸ T order_items    │││       6 3082dad1-58d6-4907-ac6…4151df94d71 →  shipped            675.78  GBP       ┆ │ [0m
+ │        ▸ T payments       │││       7 b51d60b6-6603-463e-af6…750272ceb33 →  delivered         2397.83  GBP       ┆ │ [0m
+ │        ▸ T subscriptions  │││       8 272ceb33-e750-4f60-a03…fe3ac0de925 →  refunded          1677.55  EUR       ┆ │ [0m
+ │      ▸ Views              │││       9 e420b1cb-f102-48d9-944…c74d87ca6b7 →  pending            550.69  USD       ┆ │ [0m
+ │      ▸ Functions          │││      10 cbc419eb-5897-4d5d-84b…b4e319a287a →  pending            290.26  EUR       ┆ │ [0m
+ │      ▸ Sequences          │││      11 2beeba6e-17fa-465c-b93…117497e7f9f →  cancelled         1050.75  USD       ┆ │ [0m
+ │    ▸ S analytics          │││      12 26e6126e-3678-4861-91b…f7a2e505aaa →  refunded          1219.88  USD       ┆ │ [0m
+ │    ▸ S audit              │││      13 c04a0d90-92db-4247-93b…57a5ae74dff →  refunded          1421.90  USD       ┆ │ [0m
+ │                           │││      14 5e08138a-c572-4d88-a74…8e49ab0daa2 →  paid              1814.34  GBP       ┆ │ [0m
+ │                           │││      15 9ab0daa2-e8e4-474c-946…286d04a5c2b →  shipped             24.67  USD       ┆ │ [0m
+ │                           │││      16 c7c8457e-da6b-40e9-b90…cbbfeb56e8b →  refunded          2197.09  USD       ┆ │ [0m
+ │                           │││      17 856eb1ff-ef23-4b8b-b3e…8c43bcce08f →  pending           2326.75  USD       ┆ │ [0m
+ │                           │││      18 c180d977-7033-43c3-9a4…0779d6c73ea →  pending           2392.98  USD       ┆ │ [0m
+ │                           │││      19 71ff0ea9-6c71-4faf-8df…aae78d5ece4 →  refunded           785.85  USD       ┆ │ [0m
+ │                           │││      20 e20af405-1eec-458e-bc5…6fa0b0d0c1c →  pending            497.22  EUR       ┆ │ [0m
+ │                           │││      21 3126689d-fa5f-413d-835…ccce612ed16 →  cancelled         2402.17  USD       ┆ │ [0m
+ │                           │││      22 e612ed16-fccc-4359-9e8…86a95bd1a52 →  refunded          1645.69  USD       ┆ │ [0m
+ │                           │││      23 10fd6c6e-7543-41f7-89f…1e420c21a44 →  refunded          2412.74  EUR       ┆ │ [0m
+ │                           │││      24 91a5a928-35bc-4764-826…96dc9078779 →  delivered         1282.42  USD       ┆ │ [0m
+ │                           │││      25 dee472bd-2c4c-4496-a2f…9c1e26a9aba →  delivered         2219.60  USD       ┆ │ [0m
+ │                           │││  [0m[2m    26 d996d5c1-c0bd-4756-b09…c45666fd5f3 →  pending           1326.92  USD       [0m┆ │ [0m
+ │                           │││         ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ [0m
+ │                           │││   rows 1–26 of 500 loaded · 1,203,338 total · cols 4–6 of 14                         │ [0m
+ ╰───────────────────────────╯│╰──────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Apply  [0m[1mEsc[0m Cancel  [0m[1mTab[0m Next cell                                               ✓ Connected to Production [0m
+[?25h[10;87H[6 q

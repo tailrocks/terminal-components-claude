@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      repos · project …lection  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+  › Status across 5 child …  git      child  0 dirty · 1 behind       ┃
+                                                                      ┃
+    Recent here                                                       ┃
+    nothing used here yet                                             ┃
+                                                                      ┃
+    Explore                                                           ┃
+     Tasks   Git   Files   Disk   Services   System                   ┃
+    Children · 4 projects    explore  child  4 child projects discov… │
+
+    → git -C /Users/alex/work/repos/…in=v2 --branch · child · read-only
+
+ ~/work/repos                                        256 colors · 72×20
+   Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …

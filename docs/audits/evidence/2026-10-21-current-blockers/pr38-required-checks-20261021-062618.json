@@ -1,0 +1,38 @@
+{
+  "baseRefName": "main",
+  "headRefOid": "ae81d5733d69173ac60ff5405e70c9d6c44e0460",
+  "mergeStateStatus": "BLOCKED",
+  "reviewDecision": "",
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/tailrocks/terminal-components-claude/actions/runs/39555102494/job/119073397251",
+      "name": "Actionlint",
+      "startedAt": "2026-10-21T06:24:55Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/tailrocks/terminal-components-claude/actions/runs/39555102494/job/119073397469",
+      "name": "Plan",
+      "startedAt": "2026-10-21T06:24:55Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-21T06:23:25Z",
+      "conclusion": "ACTION_REQUIRED",
+      "detailsUrl": "https://github.com/cncf/dco2",
+      "name": "DCO",
+      "startedAt": "2026-10-21T06:23:24Z",
+      "status": "COMPLETED",
+      "workflowName": ""
+    }
+  ]
+}

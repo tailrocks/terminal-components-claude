@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Data grid          truecolor · 100×30   i Inspector   ? Help
+
+▎  Overview          Data grid  Typed cells, a pending-change queue, paging and local sort
+▎  Buttons
+▎  Inputs              customers                              rows 1–0 of 40 loaded · ~4,812 total
+▎  Text areas
+▎  Forms                     ⚷ id       customer                   plan          seats        4›
+▎  Lists               ▎   1 1001       Northwind Traders          enterprise        3           ┃
+▎  Trees               ▎   2 1002       Blue Yonder Airlines       team             80           ┃
+▎  Tables              ▎   3 1003       Contoso Pharmaceuticals    pro              12           ┃
+▎  Editable tables     ▎   4 1004       Fabrikam Robotics          free              1           ┃
+▎  Panels              ▎   5 1005       Litware Analytics          enterprise       40           ┃
+▎  Sidebars            ▎   6 1006       Tailspin Toys              team              5           ┃
+▎  Dialogs             ▎   7 1007       Wide World Importers       pro             150           ┃
+▎  Progress            ▎   8 1008       Adventure Works            free             25           ┃
+▎  Scrolling           ▎   9 1009       Proseware Studio           enterprise        3           ┃
+▎  Terminal            ▎  10 1010       Woodgrove Bank             team             80           │
+▎  Code editor         ▎  11 1011       Alpine Ski House           pro              12           │
+▎› Data grid           ▎  12 1012       Coho Winery                free              1           │
+▎  Chips & selects     ▎  13 1013       Lucerne Publishing         enterprise       40           │
+▎  Pickers             ▎  14 1014       Margie's Travel            team              5           │
+▎  Chrome              ▎  15 1015       Trey Research              pro             150           │
+▎  Settings            ▎  16 1016       Humongous Insurance        free             25           │
+▎  Task runner         ▎  17 1017       Northwind Traders 2        enterprise        3           │
+                       ▎  18 1018       Blue Yonder Airlines 2     team             80           │
+                       ▎  19 1019       Contoso Pharmaceuticals 2  pro              12           │
+                       ▎  20 1020       Fabrikam Robotics 2        free              1           │
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

@@ -1,0 +1,51 @@
+[0m[2m  jackin❯    File   Go   Help                                                                                    Workspaces  inside the Construct  ● 2 running  [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m ╭─ Workspaces ────────────────────── 2 running ─╮ │  Current directory · payments-platform saved workspace      Running                          2 instances   [0m
+[0m[2m │ [0m [0m[2m   Current …ory  saved as payments-platform  │ │  ─────────────────────────────────────────────────────      ────────────────────────────────────────────   [0m
+[0m[2m │ [0m [0m[2m ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…   [0m
+[0m[2m │ [0m [0m[2m ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes       [0m
+[0m[2m │ [0m [0m[2m ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal                   [0m
+[0m[2m │ [0m [0m[2m ▸ customer-portal                 ! failed  │ │  Roles         the-architect ★ · allowed 3 of 46                                                           [0m
+[0m[2m │ [0m [0m[2m   + New workspace                           │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex      [0m
+[0m[2m │                                               │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane             [0m
+[0m[2m │                                               │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments                 [0m
+[0m[2m │                                               │ │                OpenCode · Go subscription ★                                                                [0m
+[0m[2m │                                               │ │  Policies      git pull enabled · keep awake on · dir…                                                     [0m
+[0m[2m │                                               │ │                                                             Preserved                          3 records   [0m
+[0m[2m │                                               │ │  Instances                            daemon · 3 s ago      ◌ c41e  payments-platform · reviewer · pres…   [0m
+[0m[2m │                                               │ │  ◉ 7f3a  the-architect · Claude Code · running              ◌ a1c0  release-automation · backend · rest…   [0m
+[0m[2m │                                               │ │  ◌ c41e  reviewer · Codex · preserved · dirty               ◌ 04d7  infra-control-plane · sre · preserv…   [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                             Daemon                     healthy · 3 s ago   [0m
+[0m[2m │                                               │ │                                                             Refresh      throttled · every 5 s             [0m
+[0m[2m │                                    ╭──────────────────────────────────────────────────────────────────────────────────╮    degraded · 4 warnings · 1 exha…   [0m
+[0m[2m │                                    │ [0m[1;2mLaunch · choose Agent[0m[2m                          payments-platform › the-architect │                                      [0m
+[0m[2m │                                    │ [0m[1;2;7m [0m[2;7m▪[0m[1;2;7m Claude Code  [0m[2;7maccount Claude · Personal · provider …[0m[1;2;7m  [0m[2;7mchoose at start[0m[1;2;7m  [0m[2;7magents[0m[1;2;7m [0m[2m │                                      [0m
+[0m[2m │                                    │  ▪ Codex        account Codex · Primary · provider de…  ready                    │                                      [0m
+[0m[2m │                                    │  ▪ OpenCode     account OpenCode · Go subscription · …  ready                    │                                      [0m
+[0m[2m │                                    │  ▪ Grok Build   account Grok · Team · provider default  ready                    │                                      [0m
+[0m[2m │                                    │                                                                                  │                                      [0m
+[0m[2m │                                    │                                                                                  │                                      [0m
+[0m[2m │                                    ╰──────────────────────────────────────────────────────────────────────────────────╯                                      [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │ [0m [0m[2mLaunch   [0m [0m[2mEdit                                                                                            [0m
+[0m[2m ╰───────────────────────────────────────────────╯ │                                                                                                            [0m
+[0m[2m                                                                                                                                                                [0m
+ [0m[1m↑↓ Mo[0mve  [0m[1mEnter [0mChoose[0m[1m [0m [0m[1mEsc[0m Ca[0m[1mnce[0ml         [0m[1m [0m           [0m[1m [0m        [0m[1m [0m           [0m[1m [0m    Cla[0m[1mu[0mde Code — account Claude · Personal · provider default · +1 more available [0m
+[?25l

@@ -1,0 +1,47 @@
+{
+  "reviewed_commit": "ecd8a8194af79787562d120305c90a6b58996da8",
+  "disposition": "No actionable findings in this bounded Grid/fields/theme series. Prior local Clear finding resolved.",
+  "acceptance_complete": false,
+  "supersedes": "/private/tmp/termrock-grid-26e4-independent-review.json",
+  "source_review": [
+    "The local explicit underline branch now checks canonical resolved.style.underline_cleared() and emits Color::Reset for a winning Clear. It preserves a winning local Set without copying the host underline.",
+    "An Inherit local patch does not speak, so the one normally resolved host target supplies its canonical Set/Clear or the inherited input underline default.",
+    "Explicit local UNDERLINED modifier additions/removals retain priority over the host decoration modifier. Host foreground/background are not transferred.",
+    "Ordinary inputs without text_style_target still use the original resolution branch. The new native test checks the ordinary non-hosted Warning underline while hosted Inherit uses Accent, local Set uses Warning, and local Clear resets prepaint.",
+    "The final Clear metadata remains private and is captured by canonical theme accumulation; existing public literal compatibility and ResolvedStyle.explicit meaning are preserved. No synthetic role probe or exact-color provenance inference remains.",
+    "No application identity, exact viewport selector, golden artifact, or fixed frame replay was added by this bounded library change."
+  ],
+  "verification": {
+    "external_probes": {
+      "run": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "source": "/private/tmp/termrock-grid-26e4-probes/src/lib.rs",
+      "unchanged_since_red_26e4": true,
+      "log": "/private/tmp/termrock-grid-ecd8-probes.log",
+      "log_sha256": "23e02aa3fc728fafdbf61c7812245c8ce9547734e1f1011e1f3f807d479ed945"
+    },
+    "native": {
+      "command": "cargo nextest run --locked -p termrock-fields -p termrock-grid -p termrock-theme --all-targets --no-fail-fast",
+      "run": 345,
+      "passed": 345,
+      "failed": 0,
+      "skipped": 0,
+      "log": "/private/tmp/termrock-grid-ecd8-native.log",
+      "log_sha256": "120cc8b4a6cdc0b2e740f0451bd05cc3431a3ac5b2d5931550522b98dc2c1de3"
+    },
+    "clippy": {
+      "command": "cargo clippy --locked -p termrock-fields -p termrock-grid -p termrock-theme --all-targets -- -D warnings",
+      "log": "/private/tmp/termrock-grid-ecd8-clippy.log",
+      "log_sha256": "e7366d87f7981366f31a34f38effa5631bfdd26ba32c16949d8d064ef59c41b5",
+      "passed": true
+    },
+    "formatting": "Scoped rustfmt --edition2024 --check on all six changed library/test files passed. git diff --check passed, and the reviewer source worktree is clean."
+  },
+  "limits": [
+    "No full application parity claim. Existing TablePro failures and complete frozen CLI acceptance remain separate.",
+    "Concurrent external9268 downgrade changes are not included in this exact revision or verdict.",
+    "No source or expected artifact edits by the reviewer."
+  ]
+}

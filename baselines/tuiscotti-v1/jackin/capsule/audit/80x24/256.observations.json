@@ -1,0 +1,22 @@
+{
+  "cell_count": 1920,
+  "cols": 80,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 12987922331303154540,
+  "legacy_name": "jackin/audit/capsule/80x24/256",
+  "name": "jackin/capsule/audit/80x24/256",
+  "non_empty_cells": 1197,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 24
+}

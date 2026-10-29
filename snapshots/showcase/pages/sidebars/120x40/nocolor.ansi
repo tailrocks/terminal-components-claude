@@ -1,0 +1,41 @@
+ ▪ [0m[1mJunie[0m Design system  Navigation › [0m[1mSidebars[0m                                 no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+ [0m[1mComponents[0m           54  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, collapsed mode; text first, no icons   [0m
+ ───────────────────────                                                                                                [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                      [0m
+  ▸ Tables                                        ‹       Tasks                                                         [0m
+  ▾ Navigation               Workspace               │    ────────────────────────────────────────────────────────────  [0m
+      Lists               [0m[1m › T Tasks               3 [0m│    One focus stop. ↑↓ (or j k) move the cursor, Enter opens.     [0m
+      Trees                  R Runs                  │                                                                  [0m
+ [0m[1m▎  › Sidebars          [0m     B Branches              │    ›  current item · persists when focus leaves                  [0m
+      Tabs                                           │    ▎  keyboard cursor · only while focused                       [0m
+      Menus                  Project                 │    ░  hover · follows the pointer                                [0m
+  ▸ Overlays                 M Members               │                                                                  [0m
+  ▸ Feedback                 E Environment           │    Disabled items are skipped and ignore the pointer.            [0m
+  ▸ Layout                [0m[2m   $ Billing               [0m│    Collapse keeps rows and markers, initials only.               [0m
+  ▸ Text & code                                      │    ‹ on the frame or Ctrl+B hides the sidebar behind its rail.   [0m
+  ▸ Screens                  Preferences             │                                                                  [0m
+                             K Keyboard              │    Last: none yet                                                [0m
+                             A Appearance            │                                                                  [0m
+                                                     │                                                                  [0m
+                                                     │                                                                  [0m
+                                                     │                                                                  [0m
+                                                                                                                        [0m
+                            Collapse                                                                                    [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
+[?25l

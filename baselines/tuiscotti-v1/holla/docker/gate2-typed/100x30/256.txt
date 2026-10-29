@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                       no project  devbox · development
+
+  Here › Cl╭────────────────────────────────────────────────────────────────────────────╮
+ ━━━━━━━━━━│                                                                            │──────────
+  Review · │  Clean Docker completely · gate 2 of 2                                     │ue delib…
+           │                                                                            │
+  Action   │  Action             remove all user-removable Docker state on devbox       │
+  Host     │  Host               devbox                                                 │
+  In       │  Steps              7 included                                             │
+  Steps    │  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7       │
+  Docker ac│                     volumes 4.1 GB · build cache 6.1 GB                    │ild cache
+           │  Reclaimable        ~18.4 GB                                               │
+  Reclaimab│  Recoverable        no · images, containers and volumes are permanent      │
+  Recoverab│                                                                            │
+  Not touch│  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-re…  │
+  Privilege│  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redi…  │
+  Uncertain│  docker image prune -a --force                                             │hem
+           │  docker network prune --force                                              │
+ ╭─ Sequenc│  docker volume prune -a --force                                            │ copies ─╮
+ │  01  doc│  docker builder prune -a --force … 2 more                                  │       ┃ │
+ │  02  doc│                                                                            │cache-…┃ │
+ │  03  doc│   Type I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm           │       ┃ │
+ │  04  doc│ ▎ I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox                           │       │ │
+ │  05  doc│                                                                            │       │ │
+ ╰─────────│                                                                            │─────────╯
+           │                                                         Cancel   Execute   │
+           │                                                                            │ontinue…
+           ╰────────────────────────────────────────────────────────────────────────────╯
+ /work/scratch                       review · gate 1 of 2                       256 colors · 100×30
+  EDIT                         Type Phrase  Enter Next  Esc Cancel

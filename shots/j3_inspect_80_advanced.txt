@@ -1,0 +1,24 @@
+  jackin❯    File   Edit   View   Session   Help
+  ╭─ Inspect changes · payments-platform ────────────────── Tab tree / diff ─╮
+ ─│  2 files · +9 −4            advanced · unified · d switches · m compact  │─
+╭─│                                                                          │─╮
+│●│  ▎▾ src                                                      2 changed   │││
+│ │  ▎  ▾ settlement                                             2 changed   │││
+│ │  ▎      M mod.rs                                                 +2 −1   │││
+│ │  ▎      M retry.rs                                               +7 −3   │││
+│ │                                                                          │││
+│ │  ──────────────────────────────────────────────────────────────────────  │┃│
+│●│  M src/settlement/mod.rs  +2 −1 · 1 hunk                                 │┃│
+│ │  @@ -28,4 +28,5 @@                                                       │─╯
+│ │   28  28   pub mod config;                                               │──
+│●│   29  29   pub mod retry;                                                │─╮
+│ │       30 + pub mod backoff;                                              │││
+│ │   30  31                                                                 │││
+│●│   31     - pub use retry::RetryPolicy;                                   │││
+│ │       32 + pub use retry::{RetryPolicy, SettleError};                    │││
+│ │                                                                          │││
+│▶│                                                                          │││
+│❯│                                                   ↑ 1 commit not pushed  │┃│
+╰─╰──────────────────────────────────────────────────────────────────────────╯─╯
+ payments-platform › the-architect   PR #482 · Settlement retry backoff
+ ↑↓ Move  ←→ Fold  Tab Diff  d Unified / review  m Compact  Esc Close

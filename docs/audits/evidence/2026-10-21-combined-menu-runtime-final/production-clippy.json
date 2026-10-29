@@ -1,0 +1,6 @@
+{
+  "tested_head": "05a85a0065005eddb9979b852ff15f9036c8099c",
+  "source": "/private/tmp/pr38-combined-production-clippy-a85e2a64-c905-4c2a-99db-ede143b61530.log",
+  "sha256": "8950be1e8f4499f41b8e38ef15f09a0e2671be53a43aa5dec4d794320908881d",
+  "log": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s\n"
+}

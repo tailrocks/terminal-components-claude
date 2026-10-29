@@ -1,0 +1,272 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling libc v0.2.191
+   Compiling unicode-segmentation v1.13.3
+   Compiling cfg-if v1.0.5
+   Compiling rustversion v1.0.23
+   Compiling strsim v0.11.1
+   Compiling ident_case v1.0.1
+   Compiling thiserror v2.0.21
+   Compiling equivalent v1.0.3
+   Compiling bitflags v2.13.2
+   Compiling foldhash v0.2.0
+   Compiling allocator-api2 v0.2.21
+   Compiling heck v0.5.0
+   Compiling itoa v1.0.18
+   Compiling either v1.19.0
+   Compiling ryu v1.0.23
+   Compiling parking_lot_core v0.9.12
+   Compiling unicode-width v0.2.2
+   Compiling static_assertions v1.1.0
+   Compiling signal-hook v0.3.18
+   Compiling rustix v1.1.5
+   Compiling scopeguard v1.2.0
+   Compiling critical-section v1.2.0
+   Compiling itertools v0.14.0
+   Compiling log v0.4.34
+   Compiling smallvec v1.16.3
+   Compiling indoc v2.0.8
+   Compiling lock_api v0.4.14
+   Compiling litrs v1.0.1
+   Compiling powerfmt v0.2.1
+   Compiling num-conv v0.2.2
+   Compiling convert_case v0.10.0
+   Compiling time-core v0.1.9
+   Compiling deranged v0.5.9
+   Compiling line-clipping v0.3.8
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.229
+   Compiling hashbrown v0.17.1
+   Compiling serde_json v1.0.154
+   Compiling memchr v2.8.3
+   Compiling document-features v0.2.12
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+   Compiling castaway v0.2.4
+   Compiling compact_str v0.9.1
+   Compiling lru v0.18.5
+   Compiling errno v0.3.14
+   Compiling mio v1.2.4
+   Compiling num_threads v0.1.8
+   Compiling time v0.3.55
+   Compiling signal-hook-registry v1.4.8
+   Compiling parking_lot v0.12.5
+   Compiling signal-hook-mio v0.2.5
+   Compiling unicode-truncate v2.0.1
+   Compiling strum_macros v0.28.0
+   Compiling derive_more-impl v2.1.1
+   Compiling darling_core v0.24.1
+   Compiling derive_more v2.1.1
+   Compiling crossterm v0.29.0
+   Compiling strum v0.28.0
+   Compiling thiserror-impl v2.0.21
+   Compiling serde_derive v1.0.229
+   Compiling darling_macro v0.24.1
+   Compiling kasuari v0.4.13
+   Compiling darling v0.24.1
+   Compiling ratatui-core v0.1.2
+   Compiling instability v0.3.14
+   Compiling ratatui-crossterm v0.1.2
+   Compiling ratatui-widgets v0.3.2
+   Compiling termrock-core v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-core)
+   Compiling termrock-theme v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-theme)
+   Compiling ratatui-macros v0.7.2
+   Compiling ratatui v0.30.2
+   Compiling termrock-layout v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-layout)
+   Compiling termrock-text v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-text)
+   Compiling termrock-collections v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-collections)
+   Compiling termrock-render v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-render)
+   Compiling termrock-runtime v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-runtime)
+   Compiling termrock-controls v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-controls)
+   Compiling termrock-shell v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-shell)
+   Compiling termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-viewport)
+   Compiling termrock-feedback v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-feedback)
+   Compiling termrock-fields v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-fields)
+   Compiling termrock-terminal v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-terminal)
+   Compiling termrock-session v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-session)
+   Compiling termrock-navigation v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-navigation)
+   Compiling termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+   Compiling termrock-grid v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-grid)
+   Compiling termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-editors)
+   Compiling termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+   Compiling termrock v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock)
+   Compiling termrock-test-support v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-test-support)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 44.04s
+────────────
+ Nextest run ID 6971e218-679a-4bda-9431-7942424ae516 with nextest profile: default
+    Starting 149 tests across 2 binaries
+        PASS [   0.021s] (  1/149) termrock-forms form::tests::declaration_reorder_preserves_field_state_by_id
+        PASS [   0.024s] (  2/149) termrock-forms form::tests::direct_owner_flip_redacts_rendered_text_before_update
+        PASS [   0.024s] (  3/149) termrock-forms form::tests::dirty_is_set_by_a_commit_not_by_a_keystroke
+        PASS [   0.028s] (  4/149) termrock-forms form::tests::dynamic_secret_transition_keeps_form_error_generic_until_update
+        PASS [   0.029s] (  5/149) termrock-forms form::tests::first_draw_registers_fields_before_update_reconciles_state
+        PASS [   0.030s] (  6/149) termrock-forms form::tests::focused_radio_scroll_reveals_the_live_cursor_row_from_update
+        PASS [   0.030s] (  7/149) termrock-forms form::tests::form_action_variants_carry_no_value
+        PASS [   0.031s] (  8/149) termrock-forms form::tests::dynamic_disabled_state_is_inherited_by_configured_control
+        PASS [   0.031s] (  9/149) termrock-forms form::tests::form_reconciles_secret_and_text_values_in_both_directions
+        PASS [   0.031s] ( 10/149) termrock-forms form::tests::changing_options_between_frames_does_not_rebuild_props
+        PASS [   0.033s] ( 11/149) termrock-forms form::tests::every_declared_field_resolves_a_value
+        PASS [   0.037s] ( 12/149) termrock-forms form::tests::form_update_classifies_secret_before_retaining_local_error
+        PASS [   0.038s] ( 13/149) termrock-forms form::tests::field_height_is_a_pure_function_of_spec_and_design_tokens
+        PASS [   0.055s] ( 14/149) termrock-forms form::tests::direct_secret_editing_uses_the_sealed_text_target
+        PASS [   0.034s] ( 15/149) termrock-forms form::tests::inactive_dynamic_secret_transition_redacts_error_and_draft
+        PASS [   0.058s] ( 16/149) termrock-forms form::tests::chooser_activation_emits_chose_with_the_field_id
+        PASS [   0.028s] ( 17/149) termrock-forms form::tests::note_rows_register_only_decorative_regions
+        PASS [   0.038s] ( 18/149) termrock-forms form::tests::hidden_dynamic_secret_transition_redacts_error_and_draft
+        PASS [   0.060s] ( 19/149) termrock-forms form::tests::effective_enter_binding_can_be_removed_or_remapped
+        PASS [   0.036s] ( 20/149) termrock-forms form::tests::hidden_field_registers_no_ring_entry_and_keeps_its_draft
+        PASS [   0.060s] ( 21/149) termrock-forms form::tests::at_most_one_action_per_frame_in_declaration_order
+        PASS [   0.033s] ( 22/149) termrock-forms form::tests::intrinsic_chooser_clips_unicode_safely_in_narrow_and_wide_regions
+        PASS [   0.033s] ( 23/149) termrock-forms form::tests::nonclone_secret_path_masks_without_materialising_plaintext
+        PASS [   0.071s] ( 24/149) termrock-forms form::tests::enter_submits_only_when_the_focused_control_is_not_editing
+        PASS [   0.043s] ( 25/149) termrock-forms form::tests::malformed_dynamic_secret_error_does_not_reappear_after_downgrade
+        PASS [   0.038s] ( 26/149) termrock-forms form::tests::partially_scrolled_radio_draws_source_window_without_repeating_chrome
+        PASS [   0.020s] ( 27/149) termrock-forms form::tests::reconciling_same_shape_secret_fields_redacts_existing_errors
+        PASS [   0.052s] ( 28/149) termrock-forms form::tests::intrinsic_chooser_paints_value_before_trailing_button_and_hits_only_button
+        PASS [   0.052s] ( 29/149) termrock-forms form::tests::intrinsic_note_rows_use_live_count_and_role_tones
+        PASS [   0.024s] ( 30/149) termrock-forms form::tests::resolved_plain_dynamic_text_and_area_errors_stay_generic_after_secret_transition
+        PASS [   0.052s] ( 31/149) termrock-forms form::tests::malformed_dynamic_secret_is_redacted_for_non_text_slots
+        PASS [   0.025s] ( 32/149) termrock-forms form::tests::secret_field_errors_are_generic_in_the_frame_and_cleared_on_zeroize
+        PASS [   0.054s] ( 33/149) termrock-forms form::tests::partially_scrolled_intrinsic_note_starts_at_source_row
+        PASS [   0.027s] ( 34/149) termrock-forms form::tests::secret_validator_error_is_generic_before_form_state_retention
+        PASS [   0.020s] ( 35/149) termrock-forms form::tests::select_field_options_come_from_form_data
+        PASS [   0.059s] ( 36/149) termrock-forms form::tests::open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover
+        PASS [   0.033s] ( 37/149) termrock-forms form::tests::scroll_reveals_the_focused_field_from_update_not_draw
+        PASS [   0.016s] ( 38/149) termrock-forms form::tests::state_holds_no_props
+        PASS [   0.033s] ( 39/149) termrock-forms form::tests::secret_field_frame_masks_even_without_control_policy
+        PASS [   0.042s] ( 40/149) termrock-forms form::tests::radio_field_paints_one_row_per_option
+        PASS [   0.038s] ( 41/149) termrock-forms form::tests::secret_area_frame_is_masked_instead_of_painting_plaintext
+        PASS [   0.039s] ( 42/149) termrock-forms form::tests::reference_form_targets_only_one_child
+        PASS [   0.041s] ( 43/149) termrock-forms form::tests::reference_form_registers_no_controls_or_parts_for_any_field_kind
+        PASS [   0.025s] ( 44/149) termrock-forms form::tests::sensitive_form_state_clone_and_equality_do_not_copy_draft
+        PASS [   0.025s] ( 45/149) termrock-forms form::tests::space_stays_child_owned_and_unrelated_intents_stay_ignored
+        PASS [   0.019s] ( 46/149) termrock-forms form::tests::submit_commits_the_in_flight_edit_before_validating
+        PASS [   0.020s] ( 47/149) termrock-forms form::tests::submit_chord_is_declared_on_the_action_not_baked_in
+        PASS [   0.022s] ( 48/149) termrock-forms form::tests::tab_order_follows_declaration_order_skipping_hidden
+        PASS [   0.016s] ( 49/149) termrock-forms form::tests::zeroize_overwrites_every_secret_draft
+        PASS [   0.019s] ( 50/149) termrock-forms form_dialog::tests::dialog_and_form_measurement_use_live_intrinsic_content
+        PASS [   0.029s] ( 51/149) termrock-forms form::tests::submit_validates_every_visible_field_then_focuses_the_first_error
+        PASS [   0.030s] ( 52/149) termrock-forms form::tests::submit_skips_hidden_fields_during_validation
+        PASS [   0.027s] ( 53/149) termrock-forms form::tests::textarea_parent_window_intersects_the_logical_form_body
+        PASS [   0.025s] ( 54/149) termrock-forms form_dialog::tests::dialog_open_focuses_first_field_and_submit_validates_before_acceptance
+        PASS [   0.030s] ( 55/149) termrock-forms form::tests::unreconciled_field_errors_stay_generic_until_sensitivity_is_known
+        PASS [   0.028s] ( 56/149) termrock-forms form_dialog::tests::pointer_close_is_hidden_below_frozen_frame_width_threshold
+        PASS [   0.028s] ( 57/149) termrock-overlays dialog::tests::a_reference_dialog_registers_no_control
+        PASS [   0.042s] ( 58/149) termrock-forms form_dialog::tests::focused_editor_handles_escape_before_dialog_dismissal
+        PASS [   0.028s] ( 59/149) termrock-overlays dialog::tests::acknowledgement_frame_masks_confirmation_token
+        PASS [   0.026s] ( 60/149) termrock-overlays dialog::tests::acknowledgement_requires_exact_current_draft_not_stale_commit
+        PASS [   0.032s] ( 61/149) termrock-overlays dialog::tests::action_arming_is_evaluated_in_update
+        PASS [   0.028s] ( 62/149) termrock-overlays dialog::tests::action_chord_routes_remaps_removes_and_paints_effective_binding
+        PASS [   0.026s] ( 63/149) termrock-overlays dialog::tests::actions_reflow_to_a_narrow_live_viewport_before_the_layer_is_measured
+        PASS [   0.049s] ( 64/149) termrock-forms wizard::tests::enabled_steps_register_root_owned_keyed_label_parts
+        PASS [   0.054s] ( 65/149) termrock-forms form_dialog::tests::pointer_close_is_hoverable_pressable_and_cancels_once
+        PASS [   0.053s] ( 66/149) termrock-forms wizard::tests::rewind_retains_per_step_state
+        PASS [   0.028s] ( 67/149) termrock-overlays dialog::tests::an_unconditional_update_receives_the_dismissal
+        PASS [   0.061s] ( 68/149) termrock-forms form_dialog::tests::layer_spec_keeps_escape_only_dismissal_and_focuses_first_field
+        PASS [   0.045s] ( 69/149) termrock-overlays dialog::tests::action_cap_is_shared_by_update_and_draw
+        PASS [   0.022s] ( 70/149) termrock-overlays dialog::tests::border_head_paints_the_padded_title_in_the_top_border_row
+        PASS [   0.062s] ( 71/149) termrock-forms wizard::tests::disabled_step_registers_no_activation_part
+        PASS [   0.065s] ( 72/149) termrock-overlays dialog::tests::a_growing_body_resizes_the_layer_on_the_next_frame
+        PASS [   0.069s] ( 73/149) termrock-overlays dialog::tests::a_prompt_dialog_sizes_its_own_field_row
+        PASS [   0.052s] ( 74/149) termrock-overlays dialog::tests::action_lines_keep_long_unicode_labels_inside_narrow_frames
+        PASS [   0.079s] ( 75/149) termrock-forms form::tests::value_and_options_is_a_single_borrow
+        PASS [   0.028s] ( 76/149) termrock-overlays dialog::tests::draw_lays_out_against_the_height_it_asked_for
+        PASS [   0.031s] ( 77/149) termrock-overlays dialog::tests::dismissal_without_cancel_action_preserves_reason_and_clears_secret
+        PASS [   0.052s] ( 78/149) termrock-overlays dialog::tests::body_is_total_and_clipped_when_the_dialog_cannot_draw
+        PASS [   0.039s] ( 79/149) termrock-overlays dialog::tests::confirm_is_centred_by_the_resolver_not_by_the_dialog
+        PASS [   0.057s] ( 80/149) termrock-overlays dialog::tests::border_head_close_action_drops_the_mnemonic_mark
+        PASS [   0.049s] ( 81/149) termrock-overlays dialog::tests::chrome_mode_omits_empty_action_row_and_does_not_focus_the_body
+        PASS [   0.052s] ( 82/149) termrock-overlays dialog::tests::caller_owned_prompt_error_is_rendered_by_the_field
+        PASS [   0.060s] ( 83/149) termrock-overlays dialog::tests::border_head_height_is_border_plus_body_plus_actions
+        PASS [   0.037s] ( 84/149) termrock-overlays dialog::tests::meta_paints_the_faint_caption_before_the_close_mark
+        PASS [   0.031s] ( 85/149) termrock-overlays dialog::tests::narrow_viewport_keeps_the_action_cap_and_omits_only_excess_actions
+        PASS [   0.045s] ( 86/149) termrock-overlays dialog::tests::layer_size_is_a_pure_function_of_props_and_design_tokens
+        PASS [   0.053s] ( 87/149) termrock-overlays dialog::tests::disabled_action_shortcuts_still_participate_in_shared_measurement
+        PASS [   0.057s] ( 88/149) termrock-overlays dialog::tests::convenience_constructors_render_through_the_body_slot
+        PASS [   0.042s] ( 89/149) termrock-overlays dialog::tests::remapped_shortcuts_are_shared_by_measure_layer_and_draw
+        PASS [   0.044s] ( 90/149) termrock-overlays dialog::tests::title_only_measured_height_contains_the_drawn_title
+        PASS [   0.020s] ( 91/149) termrock-overlays help::tests::sections_consume_the_same_visible_binding_metadata_as_hintbar
+        PASS [   0.072s] ( 92/149) termrock-overlays dialog::tests::chrome_empty_footer_removes_natural_action_gap_without_changing_legacy_dialogs
+        PASS [   0.020s] ( 93/149) termrock-overlays menu::tests::clear_on_leave_hides_highlight_until_keyboard_or_pointer_reenters
+        PASS [   0.024s] ( 94/149) termrock-overlays help::tests::sections_are_distributed_round_robin_without_splitting
+        PASS [   0.048s] ( 95/149) termrock-overlays dialog::tests::reference_dialog_targets_one_owned_control_without_broadcasting
+        PASS [   0.031s] ( 96/149) termrock-overlays help::tests::column_count_is_bounded_from_one_to_three
+        PASS [   0.027s] ( 97/149) termrock-overlays menu::tests::context_menu_title_does_not_inherit_owner_hover
+        PASS [   0.027s] ( 98/149) termrock-overlays menu::tests::component_part_anchor_tracks_live_bounds_and_fails_closed_when_absent
+        PASS [   0.027s] ( 99/149) termrock-overlays menu::tests::context_menu_heading_honors_explicit_owner_hover_overlay
+        PASS [   0.021s] (100/149) termrock-overlays menu::tests::default_menu_bar_scope_keeps_title_patches_off_the_padding_cells
+        PASS [   0.041s] (101/149) termrock-overlays dialog::tests::title_survives_when_a_short_view_cannot_fit_all_action_rows
+        PASS [   0.040s] (102/149) termrock-overlays dialog::tests::zero_width_dialog_keeps_body_callback_total
+        PASS [   0.013s] (103/149) termrock-overlays menu::tests::disabled_reasons_are_borrowed_and_do_not_change_menu_measurement
+        PASS [   0.015s] (104/149) termrock-overlays menu::tests::menu_bar_closes_live_layer_and_reports_close_when_open_menu_shrinks
+        PASS [   0.017s] (105/149) termrock-overlays menu::tests::displayed_chord_is_the_handled_chord
+        PASS [   0.024s] (106/149) termrock-overlays menu::tests::disabled_reason_is_a_noninteractive_part_with_style_and_slot_overrides
+        PASS [   0.017s] (107/149) termrock-overlays menu::tests::keyboard_navigation_after_disabled_hover_suppresses_stale_pointer_reason
+        PASS [   0.049s] (108/149) termrock-overlays dialog::tests::valid_dialog_preserves_chrome_and_clips_its_body
+        PASS [   0.018s] (109/149) termrock-overlays menu::tests::dynamic_item_binding_routes_remaps_removes_and_paints_effective_chord
+        PASS [   0.023s] (110/149) termrock-overlays menu::tests::disabled_reason_is_bottom_border_help_across_color_profiles
+        PASS [   0.018s] (111/149) termrock-overlays menu::tests::keyboard_skips_disabled_and_wraps
+        PASS [   0.038s] (112/149) termrock-overlays menu::tests::disabled_reason_handles_empty_enabled_override_unicode_and_narrow_areas
+        PASS [   0.017s] (113/149) termrock-overlays menu::tests::open_menu_bar_registers_only_the_dropdown_control
+        PASS [   0.018s] (114/149) termrock-overlays menu::tests::mono_pressed_menu_title_keeps_both_reserved_pads
+        PASS [   0.017s] (115/149) termrock-overlays menu::tests::move_changes_cursor_but_press_does_not
+        PASS [   0.018s] (116/149) termrock-overlays menu::tests::natural_width_does_not_reserve_a_shortcut_gutter_without_a_shortcut
+        PASS [   0.029s] (117/149) termrock-overlays menu::tests::display_hints_size_and_paint_without_becoming_bindings
+        FAIL [   0.021s] (118/149) termrock-overlays menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence
+  stdout ───
+
+    running 1 test
+    test menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence ... FAILED
+
+    failures:
+
+    failures:
+        menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 85 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence' (148354298) panicked at crates/termrock-overlays/src/menu.rs:1746:13:
+    assertion `left == right` failed: overlay background with Title
+      left: Rgb(28, 28, 31)
+     right: Rgb(7, 8, 9)
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.022s] (119/149) termrock-overlays menu::tests::menu_bar_keyboard_and_pointer_activation_survive_all_color_levels
+        PASS [   0.014s] (120/149) termrock-overlays picker::tests::matched_indices_are_original_grapheme_ordinals
+        PASS [   0.016s] (121/149) termrock-overlays menu::tests::submenu_is_typed_and_does_not_emit_parent_action
+        PASS [   0.016s] (122/149) termrock-overlays picker::tests::actions_use_semantic_item_key
+        PASS [   0.016s] (123/149) termrock-overlays picker::tests::domain_item_needs_as_item_not_display
+        PASS [   0.024s] (124/149) termrock-overlays menu::tests::opted_in_keyboard_navigation_can_highlight_but_never_activate_disabled_reason
+        PASS [   0.017s] (125/149) termrock-overlays picker::tests::query_change_is_visible_through_state_query
+        PASS [   0.024s] (126/149) termrock-overlays picker::tests::filter_navigation_remapping_uses_typed_action_not_delete_chord_claim
+        PASS [   0.016s] (127/149) termrock-overlays picker_chain::tests::action_surface_is_only_back_and_retry
+        PASS [   0.019s] (128/149) termrock-overlays picker_chain::tests::icon_patch_and_slot_reach_the_computed_prefix_cell
+        PASS [   0.028s] (129/149) termrock-overlays picker::tests::fixed_width_keeps_a_four_column_screen_margin
+        PASS [   0.022s] (130/149) termrock-overlays picker_chain::tests::readiness_icon_is_declared_and_chain_owned
+        PASS [   0.022s] (131/149) termrock-overlays picker_chain::tests::back_one_step_preserves_the_breadcrumb
+        PASS [   0.018s] (132/149) termrock-overlays select::tests::disabled_update_does_not_initialize_collection_state
+        PASS [   0.028s] (133/149) termrock-overlays picker_chain::tests::earlier_crumb_and_error_retry_are_root_owned_keyed_parts
+        PASS [   0.027s] (134/149) termrock-overlays select::tests::a_select_reconciles_on_the_first_enabled_frame_after_disabled_ones
+        PASS [   0.027s] (135/149) termrock-overlays select::tests::arrows_move_the_cursor_not_the_value_while_closed
+        PASS [   0.030s] (136/149) termrock-overlays select::tests::an_open_popup_closes_when_focus_leaves_the_field
+        PASS [   0.022s] (137/149) termrock-overlays select::tests::open_popup_paints_exactly_one_chosen_marker
+        PASS [   0.025s] (138/149) termrock-overlays select::tests::escape_closes_and_restores_the_cursor
+        PASS [   0.025s] (139/149) termrock-overlays select::tests::select_pressed_mono_brackets_preserve_field_geometry
+        PASS [   0.046s] (140/149) termrock-overlays picker::tests::picker_routes_query_editing_navigation_and_clear_through_text_input
+        PASS [   0.030s] (141/149) termrock-overlays select::tests::select_disclosure_is_exact_for_both_themes_and_color_levels
+        PASS [   0.018s] (142/149) termrock-overlays select_field::tests::measure_matches_the_wrapped_select
+        PASS [   0.026s] (143/149) termrock-overlays select::tests::standalone_select_takes_items_per_phase
+        PASS [   0.029s] (144/149) termrock-overlays select::tests::selected_painting_comes_only_from_the_semantic_value
+        PASS [   0.033s] (145/149) termrock-overlays select::tests::select_disclosure_set_inherit_and_clear_win_in_both_states
+        PASS [   0.132s] (146/149) termrock-overlays dialog::tests::harness_dismissal_resolves_cancel_once_and_zeroizes_acknowledgement
+        PASS [   0.026s] (147/149) termrock-overlays select_field::tests::field_chrome_wraps_the_closed_row_unchanged
+        PASS [   0.025s] (148/149) termrock-overlays select_field::tests::id_matches_the_wrapped_select
+        PASS [   0.033s] (149/149) termrock-overlays select::tests::the_parts_a_drawn_select_styles_are_declared
+────────────
+     Summary [   0.298s] 149 tests run: 148 passed, 1 failed, 0 skipped
+        FAIL [   0.021s] (118/149) termrock-overlays menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence
+error: test run failed

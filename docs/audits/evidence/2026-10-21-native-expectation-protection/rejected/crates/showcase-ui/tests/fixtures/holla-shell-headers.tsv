@@ -1,0 +1,355 @@
+buttons	100	30	16	 ▪ Junie Design system  Inputs & forms › Buttons         16 colors · 100×30   i Inspector   ? Help
+buttons	100	30	256	 ▪ Junie Design system  Inputs & forms › Buttons        256 colors · 100×30   i Inspector   ? Help
+buttons	100	30	mono	 ▪ Junie Design system  Inputs & forms › Buttons          no color · 100×30   i Inspector   ? Help
+buttons	100	30	truecolor	 ▪ Junie Design system  Inputs & forms › Buttons         truecolor · 100×30   i Inspector   ? Help
+buttons	120	40	16	 ▪ Junie Design system  Inputs & forms › Buttons                             16 colors · 120×40   i Inspector   ? Help
+buttons	120	40	256	 ▪ Junie Design system  Inputs & forms › Buttons                            256 colors · 120×40   i Inspector   ? Help
+buttons	120	40	mono	 ▪ Junie Design system  Inputs & forms › Buttons                              no color · 120×40   i Inspector   ? Help
+buttons	120	40	truecolor	 ▪ Junie Design system  Inputs & forms › Buttons                             truecolor · 120×40   i Inspector   ? Help
+buttons	160	50	16	 ▪ Junie Design system  Inputs & forms › Buttons                                                                     16 colors · 160×50   i Inspector   ? Help
+buttons	160	50	256	 ▪ Junie Design system  Inputs & forms › Buttons                                                                    256 colors · 160×50   i Inspector   ? Help
+buttons	160	50	mono	 ▪ Junie Design system  Inputs & forms › Buttons                                                                      no color · 160×50   i Inspector   ? Help
+buttons	160	50	truecolor	 ▪ Junie Design system  Inputs & forms › Buttons                                                                     truecolor · 160×50   i Inspector   ? Help
+buttons	80	24	16	 ▪ Junie Design system  Inputs & forms › Buttons          i Inspector   ? Help
+buttons	80	24	256	 ▪ Junie Design system  Inputs & forms › Buttons          i Inspector   ? Help
+buttons	80	24	mono	 ▪ Junie Design system  Inputs & forms › Buttons          i Inspector   ? Help
+buttons	80	24	truecolor	 ▪ Junie Design system  Inputs & forms › Buttons          i Inspector   ? Help
+chips	100	30	16	 ▪ Junie Design system  Inputs & forms › Chips & selects                      i Inspector   ? Help
+chips	100	30	256	 ▪ Junie Design system  Inputs & forms › Chips & selects                      i Inspector   ? Help
+chips	100	30	mono	 ▪ Junie Design system  Inputs & forms › Chips & selects  no color · 100×30   i Inspector   ? Help
+chips	100	30	truecolor	 ▪ Junie Design system  Inputs & forms › Chips & selects                      i Inspector   ? Help
+chips	120	40	16	 ▪ Junie Design system  Inputs & forms › Chips & selects                     16 colors · 120×40   i Inspector   ? Help
+chips	120	40	256	 ▪ Junie Design system  Inputs & forms › Chips & selects                    256 colors · 120×40   i Inspector   ? Help
+chips	120	40	mono	 ▪ Junie Design system  Inputs & forms › Chips & selects                      no color · 120×40   i Inspector   ? Help
+chips	120	40	truecolor	 ▪ Junie Design system  Inputs & forms › Chips & selects                     truecolor · 120×40   i Inspector   ? Help
+chips	160	50	16	 ▪ Junie Design system  Inputs & forms › Chips & selects                                                             16 colors · 160×50   i Inspector   ? Help
+chips	160	50	256	 ▪ Junie Design system  Inputs & forms › Chips & selects                                                            256 colors · 160×50   i Inspector   ? Help
+chips	160	50	mono	 ▪ Junie Design system  Inputs & forms › Chips & selects                                                              no color · 160×50   i Inspector   ? Help
+chips	160	50	truecolor	 ▪ Junie Design system  Inputs & forms › Chips & selects                                                             truecolor · 160×50   i Inspector   ? Help
+chips	80	24	16	 ▪ Junie Design system  … › Chips & selects               i Inspector   ? Help
+chips	80	24	256	 ▪ Junie Design system  … › Chips & selects               i Inspector   ? Help
+chips	80	24	mono	 ▪ Junie Design system  … › Chips & selects               i Inspector   ? Help
+chips	80	24	truecolor	 ▪ Junie Design system  … › Chips & selects               i Inspector   ? Help
+chrome	100	30	16	 ▪ Junie Design system  App shell › Chrome               16 colors · 100×30   i Inspector   ? Help
+chrome	100	30	256	 ▪ Junie Design system  App shell › Chrome              256 colors · 100×30   i Inspector   ? Help
+chrome	100	30	mono	 ▪ Junie Design system  App shell › Chrome                no color · 100×30   i Inspector   ? Help
+chrome	100	30	truecolor	 ▪ Junie Design system  App shell › Chrome               truecolor · 100×30   i Inspector   ? Help
+chrome	120	40	16	 ▪ Junie Design system  App shell › Chrome                                   16 colors · 120×40   i Inspector   ? Help
+chrome	120	40	256	 ▪ Junie Design system  App shell › Chrome                                  256 colors · 120×40   i Inspector   ? Help
+chrome	120	40	mono	 ▪ Junie Design system  App shell › Chrome                                    no color · 120×40   i Inspector   ? Help
+chrome	120	40	truecolor	 ▪ Junie Design system  App shell › Chrome                                   truecolor · 120×40   i Inspector   ? Help
+chrome	160	50	16	 ▪ Junie Design system  App shell › Chrome                                                                           16 colors · 160×50   i Inspector   ? Help
+chrome	160	50	256	 ▪ Junie Design system  App shell › Chrome                                                                          256 colors · 160×50   i Inspector   ? Help
+chrome	160	50	mono	 ▪ Junie Design system  App shell › Chrome                                                                            no color · 160×50   i Inspector   ? Help
+chrome	160	50	truecolor	 ▪ Junie Design system  App shell › Chrome                                                                           truecolor · 160×50   i Inspector   ? Help
+chrome	80	24	16	 ▪ Junie Design system  App shell › Chrome                i Inspector   ? Help
+chrome	80	24	256	 ▪ Junie Design system  App shell › Chrome                i Inspector   ? Help
+chrome	80	24	mono	 ▪ Junie Design system  App shell › Chrome                i Inspector   ? Help
+chrome	80	24	truecolor	 ▪ Junie Design system  App shell › Chrome                i Inspector   ? Help
+dialogs	100	30	16	 ▪ Junie Design system  Overlays › Dialogs               16 colors · 100×30   i Inspector   ? Help
+dialogs	100	30	256	 ▪ Junie Design system  Overlays › Dialogs              256 colors · 100×30   i Inspector   ? Help
+dialogs	100	30	mono	 ▪ Junie Design system  Overlays › Dialogs                no color · 100×30   i Inspector   ? Help
+dialogs	100	30	truecolor	 ▪ Junie Design system  Overlays › Dialogs               truecolor · 100×30   i Inspector   ? Help
+dialogs	120	40	16	 ▪ Junie Design system  Overlays › Dialogs                                   16 colors · 120×40   i Inspector   ? Help
+dialogs	120	40	256	 ▪ Junie Design system  Overlays › Dialogs                                  256 colors · 120×40   i Inspector   ? Help
+dialogs	120	40	mono	 ▪ Junie Design system  Overlays › Dialogs                                    no color · 120×40   i Inspector   ? Help
+dialogs	120	40	truecolor	 ▪ Junie Design system  Overlays › Dialogs                                   truecolor · 120×40   i Inspector   ? Help
+dialogs	160	50	16	 ▪ Junie Design system  Overlays › Dialogs                                                                           16 colors · 160×50   i Inspector   ? Help
+dialogs	160	50	256	 ▪ Junie Design system  Overlays › Dialogs                                                                          256 colors · 160×50   i Inspector   ? Help
+dialogs	160	50	mono	 ▪ Junie Design system  Overlays › Dialogs                                                                            no color · 160×50   i Inspector   ? Help
+dialogs	160	50	truecolor	 ▪ Junie Design system  Overlays › Dialogs                                                                           truecolor · 160×50   i Inspector   ? Help
+dialogs	80	24	16	 ▪ Junie Design system  Overlays › Dialogs                i Inspector   ? Help
+dialogs	80	24	256	 ▪ Junie Design system  Overlays › Dialogs                i Inspector   ? Help
+dialogs	80	24	mono	 ▪ Junie Design system  Overlays › Dialogs                i Inspector   ? Help
+dialogs	80	24	truecolor	 ▪ Junie Design system  Overlays › Dialogs                i Inspector   ? Help
+editable	100	30	16	 ▪ Junie Design system  Tables › Editable                16 colors · 100×30   i Inspector   ? Help
+editable	100	30	256	 ▪ Junie Design system  Tables › Editable               256 colors · 100×30   i Inspector   ? Help
+editable	100	30	mono	 ▪ Junie Design system  Tables › Editable                 no color · 100×30   i Inspector   ? Help
+editable	100	30	truecolor	 ▪ Junie Design system  Tables › Editable                truecolor · 100×30   i Inspector   ? Help
+editable	120	40	16	 ▪ Junie Design system  Tables › Editable                                    16 colors · 120×40   i Inspector   ? Help
+editable	120	40	256	 ▪ Junie Design system  Tables › Editable                                   256 colors · 120×40   i Inspector   ? Help
+editable	120	40	mono	 ▪ Junie Design system  Tables › Editable                                     no color · 120×40   i Inspector   ? Help
+editable	120	40	truecolor	 ▪ Junie Design system  Tables › Editable                                    truecolor · 120×40   i Inspector   ? Help
+editable	160	50	16	 ▪ Junie Design system  Tables › Editable                                                                            16 colors · 160×50   i Inspector   ? Help
+editable	160	50	256	 ▪ Junie Design system  Tables › Editable                                                                           256 colors · 160×50   i Inspector   ? Help
+editable	160	50	mono	 ▪ Junie Design system  Tables › Editable                                                                             no color · 160×50   i Inspector   ? Help
+editable	160	50	truecolor	 ▪ Junie Design system  Tables › Editable                                                                            truecolor · 160×50   i Inspector   ? Help
+editable	80	24	16	 ▪ Junie Design system  Tables › Editable                 i Inspector   ? Help
+editable	80	24	256	 ▪ Junie Design system  Tables › Editable                 i Inspector   ? Help
+editable	80	24	mono	 ▪ Junie Design system  Tables › Editable                 i Inspector   ? Help
+editable	80	24	truecolor	 ▪ Junie Design system  Tables › Editable                 i Inspector   ? Help
+editor	100	30	16	 ▪ Junie Design system  Text & code › Code editor        16 colors · 100×30   i Inspector   ? Help
+editor	100	30	256	 ▪ Junie Design system  Text & code › Code editor       256 colors · 100×30   i Inspector   ? Help
+editor	100	30	mono	 ▪ Junie Design system  Text & code › Code editor         no color · 100×30   i Inspector   ? Help
+editor	100	30	truecolor	 ▪ Junie Design system  Text & code › Code editor        truecolor · 100×30   i Inspector   ? Help
+editor	120	40	16	 ▪ Junie Design system  Text & code › Code editor                            16 colors · 120×40   i Inspector   ? Help
+editor	120	40	256	 ▪ Junie Design system  Text & code › Code editor                           256 colors · 120×40   i Inspector   ? Help
+editor	120	40	mono	 ▪ Junie Design system  Text & code › Code editor                             no color · 120×40   i Inspector   ? Help
+editor	120	40	truecolor	 ▪ Junie Design system  Text & code › Code editor                            truecolor · 120×40   i Inspector   ? Help
+editor	160	50	16	 ▪ Junie Design system  Text & code › Code editor                                                                    16 colors · 160×50   i Inspector   ? Help
+editor	160	50	256	 ▪ Junie Design system  Text & code › Code editor                                                                   256 colors · 160×50   i Inspector   ? Help
+editor	160	50	mono	 ▪ Junie Design system  Text & code › Code editor                                                                     no color · 160×50   i Inspector   ? Help
+editor	160	50	truecolor	 ▪ Junie Design system  Text & code › Code editor                                                                    truecolor · 160×50   i Inspector   ? Help
+editor	80	24	16	 ▪ Junie Design system  Text & code › Code editor         i Inspector   ? Help
+editor	80	24	256	 ▪ Junie Design system  Text & code › Code editor         i Inspector   ? Help
+editor	80	24	mono	 ▪ Junie Design system  Text & code › Code editor         i Inspector   ? Help
+editor	80	24	truecolor	 ▪ Junie Design system  Text & code › Code editor         i Inspector   ? Help
+forms	100	30	16	 ▪ Junie Design system  Inputs & forms › Forms           16 colors · 100×30   i Inspector   ? Help
+forms	100	30	256	 ▪ Junie Design system  Inputs & forms › Forms          256 colors · 100×30   i Inspector   ? Help
+forms	100	30	mono	 ▪ Junie Design system  Inputs & forms › Forms            no color · 100×30   i Inspector   ? Help
+forms	100	30	truecolor	 ▪ Junie Design system  Inputs & forms › Forms           truecolor · 100×30   i Inspector   ? Help
+forms	120	40	16	 ▪ Junie Design system  Inputs & forms › Forms                               16 colors · 120×40   i Inspector   ? Help
+forms	120	40	256	 ▪ Junie Design system  Inputs & forms › Forms                              256 colors · 120×40   i Inspector   ? Help
+forms	120	40	mono	 ▪ Junie Design system  Inputs & forms › Forms                                no color · 120×40   i Inspector   ? Help
+forms	120	40	truecolor	 ▪ Junie Design system  Inputs & forms › Forms                               truecolor · 120×40   i Inspector   ? Help
+forms	160	50	16	 ▪ Junie Design system  Inputs & forms › Forms                                                                       16 colors · 160×50   i Inspector   ? Help
+forms	160	50	256	 ▪ Junie Design system  Inputs & forms › Forms                                                                      256 colors · 160×50   i Inspector   ? Help
+forms	160	50	mono	 ▪ Junie Design system  Inputs & forms › Forms                                                                        no color · 160×50   i Inspector   ? Help
+forms	160	50	truecolor	 ▪ Junie Design system  Inputs & forms › Forms                                                                       truecolor · 160×50   i Inspector   ? Help
+forms	80	24	16	 ▪ Junie Design system  Inputs & forms › Forms            i Inspector   ? Help
+forms	80	24	256	 ▪ Junie Design system  Inputs & forms › Forms            i Inspector   ? Help
+forms	80	24	mono	 ▪ Junie Design system  Inputs & forms › Forms            i Inspector   ? Help
+forms	80	24	truecolor	 ▪ Junie Design system  Inputs & forms › Forms            i Inspector   ? Help
+grid	100	30	16	 ▪ Junie Design system  Tables › Data grid               16 colors · 100×30   i Inspector   ? Help
+grid	100	30	256	 ▪ Junie Design system  Tables › Data grid              256 colors · 100×30   i Inspector   ? Help
+grid	100	30	mono	 ▪ Junie Design system  Tables › Data grid                no color · 100×30   i Inspector   ? Help
+grid	100	30	truecolor	 ▪ Junie Design system  Tables › Data grid               truecolor · 100×30   i Inspector   ? Help
+grid	120	40	16	 ▪ Junie Design system  Tables › Data grid                                   16 colors · 120×40   i Inspector   ? Help
+grid	120	40	256	 ▪ Junie Design system  Tables › Data grid                                  256 colors · 120×40   i Inspector   ? Help
+grid	120	40	mono	 ▪ Junie Design system  Tables › Data grid                                    no color · 120×40   i Inspector   ? Help
+grid	120	40	truecolor	 ▪ Junie Design system  Tables › Data grid                                   truecolor · 120×40   i Inspector   ? Help
+grid	160	50	16	 ▪ Junie Design system  Tables › Data grid                                                                           16 colors · 160×50   i Inspector   ? Help
+grid	160	50	256	 ▪ Junie Design system  Tables › Data grid                                                                          256 colors · 160×50   i Inspector   ? Help
+grid	160	50	mono	 ▪ Junie Design system  Tables › Data grid                                                                            no color · 160×50   i Inspector   ? Help
+grid	160	50	truecolor	 ▪ Junie Design system  Tables › Data grid                                                                           truecolor · 160×50   i Inspector   ? Help
+grid	80	24	16	 ▪ Junie Design system  Tables › Data grid                i Inspector   ? Help
+grid	80	24	256	 ▪ Junie Design system  Tables › Data grid                i Inspector   ? Help
+grid	80	24	mono	 ▪ Junie Design system  Tables › Data grid                i Inspector   ? Help
+grid	80	24	truecolor	 ▪ Junie Design system  Tables › Data grid                i Inspector   ? Help
+inputs	100	30	16	 ▪ Junie Design system  Inputs & forms › Inputs          16 colors · 100×30   i Inspector   ? Help
+inputs	100	30	256	 ▪ Junie Design system  Inputs & forms › Inputs         256 colors · 100×30   i Inspector   ? Help
+inputs	100	30	mono	 ▪ Junie Design system  Inputs & forms › Inputs           no color · 100×30   i Inspector   ? Help
+inputs	100	30	truecolor	 ▪ Junie Design system  Inputs & forms › Inputs          truecolor · 100×30   i Inspector   ? Help
+inputs	120	40	16	 ▪ Junie Design system  Inputs & forms › Inputs                              16 colors · 120×40   i Inspector   ? Help
+inputs	120	40	256	 ▪ Junie Design system  Inputs & forms › Inputs                             256 colors · 120×40   i Inspector   ? Help
+inputs	120	40	mono	 ▪ Junie Design system  Inputs & forms › Inputs                               no color · 120×40   i Inspector   ? Help
+inputs	120	40	truecolor	 ▪ Junie Design system  Inputs & forms › Inputs                              truecolor · 120×40   i Inspector   ? Help
+inputs	160	50	16	 ▪ Junie Design system  Inputs & forms › Inputs                                                                      16 colors · 160×50   i Inspector   ? Help
+inputs	160	50	256	 ▪ Junie Design system  Inputs & forms › Inputs                                                                     256 colors · 160×50   i Inspector   ? Help
+inputs	160	50	mono	 ▪ Junie Design system  Inputs & forms › Inputs                                                                       no color · 160×50   i Inspector   ? Help
+inputs	160	50	truecolor	 ▪ Junie Design system  Inputs & forms › Inputs                                                                      truecolor · 160×50   i Inspector   ? Help
+inputs	80	24	16	 ▪ Junie Design system  Inputs & forms › Inputs           i Inspector   ? Help
+inputs	80	24	256	 ▪ Junie Design system  Inputs & forms › Inputs           i Inspector   ? Help
+inputs	80	24	mono	 ▪ Junie Design system  Inputs & forms › Inputs           i Inspector   ? Help
+inputs	80	24	truecolor	 ▪ Junie Design system  Inputs & forms › Inputs           i Inspector   ? Help
+lists	100	30	16	 ▪ Junie Design system  Navigation › Lists               16 colors · 100×30   i Inspector   ? Help
+lists	100	30	256	 ▪ Junie Design system  Navigation › Lists              256 colors · 100×30   i Inspector   ? Help
+lists	100	30	mono	 ▪ Junie Design system  Navigation › Lists                no color · 100×30   i Inspector   ? Help
+lists	100	30	truecolor	 ▪ Junie Design system  Navigation › Lists               truecolor · 100×30   i Inspector   ? Help
+lists	120	40	16	 ▪ Junie Design system  Navigation › Lists                                   16 colors · 120×40   i Inspector   ? Help
+lists	120	40	256	 ▪ Junie Design system  Navigation › Lists                                  256 colors · 120×40   i Inspector   ? Help
+lists	120	40	mono	 ▪ Junie Design system  Navigation › Lists                                    no color · 120×40   i Inspector   ? Help
+lists	120	40	truecolor	 ▪ Junie Design system  Navigation › Lists                                   truecolor · 120×40   i Inspector   ? Help
+lists	160	50	16	 ▪ Junie Design system  Navigation › Lists                                                                           16 colors · 160×50   i Inspector   ? Help
+lists	160	50	256	 ▪ Junie Design system  Navigation › Lists                                                                          256 colors · 160×50   i Inspector   ? Help
+lists	160	50	mono	 ▪ Junie Design system  Navigation › Lists                                                                            no color · 160×50   i Inspector   ? Help
+lists	160	50	truecolor	 ▪ Junie Design system  Navigation › Lists                                                                           truecolor · 160×50   i Inspector   ? Help
+lists	80	24	16	 ▪ Junie Design system  Navigation › Lists                i Inspector   ? Help
+lists	80	24	256	 ▪ Junie Design system  Navigation › Lists                i Inspector   ? Help
+lists	80	24	mono	 ▪ Junie Design system  Navigation › Lists                i Inspector   ? Help
+lists	80	24	truecolor	 ▪ Junie Design system  Navigation › Lists                i Inspector   ? Help
+overview	100	30	16	 ▪ Junie Design system  Overview                         16 colors · 100×30   i Inspector   ? Help
+overview	100	30	256	 ▪ Junie Design system  Overview                        256 colors · 100×30   i Inspector   ? Help
+overview	100	30	mono	 ▪ Junie Design system  Overview                          no color · 100×30   i Inspector   ? Help
+overview	100	30	truecolor	 ▪ Junie Design system  Overview                         truecolor · 100×30   i Inspector   ? Help
+overview	120	40	16	 ▪ Junie Design system  Overview                                             16 colors · 120×40   i Inspector   ? Help
+overview	120	40	256	 ▪ Junie Design system  Overview                                            256 colors · 120×40   i Inspector   ? Help
+overview	120	40	mono	 ▪ Junie Design system  Overview                                              no color · 120×40   i Inspector   ? Help
+overview	120	40	truecolor	 ▪ Junie Design system  Overview                                             truecolor · 120×40   i Inspector   ? Help
+overview	160	50	16	 ▪ Junie Design system  Overview                                                                                     16 colors · 160×50   i Inspector   ? Help
+overview	160	50	256	 ▪ Junie Design system  Overview                                                                                    256 colors · 160×50   i Inspector   ? Help
+overview	160	50	mono	 ▪ Junie Design system  Overview                                                                                      no color · 160×50   i Inspector   ? Help
+overview	160	50	truecolor	 ▪ Junie Design system  Overview                                                                                     truecolor · 160×50   i Inspector   ? Help
+overview	80	24	16	 ▪ Junie Design system  Overview      16 colors · 80×24   i Inspector   ? Help
+overview	80	24	256	 ▪ Junie Design system  Overview     256 colors · 80×24   i Inspector   ? Help
+overview	80	24	mono	 ▪ Junie Design system  Overview       no color · 80×24   i Inspector   ? Help
+overview	80	24	truecolor	 ▪ Junie Design system  Overview      truecolor · 80×24   i Inspector   ? Help
+panels	100	30	16	 ▪ Junie Design system  Layout › Panels                  16 colors · 100×30   i Inspector   ? Help
+panels	100	30	256	 ▪ Junie Design system  Layout › Panels                 256 colors · 100×30   i Inspector   ? Help
+panels	100	30	mono	 ▪ Junie Design system  Layout › Panels                   no color · 100×30   i Inspector   ? Help
+panels	100	30	truecolor	 ▪ Junie Design system  Layout › Panels                  truecolor · 100×30   i Inspector   ? Help
+panels	120	40	16	 ▪ Junie Design system  Layout › Panels                                      16 colors · 120×40   i Inspector   ? Help
+panels	120	40	256	 ▪ Junie Design system  Layout › Panels                                     256 colors · 120×40   i Inspector   ? Help
+panels	120	40	mono	 ▪ Junie Design system  Layout › Panels                                       no color · 120×40   i Inspector   ? Help
+panels	120	40	truecolor	 ▪ Junie Design system  Layout › Panels                                      truecolor · 120×40   i Inspector   ? Help
+panels	160	50	16	 ▪ Junie Design system  Layout › Panels                                                                              16 colors · 160×50   i Inspector   ? Help
+panels	160	50	256	 ▪ Junie Design system  Layout › Panels                                                                             256 colors · 160×50   i Inspector   ? Help
+panels	160	50	mono	 ▪ Junie Design system  Layout › Panels                                                                               no color · 160×50   i Inspector   ? Help
+panels	160	50	truecolor	 ▪ Junie Design system  Layout › Panels                                                                              truecolor · 160×50   i Inspector   ? Help
+panels	80	24	16	 ▪ Junie Design system  Layout › Panels                   i Inspector   ? Help
+panels	80	24	256	 ▪ Junie Design system  Layout › Panels                   i Inspector   ? Help
+panels	80	24	mono	 ▪ Junie Design system  Layout › Panels                   i Inspector   ? Help
+panels	80	24	truecolor	 ▪ Junie Design system  Layout › Panels                   i Inspector   ? Help
+pickers	100	30	16	 ▪ Junie Design system  Overlays › Pickers               16 colors · 100×30   i Inspector   ? Help
+pickers	100	30	256	 ▪ Junie Design system  Overlays › Pickers              256 colors · 100×30   i Inspector   ? Help
+pickers	100	30	mono	 ▪ Junie Design system  Overlays › Pickers                no color · 100×30   i Inspector   ? Help
+pickers	100	30	truecolor	 ▪ Junie Design system  Overlays › Pickers               truecolor · 100×30   i Inspector   ? Help
+pickers	120	40	16	 ▪ Junie Design system  Overlays › Pickers                                   16 colors · 120×40   i Inspector   ? Help
+pickers	120	40	256	 ▪ Junie Design system  Overlays › Pickers                                  256 colors · 120×40   i Inspector   ? Help
+pickers	120	40	mono	 ▪ Junie Design system  Overlays › Pickers                                    no color · 120×40   i Inspector   ? Help
+pickers	120	40	truecolor	 ▪ Junie Design system  Overlays › Pickers                                   truecolor · 120×40   i Inspector   ? Help
+pickers	160	50	16	 ▪ Junie Design system  Overlays › Pickers                                                                           16 colors · 160×50   i Inspector   ? Help
+pickers	160	50	256	 ▪ Junie Design system  Overlays › Pickers                                                                          256 colors · 160×50   i Inspector   ? Help
+pickers	160	50	mono	 ▪ Junie Design system  Overlays › Pickers                                                                            no color · 160×50   i Inspector   ? Help
+pickers	160	50	truecolor	 ▪ Junie Design system  Overlays › Pickers                                                                           truecolor · 160×50   i Inspector   ? Help
+pickers	80	24	16	 ▪ Junie Design system  Overlays › Pickers                i Inspector   ? Help
+pickers	80	24	256	 ▪ Junie Design system  Overlays › Pickers                i Inspector   ? Help
+pickers	80	24	mono	 ▪ Junie Design system  Overlays › Pickers                i Inspector   ? Help
+pickers	80	24	truecolor	 ▪ Junie Design system  Overlays › Pickers                i Inspector   ? Help
+progress	100	30	16	 ▪ Junie Design system  Feedback › Progress              16 colors · 100×30   i Inspector   ? Help
+progress	100	30	256	 ▪ Junie Design system  Feedback › Progress             256 colors · 100×30   i Inspector   ? Help
+progress	100	30	mono	 ▪ Junie Design system  Feedback › Progress               no color · 100×30   i Inspector   ? Help
+progress	100	30	truecolor	 ▪ Junie Design system  Feedback › Progress              truecolor · 100×30   i Inspector   ? Help
+progress	120	40	16	 ▪ Junie Design system  Feedback › Progress                                  16 colors · 120×40   i Inspector   ? Help
+progress	120	40	256	 ▪ Junie Design system  Feedback › Progress                                 256 colors · 120×40   i Inspector   ? Help
+progress	120	40	mono	 ▪ Junie Design system  Feedback › Progress                                   no color · 120×40   i Inspector   ? Help
+progress	120	40	truecolor	 ▪ Junie Design system  Feedback › Progress                                  truecolor · 120×40   i Inspector   ? Help
+progress	160	50	16	 ▪ Junie Design system  Feedback › Progress                                                                          16 colors · 160×50   i Inspector   ? Help
+progress	160	50	256	 ▪ Junie Design system  Feedback › Progress                                                                         256 colors · 160×50   i Inspector   ? Help
+progress	160	50	mono	 ▪ Junie Design system  Feedback › Progress                                                                           no color · 160×50   i Inspector   ? Help
+progress	160	50	truecolor	 ▪ Junie Design system  Feedback › Progress                                                                          truecolor · 160×50   i Inspector   ? Help
+progress	80	24	16	 ▪ Junie Design system  Feedback › Progress               i Inspector   ? Help
+progress	80	24	256	 ▪ Junie Design system  Feedback › Progress               i Inspector   ? Help
+progress	80	24	mono	 ▪ Junie Design system  Feedback › Progress               i Inspector   ? Help
+progress	80	24	truecolor	 ▪ Junie Design system  Feedback › Progress               i Inspector   ? Help
+scrolling	100	30	16	 ▪ Junie Design system  Layout › Scrolling               16 colors · 100×30   i Inspector   ? Help
+scrolling	100	30	256	 ▪ Junie Design system  Layout › Scrolling              256 colors · 100×30   i Inspector   ? Help
+scrolling	100	30	mono	 ▪ Junie Design system  Layout › Scrolling                no color · 100×30   i Inspector   ? Help
+scrolling	100	30	truecolor	 ▪ Junie Design system  Layout › Scrolling               truecolor · 100×30   i Inspector   ? Help
+scrolling	120	40	16	 ▪ Junie Design system  Layout › Scrolling                                   16 colors · 120×40   i Inspector   ? Help
+scrolling	120	40	256	 ▪ Junie Design system  Layout › Scrolling                                  256 colors · 120×40   i Inspector   ? Help
+scrolling	120	40	mono	 ▪ Junie Design system  Layout › Scrolling                                    no color · 120×40   i Inspector   ? Help
+scrolling	120	40	truecolor	 ▪ Junie Design system  Layout › Scrolling                                   truecolor · 120×40   i Inspector   ? Help
+scrolling	160	50	16	 ▪ Junie Design system  Layout › Scrolling                                                                           16 colors · 160×50   i Inspector   ? Help
+scrolling	160	50	256	 ▪ Junie Design system  Layout › Scrolling                                                                          256 colors · 160×50   i Inspector   ? Help
+scrolling	160	50	mono	 ▪ Junie Design system  Layout › Scrolling                                                                            no color · 160×50   i Inspector   ? Help
+scrolling	160	50	truecolor	 ▪ Junie Design system  Layout › Scrolling                                                                           truecolor · 160×50   i Inspector   ? Help
+scrolling	80	24	16	 ▪ Junie Design system  Layout › Scrolling                i Inspector   ? Help
+scrolling	80	24	256	 ▪ Junie Design system  Layout › Scrolling                i Inspector   ? Help
+scrolling	80	24	mono	 ▪ Junie Design system  Layout › Scrolling                i Inspector   ? Help
+scrolling	80	24	truecolor	 ▪ Junie Design system  Layout › Scrolling                i Inspector   ? Help
+settings	100	30	16	 ▪ Junie Design system  Screens › Settings               16 colors · 100×30   i Inspector   ? Help
+settings	100	30	256	 ▪ Junie Design system  Screens › Settings              256 colors · 100×30   i Inspector   ? Help
+settings	100	30	mono	 ▪ Junie Design system  Screens › Settings                no color · 100×30   i Inspector   ? Help
+settings	100	30	truecolor	 ▪ Junie Design system  Screens › Settings               truecolor · 100×30   i Inspector   ? Help
+settings	120	40	16	 ▪ Junie Design system  Screens › Settings                                   16 colors · 120×40   i Inspector   ? Help
+settings	120	40	256	 ▪ Junie Design system  Screens › Settings                                  256 colors · 120×40   i Inspector   ? Help
+settings	120	40	mono	 ▪ Junie Design system  Screens › Settings                                    no color · 120×40   i Inspector   ? Help
+settings	120	40	truecolor	 ▪ Junie Design system  Screens › Settings                                   truecolor · 120×40   i Inspector   ? Help
+settings	160	50	16	 ▪ Junie Design system  Screens › Settings                                                                           16 colors · 160×50   i Inspector   ? Help
+settings	160	50	256	 ▪ Junie Design system  Screens › Settings                                                                          256 colors · 160×50   i Inspector   ? Help
+settings	160	50	mono	 ▪ Junie Design system  Screens › Settings                                                                            no color · 160×50   i Inspector   ? Help
+settings	160	50	truecolor	 ▪ Junie Design system  Screens › Settings                                                                           truecolor · 160×50   i Inspector   ? Help
+settings	80	24	16	 ▪ Junie Design system  Screens › Settings                i Inspector   ? Help
+settings	80	24	256	 ▪ Junie Design system  Screens › Settings                i Inspector   ? Help
+settings	80	24	mono	 ▪ Junie Design system  Screens › Settings                i Inspector   ? Help
+settings	80	24	truecolor	 ▪ Junie Design system  Screens › Settings                i Inspector   ? Help
+sidebars	100	30	16	 ▪ Junie Design system  Navigation › Sidebars            16 colors · 100×30   i Inspector   ? Help
+sidebars	100	30	256	 ▪ Junie Design system  Navigation › Sidebars           256 colors · 100×30   i Inspector   ? Help
+sidebars	100	30	mono	 ▪ Junie Design system  Navigation › Sidebars             no color · 100×30   i Inspector   ? Help
+sidebars	100	30	truecolor	 ▪ Junie Design system  Navigation › Sidebars            truecolor · 100×30   i Inspector   ? Help
+sidebars	120	40	16	 ▪ Junie Design system  Navigation › Sidebars                                16 colors · 120×40   i Inspector   ? Help
+sidebars	120	40	256	 ▪ Junie Design system  Navigation › Sidebars                               256 colors · 120×40   i Inspector   ? Help
+sidebars	120	40	mono	 ▪ Junie Design system  Navigation › Sidebars                                 no color · 120×40   i Inspector   ? Help
+sidebars	120	40	truecolor	 ▪ Junie Design system  Navigation › Sidebars                                truecolor · 120×40   i Inspector   ? Help
+sidebars	160	50	16	 ▪ Junie Design system  Navigation › Sidebars                                                                        16 colors · 160×50   i Inspector   ? Help
+sidebars	160	50	256	 ▪ Junie Design system  Navigation › Sidebars                                                                       256 colors · 160×50   i Inspector   ? Help
+sidebars	160	50	mono	 ▪ Junie Design system  Navigation › Sidebars                                                                         no color · 160×50   i Inspector   ? Help
+sidebars	160	50	truecolor	 ▪ Junie Design system  Navigation › Sidebars                                                                        truecolor · 160×50   i Inspector   ? Help
+sidebars	80	24	16	 ▪ Junie Design system  Navigation › Sidebars             i Inspector   ? Help
+sidebars	80	24	256	 ▪ Junie Design system  Navigation › Sidebars             i Inspector   ? Help
+sidebars	80	24	mono	 ▪ Junie Design system  Navigation › Sidebars             i Inspector   ? Help
+sidebars	80	24	truecolor	 ▪ Junie Design system  Navigation › Sidebars             i Inspector   ? Help
+tables	100	30	16	 ▪ Junie Design system  Tables › Basic table             16 colors · 100×30   i Inspector   ? Help
+tables	100	30	256	 ▪ Junie Design system  Tables › Basic table            256 colors · 100×30   i Inspector   ? Help
+tables	100	30	mono	 ▪ Junie Design system  Tables › Basic table              no color · 100×30   i Inspector   ? Help
+tables	100	30	truecolor	 ▪ Junie Design system  Tables › Basic table             truecolor · 100×30   i Inspector   ? Help
+tables	120	40	16	 ▪ Junie Design system  Tables › Basic table                                 16 colors · 120×40   i Inspector   ? Help
+tables	120	40	256	 ▪ Junie Design system  Tables › Basic table                                256 colors · 120×40   i Inspector   ? Help
+tables	120	40	mono	 ▪ Junie Design system  Tables › Basic table                                  no color · 120×40   i Inspector   ? Help
+tables	120	40	truecolor	 ▪ Junie Design system  Tables › Basic table                                 truecolor · 120×40   i Inspector   ? Help
+tables	160	50	16	 ▪ Junie Design system  Tables › Basic table                                                                         16 colors · 160×50   i Inspector   ? Help
+tables	160	50	256	 ▪ Junie Design system  Tables › Basic table                                                                        256 colors · 160×50   i Inspector   ? Help
+tables	160	50	mono	 ▪ Junie Design system  Tables › Basic table                                                                          no color · 160×50   i Inspector   ? Help
+tables	160	50	truecolor	 ▪ Junie Design system  Tables › Basic table                                                                         truecolor · 160×50   i Inspector   ? Help
+tables	80	24	16	 ▪ Junie Design system  Tables › Basic table              i Inspector   ? Help
+tables	80	24	256	 ▪ Junie Design system  Tables › Basic table              i Inspector   ? Help
+tables	80	24	mono	 ▪ Junie Design system  Tables › Basic table              i Inspector   ? Help
+tables	80	24	truecolor	 ▪ Junie Design system  Tables › Basic table              i Inspector   ? Help
+taskrunner	100	30	16	 ▪ Junie Design system  Screens › Task runner            16 colors · 100×30   i Inspector   ? Help
+taskrunner	100	30	256	 ▪ Junie Design system  Screens › Task runner           256 colors · 100×30   i Inspector   ? Help
+taskrunner	100	30	mono	 ▪ Junie Design system  Screens › Task runner             no color · 100×30   i Inspector   ? Help
+taskrunner	100	30	truecolor	 ▪ Junie Design system  Screens › Task runner            truecolor · 100×30   i Inspector   ? Help
+taskrunner	120	40	16	 ▪ Junie Design system  Screens › Task runner                                16 colors · 120×40   i Inspector   ? Help
+taskrunner	120	40	256	 ▪ Junie Design system  Screens › Task runner                               256 colors · 120×40   i Inspector   ? Help
+taskrunner	120	40	mono	 ▪ Junie Design system  Screens › Task runner                                 no color · 120×40   i Inspector   ? Help
+taskrunner	120	40	truecolor	 ▪ Junie Design system  Screens › Task runner                                truecolor · 120×40   i Inspector   ? Help
+taskrunner	160	50	16	 ▪ Junie Design system  Screens › Task runner                                                                        16 colors · 160×50   i Inspector   ? Help
+taskrunner	160	50	256	 ▪ Junie Design system  Screens › Task runner                                                                       256 colors · 160×50   i Inspector   ? Help
+taskrunner	160	50	mono	 ▪ Junie Design system  Screens › Task runner                                                                         no color · 160×50   i Inspector   ? Help
+taskrunner	160	50	truecolor	 ▪ Junie Design system  Screens › Task runner                                                                        truecolor · 160×50   i Inspector   ? Help
+taskrunner	80	24	16	 ▪ Junie Design system  Screens › Task runner             i Inspector   ? Help
+taskrunner	80	24	256	 ▪ Junie Design system  Screens › Task runner             i Inspector   ? Help
+taskrunner	80	24	mono	 ▪ Junie Design system  Screens › Task runner             i Inspector   ? Help
+taskrunner	80	24	truecolor	 ▪ Junie Design system  Screens › Task runner             i Inspector   ? Help
+terminal	100	30	16	 ▪ Junie Design system  Text & code › Terminal           16 colors · 100×30   i Inspector   ? Help
+terminal	100	30	256	 ▪ Junie Design system  Text & code › Terminal          256 colors · 100×30   i Inspector   ? Help
+terminal	100	30	mono	 ▪ Junie Design system  Text & code › Terminal            no color · 100×30   i Inspector   ? Help
+terminal	100	30	truecolor	 ▪ Junie Design system  Text & code › Terminal           truecolor · 100×30   i Inspector   ? Help
+terminal	120	40	16	 ▪ Junie Design system  Text & code › Terminal                               16 colors · 120×40   i Inspector   ? Help
+terminal	120	40	256	 ▪ Junie Design system  Text & code › Terminal                              256 colors · 120×40   i Inspector   ? Help
+terminal	120	40	mono	 ▪ Junie Design system  Text & code › Terminal                                no color · 120×40   i Inspector   ? Help
+terminal	120	40	truecolor	 ▪ Junie Design system  Text & code › Terminal                               truecolor · 120×40   i Inspector   ? Help
+terminal	160	50	16	 ▪ Junie Design system  Text & code › Terminal                                                                       16 colors · 160×50   i Inspector   ? Help
+terminal	160	50	256	 ▪ Junie Design system  Text & code › Terminal                                                                      256 colors · 160×50   i Inspector   ? Help
+terminal	160	50	mono	 ▪ Junie Design system  Text & code › Terminal                                                                        no color · 160×50   i Inspector   ? Help
+terminal	160	50	truecolor	 ▪ Junie Design system  Text & code › Terminal                                                                       truecolor · 160×50   i Inspector   ? Help
+terminal	80	24	16	 ▪ Junie Design system  Text & code › Terminal            i Inspector   ? Help
+terminal	80	24	256	 ▪ Junie Design system  Text & code › Terminal            i Inspector   ? Help
+terminal	80	24	mono	 ▪ Junie Design system  Text & code › Terminal            i Inspector   ? Help
+terminal	80	24	truecolor	 ▪ Junie Design system  Text & code › Terminal            i Inspector   ? Help
+textareas	100	30	16	 ▪ Junie Design system  Inputs & forms › Text areas      16 colors · 100×30   i Inspector   ? Help
+textareas	100	30	256	 ▪ Junie Design system  Inputs & forms › Text areas     256 colors · 100×30   i Inspector   ? Help
+textareas	100	30	mono	 ▪ Junie Design system  Inputs & forms › Text areas       no color · 100×30   i Inspector   ? Help
+textareas	100	30	truecolor	 ▪ Junie Design system  Inputs & forms › Text areas      truecolor · 100×30   i Inspector   ? Help
+textareas	120	40	16	 ▪ Junie Design system  Inputs & forms › Text areas                          16 colors · 120×40   i Inspector   ? Help
+textareas	120	40	256	 ▪ Junie Design system  Inputs & forms › Text areas                         256 colors · 120×40   i Inspector   ? Help
+textareas	120	40	mono	 ▪ Junie Design system  Inputs & forms › Text areas                           no color · 120×40   i Inspector   ? Help
+textareas	120	40	truecolor	 ▪ Junie Design system  Inputs & forms › Text areas                          truecolor · 120×40   i Inspector   ? Help
+textareas	160	50	16	 ▪ Junie Design system  Inputs & forms › Text areas                                                                  16 colors · 160×50   i Inspector   ? Help
+textareas	160	50	256	 ▪ Junie Design system  Inputs & forms › Text areas                                                                 256 colors · 160×50   i Inspector   ? Help
+textareas	160	50	mono	 ▪ Junie Design system  Inputs & forms › Text areas                                                                   no color · 160×50   i Inspector   ? Help
+textareas	160	50	truecolor	 ▪ Junie Design system  Inputs & forms › Text areas                                                                  truecolor · 160×50   i Inspector   ? Help
+textareas	80	24	16	 ▪ Junie Design system  Inputs & forms › Text areas       i Inspector   ? Help
+textareas	80	24	256	 ▪ Junie Design system  Inputs & forms › Text areas       i Inspector   ? Help
+textareas	80	24	mono	 ▪ Junie Design system  Inputs & forms › Text areas       i Inspector   ? Help
+textareas	80	24	truecolor	 ▪ Junie Design system  Inputs & forms › Text areas       i Inspector   ? Help
+trees	100	30	16	 ▪ Junie Design system  Navigation › Trees               16 colors · 100×30   i Inspector   ? Help
+trees	100	30	256	 ▪ Junie Design system  Navigation › Trees              256 colors · 100×30   i Inspector   ? Help
+trees	100	30	mono	 ▪ Junie Design system  Navigation › Trees                no color · 100×30   i Inspector   ? Help
+trees	100	30	truecolor	 ▪ Junie Design system  Navigation › Trees               truecolor · 100×30   i Inspector   ? Help
+trees	120	40	16	 ▪ Junie Design system  Navigation › Trees                                   16 colors · 120×40   i Inspector   ? Help
+trees	120	40	256	 ▪ Junie Design system  Navigation › Trees                                  256 colors · 120×40   i Inspector   ? Help
+trees	120	40	mono	 ▪ Junie Design system  Navigation › Trees                                    no color · 120×40   i Inspector   ? Help
+trees	120	40	truecolor	 ▪ Junie Design system  Navigation › Trees                                   truecolor · 120×40   i Inspector   ? Help
+trees	160	50	16	 ▪ Junie Design system  Navigation › Trees                                                                           16 colors · 160×50   i Inspector   ? Help
+trees	160	50	256	 ▪ Junie Design system  Navigation › Trees                                                                          256 colors · 160×50   i Inspector   ? Help
+trees	160	50	mono	 ▪ Junie Design system  Navigation › Trees                                                                            no color · 160×50   i Inspector   ? Help
+trees	160	50	truecolor	 ▪ Junie Design system  Navigation › Trees                                                                           truecolor · 160×50   i Inspector   ? Help
+trees	80	24	16	 ▪ Junie Design system  Navigation › Trees                i Inspector   ? Help
+trees	80	24	256	 ▪ Junie Design system  Navigation › Trees                i Inspector   ? Help
+trees	80	24	mono	 ▪ Junie Design system  Navigation › Trees                i Inspector   ? Help
+trees	80	24	truecolor	 ▪ Junie Design system  Navigation › Trees                i Inspector   ? Help
+overview	89	24	truecolor	 ▪ Junie Design system  Overview               truecolor · 89×24   i Inspector   ? Help
+overview	90	24	truecolor	 ▪ Junie Design system  Overview                truecolor · 90×24   i Inspector   ? Help
+overview	91	24	truecolor	 ▪ Junie Design system  Overview                 truecolor · 91×24   i Inspector   ? Help

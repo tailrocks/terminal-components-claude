@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Data grid                              truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Data grid  Typed cells, a pending-change queue, paging and local sort
+   Overview
+                            customers                            rows 7–32 of 40 loaded · ~4,812 total · cols 1–6 of 8
+   Components
+   Buttons                        ⚷ id       customer                   plan          seats      mrr  active      2›
+   Inputs                       7 1007       Wide World Importers       pro             150  4350.00  true           │
+   Text areas                   8 1008       Adventure Works            free             25     0.00  true           │
+   Forms                        9 1009       Proseware Studio           enterprise        3    57.00  false          │
+   Lists                       10 1010       Woodgrove Bank             team             80  1920.00  true           │
+   Trees                       11 1011       Alpine Ski House           pro              12   348.00  true           ┃
+   Tables                      12 1012       Coho Winery                free              1     0.00  true           ┃
+   Editable tables             13 1013       Lucerne Publishing         enterprise       40   760.00  true           ┃
+   Panels                      14 1014       Margie's Travel            team              5   120.00  false          ┃
+   Sidebars                    15 1015       Trey Research              pro             150  4350.00  true           ┃
+   Dialogs                     16 1016       Humongous Insurance        free             25     0.00  true           ┃
+   Progress                    17 1017       Northwind Traders 2        enterprise        3    57.00  true           ┃
+   Scrolling                   18 1018       Blue Yonder Airlines 2     team             80  1920.00  true           ┃
+   Terminal                    19 1019       Contoso Pharmaceuticals 2  pro              12   348.00  false          ┃
+   Code editor                 20 1020       Fabrikam Robotics 2        free              1     0.00  true           ┃
+   Diff                        21 1021       Litware Analytics 2        enterprise       40   760.00  true           ┃
+▎› Data grid                   22 1022       Tailspin Toys 2            team              5   120.00  true           ┃
+   Chips & selects             23 1023       Wide World Importers 2     pro             150  4350.00  true           ┃
+   Pickers                     24 1024       Adventure Works 2          free             25     0.00  false          ┃
+   Chrome                      25 1025       Proseware Studio 2         enterprise        3    57.00  true           ┃
+                               26 1026       Woodgrove Bank 2           team             80  1920.00  true           ┃
+   Screens                     27 1027       Alpine Ski House 2         pro              12   348.00  true           │
+   Settings                    28 1028       Coho Winery 2              free              1     0.00  true           │
+   Task runner                 29 1029       Lucerne Publishing 2       enterprise       40   760.00  false          │
+                               30 1030       Margie's Travel 2          team              5   120.00  true           │
+                               31 1031       Trey Research 2            pro             150  4350.00  true           │
+                               32 1032       Humongous Insurance 2      free             25     0.00  true           │
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

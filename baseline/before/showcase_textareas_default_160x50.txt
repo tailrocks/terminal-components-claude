@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Text areas                                                                     truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Text areas  Multi-line editing, wrapping cursor motion, scroll position
+▎  Overview
+                            Playground                                                                                        Enter Edit · Esc Done · Tab Next
+   Components
+▎  Buttons                    Task description                                                   Notes
+▎  Inputs                   ▎  1. Read src/api/billing.rs before touching invoices.       ┃    ▎ Anything the agent should know…
+▎› Text areas               ▎  2. Keep the public API stable; add, never rename.          ┃    ▎
+▎  Forms                    ▎  3. Open a PR against main with a clear summary.            │    ▎
+▎  Lists                    ▎  4. Run the integration suite and attach the report.        │    ▎
+▎  Trees                    ▎  5. Read src/api/billing.rs before touching invoices.       │    ▎
+▎  Tables                   ▎  6. Keep the public API stable; add, never rename.          │    ▎
+▎  Editable tables          ▎  7. Open a PR against main with a clear summary.            │    ▎
+▎  Panels                   ▎  8. Run the integration suite and attach the report.        │    ▎
+▎  Sidebars                   Enter inserts a newline · Esc finishes             1–8 of 28       Optional
+▎  Dialogs
+▎  Progress
+▎  Scrolling                Disabled and error
+▎  Terminal
+▎  Code editor                Read-only transcript                                               Commit message
+▎  Data grid                ▎ Junie: Reading 14 files…                                         ▎ fix stuff                                                  !
+▎  Chips & selects          ▎ Junie: Plan ready. 3 steps.                                      ▎
+▎  Pickers                  ▎                                                                  ▎
+▎  Chrome                   ▎                                                                  ▎
+                                                                                                 Use the imperative mood and explain why
+   Screens
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

@@ -1,0 +1,153 @@
+{
+  "tool_commit": "7d5d62cd44d430ff5d2fc4006cc776b30ee487e1",
+  "fixture_sha256": "ec70b5ad5480800bb9395961238beea47d924db15a355d8a5a9148ceccf5943f",
+  "frames": [
+    {
+      "file": "dialog-dark-120x40.frame.json",
+      "original_sha256": "06166a66b87e9c92aa1e7146818843de4c270777658aa95904aff57e8c077aee",
+      "migrated_sha256": "e21af0cabf746ef210407b9d26985146bdaf1fda5a70a58e45f3e55845961355",
+      "changed_continuations": 0
+    },
+    {
+      "file": "dialog-dark-160x50.frame.json",
+      "original_sha256": "200d44a2660fabb8a1aae62f4c6b8df4df9ef7f725d756617595515c31c661c9",
+      "migrated_sha256": "5fcf058a86d16ae979fe3235e2a9dc498074fa86710f6b45426b1452e3b163f8",
+      "changed_continuations": 0
+    },
+    {
+      "file": "dialog-dark-80x24.frame.json",
+      "original_sha256": "897eaeac9ba9f37e024a6b8fe7c832d22c2d04cac7a4e92b975487ecc5e7fb5d",
+      "migrated_sha256": "5e08eabace3565718a6e86070358201eaf36d768ed1059f957a7fc135d487f69",
+      "changed_continuations": 0
+    },
+    {
+      "file": "dialog-light-120x40.frame.json",
+      "original_sha256": "231045c559e6d207a67d8af062274ec9fcfbd7129b8cdd4c6178e58c32eb9560",
+      "migrated_sha256": "1b280e81326d46a2b2a4fdb4743bb78a6afd1a78c0a199f017088664f88374e7",
+      "changed_continuations": 0
+    },
+    {
+      "file": "dialog-light-160x50.frame.json",
+      "original_sha256": "aacde4c070e5ffaae5bfac33fcefdabb4cda760aa64ef5127f433f4fde845d50",
+      "migrated_sha256": "ff10a360a18630807565834685043f7e4df8eedfa09476231a386fc1d245e273",
+      "changed_continuations": 0
+    },
+    {
+      "file": "dialog-light-80x24.frame.json",
+      "original_sha256": "a0d15ea33987bf2958f5df773db34258f5f92696836d6df1eec2aab97beeadee",
+      "migrated_sha256": "06eae2167c525377e6c3763c5ddd395bb27f439765a5469d1bba1054d17a40e7",
+      "changed_continuations": 0
+    },
+    {
+      "file": "glyphs-dark-120x40.frame.json",
+      "original_sha256": "feb4b22dcd54f6221a07b2c17cd10afd0d17c44ddd1ba1c58e46df5f750265ce",
+      "migrated_sha256": "17815f9a0a933dc076e5b1bc21ebe89900c67acf197bb7d64fa70268b2346398",
+      "changed_continuations": 10
+    },
+    {
+      "file": "glyphs-dark-160x50.frame.json",
+      "original_sha256": "299570c059ccf973061f7f29016bfe11726c90fe82b18b846ab30b325ecab5ad",
+      "migrated_sha256": "21b6341cd1e6e7fca8d667d8221f936c9fb99986eb4d91251f95c205ef1f1a35",
+      "changed_continuations": 10
+    },
+    {
+      "file": "glyphs-dark-80x24.frame.json",
+      "original_sha256": "429ef80319c12e6bbb8a2b88189802c859448309188581a6f65d650191e1bdff",
+      "migrated_sha256": "0adc075257d5fcfb7f083cd40232c3ced22506e9adbcf8cb9ada00464d372699",
+      "changed_continuations": 10
+    },
+    {
+      "file": "glyphs-light-120x40.frame.json",
+      "original_sha256": "7827125b079a42609648f0845446cee1079e376b0bbf09c4d43b410fb66d20e0",
+      "migrated_sha256": "ada68eedcc3908602a39cda2646a781987cb84acf88fd075ca4d9499efbfc427",
+      "changed_continuations": 10
+    },
+    {
+      "file": "glyphs-light-160x50.frame.json",
+      "original_sha256": "f9689b4b70176294528e3e09190ebfacfe007e09d765d63d89259039c092b544",
+      "migrated_sha256": "d5a043a89967a739461a322dc13c23ad9058ca32d5f769d60760f5869a5ff74e",
+      "changed_continuations": 10
+    },
+    {
+      "file": "glyphs-light-80x24.frame.json",
+      "original_sha256": "f126b7be8c71abf68d52f230b26bed9b5d28681d153a04e26194b29f86a4eaa2",
+      "migrated_sha256": "b5e06380daa1928ea489eca8874a7e4409afa0b3f716729ee621193cba349f13",
+      "changed_continuations": 10
+    },
+    {
+      "file": "home-dark-120x40.frame.json",
+      "original_sha256": "8e936176687cadbc964bbd8a8fef1a3e8251df13243c27a30279631d08f7c75c",
+      "migrated_sha256": "443d6fe82212b02ea03a5d3ec7f625af0d00958e8bd1ac0f1d4dc79d6608511e",
+      "changed_continuations": 0
+    },
+    {
+      "file": "home-dark-160x50.frame.json",
+      "original_sha256": "3433939bbceb064180945a3c3e4c9a31782eb74b54edfdbb6c4981e91602d1d0",
+      "migrated_sha256": "9209757b3e6559223db336998c370ce191863c54c63c711ac8a68bde4b49d9d3",
+      "changed_continuations": 0
+    },
+    {
+      "file": "home-dark-80x24.frame.json",
+      "original_sha256": "a414d150ea42cd851cc9d75b007f8f6af18c17cbbb84e3562f710981b3d049a1",
+      "migrated_sha256": "24edd11667dd72c4fd3a904563d02f89283c9a638dafa0820ac3ad2b765328bb",
+      "changed_continuations": 0
+    },
+    {
+      "file": "home-light-120x40.frame.json",
+      "original_sha256": "d9930e190309457081aee3972552943d90fd754af9db34d29de2a4ae293c3601",
+      "migrated_sha256": "32194ac1307ff517400dc8497d157367b526e51c8571202b46e3e7830f67acec",
+      "changed_continuations": 0
+    },
+    {
+      "file": "home-light-160x50.frame.json",
+      "original_sha256": "927bbc9bfd57d6c76a65252f1c7495cd67b8da7ec1ff35f50e1bc0f5b7eea528",
+      "migrated_sha256": "4a6f132e50f0fc49adb8381a3402bfb5545bb1fb56c1ab5083d12a187d76a97e",
+      "changed_continuations": 0
+    },
+    {
+      "file": "home-light-80x24.frame.json",
+      "original_sha256": "b299006fe354f3e2754428919e933704e8cded01f96f8ddc7a0f166d0cbca177",
+      "migrated_sha256": "f877fc6b8116c051dda4f3e4e545918bf3ebabdfabde5402d58c078410de016c",
+      "changed_continuations": 0
+    },
+    {
+      "file": "table-dark-120x40.frame.json",
+      "original_sha256": "c5f9f2ecfc2c9b9eec7012a53324a8c75e717845623e9feff77ab776e48a0f3d",
+      "migrated_sha256": "234476891dfe4759b2559f04af31050c02ff36935d2bb7b576ea94b4d641c618",
+      "changed_continuations": 0
+    },
+    {
+      "file": "table-dark-160x50.frame.json",
+      "original_sha256": "22cba8c045156ec2a7f33aa2e7e5d005812f567d640cb1f40e26cb659909bf42",
+      "migrated_sha256": "e6be135de5de9f774b52cc63d00fd0356625f53f19dd2176a8e7bc7c4e662436",
+      "changed_continuations": 0
+    },
+    {
+      "file": "table-dark-80x24.frame.json",
+      "original_sha256": "bdcff6e9edee997b82f43285e169a29341c798c947a3349e23430ba176d72468",
+      "migrated_sha256": "8f8873e2bee401611b0969a919ca77c24c712cb38519edff4650f6e73b256801",
+      "changed_continuations": 0
+    },
+    {
+      "file": "table-light-120x40.frame.json",
+      "original_sha256": "78b88531cdda101588fe11e93590b30689b24b2ecc8d4219674b4e1e8e0a7ebd",
+      "migrated_sha256": "9c960d8e0b0e14a1502145c6e633e504d78eac0def26df490c992db703b8eff0",
+      "changed_continuations": 0
+    },
+    {
+      "file": "table-light-160x50.frame.json",
+      "original_sha256": "1d77391a292306d2bf55795937a027357ce486c3f95c751365ccb9ceab704f3d",
+      "migrated_sha256": "cefdd5ae5a92f8ca343db7d3ab54bc6f560d4cd630c4f43c1040fe84ace76167",
+      "changed_continuations": 0
+    },
+    {
+      "file": "table-light-80x24.frame.json",
+      "original_sha256": "c3becf28646b4d5213435ceae165011cac3961a488cc2a41bc9e9d1b26904bda",
+      "migrated_sha256": "26f6f6d829681431801bb57381ff29cd317ebb6fe7ec57d3017948820cb42d47",
+      "changed_continuations": 0
+    }
+  ],
+  "image_index_sha256": "2a7cb723fc6323b7df1c8dda66467fe4ec6296ce5582c1b6ca3a899fb9e7364b",
+  "identical_png_pairs": 18,
+  "changed_continuations": 60
+}

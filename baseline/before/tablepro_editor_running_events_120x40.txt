@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                  ⠇ running  truecolor · 120×40  ? help
+
+  ≡ Query 1 ×                                                                                                       +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ─────────────────────────────────────────────────────────────────── 402 ms ─╮
+ │                           │ │  ▎⠇  1 …CT * FROM orders WHERE notes LIKE '%gift%' ORDER BY created_at LIMIT 10      │
+ │ ▎ Filter objects          │ │                                                                                      │
+ │ ▎▾ D acme_prod            │ │                                                                                      │
+ │ ▎  ▾ S public             │ │                                                                                      │
+ │ ▎    ▾ Tables             │ │                                                                                      │
+ │ ▎      ▸ T organizations  │ │                                                                                      │
+ │ ▎      ▸ T customers      │ │                                                                                      │
+ │ ▎      ▸ T products       │ │                                                                                      │
+ │ ▎      ▸ T orders         │ │                                                                                      │
+ │ ▎      ▸ T order_items    │ │                                                                                      │
+ │ ▎      ▸ T payments       │ │                                                                                      │
+ │ ▎      ▸ T subscriptions  │ │                                                                                      │
+ │ ▎    ▸ Views              │ │   ⠇ running 320 ms · Esc cancels                                                     │
+ │ ▎    ▸ Functions          │ │                                                                                      │
+ │ ▎    ▸ Sequences          │ │                                                                                      │
+ │ ▎  ▸ S analytics          │ │                                                                                      │
+ │ ▎  ▸ S audit              │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Switch  Ctrl+T New query  x Close  Ctrl+G Tab list  z Zoom  Tab Next

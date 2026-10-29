@@ -1,0 +1,87 @@
+{
+  "artifacts": {
+    "canonical_source_copy": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-runner-f82b2bf4-20261021.py",
+      "sha256": "e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257"
+    },
+    "canonical_stage3_review": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-5891c872-20261021.json",
+      "sha256": "21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20"
+    },
+    "final_test_log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-synthetic-tests-final-20261021.log",
+      "sha256": "2acc23e0c974691dc115e5bf4af1983a920e4949993ecdcb4c61870d5bd57cb7"
+    },
+    "first_test_log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-synthetic-tests-20261021.log",
+      "sha256": "fca6d98a2a03d653ba3f0cefb68d550a00a9f9e2058b63088c122dc29da5fb38"
+    },
+    "live_source_manifest": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/live-source.json",
+      "sha256": "8fc52aa144847276fd9df62b133f7d8815995c50ba9a0cc0001b6b5da46ad75a"
+    },
+    "rerun_test_log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-synthetic-tests-20261021-rerun.log",
+      "sha256": "54ea15965a6c3e6818acf34dd95ad0286677dceb010c629b1c645593345e2adf"
+    },
+    "source": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v13-stage3-20261021.py",
+      "sha256": "49a10dcc5cf82775287459ababbd22012d61c92f802c504dcf1264b92b834808"
+    },
+    "stage2_event": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v12-parent-v12-stage2-20261021-0425-stage-02-event.json",
+      "sha256": "e8d22eebf16dfb578ef7d701dba46919b50317a87f3fcceba659b6ab78fd0817"
+    },
+    "stage2_evidence": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage2-result-independent-evidence-20261021.json",
+      "sha256": "0272e7bdde4b829cf1ba255c73b208f9d6e3ac59bb53cd08a50f160021419a94"
+    },
+    "stage2_log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v12-parent-v12-stage2-20261021-0425-stage-02.log",
+      "sha256": "e87bbc54cc7bb34d65feb9e3a28740aa4aeba90853272f119ff8350d4e0ffd18"
+    },
+    "stage2_review": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage2-result-independent-review-20261021.json",
+      "sha256": "37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994"
+    },
+    "tests": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v13-stage3-20261021.py",
+      "sha256": "2e2bf98fefc9fe2db086a83ba083faa6c477bd301d52c612b910583cf98d786e"
+    }
+  },
+  "changes": [
+    "Copied exact canonical stage3 source from reviewed commit f82 into an exclusive read-only sibling file; bytes match pinned e486 digest.",
+    "Stage2 admission replaces stage1-only/absent-stage2 assumption. Wrapper hashes immutable stage2 review/evidence/event/log and manifest, validates source roots/manifest in read-only mode, and refuses unexpected key/plan/run output.",
+    "Only CLI stage3 verify-live is enabled; stages 1\u20132 and 4\u20138 are disabled. Command is explicit fixed cohort and sealed baseline binary directory with owned lifecycle and budget.",
+    "Retained V12 direct-child-only TERM/KILL/reap ownership and bounded 220s total, with 200s active cap, 15s cleanup reserve, 5s finalization reserve; no universal process containment claim.",
+    "Removed unused stage1 validation path; no broad hooks, name-based killing, key reads, capture, replay, or product-acceptance claims."
+  ],
+  "date": "2026-10-21",
+  "next_step": "Independent review of exact V13 source, tests and final synthetic log; no actual stage3 invocation until separately cleared.",
+  "pins": {
+    "admitted_stage2_event_sha256": "e8d22eebf16dfb578ef7d701dba46919b50317a87f3fcceba659b6ab78fd0817",
+    "admitted_stage2_evidence_sha256": "0272e7bdde4b829cf1ba255c73b208f9d6e3ac59bb53cd08a50f160021419a94",
+    "admitted_stage2_live_source_manifest_sha256": "8fc52aa144847276fd9df62b133f7d8815995c50ba9a0cc0001b6b5da46ad75a",
+    "admitted_stage2_log_sha256": "e87bbc54cc7bb34d65feb9e3a28740aa4aeba90853272f119ff8350d4e0ffd18",
+    "admitted_stage2_review_sha256": "37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994",
+    "canonical_stage3_review_sha256": "21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20",
+    "canonical_stage3_source_commit": "f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4",
+    "canonical_stage3_source_sha256": "e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257"
+  },
+  "prior_test_attempts": "Two prior V13 test logs are retained unchanged; the earliest failure was an incorrect V12-derived fixture predicate and a stale Stage1-root test; final suite after corrections passes. Earlier V12/V11/V10/V9/V8/V7 artifacts remain unchanged.",
+  "schema": "termrock.stage3d.supervisor.v13.stage3.author-handoff.v1",
+  "scope_limits": [
+    "No actual verify-live, prepare-live, preflight, nextest inventory, application launch, baseline capture, replay, or candidate comparison executed by this V13 step.",
+    "No private key bytes read.",
+    "Only exact direct child signaled/reaped; no universal descendant/kernel stall containment claim.",
+    "Source/test/handoff live outside product repository; no repository source or task branches changed."
+  ],
+  "status": "stage3-only wrapper and synthetic tests complete; independent review pending; no stage3 operation run or admitted",
+  "validation": {
+    "command": "python3 -B test_fresh_plan_stage3d_atomic_supervisor_v13-stage3-20261021.py",
+    "log_sha256": "2acc23e0c974691dc115e5bf4af1983a920e4949993ecdcb4c61870d5bd57cb7",
+    "result": "16 passed, 0 failed, 0 skipped",
+    "scope": "synthetic supervisor fault/deadline tests plus direct read-only validation of immutable actual stage2 admission; canonical source commit/blob hash check; no actual CLI preflight or stage3 operation",
+    "seconds": 18.329
+  }
+}

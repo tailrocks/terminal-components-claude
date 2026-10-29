@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Data grid   i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Inputs         [0m│  [0m[1mData grid[0m  Typed cells, a pending-change queue, p… [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃   ▎[0m[1mcus… rows[0m 1–10 of 40 loaded · ~4,812 total · c…  [0m
+   Lists          ┃                                                     [0m
+   Trees          ┃          ⚷ id       customer                  6›    [0m
+   Tables         ┃        1 1001       Northwind Traders            ┃  [0m
+   Editable tabl… ┃    [0m[1m▎  [0m 2[0m[1m 1002       Blue Yonder Airlines         [0m┃  [0m
+   Panels         ┃        3 1003       Contoso Pharmaceuticals      │  [0m
+   Sidebars       ┃        4 1004       Fabrikam Robotics            │  [0m
+   Dialogs        ┃        5 1005       Litware Analytics            │  [0m
+   Progress       ┃        6 1006       Tailspin Toys                │  [0m
+   Scrolling      ┃        7 1007       Wide World Importers         │  [0m
+   Terminal       │        8 1008       Adventure Works              │  [0m
+   Code editor    │        9 1009       Proseware Studio             │  [0m
+   Diff           │    [0m[2m   10 1010       Woodgrove Bank               [0m│  [0m
+[0m[2m › Data grid      [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1ms[0m Sort  [0m[1mSpace[0m Select row  …                     [0m

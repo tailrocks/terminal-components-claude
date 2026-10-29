@@ -1,0 +1,51 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe                                                                  no color · 160×50  ? help  [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m  ≡ Query 1 ×                                                                                                                                               +   [0m
+[0m[2m ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m ╭─ Explorer ───────────── public   ‹ ─╮│╭─ Query 1 ──────────────────────────────────────────────────────────────────────────────────────────────────────────╮ [0m
+[0m[2m │                                     │││  [0m [0m[2mRun  [0m [0m[2mRun all  [0m [0m[2mExplain                                                                                          │ [0m
+[0m[2m │ [0m [0m[2m Filter objects                    │││  [0m [0m[2m›  1 DELETE FROM orders                                                                                          │ [0m
+[0m[2m │ [0m [0m[2m▾ D acme_prod                      │││                                                                                                                    │ [0m
+[0m[2m │ [0m [0m[2m  ▾ S public                       │││                                                                                                                    │ [0m
+[0m[2m │ [0m [0m[2m    ▾ Tables                    7  │││                                                                                                                    │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T organizations     1.2 k  │││                                                                                                                    │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T customers        48.9 k  │││                                                                                                                    │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T products            312  │││                                                                                                                    │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T orders            1.2 M  │││                                                                                                                    │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T order_items       3.8 M  │││                                                                                                                    │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T payments          1.2 M  │││ ╭──────────────────────────────────────────────────────────────────── × ─╮                                         │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T subscriptions     1.1 k  │││ │                                                                        │                                         │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Views                     2  │││ │  ▲ [0m[1;2mThis query may permanently modify or delete data[0m[2m                    │                                         │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Functions                 1  │││ │                                                                        │                                         │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Sequences                 1  │││ │  [0mAction      DELETE without WHERE                                    [0m[2m  │                                         │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S analytics                    │││ │  [0mTarget      Production · production · acme_prod · orders            [0m[2m  │──────────────────────────────────────── │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S audit                        │││ │  [0mScope       every row in orders (1.2 M rows)                        [0m[2m  │                                         │ [0m
+[0m[2m │                                     │││ │  [0mRisk        Removes all rows; dependent rows may go with ON DELETE  [0m[2m  │                                         │ [0m
+[0m[2m │                                     │││ │  [0m            CASCADE.                                                [0m[2m  │                                         │ [0m
+[0m[2m │                                     │││ │  [0mReversible  Not reversible without a backup                         [0m[2m  │                                         │ [0m
+[0m[2m │                                     │││ │  [0mSafe Mode   Safe Mode · type to confirm                             [0m[2m  │                                         │ [0m
+[0m[2m │                                     │││ │  [0m                                                                    [0m[2m  │                                         │ [0m
+[0m[2m │                                     │││ │  [0mDELETE FROM orders                                                  [0m[2m  │                                         │ [0m
+[0m[2m │                                     │││ │                                                                        │                                         │ [0m
+[0m[2m │                                     │││ │  [0m[1;2mType orders to confirm                                              [0m[2m  │                                         │ [0m
+[0m[2m │                                     │││ │▎                                                                       │                                         │ [0m
+[0m[2m │                                     │││ │                                                                        │                                         │ [0m
+[0m[2m │                                     │││ │                                                    Cancel    Execute   │                                         │ [0m
+[0m[2m │                                     │││ │                                                                        │                                         │ [0m
+[0m[2m │                                     │││ ╰────────────────────────────────────────────────────────────────────────╯lt+R runs all                            │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m ╰─────────────────────────────────────╯│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                                                                                [0m
+ [0m[1mType[0m "orders" to confirm  [0m[1mEsc[0m Cancel                                                                                                 ✓ Connected to Production [0m
+[?25h[31;47H[6 q

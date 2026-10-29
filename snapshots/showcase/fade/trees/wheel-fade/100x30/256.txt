@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Trees             256 colors · 100×30   i Inspector   ? Help
+
+   Overview          Trees  Indent carries hierarchy; the focus bar never moves
+   Buttons
+   Inputs              Project                          2–16 of 16      Selection
+   Text areas
+   Forms                  ▸ api                                  │      Nothing selected
+   Lists                  ▸ db                                   ┃      Enter on a file selects it
+▎› Trees                  ▸ workers                              ┃
+   Tables                   config.rs                     1.9 KB ┃      cursor  src
+   Editable tables          lib.rs                         640 B ┃      visible 16 rows
+   Panels                   main.rs                       1.2 KB ┃      open    5 folders
+   Sidebars             ▾ tests                                  ┃
+   Dialogs                  checkout.rs                   5.3 KB ┃
+   Progress                 auth_flow.rs                  3.0 KB ┃
+   Scrolling              ▸ fixtures                             ┃
+   Terminal             ▾ docs                                   ┃
+   Code editor              architecture.md               7.7 KB ┃
+   Diff                     webhooks.md                   2.2 KB ┃
+   Data grid              Cargo.toml                      1.4 KB ┃
+   Chips & selects        README.md                       3.5 KB ┃
+   Pickers
+   Chrome
+   Settings
+   Task runner
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

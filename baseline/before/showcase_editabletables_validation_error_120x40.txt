@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Editable tables                        truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Editable tables  Navigation is reversed cell; editing is a cursor. They never look alike.
+▎  Overview
+                           ▎Tasks                                                       Changes must be a whole number
+   Components
+▎  Buttons                   … Task                            Owner     Status     Branch                   Changes
+▎  Inputs                   ▎  Add rate limiting to auth end…  mira      Done       feat/rate-limit         abc    !
+▎  Text areas               ▎  Migrate sessions table to UUI…  jonas     ▸ Running  chore/uuid-sessions           31
+▎  Forms                    ▎  Fix flaky checkout integratio…  ana       Failed     fix/checkout flake   !         3
+▎  Lists                    ▎  Write release notes for 3.2     mira      Queued     docs/release-3.2               0
+▎  Trees                    ▎  Replace deprecated Vue mixins   kai       Done       refactor/mixins               87
+▎  Tables                   ▎  Upgrade Postgres driver to 0.9  jonas     Paused     chore/pg-driver                5
+▎› Editable tables          ▎  Extract billing service module  sofia     Done       refactor/billing              52
+▎  Panels                   ▎  Add OpenTelemetry tracing spa…  kai       ▸ Running  feat/otel                     22
+▎  Sidebars                 ▎  Remove legacy feature flags     ana       Queued     chore/flags                    0
+▎  Dialogs                  ▎  Generate API client from Open…  sofia     Done       feat/api-client              118
+▎  Progress                 ▎  Harden CSP headers              mira      Done       sec/csp                        4
+▎  Scrolling                ▎  Speed up cold start of worker   jonas     Failed     perf/worker-boot               9
+▎  Terminal                 ▎  Localize onboarding emails      kai       Queued     feat/i18n-emails               0
+▎  Code editor              ▎  Add pagination to audit log     ana       Done       feat/audit-pages              16
+▎  Data grid
+▎  Chips & selects
+▎  Pickers                reversed  cell cursor (navigation)
+▎  Chrome                 ▁         editing cursor + accent underline
+                          !         validation error
+   Screens
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+  EDIT   Enter Commit  Esc Cancel  Tab Next cell                                                             Cell saved

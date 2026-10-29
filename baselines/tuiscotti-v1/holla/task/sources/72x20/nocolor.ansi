@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help      poly · Node proj… · yarn  [0m[1mmbp · local[0m [0m
+                                                                        [0m
+ [0m[1m Here  [0m                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4myarn[0m                                                 scope ‹ here ›  [0m
+                                                                        [0m
+    Results · 31                                                      ┃ [0m
+ [0m[1m › yarn dev                [0mscript [0m[1m  [0mhere[0m[1m  [0mpackage.json here[0m[1m          [0m┃ [0m
+    [0m[1myarn[0m s00                script   here  package.json here          │ [0m
+    [0m[1myarn[0m s01                script   here  package.json here          │ [0m
+    [0m[1myarn[0m s02                script   here  package.json here          │ [0m
+    [0m[1myarn[0m s03                script   here  package.json here          │ [0m
+    [0m[1myarn[0m s04                script   here  package.json here          │ [0m
+    [0m[1myarn[0m s05                script   here  package.json here          │ [0m
+ [0m[2m   [0m[1;2myarn[0m[2m s06                script   here  package.json here          [0m│ [0m
+                                                                        [0m
+    → yarn run dev · here · mutating                                    [0m
+                                                                        [0m
+ [0m[1m~/work/poly[0m                                           no color · 72×20 [0m
+    [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  …     [0m

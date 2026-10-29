@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Screens / Task runner                               truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Task runner  Composed: tree, live progress, following log, busy states
+▎  Overview
+                            Targets                         Pipeline · running                             0 of 6 done
+   Components
+▎  Buttons                  ▎▾ payments-gateway             ⠏ compile     ━━━━━━━━─────────────────────────────  23%
+▎  Inputs                   ▎  ▾ build                      ⠏ lint        ━━━━━━━━━━━━─────────────────────────  32%
+▎  Text areas               ▎      compile                  typecheck     queued
+▎  Forms                    ▎      lint                     unit          queued
+▎  Lists                    ▎      typecheck                integration   queued
+▎  Trees                    ▎  ▾ test                       e2e           queued
+▎  Tables                   ▎      unit                     Overall     ───────────━━━━━━━━───────────────────────────
+▎  Editable tables          ▎      integration              ▎Run pipeline   ▎Cancel
+▎  Panels                   ▎      e2e
+▎  Sidebars                 ▎  ▾ deploy
+▎  Dialogs                  ▎      staging                  Log                                            · following
+▎  Progress                 ▎      production
+▎  Scrolling                ▎▾ shared-libs                  Pipeline started
+▎  Terminal                 ▎    compile                    ▶ compile started
+▎  Code editor              ▎    publish                    ▶ lint started
+▎  Data grid                                                  compile: step 1 of 12
+▎  Chips & selects                                            lint: step 1 of 12
+▎  Pickers                                                    compile: step 2 of 12
+▎  Chrome                                                     lint: step 3 of 12
+
+   Screens
+▎  Settings
+▎› Task runner
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit                                                           Pipeline running

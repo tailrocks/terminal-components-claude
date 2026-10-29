@@ -1,0 +1,104 @@
+{
+  "status": "CLEAR bounded source increment and reviewed Playground contracts; no new actionable finding. Full page, application product and architecture acceptance remain HOLD.",
+  "commit": "de754a4a16997eb18d96a6bea5cf672d41a4b830",
+  "before": "f4a4a11cc498740ecdd9930330b830d39ea67de2",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "prior_review": {
+    "path": "/private/tmp/showcase-binding-independent-f4a4-20261021/review.json",
+    "sha256": "e4a263e6a336f6ee21c5d422f7c8c7430a6d070cb9a02b24c976af8ffe792044"
+  },
+  "source_copy": "/private/tmp/showcase-binding-review-de754-20261021",
+  "target": "/private/tmp/showcase-binding-independent-de754-20261021/target-de754",
+  "clean_source": true,
+  "source_sha256": {
+    "crates/showcase-demos/src/pages/editor.rs": "fda0d1b646bbe7da3cd528592a19bba6506094a3c1840e2940b2b1e4221a1b25",
+    "crates/showcase-ui/tests/app_tests.rs": "4a8dcdaff4d22b6fde2583d97cb0ff395413cc843608107e4b28b5268ba4f39b",
+    "docs/audits/2026-10-21-showcase-editor-playground-restoration.md": "96ffa84e30cdff8cd2fabd8080b19c9a9f1cbea7a2e5bb347ede30c7b6df95b0"
+  },
+  "artifacts_sha256": {
+    "Cargo.toml": "2e34a214b35d6bda86f5cd4e91da3322a111ffe12320bb1dac7221c447801ddc",
+    "Cargo.lock": "5ce30bfdb9a1c4f8be96b8a7344e2efab2132ec0202e2fe5594fb1a3a0daf102",
+    "command.json": "99949690db063ca4a1c42b47edcf826f3d35cef1cecbffe86342081592682784",
+    "verification.log": "0e247f8480499611c91fc8293ec594eeb9e106e0b21e277ff165ab67b883e35d",
+    "source-comparison.json": "db6dbf99758e8d195407ad47a839d93be49da77285ab4811dc62f9a69ecf242e",
+    "tests/behavior.rs": "671872fabec2f088673258e16ff1b7378d41436d97d11bd88c9532d8714cd21c",
+    "tests/native.rs": "4a8dcdaff4d22b6fde2583d97cb0ff395413cc843608107e4b28b5268ba4f39b",
+    "tests/ordering.rs": "e3564482d078ab824c77888daf7782dbdce0506ba9155cf9dea214d7b5cb1f8f",
+    "tests/run_edges_final.rs": "2d6e5aa10e27371c394e658bbcc2552c1f48c60854e80342390258615db93edd",
+    "tests/semantic.rs": "404a24b48cb13c576459846976410bffaddecd99e67a83c334aedab030dc0b00"
+  },
+  "unchanged_probe_identity": {
+    "behavior.rs": {
+      "before": "671872fabec2f088673258e16ff1b7378d41436d97d11bd88c9532d8714cd21c",
+      "after": "671872fabec2f088673258e16ff1b7378d41436d97d11bd88c9532d8714cd21c",
+      "identical": true
+    },
+    "ordering.rs": {
+      "before": "e3564482d078ab824c77888daf7782dbdce0506ba9155cf9dea214d7b5cb1f8f",
+      "after": "e3564482d078ab824c77888daf7782dbdce0506ba9155cf9dea214d7b5cb1f8f",
+      "identical": true
+    },
+    "semantic.rs": {
+      "before": "404a24b48cb13c576459846976410bffaddecd99e67a83c334aedab030dc0b00",
+      "after": "404a24b48cb13c576459846976410bffaddecd99e67a83c334aedab030dc0b00",
+      "identical": true
+    },
+    "run_edges_final.rs": {
+      "before": "2d6e5aa10e27371c394e658bbcc2552c1f48c60854e80342390258615db93edd",
+      "after": "2d6e5aa10e27371c394e658bbcc2552c1f48c60854e80342390258615db93edd",
+      "identical": true
+    }
+  },
+  "checks": {
+    "exit": 0,
+    "run": 55,
+    "passed": 55,
+    "failed": 0,
+    "skipped": 0,
+    "breakdown": {
+      "copied_native_app_tests": 46,
+      "unchanged_prior_behavior": 3,
+      "unchanged_prior_completion_ordering": 1,
+      "unchanged_prior_semantic": 3,
+      "unchanged_two_new_run_edge_negatives": 2
+    },
+    "native_identity": "tests/native.rs is byte-identical to reviewed crates/showcase-ui/tests/app_tests.rs",
+    "native_sha256": "4a8dcdaff4d22b6fde2583d97cb0ff395413cc843608107e4b28b5268ba4f39b",
+    "native_source_sha256": "4a8dcdaff4d22b6fde2583d97cb0ff395413cc843608107e4b28b5268ba4f39b"
+  },
+  "resolved_findings": [
+    {
+      "id": "P1-repeat-run-diagnostics",
+      "before": "Exact unchanged valid real-App probe failed at final Diagnostics2 assertion in f4a4 run-edges-final.log; first-run Diagnostics1 and second-run Runs2 preconditions passed.",
+      "after": "Exact probe passes. finish_run begins from existing diagnostics then appends new run diagnostics, matching frozen finish_run push semantics. Native regression additionally verifies later text edits clear accumulated diagnostics."
+    },
+    {
+      "id": "P2-blank-block-readout",
+      "before": "Exact unchanged valid real-App probe failed at between-blocks assertion in f4a4 run-edges-final.log; cursor line17/col1 precondition passed.",
+      "after": "Exact probe passes. State readout finds exact containment in public measured block ranges. Shared current_block execution fallback remains unchanged."
+    }
+  ],
+  "prior_fixed_contracts_preserved": [
+    "Non-Tick pointer input at identical clock does not consume run countdown; submitted block range survives cursor movement during run.",
+    "Manual empty completion selects Body; score ties sort by label independently of stable ItemKey source identity.",
+    "Additive binding publication retains Tab indentation, completion Enter/Tab acceptance, focus traversal, Ctrl+R scope and modal Help blocking.",
+    "Original col5 assertion remains explicitly identified as stale; corrected semantic col6 probe remains separately named and preserved."
+  ],
+  "source_evidence": {
+    "sample": "Frozen SAMPLE literal and candidate SAMPLE literal exactly equal; SHA256 75d87ea45970ec5363f3a4b33d66c58d1a796144bc063148f4191ca366e15f72.",
+    "baseline_diagnostics": "src/bin/showcase/pages/editor.rs:391-408 appends warnings/errors; candidate now retains existing diagnostics before append.",
+    "baseline_readout": "src/bin/showcase/pages/editor.rs:416-424 exact cursor containment; candidate equivalent.",
+    "shared_code": "git diff f4a4..de754 -- crates/termrock-runtime crates/termrock-editors is empty. No runtime input/render change or execution fallback change.",
+    "ownership": "Existing run-result data remains application-owned domain state; component rendering/editing/selection remain public shared implementations."
+  },
+  "new_findings": [],
+  "limits": [
+    "No full Playground frame or user-flow parity acceptance; this clears reviewed source contracts only.",
+    "Options and States sections remain absent and required. No complete Showcase coverage or library-architecture gate claimed.",
+    "No actual frozen/candidate CLI tuiscotti comparison, baseline operation, BLESS, expected output change or full product gate.",
+    "Author-reported demos50/editors17/fmt/Clippy were not separately rerun by reviewer. Full workspace and hosted CI not run.",
+    "External public consumer tests use a recorded Cargo.lock and distinct revision target; this is functional runtime evidence, not pinned terminal comparison.",
+    "No product source edits; read-only detached sparse copy remains clean. Artifacts only.",
+    "Command budget200seconds plus own-process-group cleanup10+4seconds; command completed normally, no child left running."
+  ]
+}

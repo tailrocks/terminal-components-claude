@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "06dbd66fcf3ac371d536bdf34391128592bef1dda2fd888144307b3b62cddad7",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5736,
+      "file": "holla/finder/parity-brew-services/80x24/truecolor.ansi",
+      "sha256": "06dbd66fcf3ac371d536bdf34391128592bef1dda2fd888144307b3b62cddad7"
+    },
+    "ascii": {
+      "bytes": 615,
+      "file": "holla/finder/parity-brew-services/80x24/truecolor.ascii",
+      "sha256": "0b84fd0f7a2f1162a9d2b223bee7566ab6ba89a5b9e16bda6e68b4f818f96fd7"
+    },
+    "ascii_loss_json": {
+      "bytes": 8804,
+      "file": "holla/finder/parity-brew-services/80x24/truecolor.ascii.loss.json",
+      "sha256": "32a3b9e81bea8b3c950ce6ea8c82b98abc9e6ac67371d66ab235e86f3ea5a48a"
+    },
+    "frame_json": {
+      "bytes": 510093,
+      "file": "holla/finder/parity-brew-services/80x24/truecolor.frame.json",
+      "sha256": "f3edcf92bf914dbe032038f4d05c9844820fa84a31552e40de0599d31bcab14d"
+    },
+    "html": {
+      "bytes": 204588,
+      "file": "holla/finder/parity-brew-services/80x24/truecolor.html",
+      "sha256": "4321214518759dab3f34b0dc35ce544ba3bee07993f36444f044129a38ff71bd"
+    },
+    "observations_json": {
+      "bytes": 473,
+      "file": "holla/finder/parity-brew-services/80x24/truecolor.observations.json",
+      "sha256": "ac1ce80070154deb128247a287040e18969bacc8cb13d4a471ad8f821bccd8fb"
+    },
+    "png": {
+      "bytes": 144712,
+      "file": "holla/finder/parity-brew-services/80x24/truecolor.png",
+      "sha256": "3e1e5981bdafbc010902c9d38ec4f93cda61d6834ad500f2e5358cc0c2be0351"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/parity-brew-services/80x24/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 799,
+      "file": "holla/finder/parity-brew-services/80x24/truecolor.txt",
+      "sha256": "9183785d1c8bf401b6d4bde60c1bea80276fee9ea67dc746b710292b8d46282e"
+    }
+  },
+  "ascii_substitutions_count": 95,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 10329124564321793689,
+  "frame_sha256": "f3edcf92bf914dbe032038f4d05c9844820fa84a31552e40de0599d31bcab14d",
+  "generation": "c6f329deb0b87eca44e367d8679d0a1a3dde2d73da3b6402f629da59958292c2",
+  "html_sha256": "4321214518759dab3f34b0dc35ce544ba3bee07993f36444f044129a38ff71bd",
+  "legacy_name": "holla/parity/brew-services/80x24/truecolor",
+  "name": "holla/finder/parity-brew-services/80x24/truecolor",
+  "png_sha256": "3e1e5981bdafbc010902c9d38ec4f93cda61d6834ad500f2e5358cc0c2be0351",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:51Z",
+  "txt_sha256": "9183785d1c8bf401b6d4bde60c1bea80276fee9ea67dc746b710292b8d46282e"
+}

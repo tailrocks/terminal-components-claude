@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Sidebars           truecolor · 100×30   i Inspector   ? Help
+
+▎  Overview          Sidebars  Sections, current item, focus cursor, hover, collapsed mode; text f…
+▎  Buttons
+▎  Inputs                                            Tasks
+▎  Text areas           Workspace
+▎  Forms             ▎› T Tasks                3     One focus stop. ↑ ↓ move the cursor, Enter
+▎  Lists             ▎  R Runs                       opens.
+▎  Trees             ▎  B Branches
+▎  Tables                                            ›  current item · persists when focus leaves
+▎  Editable tables      Project                      ▎  keyboard cursor · only while focused
+▎  Panels            ▎  M Members                    ░  hover · follows the pointer
+▎› Sidebars          ▎  E Environment
+▎  Dialogs           ▎  $ Billing                    Disabled items are skipped and ignore the
+▎  Progress                                          pointer.
+▎  Scrolling            Preferences                  Collapsed mode keeps rows and markers,
+▎  Terminal          ▎  K Keyboard                   initials only.
+▎  Code editor       ▎  A Appearance
+▎  Data grid
+▎  Chips & selects
+▎  Pickers
+▎  Chrome
+▎  Settings           ▎Collapse
+▎  Task runner
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

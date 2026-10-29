@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                      holla · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                    [0m
+ [0m[1m Here › Port 5173  [0m                                                                                [0m
+ ━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mPort 5173[0m                                                                   mbp · live · 1 s ago  [0m
+                                                                                                    [0m
+  Process  node (vite) · pid 7731 · 420 MB · sleeping                                               [0m
+                                                                                                    [0m
+ ╭─[0m[1m Listeners [0m─────────────────────────────────────────────────────────────── 3 lines · y copies ─╮ [0m
+ │  $ lsof -nP -iTCP:5173 -sTCP:LISTEN                                                            │ [0m
+ │  COMMAND             PID     USER      NAME                                                    │ [0m
+ │  node (vite)         7731    alex      *:5173 (LISTEN)                                         │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                    [0m
+  Next   Stop node (vite) (pid 7731)                                                                [0m
+                                                                                                    [0m
+ [0m[1m~/work/holla[0m   main   ↓3 • 5                snapshot · read-only                 no color · 100×30 [0m
+                          [0m[1m↑↓[0m Scroll  [0m[1my[0m Copy  [0m[1mTab[0m Next actions  [0m[1mEsc[0m Back                             [0m

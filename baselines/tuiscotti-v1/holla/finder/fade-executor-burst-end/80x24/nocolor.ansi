@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help            batch · project collection  [0m[1mmbp · local[0m [0m
+                                                                                [0m
+  Here   [0m[1m emit a burst [0m✓[0m[1m ×  [0m                                                    [0m
+ ────────━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────── [0m
+  [0m[1memit a burst[0m · succeeded · 1 s · exit 0            here · ~/work/batch · mbp  [0m
+  $ ./emit-burst · started by Emit a burst                                      [0m
+                                                                                [0m
+ ╭─[0m[1m output [0m────────── following · 500 earlier lines dropped · last 4000 kept ─╮ [0m
+ │  [0m[2mburst line 4488                                                         [0m│ │ [0m
+ │  burst line 4489                                                         │ │ [0m
+ │  burst line 4490                                                         │ │ [0m
+ │  burst line 4491                                                         │ │ [0m
+ │  burst line 4492                                                         │ │ [0m
+ │  burst line 4493                                                         │ │ [0m
+ │  burst line 4494                                                         │ │ [0m
+ │  burst line 4495                                                         │ │ [0m
+ │  burst line 4496                                                         │ │ [0m
+ │  burst line 4497                                                         │ │ [0m
+ │  burst line 4498                                                         │ │ [0m
+ │  burst line 4499                                                         ┃ │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m~/work/batch[0m                 succeeded · 1 s                  no color · 80×24 [0m
+        [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  [0m[1my[0m Copy  …   emit a burst finished · exit 0 [0m

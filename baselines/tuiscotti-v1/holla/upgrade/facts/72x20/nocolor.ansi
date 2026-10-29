@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help           no project  [0m[1mdevbox · development[0m [0m
+                                                                        [0m
+ [0m[1m Here › Upgrade everything  [0m                                           [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────── [0m
+  [0m[1mUpgrade everything[0m · devbox                                           [0m
+  upgrade Debian packages and global mise tools on devbox               [0m
+                                                                        [0m
+  ▎[0m[1m01 Preflight[0m                                              required   [0m
+                                                                        [0m
+   Runs       cat /etc/os-release                                   ┃   [0m
+              sudo -n true                                          │   [0m
+              fuser /var/lib/dpkg/lock-frontend                     │   [0m
+                                                                        [0m
+                                                                        [0m
+    6 required · 2 optional · 2 branches run in parallel where indepe…  [0m
+                                                                        [0m
+                                               Cancel    [0m[1mConfirm plan [0m  [0m
+                                                                        [0m
+ [0m[1m~[0m       review · 8 steps · 2 branches parallel        no color · 72×20 [0m
+                        [0m[1m↑↓[0m Scroll  [0m[1mEsc[0m Outline                          [0m

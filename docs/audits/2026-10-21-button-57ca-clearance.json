@@ -1,0 +1,106 @@
+{
+  "reviewer": "Independent Rust reviewer /root/button_theme_contract_review",
+  "reviewed_commit": "57ca512b3796b04e518a73b5fdfe7391f312c6f3",
+  "fix_commit": "1aafe8f2fcc7167ebf73284735a1181bf712b121",
+  "regression_test_commit": "57ca512b3796b04e518a73b5fdfe7391f312c6f3",
+  "status": "Bounded Button/Theme correction cleared. Required Theme gate still fails on unchanged pre-existing palette test. No full Button or application acceptance.",
+  "findings": [],
+  "resolved_findings": [
+    {
+      "prior_priority": "P2",
+      "path": "crates/termrock-theme/src/downgrade.rs",
+      "prior_line": 696,
+      "result": "The existing SCROLLBAR/CONTAINER/PRESSED eligibility predicate is restored for targeted/authored Mono rules. Original external probe unchanged:536 baseline PASS,9cf candidate FAIL,57ca repaired candidate PASS. Native regression also proves authored THUMB/PRESSED rule remains effective."
+    }
+  ],
+  "source_equivalence": [
+    {
+      "path": "crates/termrock-controls/src/button.rs",
+      "unchanged": true,
+      "sha256": "648b0e5e0cf0148f9f2b0d9625d95868fa55402ccd872fb94c39e9050fb63745"
+    },
+    {
+      "path": "crates/termrock-controls/tests/button_contract.rs",
+      "unchanged": true,
+      "sha256": "e2faa2dfacc83dc17cf0ca6f1718e4b75241253f22eee5b1e1a0e7ef22d1a51e"
+    },
+    {
+      "path": "crates/termrock-theme/src/glyph.rs",
+      "unchanged": true,
+      "sha256": "9eeb6cc5682cf33856ae931f1ef2e9893640961a93d93b08ed132047a31e8fa8"
+    },
+    {
+      "path": "crates/termrock-theme/src/builder.rs",
+      "unchanged": true,
+      "sha256": "815d5f0aa11557b0b09c31a26819035bbcb1e1a81e7c9540fb3cd495f4c7f93a"
+    },
+    {
+      "path": "crates/termrock-theme/src/builtin/mod.rs",
+      "unchanged": true,
+      "sha256": "b924a4f59473985bd2370430b5d1b7da5b5c0272e3aa5bfe6da0fdac5bcb9df7"
+    },
+    {
+      "path": "crates/termrock-theme/tests/glyph_compat.rs",
+      "unchanged": true,
+      "sha256": "d0eaa2a7ef70e0e755cd39b2102d32db17d83c466d64d277851214acc5a8c5f1"
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/termrock-button-9cf-probes/Cargo.toml --no-fail-fast --status-level fail",
+      "exit": 0,
+      "run_id": "95ff5bc0-4af7-407e-9238-2f3427bc83f9",
+      "result": "16/16 passed,0 skipped. Same original15 public probes plus unchanged Scrollbar regression. Includes actualFOCUSED/custom styles, all variants/profiles, pointer-first Enter/Space, inert real input/no registration/cursor/actions, modal suppression/restoration, oldconstructor/discriminants/glyph clone/hash/ASCII/custom override and busy/marker contracts."
+    },
+    {
+      "command": "cargo nextest run -p termrock-controls -p termrock-theme --all-targets --no-fail-fast --status-level fail",
+      "exit": 100,
+      "run_id": "43bc213d-c03b-461e-975a-beda34676852",
+      "result": "259 run:258 passed,1 failed,0 skipped. Controls121 passed; Theme137 passed and all_73_junie_slots_match_reference_capability_output failed,actualIndexed(78) versus expectedIndexed(77). Same failure independently reproduced at exact536 in prior review."
+    },
+    {
+      "command": "cargo clippy -p termrock-controls -p termrock-theme --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt -p termrock-controls -p termrock-theme --check",
+      "exit": 0
+    }
+  ],
+  "limits": [
+    "Narrow Unicode ellipsis mismatch remains a separate required Button increment; no test weakened or expected output changed.",
+    "No four-app CLI product comparison or full workspace gate performed; Theme required gate is red.",
+    "Merged Ui::fill_keep_fg and Jackin launch-dialog changes in57ca ancestry are outside this bounded Button/Theme approval.",
+    "Source worktree is clean; no product source edits, branch mutation or pushes by reviewer."
+  ],
+  "artifacts": [
+    {
+      "path": "/private/tmp/termrock-button-57ca-public.log",
+      "sha256": "eaf194f1d1e89e5e63fc44ad6ef5e7e381884d2fa12f4c62c9b21b5eb6f28a83"
+    },
+    {
+      "path": "/private/tmp/termrock-button-57ca-native.log",
+      "sha256": "09496da386bec064b4cb587283a062073ff5f80487fe6bf67c9e4ebc8494a271"
+    },
+    {
+      "path": "/private/tmp/termrock-button-57ca-clippy.log",
+      "sha256": "97d94a005cd6109d70201055aa55fc3624ea5a4487d0ff094f6b4bd9f6067fb6"
+    },
+    {
+      "path": "/private/tmp/termrock-button-57ca-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/termrock-button-9cf-probes/tests/scrollbar.rs",
+      "sha256": "22a1aaf9e0775f46cff97258caf333be4e61b50d197322bb65eeea0e1a14a925"
+    },
+    {
+      "path": "/private/tmp/termrock-button-9cf-scrollbar-base.log",
+      "sha256": "045977f7ad57a9ec4230da47b13e9f28e2702478f6873a3840e52732a8ca24e6"
+    },
+    {
+      "path": "/private/tmp/termrock-button-9cf-scrollbar.log",
+      "sha256": "51df05b7811a2d884d20b63fa782d2d49a5c02ae4e31cc4d6e8477ed4c315b3d"
+    }
+  ]
+}

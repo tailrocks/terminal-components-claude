@@ -1,0 +1,59 @@
+{
+  "review": "HOLD",
+  "source_commit": "dbf726455e0565f3f2956db0fb8832bfc93d1b2e",
+  "parent_commit": "09e0c3b5a849588eb3e5ee3db28b98e1533b1357",
+  "source_worktree": "/private/tmp/owned-worker-dbf-review-20261021",
+  "source_worktree_head": "dbf726455e0565f3f2956db0fb8832bfc93d1b2e",
+  "source_worktree_status": "clean tracked tree; isolated detached exact-commit worktree; tests wrote only ignored pycache and temporary synthetic fixtures",
+  "prior_review_packet": {
+    "path": "/private/tmp/owned-worker-09e0-independent-review.json",
+    "sha256": "137d421365977ebe566eb781dfd361d66d4c57e35f56e2a4bccc7df088dbcc02",
+    "disposition": "prior nested-parent detached-FD P1 is addressed by this commit's added path-chain checks, exact-inode failure cleanup, and deterministic boundary tests; original packet preserved"
+  },
+  "findings": [
+    {
+      "severity": "P1",
+      "summary": "The parent accepts the worker's success receipt without verifying that the file currently present at the accepted root-relative destination still has the receipt's device/inode/size/content digest. A post-worker replacement or mutation is therefore accepted as success.",
+      "source_location": "tools/frozen_baseline.py, _owned_publish_immutable result validation and parent-chain acceptance (approximately lines 4521-4550): receipt metadata/digest are compared to the request, parent device/inode are re-opened and compared, but the destination filename is neither opened nor statted/hashed on the parent side.",
+      "independent_reproduction": {
+        "method": "Used synthetic temporary root and payload b'good'; patched PrepareExecution.run to execute the real brokered worker, then overwrite root/report.bin with same-length b'evil' before returning to _owned_publish_immutable.",
+        "observed": "_owned_publish_immutable returned a successful receipt whose SHA-256 matched b'good', while root/report.bin contained b'evil'; actual_content != requested payload.",
+        "operational_data_access": "none; synthetic temporary directory only"
+      },
+      "required_regression": "After the worker returns, reopen the validated parent chain and destination using no-follow descriptor-relative operations; compare no-follow stat and opened-file identity (dev/inode/size/link count), bounded-read and hash exact bytes, and match all receipt fields before accepting. Add deterministic post-worker same-inode mutation and pathname replacement tests. State the remaining race window after the last check; do not claim permanent immutability against same-UID writers without an OS-enforced mechanism."
+    }
+  ],
+  "prior_nested_parent_review": {
+    "disposition": "The corrective implementation adds a recorded ancestor identity chain; rechecks before/after link and before worker receipt; parent reopens the current chain and compares its parent dev/inode; and failure cleanup removes only exact worker-created inode links. Independent targeted regression passed all directory/symlink boundary cases. The source documentation correctly disclaims portable atomic ancestry locking and swap/restore protection.",
+    "test": "test_owned_rooted_filesystem_worker_rejects_detached_nested_parent_at_each_boundary passed (1 test, 0.937s)."
+  },
+  "tests": {
+    "full_suite": {
+      "command": "python3 -m unittest -q test_frozen_baseline (Python 3.15; alarm 180s)",
+      "result": "157 tests passed, 0 skipped, 40.920s"
+    },
+    "static": {
+      "command": "python3 -m py_compile tools/frozen_baseline.py tools/test_frozen_baseline.py; git diff --check 09e0c3b5a849588eb3e5ee3db28b98e1533b1357..HEAD",
+      "result": "passed"
+    }
+  },
+  "scope_and_limits": {
+    "architecture_positive": [
+      "The corrective worker remains dispatched through existing PrepareExecution supervision with explicitly passed root FD, not a second supervisor.",
+      "Payload/request/result bounds, no-follow/exclusive creation, no-overwrite link, fsyncs, bounded digest checks, and exact-inode failure cleanup remain present.",
+      "New ancestor identity checks reject observed nested directory/symlink detachments at deterministic before/during/after-link and receipt checkpoints."
+    ],
+    "not_reviewed_or_executed": [
+      "No live lifecycle CLI, plan, key, capture, replay, or candidate operation.",
+      "No review of owned advance/chunk/full lifecycle admission; this worker primitive alone is not lifecycle clearance."
+    ],
+    "filesystem_limit": "Portable pathname operations cannot atomically pin a full directory ancestry and protect it from rename between a final check and a filesystem operation; documentation appropriately avoids that universal claim. Any acceptance claim must be checkpoint-bounded."
+  },
+  "exact_source_commands": [
+    "git show -s --format='%H %P %s' dbf726455e0565f3f2956db0fb8832bfc93d1b2e",
+    "git rev-parse HEAD => dbf726455e0565f3f2956db0fb8832bfc93d1b2e",
+    "python3 -m unittest -q test_frozen_baseline.RunnerGuards.test_owned_rooted_filesystem_worker_rejects_detached_nested_parent_at_each_boundary => passed",
+    "python3 -m unittest -q test_frozen_baseline => 157 passed, 0 skipped",
+    "synthetic post-worker same-size file mutation reproduction => successful receipt accepted while target bytes differed"
+  ]
+}

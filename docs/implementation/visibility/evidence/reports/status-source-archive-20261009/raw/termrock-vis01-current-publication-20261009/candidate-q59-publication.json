@@ -1,0 +1,19 @@
+{
+  "schema": "termrock-root-publication/v1",
+  "commit": "82ad0dff9eba8ae7748e9bc44623e20fd10d31bc",
+  "parent": "570662db5b9d9b86b408bc38ca4112248d04968d",
+  "tree": "ba3a0936da0faecbd6571beab7d551ab37235c96",
+  "branch": "termrock-implementation",
+  "queue_revision": 59,
+  "operation": "fast-forward push and remote readback",
+  "push_tool_chunk": "7195c6",
+  "readback_tool_chunk": "d8e488",
+  "commit_review_sha256": "14b879fcedbc19bd52712bce4c01d26adb244c4d08ad604dc1d3abd9f7e8877c",
+  "scope": [
+    "WORK_QUEUE.md",
+    "docs/implementation/visibility/tasks.json"
+  ],
+  "limits": [
+    "TLS implementation admission only; no Cargo/live API or readiness proof"
+  ]
+}

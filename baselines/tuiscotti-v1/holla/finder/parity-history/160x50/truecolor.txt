@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                  holla · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›
+
+    Suggested here                                                                                               Run check                        task · here
+  › Run check     task     here  defined by ~/work/holla/mise.toml
+    Run fmt       task     here  defined by ~/work/holla/mise.toml                                               Does       type-check every target · runs
+    Run lint      task     here  defined by ~/work/holla/mise.toml                                                          in ~/work/holla
+    Run shots     task     here  defined by ~/work/holla/mise.toml                                               Runs       mise run check
+    Run tests     task     here  defined by ~/work/holla/mise.toml                                               In         ~/work/holla
+                                                                                                                 Host       mbp · local
+    Recent here                                                                                                  Scope      here
+    nothing used here yet                                                                                        Why        defined by
+                                                                                                                            ~/work/holla/mise.toml
+    Explore                                                                                                      Changes    runs `cargo check --workspace`
+     Tasks   Git   Files   Disk   Services   System                                                                         in ~/work/holla
+    System · mbp  explore  host  available on this host                                                          Risk       mutating
+                                                                                                                 Data       live · 2 s ago
+                                                                                                                 Gate       runs directly
+                                                                                                                 Alt+Enter  Show the task definition · Dry
+                                                                                                                            run · Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/holla   main                                                                                                                         truecolor · 160×50
+                                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

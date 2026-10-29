@@ -1,0 +1,150 @@
+{
+  "lossy": true,
+  "substitutions": [
+    {
+      "original": "▪",
+      "replacement": "#",
+      "x": 1,
+      "y": 0
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 87,
+      "y": 0
+    },
+    {
+      "original": "×",
+      "replacement": "x",
+      "x": 92,
+      "y": 0
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 89,
+      "y": 4
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 97,
+      "y": 4
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 103,
+      "y": 4
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 0,
+      "y": 6
+    },
+    {
+      "original": "›",
+      "replacement": "?",
+      "x": 1,
+      "y": 6
+    },
+    {
+      "original": "○",
+      "replacement": "?",
+      "x": 29,
+      "y": 10
+    },
+    {
+      "original": "●",
+      "replacement": "?",
+      "x": 47,
+      "y": 10
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 43,
+      "y": 25
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 58,
+      "y": 25
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 73,
+      "y": 25
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 88,
+      "y": 25
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 43,
+      "y": 26
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 58,
+      "y": 26
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 73,
+      "y": 26
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 88,
+      "y": 26
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 43,
+      "y": 27
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 58,
+      "y": 27
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 73,
+      "y": 27
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 88,
+      "y": 27
+    },
+    {
+      "original": "↑",
+      "replacement": "^",
+      "x": 1,
+      "y": 39
+    },
+    {
+      "original": "↓",
+      "replacement": "v",
+      "x": 3,
+      "y": 39
+    }
+  ],
+  "substitutions_count": 24
+}

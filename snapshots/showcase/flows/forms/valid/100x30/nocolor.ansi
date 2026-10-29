@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Forms               no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mForms[0m  Sections, required fields, validation, submission                       [0m
+   Buttons                                                                                          [0m
+   Inputs              New task                                                      Ctrl+S Submit  [0m
+   Text areas                                                                                       [0m
+ › Forms               Task                                   Options                               [0m
+   Lists                 [0m[1mTask name *                      [0m      Mode                                [0m
+   Trees               ▎ Fix the login redirect loop           ( ) Fast                             [0m
+   Tables                                                      (●) Balanced                         [0m
+   Editable tables       Description                           ( ) Thorough                         [0m
+   Panels                What should Junie do, and what…                                            [0m
+   Sidebars                                                    [✓] Run tests before opening a PR    [0m
+   Dialogs                                                     [ ] Open a pull request when done    [0m
+   Progress                                                                                         [0m
+   Scrolling             Optional · Markdown                   ○── Auto-approve changes off         [0m
+   Terminal                                                   [0m[2m ──● Notify on completion on        [0m  [0m
+   Code editor         Review                                   Managed by your organization        [0m
+   Diff                  Reviewer  optional                                                         [0m
+   Data grid             name@company.com                                                           [0m
+   Chips & selects       Optional                                                                   [0m
+   Pickers                                                                                          [0m
+   Chrome                                                                                           [0m
+   Settings                                                                                         [0m
+   Task runner                                                                                      [0m
+                                                                                                    [0m
+                        [0m[1mCreate task [0m   Reset    Task created ✓                                      [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1mEnter[0m Edit  [0m[1mCtrl+S[0m Submit  [0m[1mTab[0m Next                                                 Task created ✓ [0m

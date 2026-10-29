@@ -1,0 +1,36 @@
+  jackin❯  inside the Construct  ! instance index unreadable  ▲ daemon stale  Workspaces › payments-platform › edit
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ───────────────────────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────
+                        ╭──────────────────────────────────────────────────────────────────────╮
+      Workspace         │ Add role override                                          126 roles │               4 vars
+  ▎     DATABASE_URL    │ ▎ Type to search…                                                    │
+  ▎     STRIPE_KEY      │                                                                      │ential
+  ▎     LOG_LEVEL       │ ▎· the-architect  no overrides yet                           roles ┃ │
+  ▎     GH_TOKEN        │ ▎▪ backend        1 override · Enter adds anoth… configured        │ │
+  ▎     + Add environmen│ ▎· reviewer       no overrides yet                                 │ │
+      Role overrides    │ ▎· sre            no overrides yet                                 │ │· 126 in the registry
+    ▾ Role: backend     │ ▎· data-eng       no overrides yet                                 │ │                1 var
+  ▎     OPENAI_API_KEY  │ ▎· writer         no overrides yet                                 │ │› credential
+  ▎     + Add backend en│ ▎· svc-001        no overrides yet                                 │ │
+  ▎›    + Add role overr│ ▎· svc-002        no overrides yet                                 │ │
+                        │ ▎· svc-003        no overrides yet                                 │ │
+                        │ ▎· svc-004        no overrides yet                                 │ │
+                        │ ▎· svc-005        no overrides yet                                 │ │
+                        │ ▎· svc-006        no overrides yet                                 │ │
+                        │ ▎· svc-007        no overrides yet                                 │ │
+                        │                                                                      │
+                        ╰──────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ Type Filter  ↑↓ Move  …    Could not confirm running instances: instance index unreadable · entered without the ritual

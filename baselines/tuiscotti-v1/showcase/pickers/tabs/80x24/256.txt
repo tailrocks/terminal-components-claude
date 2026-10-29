@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Pickers             i Inspector   ? Help
+
+   Overview       ┃  Pickers  One modal list for files, tabs and levels: searc…
+   Buttons        ┃
+   Inputs       ╭──────────────────────────────────────────────╮
+   Text areas   │ Open tabs                                    │
+   Forms        │ ▎ Filter tabs…                               │evel
+   Lists        │                                              │
+   Trees        │ ▎≡ Query 1      query             Open tabs  │cles the scop…
+   Tables       │  T orders       public ·… active             │
+   Editable tabl│  T order_items  public ·…                    │
+   Panels       │  T History      public ·…                    │
+   Sidebars     │                                              │
+   Dialogs      │ ↑↓ Move · Enter Switch · Delete Close tab ·… │
+   Progress     ╰──────────────────────────────────────────────╯
+   Scrolling      ┃    Detail          —
+   Terminal       ┃    Level           Safe Mode
+   Code editor    ┃    Open tabs       Query 1 · orders · order_items · Histo…
+   Diff           ┃    Pickers opened  1
+   Data grid      │
+   Chips & selec… │
+ › Pickers        │
+
+ Esc Close  Tab Next

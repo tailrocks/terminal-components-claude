@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                                               Workspaces  inside the Construct  2 running [0m
+                                                                                                                        [0m
+ ╭─ Workspaces ────────── 2 running ─╮ │  Current directory · payments-platform                       saved workspace   [0m
+ │     Current directory             │ │                                                                                [0m
+ │   ▸ payments-platform             │ │  Working dir   /workspace/payments-platform                                    [0m
+ │   ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree                           [0m
+ │   ▸ release-automation            │ │                ~/src/shared-libs · ro shared                                   [0m
+ │   ▸ customer-portal               │ │  Roles         the-architect ★ · allowed 3 of 46                               [0m
+ │     + New workspace               │ │  Environments  5 vars · 2 [op]                                                 [0m
+ │                                   │ │  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·       [0m
+ │                                   │ │                Grok · Team ★ · OpenCode · Go subscription ★                    [0m
+ │                                   │ │  Policies      git pull enabled · keep awake on · dirty exit ask               [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │  Instances                                                  daemon · 3 s ago   [0m
+ │                                   │ │  ◉ 7f3a  the-architect · Claude Code · running                                 [0m
+ │                               ╭────────────────────────────────────────────────────╮                                 [0m
+ │                               │                                                    │                                 [0m
+ │                               │  [0m[1mExit jackin❯?[0m                                     │                                 [0m
+ │                               │                                                    │                                 [0m
+ │                               │  2 instances keep running in the Construct. The    │                                 [0m
+ │                               │  host console closes; reconnect from a new         │                                 [0m
+ │                               │  terminal.                                         │                                 [0m
+ │                               │                                                    │                                 [0m
+ │                               │                                    Cancel  ▎[0m[1mQuit [0m  │                                 [0m
+ │                               │                                                    │                                 [0m
+ │                               ╰────────────────────────────────────────────────────╯                                 [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │  Launch    Edit                                                                [0m
+ ╰───────────────────────────────────╯ │                                                                                [0m
+                                                                                                                        [0m
+              [0m[1m     [0m         [0m[1m [0m [0m[1m← →[0m C[0m[1mh[0moose  [0m[1mEnter[0m Confirm [0m[1m Esc[0m Cancel [0m[1m y / n[0m Qu[0m[1mi[0mck answer  [0m[1m [0m       [0m[1m [0m                      [0m

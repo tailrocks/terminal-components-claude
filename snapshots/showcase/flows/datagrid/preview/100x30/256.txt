@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Data grid         256 colors · 100×30   i Inspector   ? Help
+
+   Overview          Data grid  Typed cells, a pending-change queue, paging and local sort
+   Buttons
+   Inputs              customers             rows 1–18 of 40 loaded · ~4,812 total · cols 1–4 of 8
+   Text areas
+   Forms                     ⚷ id       customer                   plan          seats        4›
+   Lists                 • 1 1001       Northwind Traders          enterprise      600           ┃
+   Trees         ╭────────────────────────────────────────────────────────────────╮ 12           ┃
+   Tables        │                                                                │ 12           ┃
+   Editable table│  Pending changes                                               │  1           ┃
+   Panels        │                                                                │ 40           ┃
+   Sidebars      │  Statements  2                                                 │  5           ┃
+   Dialogs       │  Rows        2 changed · 0 inserted · 0 deleted                │150           ┃
+   Progress      │  Target      customers                                         │ 25           │
+   Scrolling     │                                                                │  3           │
+   Terminal      │  UPDATE customers SET seats = 600 WHERE id = 1001;             │ 80           │
+   Code editor   │  UPDATE customers SET seats = 12 WHERE id = 1002;              │ 12           │
+   Diff          │                                                                │  1           │
+ › Data grid     │                                           ▎Cancel   Copy SQL   │ 40           │
+   Chips & select│                                                                │  5           │
+   Pickers       ╰────────────────────────────────────────────────────────────────╯150           │
+   Chrome                 16 1016       Humongous Insurance        free             25           │
+   Settings               17 1017       Northwind Traders 2        enterprise        3           │
+   Task runner            18 1018       Blue Yonder Airlines 2     team             80           │
+
+                        • 2 pending · 2 updates                     Preview SQL   Discard   Save
+
+
+ ← → Choose  Enter Confirm  Esc Cancel                                                    2 pending
