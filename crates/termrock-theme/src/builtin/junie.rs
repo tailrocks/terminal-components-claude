@@ -45,6 +45,15 @@ const RED_45: Color = Color::from_u32(0x7a_2a_2a);
 const AMBER: Color = Color::from_u32(0xf5_9e_09);
 const AMBER_TINT: Color = Color::from_u32(0x2c_22_10);
 const PURPLE: Color = Color::from_u32(0x87_87_ff);
+/// The chrome rule that separates application chrome from its content.
+/// The frozen frames carry `#3a3a3a` for the rule between the status strip
+/// and the page body.
+const CHROME_RULE: Color = Color::from_u32(0x3a_3a_3a);
+/// The frozen scroll track ink (`src/theme.rs:750`, `WHITE_28`). The approved
+/// frames paint the `┆` track in `#474747`.
+const SCROLL_TRACK: Color = Color::from_u32(0x47_47_47);
+/// The frozen scroll thumb ink. The 256 profile paints it as cell 245.
+const SCROLL_THUMB: Color = Color::from_u32(0x80_80_80);
 
 pub(crate) const fn tokens() -> ColorTokens {
     ColorTokens {
@@ -81,6 +90,13 @@ pub(crate) const fn tokens() -> ColorTokens {
         disabled_fg: WHITE_30,
         disabled_bg: OVERLAY,
         read_only_fg: WHITE_70,
+        status_bar_bg: CHROME,
+        status_bar_fg: WHITE,
+        status_accent: SUCCESS_GREEN,
+        chrome_rule: CHROME_RULE,
+        scroll_track: SCROLL_TRACK,
+        scroll_thumb: SCROLL_THUMB,
+        tag_ink: TEXT_MUTED,
 
         syntax: SyntaxTokens {
             // The frozen source paints keywords #79b8ff, strings #8bd5ca,

@@ -22,6 +22,46 @@ use termrock_runtime::author::CompositionLeaf;
 use termrock_runtime::rowui::RowFn;
 use termrock_runtime::{CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH, Measure, Ui};
 
+pub mod adapters;
+pub use adapters::*;
+
+/// A leaf that delegates measurement and drawing to two callbacks.
+///
+/// The callbacks carry the component and its caller-owned state, so a
+/// composition child never copies application data and never owns a second
+/// measurement or rendering path. The component's own `measure` and `draw`
+/// stay the only implementations.
+pub struct Leaf<M, D> {
+    measure: M,
+    draw: D,
+}
+
+impl<M, D> Leaf<M, D> {
+    /// Build a leaf from a measurement callback and a drawing callback.
+    pub const fn new(measure: M, draw: D) -> Self {
+        Self { measure, draw }
+    }
+}
+
+impl<M, D> Measure for Leaf<M, D>
+where
+    M: for<'ui> Fn(&Ui<'ui>, Constraints) -> Size,
+{
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        (self.measure)(ui, constraints)
+    }
+}
+
+impl<M, D> CompositionLeaf for Leaf<M, D>
+where
+    M: for<'ui> Fn(&Ui<'ui>, Constraints) -> Size,
+    D: for<'ui> Fn(&mut Ui<'ui>, ratatui_core::layout::Rect),
+{
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        (self.draw)(ui, logical);
+    }
+}
+
 /// A borrowed component configured for placement in a composition group.
 ///
 /// Create children with [`button`], [`tabs`], [`steps`], [`nav_list`], [`code_editor`], or
@@ -618,6 +658,18 @@ impl<'a> Group<'a> {
             children,
             depth,
         }
+    }
+}
+
+impl Measure for Child<'_> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.measure_validated(ui, constraints)
+    }
+}
+
+impl CompositionLeaf for Child<'_> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        self.draw_validated(ui, logical);
     }
 }
 

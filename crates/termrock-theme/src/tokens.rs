@@ -212,6 +212,20 @@ pub struct ColorTokens {
     pub disabled_fg: Color,
     pub disabled_bg: Color,
     pub read_only_fg: Color,
+    /// The background of an application status strip.
+    pub status_bar_bg: Color,
+    /// The primary ink of an application status strip.
+    pub status_bar_fg: Color,
+    /// The accent ink of an application status strip.
+    pub status_accent: Color,
+    /// The rule that separates application chrome from its content.
+    pub chrome_rule: Color,
+    /// The track of a scroll bar.
+    pub scroll_track: Color,
+    /// The thumb of a scroll bar.
+    pub scroll_thumb: Color,
+    /// The ink of a small tag or label chip.
+    pub tag_ink: Color,
     pub syntax: SyntaxTokens,
     pub meter: MeterTokens,
 }
@@ -257,6 +271,13 @@ impl ColorTokens {
             disabled_fg,
             disabled_bg,
             read_only_fg,
+            status_bar_bg,
+            status_bar_fg,
+            status_accent,
+            chrome_rule,
+            scroll_track,
+            scroll_thumb,
+            tag_ink,
             syntax,
             meter,
         } = *self;
@@ -294,6 +315,13 @@ impl ColorTokens {
             disabled_fg: mapper.color(disabled_fg),
             disabled_bg: mapper.color(disabled_bg),
             read_only_fg: mapper.color(read_only_fg),
+            status_bar_bg: mapper.color(status_bar_bg),
+            status_bar_fg: mapper.color(status_bar_fg),
+            status_accent: mapper.color(status_accent),
+            chrome_rule: mapper.color(chrome_rule),
+            scroll_track: mapper.color(scroll_track),
+            scroll_thumb: mapper.color(scroll_thumb),
+            tag_ink: mapper.color(tag_ink),
             syntax: syntax.map_colors(&mut |color| mapper.color(color)),
             meter: meter.map_with(mapper),
         }
@@ -311,13 +339,13 @@ impl ColorTokens {
                 rest
             }
         }
-        let mut collect = Collect(Vec::with_capacity(73));
+        let mut collect = Collect(Vec::with_capacity(80));
         let _ = self.map_with(&mut collect);
         collect.0
     }
 
     pub fn colors(&self) -> Vec<Color> {
-        let mut out = Vec::with_capacity(72);
+        let mut out = Vec::with_capacity(79);
         let _ = self.map_colors(&mut |c| {
             out.push(c);
             c

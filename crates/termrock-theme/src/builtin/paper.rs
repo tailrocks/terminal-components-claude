@@ -59,6 +59,13 @@ pub(crate) const fn seeds() -> ColorTokens {
         disabled_fg: r,
         disabled_bg: r,
         read_only_fg: r,
+        status_bar_bg: r,
+        status_bar_fg: r,
+        status_accent: r,
+        chrome_rule: r,
+        scroll_track: r,
+        scroll_thumb: r,
+        tag_ink: r,
         syntax: SyntaxTokens::derive(ACCENT, SUCCESS, WARNING),
         meter: MeterTokens::derive(SUCCESS, WARNING, DANGER),
     }
