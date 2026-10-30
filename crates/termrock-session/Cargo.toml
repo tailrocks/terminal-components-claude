@@ -1,0 +1,19 @@
+[package]
+name = "termrock-session"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+termrock-core = { workspace = true, features = ["crossterm"] }
+termrock-runtime.workspace = true
+termrock-terminal.workspace = true
+termrock-theme.workspace = true
+ratatui.workspace = true
+ratatui-core.workspace = true
+ratatui-crossterm.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

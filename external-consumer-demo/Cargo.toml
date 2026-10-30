@@ -1,0 +1,32 @@
+[package]
+name = "external-consumer-demo"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT"
+description = "External public consumer of the Termrock component library"
+repository = "https://github.com/tailrocks/terminal-components-claude"
+publish = false
+
+# This crate is deliberately NOT a member of the repository workspace. It
+# builds standalone, exactly like a consumer outside this repository would,
+# with its own lockfile and its own dependency resolution:
+#
+#     cargo nextest run --manifest-path external-consumer-demo/Cargo.toml
+#
+# The empty `[workspace]` table detaches it from the workspace root above it.
+[workspace]
+
+# The only Termrock dependency is the public facade. No internal `termrock-*`
+# crate is reachable from here; tests/public_api_only.rs guards that.
+[dependencies]
+termrock = { path = "../crates/termrock" }
+
+# The test harness drives the consumer through the public production render
+# path (`prepare` / `draw_prepared` / `acknowledge_presented`) on Ratatui's
+# public test backend.
+[dev-dependencies]
+ratatui = { version = "0.30", features = ["crossterm_0_29"] }
+
+[lib]
+doctest = false

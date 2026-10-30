@@ -1,0 +1,33 @@
+[package]
+name = "termrock-shell"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+doctest = false
+
+[features]
+default = ["crossterm"]
+crossterm = []
+testing = []
+
+[dependencies]
+termrock-core.workspace = true
+termrock-layout.workspace = true
+termrock-theme.workspace = true
+termrock-runtime.workspace = true
+ratatui-core.workspace = true
+
+[dev-dependencies]
+ratatui.workspace = true
+termrock.workspace = true
+termrock-test-support.workspace = true
+# The reach harness drives the runtime over a test buffer; its surface stays
+# out of production builds, so the runtime's testing feature is dev-only here.
+termrock-runtime = { workspace = true, features = ["testing"] }
+# Self dev-dependency: turns the crate's own `testing` feature on for its
+# unit tests, so the reach harness stays covered by `cargo nextest run -p
+# termrock-shell` while production builds keep it compiled out.
+termrock-shell = { path = ".", features = ["testing"] }

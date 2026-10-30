@@ -1,0 +1,11 @@
+[package]
+name="independent-picker-contrast"
+version="0.0.0"
+edition="2024"
+[workspace]
+[dependencies]
+ratatui-core={version="0.1.2",features=["std","underline-color"]}
+termrock-navigation={path="/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-navigation"}
+termrock-runtime={path="/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-runtime",features=["testing"]}
+termrock-test-support={path="/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-test-support"}
+termrock-theme={path="/private/tmp/picker-contrast-c932adb-independent-source-20261021/crates/termrock-theme"}
