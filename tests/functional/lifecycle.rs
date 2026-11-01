@@ -69,6 +69,15 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
     app.wait_screen("escape dismisses the popover after resize", |s| {
         text(s).contains("Open popover ▾")
     });
+    // Park the pointer on an inert corner so the trigger's hover state at
+    // freeze time is intentional, not wherever the click happened to rest.
+    app.move_to(super::support::Point { x: 79, y: 0 });
+    // The terminal cursor follows focus back to the trigger on a later
+    // frame than the popover's disappearance; freeze only once it lands.
+    let trigger = find(&app.screen(), "Open popover \u{25be}");
+    app.wait_screen("cursor returns to the trigger", |s| {
+        s.cursor().row() == u32::from(trigger.y)
+    });
     app.visual("functional/showcase_popover_resize");
     app.finish();
 }

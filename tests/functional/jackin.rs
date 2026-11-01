@@ -123,13 +123,18 @@ fn jackin_editor_cancel_keeps_unsaved_name_and_discard_restores() {
     assert!(text(&reopened).contains("payments-platform"));
     assert!(!text(&reopened).contains("payments-platform-functional"));
     assert!(!text(&reopened).contains("• 1 change"));
+    // The "Discarded 1 change" footer flash fades on wall time; freeze
+    // after it so the editor footer is deterministic.
+    app.wait_absent("Discarded 1 change");
     app.visual("functional/jackin_editor_discard");
     app.finish();
 }
 
 #[test]
 fn jackin_help_owns_keys_and_wheel_then_restores_manager_focus() {
-    let app = jackin("jackin-help", "reduced");
+    // Paused motion freezes the SimClock: the manager sliver beside the
+    // Help popup carries a "N s ago" relative time that must not tick.
+    let app = jackin("jackin-help", "paused");
     app.wait_text("Current directory");
     app.key("down");
     app.wait_text("Workspaces › payments-platform");

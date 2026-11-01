@@ -8,9 +8,8 @@ license = "MIT"
 
 default-run = "showcase"
 
-# `cargo xtask …` (alias in .cargo/config.toml): repository tasks.
 [workspace]
-members = [".", "xtask"]
+members = ["."]
 
 [lib]
 name = "junie_tui"

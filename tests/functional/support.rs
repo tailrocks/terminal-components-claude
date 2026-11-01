@@ -127,6 +127,30 @@ impl App {
         // Settle first so release flashes and other transients have expired;
         // freezing a mid-animation frame would be timing-dependent.
         let _ = self.settle();
+        // Then require a stable frame: two identical consecutive cell
+        // fingerprints (cells and cursor) before freezing. Under load the
+        // app may not have consumed the last input yet when output first
+        // goes quiet; a single quiet period would freeze that pending
+        // frame. The deadline bounds screens that legitimately keep
+        // redrawing; those tests wait for a settled state themselves.
+        let fingerprint = |screen: &TerminalSnapshot| {
+            let mut bytes = serde_json::to_vec(screen.cells()).expect("serialize cells");
+            let cursor = screen.cursor();
+            bytes.extend_from_slice(&cursor.col().to_le_bytes());
+            bytes.extend_from_slice(&cursor.row().to_le_bytes());
+            bytes.push(u8::from(cursor.visible()));
+            bytes
+        };
+        let deadline = Instant::now() + Duration::from_millis(1500);
+        let mut previous = fingerprint(&self.screen());
+        loop {
+            std::thread::sleep(Duration::from_millis(100));
+            let current = fingerprint(&self.screen());
+            if current == previous || Instant::now() >= deadline {
+                break;
+            }
+            previous = current;
+        }
         let sample = tuiscotti_latest::sample::Sample::state(
             test_id,
             self.screen(),

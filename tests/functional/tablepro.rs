@@ -151,7 +151,7 @@ fn tablepro_connection_failure_retries_then_another_connection_succeeds() {
     assert!(text(&connected).contains("Query 1"));
     assert!(!text(&connected).contains("Filter connections"));
     assert!(!text(&connected).contains("Authentication failed"));
-    app.visual("functional/tablepro_connection_recovery");
+    freeze(&app, "functional/tablepro_connection_recovery");
     app.finish();
 }
 
@@ -236,7 +236,7 @@ fn tablepro_dirty_picker_close_matches_ctrl_w_and_cancel_preserves_sql() {
     open_tabs(&app, None);
     delete_requires_confirmation(&app);
     confirm_close(&app, "Query 2", "Query 1");
-    app.visual("functional/tablepro_dirty_picker");
+    freeze(&app, "functional/tablepro_dirty_picker");
     app.finish();
 }
 
@@ -277,7 +277,7 @@ fn tablepro_filtered_picker_closes_requested_dirty_tab_and_preserves_active() {
     open_tabs(&app, None);
     delete_requires_confirmation(&app);
     confirm_close(&app, "Query 3", "Query 1");
-    app.visual("functional/tablepro_filtered_picker");
+    freeze(&app, "functional/tablepro_filtered_picker");
     app.finish();
 }
 
@@ -300,7 +300,7 @@ fn tablepro_clean_picker_close_is_immediate_and_picker_stays_usable() {
         let t = text(s);
         !t.contains("Open tabs") && t.contains("Query 1")
     });
-    app.visual("functional/tablepro_clean_picker");
+    freeze(&app, "functional/tablepro_clean_picker");
     app.finish();
 }
 
@@ -345,6 +345,13 @@ fn close_all_tabs(app: &App) {
     app.wait_text("No open tabs");
 }
 
+/// Freeze after the "✓ Connected to …" footer flash has faded: the flash
+/// expires on the app clock, so capturing it is timing-dependent.
+fn freeze(app: &App, test_id: &str) {
+    app.wait_absent("\u{2713} Connected to");
+    app.visual(test_id);
+}
+
 fn connected(name: &str) -> App {
     let app = App::new(
         name,
@@ -373,7 +380,7 @@ fn tablepro_connections_landing_and_unreachable_detail() {
     app.wait_screen("analytics detail shows warehouse host", |s| {
         text(s).contains("analytics.acme.io") || text(s).contains("warehouse")
     });
-    app.visual("functional/tablepro_connections_landing");
+    freeze(&app, "functional/tablepro_connections_landing");
     app.finish();
 
     let app = App::new(
@@ -393,7 +400,7 @@ fn tablepro_connections_landing_and_unreachable_detail() {
             && !t.contains("Query 1")
     });
     assert!(!text(&failed).contains("Query 1"));
-    app.visual("functional/tablepro_connection_unreachable");
+    freeze(&app, "functional/tablepro_connection_unreachable");
     app.finish();
 }
 
@@ -411,7 +418,7 @@ fn tablepro_connect_development_opens_workbench() {
     app.click(list_row(&app, "Development"));
     app.click(action_btn(&app, "Connect"));
     app.wait_text("Query 1");
-    app.visual("functional/tablepro_workbench_development");
+    freeze(&app, "functional/tablepro_workbench_development");
     app.finish();
 }
 
@@ -435,7 +442,7 @@ fn tablepro_delete_connection_cancel_then_confirm() {
     app.wait_text("Delete connection?");
     app.click(dialog_action(&app, "Delete"));
     app.wait_absent("Scratch");
-    app.visual("functional/tablepro_connection_deleted");
+    freeze(&app, "functional/tablepro_connection_deleted");
     app.finish();
 }
 
@@ -449,7 +456,7 @@ fn tablepro_query_select_results_and_error_recovery() {
         let t = text(s);
         !t.contains("Type orders to confirm") && (t.contains("rows") || t.contains("orders"))
     });
-    app.visual("functional/tablepro_query_results");
+    freeze(&app, "functional/tablepro_query_results");
     close_all_tabs(&app);
     app.finish();
 
@@ -468,7 +475,7 @@ fn tablepro_query_select_results_and_error_recovery() {
     app.wait_screen("corrected query returns results", |s| {
         text(s).contains("rows") || text(s).contains("orders")
     });
-    app.visual("functional/tablepro_query_error_recovery");
+    freeze(&app, "functional/tablepro_query_error_recovery");
     close_all_tabs(&app);
     app.finish();
 }
@@ -485,6 +492,14 @@ fn tablepro_history_rerun_and_help_and_layout() {
     app.key("ctrl+y");
     app.wait_screen("history opens", |s| {
         text(s).to_lowercase().contains("history")
+    });
+    // Freeze only the settled consequence: the run has finished (no
+    // "running" status) and its entry has landed in history (16 entries).
+    app.wait_screen("history entry settled", |s| {
+        let t = text(s);
+        // The connect flash in the footer fades on wall time; freeze only
+        // after it is gone so the footer hint row is deterministic.
+        t.contains("16 entries") && !t.contains("running") && !t.contains("\u{2713} Connected to")
     });
     app.visual("functional/tablepro_history");
     app.key("escape");
@@ -504,7 +519,7 @@ fn tablepro_history_rerun_and_help_and_layout() {
     });
     app.key("ctrl+b");
     app.wait_text("Filter objects");
-    app.visual("functional/tablepro_workbench_layout");
+    freeze(&app, "functional/tablepro_workbench_layout");
     app.key("escape");
     app.finish();
 }
@@ -520,7 +535,7 @@ fn tablepro_resize_and_too_small_recovers() {
     app.wait_screen("workbench recovered at 120x40", |s| {
         s.cols() == 120 && text(s).contains("Query 1")
     });
-    app.visual("functional/tablepro_resize_60x20");
+    freeze(&app, "functional/tablepro_resize_60x20");
     app.key("escape");
     app.finish();
 
@@ -533,6 +548,6 @@ fn tablepro_resize_and_too_small_recovers() {
         "nocolor",
     );
     app.wait_text("Filter connections");
-    app.visual("functional/tablepro_connections_nocolor");
+    freeze(&app, "functional/tablepro_connections_nocolor");
     app.finish();
 }

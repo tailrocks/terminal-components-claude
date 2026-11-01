@@ -241,6 +241,8 @@ fn showcase_primary_button_exact_rest_hover_held_colours() {
     app.wait_screen("release flash returns to hover", |s| {
         bg(s, run) == SnapshotColor::Rgb(58, 179, 67)
     });
+    // The "Run task ✓" footer flash fades on wall time; freeze after it.
+    app.wait_absent("Run task \u{2713}");
     app.visual("functional/showcase_primary_colours");
     app.finish();
 }
