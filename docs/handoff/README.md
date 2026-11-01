@@ -1,3 +1,7 @@
-# Migration handoff
+# Handoff
 
-Start with the current [Termrock migration and acceptance matrix](../architecture/termrock-migration-matrix.md). It records fixed source identities, application status, paired CLI coverage, architecture findings, unresolved differences, and next evidence. Treat every partial or missing result as incomplete work.
+Whoever stops with unfinished work pushes it to `wip/<name>` on
+origin and lists it here (tip, item, state, exact next steps) before
+stopping. On restart, read this file first and land or resume the
+`wip/*` branches before new work. Current status and next evidence
+live in [current state](../current-state.md); no handoff is open.

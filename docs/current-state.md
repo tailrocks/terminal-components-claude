@@ -1,26 +1,62 @@
 # Current state
 
-The refactor is incomplete and not ready for product use; the main modular state is known to be broken and incomplete relative to the intended architecture and product behavior. Main has workspace members for core, layout, theme, text, render, collections, runtime, controls, fields, feedback, navigation, viewport, overlays, grid, editors, forms, terminal, and session, then facade, Showcase data/demo/UI/app crates, Holla domain/catalog/plan/sim/UI/app crates, Jackin domain/sim/presentation/host-UI/capsule-UI/app crates, TablePro domain/SQL/demo/UI/app crates, test/conformance and tooling crates. A crate's existence does not prove its ownership boundary is complete or its API is ready.
+This repository is the design reference implementation: a single Rust
+crate, `junie-tui` (v0.1.0, edition 2024, Rust 1.99.1), that contains a
+terminal component library and four demonstration applications. It is
+the exact authority for product appearance and interaction (see
+[product](product.md)). The modular multi-crate workspace described in
+[architecture](architecture.md) is the future refactoring state; it
+does not exist in this tree yet.
 
-The design reference and all six WIP workspaces use the monolithic `junie-tui` package plus `xtask`; each defines four application binaries. They are structurally distinct snapshots that diverge from the design reference in different ways; they are not branches that can be substituted for one another:
+## Structure
 
-- `wip/v1-showcase` includes a Holla activity-timing correction that accounts for paused ticks and waits through a stopped-job prompt. Its component/theme, Showcase, visual, review, upstream, and CI work remains separate from that scoped fix.
-- `wip/s14-followups` connects copy status to the platform's actual OSC 52 support and limits, avoiding an unconditional success message; Jackin has a corresponding application path. Its Showcase reachability and component work remains unfinished.
-- `wip/plan-s16` contains collection API work for list item metadata and row marks, tree metadata/cells, and column markers, in addition to Showcase and component requirements.
-- `wip/rapps-3-7-14` adds metadata folding when a metadata column is absent and hover reveal for dropped columns in app-specific tables, alongside responsive application work.
-- `wip/reach-pages-a` contains natural-size measurement and scroll/terminal behavior, plus measured layouts for text utilities, query workbench, connections, and finder pages.
-- `wip/reach-pages-a-2` contains natural-size measurement, a scroll-view horizontal-bar retry, panel metadata hover reveal, and measured/reveal behavior for step navigation; it does not contain all of the reach-pages-a measured pages.
+| Path | Owns |
+| --- | --- |
+| `src/lib.rs` | Library root (`junie_tui`); public module surface. |
+| `src/core/` | Foundational types: IDs, events, intents, validation, diagnostics. |
+| `src/shell/` | Application shell behaviour shared by every app: focus routing, hit testing, layers, modals, hints, help, quit guards. |
+| `src/ui/` | Rendering context, overlay layer (`RenderCtx::overlay`, `flush_overlays`, `begin_modal`, `modal_backdrop`), paint primitives. |
+| `src/widgets/` | The reusable component families (lists, trees, tables, fields, dialogs, menus, pickers, editors, scroll regions, splits). |
+| `src/bin/showcase/` | Showcase: the executable component catalog (54 pages). Thin consumer: pages add wiring, demo data and option tables only. |
+| `src/bin/tablepro/` | TablePro: simulated database workbench (connections, explorer, query tabs, results, history). |
+| `src/bin/holla/` | Holla: simulated launcher/finder, files, disk cleanup, services. Backends are simulated; tests assert the next in-app consequence. |
+| `src/bin/jackin/` | Jackin: simulated workspace manager/cockpit/capsule. Binary name is `jackin` (`cargo run --bin jackin`). |
+| `tests/functional/` | The only test estate: live PTY functional/integration tests plus the frozen visual gate. See [functional testing](functional-testing.md). |
+| `.velnor/config.toml` | Source of truth for generated CI (`.github/` is generated, never hand-edited). See [CI](ci.md). |
 
-These are scoped source differences, not parity or readiness claims. Each branch's remaining criteria and branch-local verification still apply; a fix in one does not close the equivalent behavior on another.
+## Rules that hold today
 
-## Demonstration coverage gap
+- Behaviour lives in the shared library (`src/core`, `src/shell`,
+  `src/ui`, `src/widgets`), never duplicated per screen or per app.
+  Apps provide routes, pages and configuration only.
+- Every widget follows the same conventions: builders, events,
+  outcomes, one keyboard-focus gutter (`Theme::gutter_symbol`),
+  selection distinct from focus, light-dismiss owned by the popup.
+- Behaviour is overridable in layers: app/profile policy, then
+  per-widget setting, then user key remapping.
+- The showcase demonstrates every library capability; the coverage
+  gate is described in
+  [shared components plan](architecture/shared-components-plan.md).
 
-Showcase declares 22 page identities on `main`, compared with 54 on `design/interaction-polish`. Main lacks the design reference's distinct routes for `Diff`, `Selectable`, `CellEditors`, `StatusHints`, `BreadcrumbsRails`, `HelpKeys`, `QuitLeave`, `FocusNavigation`, `ChecksRadios`, `Toolbars`, `Columns`, `Tabs`, `Menus`, `DialogKinds`, `PopupsTooltips`, `FileBrowser`, `EmptyError`, `Meters`, `Notices`, `SplitsStacks`, `MasterDetail`, `PaneTree`, `TextUtilities`, `QueryWorkbench`, `Connections`, `Finder`, `DiskCleanup`, `Activity`, `Workspaces`, `AccountsUsage`, `LaunchCockpit`, and `ReadOnlyReport`. These identities and page factories are declared in `crates/showcase-ui/src/app.rs` on main and `src/bin/showcase/app.rs` on the design reference. This establishes missing route-level demonstration coverage; it does not establish that the underlying controls or other applications lack equivalent capabilities. Restoring this coverage while preserving the design experience is part of the future migration, not this documentation replacement.
+## Testing today
 
-## Documentation and proof tooling
+- `cargo nextest run --locked --test functional --profile functional`
+  — 93 tests, 0 skipped: every app end-to-end (launch → operate →
+  verify consequence → reopen → clean exit), component families in
+  Showcase and in a real consumer, colour matrix
+  (truecolor/256/16/mono/`NO_COLOR`), normal and small sizes.
+- Every test ends in `App::visual("<id>")`, a `FrozenStore` check
+  against a committed baseline in `tests/functional/baselines/`.
+  Baselines are approved only via the Tuiscotti CLI `accept` command.
+- Full account of the deleted legacy estate and its replacement
+  mapping: [functional testing](functional-testing.md).
 
-The legacy tracked Markdown tree has been replaced by this shared documentation set. The shared `README.md` is its navigation entrypoint. Protected instruction files can still point to retired paths such as `docs/GOAL.md` or `docs/ci.md`; those links do not make the retired documents authoritative.
+## Known limits
 
-Main's CI compatibility migration separates maintained documentation from operational evidence. Visibility commands validate authoritative inputs without a tracked report, generate disposable artifact views, and retain exact output-freshness checks. Versioned capture and deferred-evidence packaging identifies the retired prose while preserving operational payload membership, historical evidence identities, and tamper rejection. Its tests generate report fixtures instead of copying removed root Markdown. The repository publisher still has a separate historical root-`STATUS.md` wire contract, requiring an intentional migration before integration with this documentation system. See [development](development.md#documentation-compatibility) for the command contract and remaining branch differences.
-
-The design and WIP workspaces still include older planning/hash/bootstrap validators, generated-component documentation consumers, and exact-content proof protocols. They may expect retired Markdown until their own intentional migrations are complete. This documentation does not certify those protocols, branch parity, or product readiness. Preserve non-Markdown source, test, configuration, generated, legal, and byte-bound fixture contracts during any migration; these artifacts are not a second maintained documentation system.
+- The crate is a monolith: library and four binaries in one package.
+  Splitting it is the refactoring programme in
+  [architecture](architecture.md); no part of that split has landed.
+- Applications simulate their backends (PostgreSQL, Docker,
+  filesystem). No real external effect is claimed or tested.
+- The `visual-baseline` git tag is frozen historical evidence. It is
+  never moved, and it is not a substitute for the current design.

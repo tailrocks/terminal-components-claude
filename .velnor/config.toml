@@ -8,8 +8,8 @@ schema = 1
 policy = "consumer-v1"
 # The working branch; pushes here run CI, pull requests run CI regardless.
 default_branch = "design/interaction-polish"
-# docs/visual-testing/plan.md §C3: CI runs on ubuntu-24.04.
-runner_label = "ubuntu-24.04"
+# CI runs on ubuntu-26.04 (see docs/ci.md).
+runner_label = "ubuntu-26.04"
 crate_timeout_minutes = 15
 # Plan checks out full history (fetch-depth 0); this repo carries a large
 # historical snapshot estate, so checkout alone exceeds the 5-minute default.
