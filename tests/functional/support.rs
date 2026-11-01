@@ -119,6 +119,36 @@ impl App {
         }
     }
 
+    /// Standard visual gate for every functional test (latest approach):
+    /// freeze the current live screen with latest Tuiscotti and require an
+    /// exact match with the reviewed baseline. A missing or changed
+    /// baseline fails; `check()` returning `Ok` alone is not a pass.
+    pub fn visual(&self, test_id: &str) {
+        // Settle first so release flashes and other transients have expired;
+        // freezing a mid-animation frame would be timing-dependent.
+        let _ = self.settle();
+        let sample = tuiscotti_latest::sample::Sample::state(
+            test_id,
+            self.screen(),
+            tuiscotti_latest::sample::Observation::empty(),
+        )
+        .expect("build Tuiscotti state sample");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let store = tuiscotti_latest::check::FrozenStore::new(
+            &root.join("tests/functional/baselines"),
+            &root.join("target/functional/artifacts"),
+        )
+        .expect("open Tuiscotti frozen store");
+        let outcome = store
+            .check(&sample.to_bytes().expect("serialize Tuiscotti sample"))
+            .expect("run Tuiscotti frozen check");
+        assert!(
+            outcome.is_pass(),
+            "visual mismatch for {test_id}: {outcome:?}"
+        );
+        self.log(format!("visual {test_id} pass"));
+    }
+
     pub fn wait_text(&self, needle: &str) -> TerminalSnapshot {
         self.wait_screen(&format!("visible {needle}"), |screen| {
             text(screen).contains(needle)

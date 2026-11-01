@@ -78,6 +78,7 @@ fn button_lifecycle(color: &str) {
     app.click(inside(preview));
     let after_disabled = app.wait_text("Preview ✓");
     assert_eq!(crop(&after_disabled, disabled, 16, 1), disabled_rest);
+    app.visual(&format!("functional/showcase_buttons_{color}"));
     app.finish();
 }
 
@@ -168,6 +169,9 @@ fn showcase_wheel_targets_the_pointed_pane_then_keys_follow_clicked_focus() {
         text(&scrolled).contains("row 1 · vertical"),
         "wheel must not move the list cursor"
     );
+    // Frozen checkpoint after the wheel move: later clicks create a
+    // transient activation flash, which is not a freezable state.
+    app.visual("functional/showcase_nested_scroll");
     let row = (0..scrolled.rows())
         .find_map(|y| {
             let line = row_text(&scrolled, y);
@@ -284,6 +288,7 @@ fn tablepro_write_confirmation_cancels_retries_and_executes_only_when_armed() {
     app.wait_text("Close tab with unsaved work?");
     app.click_text("Close anyway");
     app.wait_text("No open tabs");
+    app.visual("functional/tablepro_write_gate");
     app.finish();
 }
 
@@ -325,5 +330,6 @@ fn tablepro_connection_failure_retries_then_another_connection_succeeds() {
     assert!(text(&connected).contains("Query 1"));
     assert!(!text(&connected).contains("Filter connections"));
     assert!(!text(&connected).contains("Authentication failed"));
+    app.visual("functional/tablepro_connection_recovery");
     app.finish();
 }

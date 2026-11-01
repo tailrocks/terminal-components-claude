@@ -406,6 +406,29 @@ future dependency changes need explicit qualification.
 [upstream-release]: https://github.com/microsoft/tui-test/releases/tag/0.1.1
 [upstream-checked]: https://github.com/microsoft/tui-test/pull/282
 
+## The standard for every functional test
+
+Every test in this target follows one standardized pattern, with no
+exceptions and no legacy-API tests:
+
+1. Launch the real executable through the shared `support::App` harness
+   (`tui_test` / `tuiscotti-tui-test =0.2.1`, isolated environment, bounded
+   semantic waits, clean-exit and terminal-restoration assertions).
+2. Drive it with terminal input and assert the observable outcome between
+   steps (hover/held/release, cancellation, focus, neighbouring panes).
+3. End with `app.visual("<test-id>")`: the live screen is frozen as a
+   Tuiscotti state sample and compared with `FrozenStore` from latest
+   Tuiscotti (`tuiscotti-latest`, main `d8d5415`). The test asserts
+   `outcome.is_pass()`; a missing or changed baseline fails. Baselines for
+   all 25 tests live in `tests/functional/baselines/` and were approved
+   once with the Tuiscotti CLI `accept` command — tests never approve.
+   Checkpoints sit on deterministic screens (after `settle()`, not on
+   cycling status words or mid-flash frames).
+
+The legacy Tuiscotti 0.2 dependency remains only for the separate
+pre-existing `visual_baseline` harness; nothing in `tests/functional`
+uses it.
+
 ## Union suite (best of both reviews)
 
 The suite combines both reviewed deliveries: the `tuiscotti-tui-test` journeys
