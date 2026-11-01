@@ -37,5 +37,6 @@ fn showcase_help_survives_shrink_and_growth_and_returns_focus() {
     app.key("ctrl+pageup");
     app.wait_text("Tokens and principles behind every component");
     assert!(!text(&app.screen()).contains("App shell › Chrome"));
+    app.visual("functional/showcase_help_resize");
     app.finish();
 }

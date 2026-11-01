@@ -76,6 +76,7 @@ fn holla_trust_cancel_then_run_uses_the_child_directory() {
     assert_eq!(directory, "~/work/acme/apps/frontend");
     app.wait_text("19 passed (19)");
     app.wait_text("succeeded");
+    app.visual("functional/holla_trust_cancel_then_run");
     app.finish();
 }
 
@@ -160,6 +161,7 @@ fn holla_browser_hidden_files_preview_scroll_and_bad_path_recovery() {
     app.wait_text("type a path or a name");
     app.key("escape");
     app.wait_absent("type a path or a name");
+    app.visual("functional/holla_browser_hidden_files");
     app.finish();
 }
 
@@ -243,6 +245,7 @@ fn jackin_workspace_save_has_pointer_states_and_survives_reopening() {
     app.key("escape");
     app.key("escape");
     app.wait_absent("payments-platform › edit");
+    app.visual("functional/jackin_workspace_save");
     app.finish();
 }
 
@@ -312,5 +315,6 @@ fn jackin_account_required_masked_save_cancel_and_remove() {
         ["Overview"],
         "filter has no remaining matching account"
     );
+    app.visual("functional/jackin_account_remove");
     app.finish();
 }

@@ -61,6 +61,7 @@ fn showcase_primary_button_exact_rest_hover_held_colours() {
     app.wait_screen("release flash returns to hover", |s| {
         bg(s, run) == SnapshotColor::Rgb(58, 179, 67)
     });
+    app.visual("functional/showcase_primary_colours");
     app.finish();
 }
 
@@ -97,6 +98,7 @@ fn showcase_wheel_scrolls_pointed_grid_without_moving_sidebar() {
         row.contains("1001") && row.contains("Northwind Traders")
     });
     assert_eq!(sidebar(&up), before);
+    app.visual("functional/showcase_datagrid_wheel");
     app.finish();
 }
 
@@ -181,6 +183,7 @@ fn tablepro_dirty_picker_close_matches_ctrl_w_and_cancel_preserves_sql() {
     open_tabs(&app, None);
     delete_requires_confirmation(&app);
     confirm_close(&app, "Query 2", "Query 1");
+    app.visual("functional/tablepro_dirty_picker");
     app.finish();
 }
 
@@ -221,6 +224,7 @@ fn tablepro_filtered_picker_closes_requested_dirty_tab_and_preserves_active() {
     open_tabs(&app, None);
     delete_requires_confirmation(&app);
     confirm_close(&app, "Query 3", "Query 1");
+    app.visual("functional/tablepro_filtered_picker");
     app.finish();
 }
 
@@ -243,6 +247,7 @@ fn tablepro_clean_picker_close_is_immediate_and_picker_stays_usable() {
         let t = text(s);
         !t.contains("Open tabs") && t.contains("Query 1")
     });
+    app.visual("functional/tablepro_clean_picker");
     app.finish();
 }
 
@@ -285,6 +290,7 @@ fn holla_finder_search_runs_selected_task_and_records_result() {
     });
     assert!(!text(&history).contains("Nothing has been started yet"));
     app.key("escape");
+    app.visual("functional/holla_finder_history");
     app.finish();
 }
 
@@ -317,6 +323,7 @@ fn holla_cancelling_second_gate_leaves_no_started_activity() {
     });
     assert!(!text(&empty).contains("gate 2 of 2"));
     app.key("escape");
+    app.visual("functional/holla_second_gate_cancel");
     app.finish();
 }
 
@@ -347,6 +354,7 @@ fn holla_browser_pointer_selection_loads_preview_and_hidden_toggle() {
     app.key("ctrl+h");
     let hidden = app.wait_text("16 entries · 2 hidden hidden");
     assert!(!text(&hidden).contains(".env"));
+    app.visual("functional/holla_browser_pointer");
     app.finish();
 }
 
@@ -378,6 +386,9 @@ fn jackin_launch_detach_reconnect_preserves_capsule() {
     app.key("enter");
     let picker = app.wait_text("Launch · choose Agent");
     assert!(text(&picker).contains("payments-platform › the-architect"));
+    // Frozen checkpoint at the deterministic picker screen: the capsule and
+    // manager screens cycle agent status words, so they are not freezable.
+    app.visual("functional/jackin_launch_reconnect");
     app.key("enter");
     app.wait_text("Loading the-architect into workspace payments-platform");
     app.advance_clock(30_000);
@@ -447,6 +458,7 @@ fn jackin_editor_cancel_keeps_unsaved_name_and_discard_restores() {
     assert!(text(&reopened).contains("payments-platform"));
     assert!(!text(&reopened).contains("payments-platform-functional"));
     assert!(!text(&reopened).contains("• 1 change"));
+    app.visual("functional/jackin_editor_discard");
     app.finish();
 }
 
@@ -490,5 +502,6 @@ fn jackin_help_owns_keys_and_wheel_then_restores_manager_focus() {
         !t.contains("Launch · choose Agent") && t.contains("Current directory")
     });
     assert!(text(&cancelled).contains("2 running"));
+    app.visual("functional/jackin_help_ownership");
     app.finish();
 }
