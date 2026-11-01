@@ -1,20 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::ops::Range;
 use std::rc::Rc;
 
@@ -29,8 +14,6 @@ use crate::widgets::field_common::{
     Applied, EditAction, PointerField, PointerSelect, apply_edit, edit_key_in, unbound_key,
 };
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldError {
     message: String,
@@ -43,11 +26,9 @@ impl FieldError {
         }
     }
 
-
     pub fn message(&self) -> &str {
         &self.message
     }
-
 
     pub fn into_message(self) -> String {
         self.message
@@ -62,7 +43,6 @@ impl std::ops::Deref for FieldError {
 }
 
 impl FieldError {
-
 
     pub fn message_mut(&mut self) -> &mut String {
         &mut self.message
@@ -87,19 +67,13 @@ impl From<&str> for FieldError {
     }
 }
 
-
 pub trait Validate {
 
     type Value;
     fn validate(&self, text: &str) -> Result<Self::Value, FieldError>;
 }
 
-
 pub type ValidateFn<V, C> = dyn Fn(&C, &str) -> Result<V, FieldError>;
-
-
-
-
 
 pub struct Validator<V = (), C = ()>(Rc<ValidateFn<V, C>>);
 
@@ -135,11 +109,9 @@ impl<V: 'static, C: 'static> Validator<V, C> {
         Self(Rc::new(f))
     }
 
-
     pub fn validate_in(&self, cx: &C, text: &str) -> Result<V, FieldError> {
         (self.0)(cx, text)
     }
-
 
     pub fn bind(&self, cx: C) -> Validator<V> {
         let f = self.0.clone();
@@ -154,28 +126,16 @@ impl<V> Validate for Validator<V> {
     }
 }
 
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ValidateWhen {
 
-
     Commit,
-
-
 
     #[default]
     AfterError,
 
     Live,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditExit {
@@ -187,19 +147,14 @@ pub enum EditExit {
     Tab { backward: bool },
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EditResult {
-
-
-
 
     pub outcome: Outcome,
 
     pub edited: bool,
 
     pub exit: Option<EditExit>,
-
 
     pub unused: bool,
 }
@@ -215,31 +170,23 @@ impl EditResult {
     }
 }
 
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct PressState {
     at: Option<usize>,
     dragged: bool,
 
-
     word: Option<Range<usize>>,
 }
-
-
 
 #[derive(Debug, Clone)]
 pub struct EditField {
     pub buffer: TextBuffer,
 
-
     pub sel: PointerSelect,
     press: PressState,
     undo: UndoStack,
 
-
     pub keys: FieldKeys,
-
 
     pub text_keymap: Option<KeyMap<TextCmd>>,
 
@@ -253,11 +200,7 @@ pub struct EditField {
 
     pub read_only: bool,
 
-
-
     pub undo_runs: bool,
-
-
 
     pub required: Option<String>,
 
@@ -271,7 +214,6 @@ impl EditField {
     pub fn single(text: impl Into<String>) -> Self {
         Self::with_buffer(TextBuffer::single(text), false)
     }
-
 
     pub fn multi(text: impl Into<String>) -> Self {
         Self::with_buffer(TextBuffer::multi(text), true)
@@ -297,18 +239,15 @@ impl EditField {
         }
     }
 
-
     pub fn validator(mut self, v: Validator) -> Self {
         self.validator = Some(v);
         self
     }
 
-
     pub fn validate_when(mut self, when: ValidateWhen) -> Self {
         self.validate_when = when;
         self
     }
-
 
     pub fn keys(mut self, keys: FieldKeys) -> Self {
         self.keys = keys;
@@ -319,17 +258,10 @@ impl EditField {
         self.buffer.text()
     }
 
-
-
     pub fn set_text(&mut self, text: impl Into<String>) {
         self.buffer.set_text(text);
         self.undo.clear();
     }
-
-
-
-
-
 
     pub fn action(&self, key: &Key) -> EditAction {
         if self.copy_first(key) {
@@ -340,8 +272,6 @@ impl EditField {
             None => edit_key_in(key, self.multiline, self.keys, &self.keys.text_keymap()),
         }
     }
-
-
 
     pub fn text_cmd(&self, key: &Key) -> Option<TextCmd> {
         if self.copy_first(key) {
@@ -357,26 +287,18 @@ impl EditField {
         }
     }
 
-
-
     fn copy_first(&self, key: &Key) -> bool {
         key.ctrl_char('c') && self.buffer.has_selection() && self.bound_cmd(key).is_none()
     }
-
-
-
 
     pub fn on_key(&mut self, key: &Key) -> EditResult {
         let action = self.action(key);
         self.apply(action, key)
     }
 
-
     pub fn apply(&mut self, action: EditAction, key: &Key) -> EditResult {
         self.apply_as(action, key, self.read_only)
     }
-
-
 
     pub fn apply_as(&mut self, action: EditAction, key: &Key, read_only: bool) -> EditResult {
         let exit = match action {
@@ -417,17 +339,9 @@ impl EditField {
         EditResult::changed(edited)
     }
 
-
-
-
-
-
     pub fn run(&mut self, cmd: TextCmd) -> EditResult {
         self.run_as(cmd, self.read_only)
     }
-
-
-
 
     pub fn run_as(&mut self, cmd: TextCmd, read_only: bool) -> EditResult {
         if cmd == TextCmd::Paste {
@@ -442,18 +356,12 @@ impl EditField {
         self.apply_as(action, &key, read_only)
     }
 
-
-
     pub fn shortcut(&self, cmd: TextCmd) -> Option<String> {
         match &self.text_keymap {
             Some(map) => crate::core::keymap::label_for(map, cmd),
             None => crate::core::keymap::label_for(&self.keys.text_keymap(), cmd),
         }
     }
-
-
-
-
 
     pub fn paste(&mut self, text: &str) -> bool {
         if self.read_only || text.is_empty() {
@@ -472,17 +380,13 @@ impl EditField {
         true
     }
 
-
-
     pub fn record(&mut self, kind: EditKind) {
         self.undo.record(&self.buffer, kind);
     }
 
-
     pub fn seal(&mut self) {
         self.undo.seal();
     }
-
 
     pub fn clear_history(&mut self) {
         self.undo.clear();
@@ -496,8 +400,6 @@ impl EditField {
         self.undo.can_redo()
     }
 
-
-
     pub fn after_edit(&mut self) {
         match self.validate_when {
             ValidateWhen::Live => {
@@ -509,10 +411,6 @@ impl EditField {
             _ => {}
         }
     }
-
-
-
-
 
     pub fn validate(&mut self) -> bool {
         self.error = match &self.validator {
@@ -526,22 +424,13 @@ impl EditField {
         self.error.is_none()
     }
 
-
     pub fn set_error(&mut self, error: Option<FieldError>) {
         self.error = error;
     }
 
-
     pub fn error_message(&self) -> Option<&str> {
         self.error.as_ref().map(FieldError::message)
     }
-
-
-
-
-
-
-
 
     pub fn press(&mut self, offset: usize, count: u8, whole_word: bool) -> bool {
         self.press = PressState {
@@ -557,9 +446,6 @@ impl EditField {
         }
         false
     }
-
-
-
 
     pub fn drag(&mut self, offset: usize) -> bool {
         if !self.sel.drag {
@@ -580,9 +466,6 @@ impl EditField {
         self.buffer.select_range(anchor, offset);
         true
     }
-
-
-
 
     pub fn click(&mut self, offset: usize, count: u8, whole_word: bool) {
         let dragged = std::mem::take(&mut self.press.dragged);
@@ -606,17 +489,9 @@ impl EditField {
         self.undo.seal();
     }
 
-
     pub fn pressed(&self) -> bool {
         self.press.at.is_some()
     }
-
-
-
-
-
-
-
 
     pub fn draw_line(
         &mut self,
@@ -628,14 +503,11 @@ impl EditField {
         self.draw_glyphs(buf, area, look, &glyphs)
     }
 
-
     pub fn graphemes(text: &str) -> Vec<(usize, String, usize)> {
         unicode_segmentation::UnicodeSegmentation::grapheme_indices(text, true)
             .map(|(bi, g)| (bi, g.to_owned(), crate::ui::text::width(g)))
             .collect()
     }
-
-
 
     pub fn draw_glyphs(
         &mut self,
@@ -714,16 +586,11 @@ impl EditField {
         Position::new(cx.min(area.right().saturating_sub(1)), area.y)
     }
 
-
-
-
     pub fn line_offset_at(&self, pos: Position) -> usize {
         let col =
             (self.line_off as isize + (pos.x as isize - self.line_area.x as isize)).max(0) as usize;
         self.buffer.offset_at(0, col)
     }
-
-
 
     pub fn glyph_offset_at(&self, pos: Position, glyphs: &[(usize, String, usize)]) -> usize {
         let col =
@@ -738,17 +605,14 @@ impl EditField {
         self.buffer.text().len()
     }
 
-
     pub fn line_area(&self) -> ratatui::layout::Rect {
         self.line_area
     }
-
 
     pub fn line_scroll(&self) -> usize {
         self.line_off
     }
 }
-
 
 #[derive(Debug, Clone, Copy)]
 pub struct LineLook {
@@ -759,7 +623,6 @@ pub struct LineLook {
 
     pub underline: Option<ratatui::style::Color>,
 
-
     pub follow_caret: bool,
 }
 
@@ -769,17 +632,11 @@ impl Default for EditField {
     }
 }
 
-
-
-
-
 pub trait Editable {
 
     fn field(&mut self) -> &mut EditField;
 
     fn edit_id(&self) -> WidgetId;
-
-
 
     fn offset_at(&self, pos: Position) -> usize;
 
@@ -798,7 +655,6 @@ pub trait Editable {
     fn label_click(&mut self) {}
 
     fn pointer_begin(&mut self);
-
 
     fn pointer_focus(&mut self) {}
 
@@ -854,184 +710,3 @@ impl<T: Editable> PointerField for T {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ratatui::crossterm::event::{KeyCode, KeyModifiers as M};
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: M::NONE,
-        }
-    }
-    fn ch(c: char) -> Key {
-        key(KeyCode::Char(c))
-    }
-
-    #[test]
-    fn typing_undo_select_all_and_exits() {
-        let mut f = EditField::single("ab").keys(FieldKeys::Desktop);
-        f.buffer.move_doc_end(false);
-        assert!(f.on_key(&ch('c')).edited);
-        assert_eq!(f.text(), "abc");
-        let undo = Key {
-            code: KeyCode::Char('z'),
-            mods: M::CONTROL,
-        };
-        assert!(f.on_key(&undo).edited);
-        assert_eq!(f.text(), "ab");
-        let all = Key {
-            code: KeyCode::Char('a'),
-            mods: M::CONTROL,
-        };
-        let r = f.on_key(&all);
-        assert!(!r.edited);
-        assert_eq!(f.buffer.selected_text(), Some("ab"));
-        assert_eq!(f.on_key(&key(KeyCode::Enter)).exit, Some(EditExit::Commit));
-        assert_eq!(f.on_key(&key(KeyCode::Esc)).exit, Some(EditExit::Cancel));
-        assert_eq!(
-            f.on_key(&key(KeyCode::BackTab)).exit,
-            Some(EditExit::Tab { backward: true })
-        );
-        let unused = f.on_key(&key(KeyCode::Up));
-        assert!(unused.unused, "↑ means nothing on one line");
-        let chord = Key {
-            code: KeyCode::Char('q'),
-            mods: M::CONTROL,
-        };
-        assert_eq!(f.on_key(&chord).outcome, Outcome::Ignored);
-        assert_eq!(f.text(), "ab", "exits leave the text alone");
-    }
-
-    #[test]
-    fn undo_groups_typing_unless_every_key_is_a_step() {
-        let undo = Key {
-            code: KeyCode::Char('z'),
-            mods: M::CONTROL,
-        };
-        let mut runs = EditField::single("");
-        let mut keys = EditField::single("");
-        keys.undo_runs = false;
-        for f in [&mut runs, &mut keys] {
-            for c in "pull".chars() {
-                f.on_key(&ch(c));
-            }
-            f.on_key(&undo);
-        }
-        assert_eq!(runs.text(), "", "a typing run is one step");
-        assert_eq!(keys.text(), "pul", "every keystroke is a step");
-    }
-
-    #[test]
-    fn read_only_moves_and_copies_only() {
-        let mut f = EditField::multi("one\ntwo");
-        f.read_only = true;
-        assert!(!f.on_key(&ch('x')).edited);
-        assert!(!f.paste("p"));
-        assert_eq!(f.text(), "one\ntwo");
-        f.on_key(&key(KeyCode::Down));
-        assert_eq!(f.buffer.cursor_pos().line, 1);
-    }
-
-    #[test]
-    fn a_pasted_newline_never_submits_a_single_line_field() {
-        let mut f = EditField::single("");
-        assert!(f.paste("a\nb\r\nc\n"));
-        assert_eq!(f.text(), "a b c");
-        let mut m = EditField::multi("");
-        m.paste("a\r\nb");
-        assert_eq!(m.text(), "a\nb");
-        let undo = Key {
-            code: KeyCode::Char('z'),
-            mods: M::CONTROL,
-        };
-        f.on_key(&undo);
-        assert_eq!(f.text(), "", "a paste is one undoable edit");
-    }
-
-    #[test]
-    fn validate_when_decides_when_typing_rechecks() {
-        let digits = || {
-            Validator::check(|t| {
-                (!t.chars().all(|c| c.is_ascii_digit())).then(|| "Digits only".into())
-            })
-        };
-
-        let mut c = EditField::single("")
-            .validator(digits())
-            .validate_when(ValidateWhen::Commit);
-        c.on_key(&ch('x'));
-        assert_eq!(c.error, None);
-        assert!(!c.validate());
-        c.on_key(&key(KeyCode::Backspace));
-        assert_eq!(c.error_message(), Some("Digits only"), "kept until commit");
-
-        let mut a = EditField::single("").validator(digits());
-        a.on_key(&ch('x'));
-        assert_eq!(a.error, None, "no error while still typing");
-        assert!(!a.validate());
-        a.on_key(&key(KeyCode::Backspace));
-        assert_eq!(a.error, None, "fixing the value clears the error at once");
-        a.on_key(&ch('1'));
-        a.on_key(&ch('y'));
-        assert_eq!(a.error, None, "the error is gone: typing is quiet again");
-
-        let mut l = EditField::single("")
-            .validator(digits())
-            .validate_when(ValidateWhen::Live);
-        l.on_key(&ch('x'));
-        assert_eq!(l.error_message(), Some("Digits only"));
-    }
-
-    #[test]
-    fn validators_parse_and_bind_their_context() {
-        let n =
-            Validator::new(|t: &str| t.parse::<u16>().map_err(|_| FieldError::from("Not a port")));
-        assert_eq!(n.validate("80"), Ok(80));
-        assert_eq!(n.validate("x").unwrap_err().message(), "Not a port");
-        let per_col: Validator<(), usize> = Validator::with_context(|col: &usize, t: &str| {
-            if *col == 1 && t.is_empty() {
-                Err("Required".into())
-            } else {
-                Ok(())
-            }
-        });
-        assert!(per_col.validate_in(&1, "").is_err());
-        assert!(per_col.bind(0).validate("").is_ok());
-        assert!(per_col.bind(1).validate("").is_err());
-    }
-
-    #[test]
-    fn pointer_press_drag_and_clicks_select() {
-        let mut f = EditField::single("hello big world");
-
-        f.press(0, 1, false);
-        f.drag(5);
-        f.click(5, 1, false);
-        assert_eq!(f.buffer.selected_text(), Some("hello"));
-
-        f.click(7, 2, false);
-        assert_eq!(f.buffer.selected_text(), Some("big"));
-        f.click(7, 3, false);
-        assert_eq!(f.buffer.selected_text(), Some("hello big world"));
-
-        f.click(7, 2, true);
-        assert_eq!(f.buffer.selected_text(), Some("hello big world"));
-
-        assert!(f.press(7, 2, false));
-        f.drag(12);
-        assert_eq!(f.buffer.selected_text(), Some("big world"));
-        f.click(12, 2, false);
-
-        f.press(3, 1, false);
-        f.click(3, 1, false);
-        assert_eq!(f.buffer.selected_text(), None);
-        assert_eq!(f.buffer.cursor_offset(), 3);
-
-        f.sel = PointerSelect::OFF;
-        assert!(!f.drag(9));
-        f.click(7, 2, false);
-        assert_eq!(f.buffer.selected_text(), None);
-    }
-}

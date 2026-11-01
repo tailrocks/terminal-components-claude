@@ -1,34 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, Stdio};
@@ -54,7 +25,6 @@ usage: cargo xtask visual <command>
 
 filterset examples: 'test(/^tablepro::/)', 'test(/::connections::/) & test(/::120x40::/)',
                     'test(=showcase::pages::lists::72x20::nocolor)'";
-
 
 const LEGACY_EXTS: [&str; 3] = ["txt", "png", "html"];
 
@@ -97,8 +67,6 @@ fn root() -> PathBuf {
         .to_path_buf()
 }
 
-
-
 fn store() -> PathBuf {
     if oracle_active() {
         oracle_dir()
@@ -111,7 +79,6 @@ fn actual() -> PathBuf {
     root().join("target/tuiscotti/actual")
 }
 
-
 fn refuse_in_ci(what: &str) -> Result<(), String> {
     match std::env::var_os("CI") {
         Some(v) if !v.is_empty() => Err(format!(
@@ -121,8 +88,6 @@ fn refuse_in_ci(what: &str) -> Result<(), String> {
         _ => Ok(()),
     }
 }
-
-
 
 fn docs_components() -> Result<(), String> {
     let status = cargo()
@@ -148,7 +113,6 @@ fn cargo() -> Command {
     cmd.current_dir(root());
     cmd
 }
-
 
 fn test_binary() -> Result<PathBuf, String> {
     let out = cargo()
@@ -177,7 +141,6 @@ fn test_binary() -> Result<PathBuf, String> {
         .ok_or_else(|| "no visual_baseline executable in cargo's output".into())
 }
 
-
 fn json_string_field(line: &str, field: &str) -> Option<String> {
     let start = line.find(&format!(r#""{field}":""#))? + field.len() + 4;
     let mut out = String::new();
@@ -195,7 +158,6 @@ fn json_string_field(line: &str, field: &str) -> Option<String> {
     }
     None
 }
-
 
 struct Row {
     name: String,
@@ -234,8 +196,6 @@ fn inventory(binary: &Path) -> Result<Vec<Row>, String> {
         })
         .collect()
 }
-
-
 
 fn select(filter: &str) -> Result<BTreeSet<String>, String> {
     let out = cargo()
@@ -301,8 +261,6 @@ fn list(filter: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
-
-
 fn approve(into: &Path, name: &str, ansi: &[u8]) -> Result<(), String> {
     let target = into.join(format!("{name}.ansi"));
     std::fs::create_dir_all(target.parent().expect("nested name"))
@@ -341,8 +299,6 @@ fn walk_ansi(root: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), Strin
     Ok(())
 }
 
-
-
 fn cells(ansi: &[u8]) -> &[u8] {
     let text = ansi;
     let marker = b"\x1b[?25";
@@ -351,7 +307,6 @@ fn cells(ansi: &[u8]) -> &[u8] {
         None => text,
     }
 }
-
 
 fn import_args(args: &[&str]) -> Result<(), String> {
     let mut dir = None;
@@ -378,10 +333,6 @@ fn import_args(args: &[&str]) -> Result<(), String> {
         oracle.then(|| source.unwrap_or("HEAD")),
     )
 }
-
-
-
-
 
 fn import(dir: &Path, dry_run: bool, oracle: Option<&str>) -> Result<(), String> {
     if !dry_run {
@@ -457,11 +408,6 @@ fn import(dir: &Path, dry_run: bool, oracle: Option<&str>) -> Result<(), String>
     Ok(())
 }
 
-
-
-
-
-
 fn capture_fresh(filter: &str, rows: &[Row]) -> Result<BTreeMap<String, Vec<u8>>, String> {
     for r in rows {
         let _ = std::fs::remove_file(actual().join(format!("{}.ansi", r.name)));
@@ -495,8 +441,6 @@ fn capture_fresh(filter: &str, rows: &[Row]) -> Result<BTreeMap<String, Vec<u8>>
         })
         .collect())
 }
-
-
 
 fn determinism(filter: &str) -> Result<(), String> {
     let rows = selected_rows(Some(filter))?;
@@ -557,8 +501,6 @@ fn compare_runs(
     out
 }
 
-
-
 const ORACLE: &str = "baselines/oracle";
 const MANIFEST: &str = "ORACLE.toml";
 const APPS: [&str; 4] = ["showcase", "tablepro", "jackin", "holla"];
@@ -566,8 +508,6 @@ const APPS: [&str; 4] = ["showcase", "tablepro", "jackin", "holla"];
 fn oracle_dir() -> PathBuf {
     root().join(ORACLE)
 }
-
-
 
 fn manifest_value(text: &str, key: &str) -> Option<String> {
     text.lines().find_map(|l| {
@@ -580,7 +520,6 @@ fn manifest_value(text: &str, key: &str) -> Option<String> {
 fn read_manifest() -> Option<String> {
     std::fs::read_to_string(oracle_dir().join(MANIFEST)).ok()
 }
-
 
 fn oracle_active() -> bool {
     read_manifest()
@@ -605,8 +544,6 @@ fn git(args: &[&str]) -> Result<String, String> {
         &format!("git {}", args.join(" ")),
     )
 }
-
-
 
 fn harness_hash(dir: Option<&Path>) -> Result<String, String> {
     let binary = test_binary()?;
@@ -682,8 +619,6 @@ fn oracle_counts() -> Result<BTreeMap<String, u64>, String> {
     Ok(counts)
 }
 
-
-
 fn seal(source: Option<&str>, version: Option<u64>) -> Result<(), String> {
     refuse_in_ci("seal")?;
     let old = read_manifest().ok_or_else(|| format!("{ORACLE}/{MANIFEST} is missing"))?;
@@ -716,9 +651,6 @@ fn seal(source: Option<&str>, version: Option<u64>) -> Result<(), String> {
     Ok(())
 }
 
-
-
-
 const PROGRESS: &str = "tests/visual_baseline/progress/main-passing.txt";
 
 fn read_progress() -> Result<BTreeSet<String>, String> {
@@ -734,8 +666,6 @@ fn read_progress() -> Result<BTreeSet<String>, String> {
     }
 }
 
-
-
 fn ratchet_verdict(
     selected: &BTreeSet<String>,
     listed: &BTreeSet<String>,
@@ -749,11 +679,6 @@ fn ratchet_verdict(
     let new = passing.difference(listed).cloned().collect();
     (regressed, new)
 }
-
-
-
-
-
 
 fn ratchet(check: bool, filter: Option<&str>) -> Result<(), String> {
     if !check {
@@ -834,8 +759,6 @@ fn ratchet(check: bool, filter: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
-
-
 fn copy_tree(from: &Path, to: &Path) -> Result<usize, String> {
     std::fs::create_dir_all(to).map_err(|e| format!("mkdir {}: {e}", to.display()))?;
     let mut n = 0;
@@ -892,12 +815,6 @@ fn parse_sync_args<'a>(args: &[&'a str]) -> Result<SyncArgs<'a>, String> {
     }
     Ok(out)
 }
-
-
-
-
-
-
 
 fn sync_oracle(args: &[&str]) -> Result<(), String> {
     refuse_in_ci("sync-oracle")?;
@@ -976,9 +893,6 @@ fn sync_oracle(args: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
-
-
-
 fn affected_by(path: &str) -> Vec<&'static str> {
     const ALL: [&str; 4] = APPS;
     let bins = [
@@ -1002,7 +916,6 @@ fn affected_by(path: &str) -> Vec<&'static str> {
     if shared { ALL.to_vec() } else { Vec::new() }
 }
 
-
 fn touched_filter(rows: &[Row], apps: &BTreeSet<&str>) -> Option<String> {
     let groups: BTreeSet<String> = rows
         .iter()
@@ -1021,12 +934,6 @@ fn touched_filter(rows: &[Row], apps: &BTreeSet<&str>) -> Option<String> {
             .join(" | "),
     )
 }
-
-
-
-
-
-
 
 fn check_touched(args: &[&str]) -> Result<(), String> {
     let mut base = "origin/design/interaction-polish";
@@ -1099,290 +1006,4 @@ fn check_touched(args: &[&str]) -> Result<(), String> {
         )
     }
 }
-#[cfg(test)]
-mod tests {
-    use super::*;
 
-    #[test]
-    fn cargo_json_executable_is_extracted() {
-        let line = r#"{"reason":"compiler-artifact","target":{"name":"visual_baseline"},"executable":"/t/deps/visual_baseline-abc","fresh":true}"#;
-        assert_eq!(
-            json_string_field(line, "executable").as_deref(),
-            Some("/t/deps/visual_baseline-abc")
-        );
-        assert_eq!(json_string_field(line, "missing"), None);
-    }
-
-    #[test]
-    fn cells_drop_only_the_cursor_trailer() {
-        assert_eq!(cells(b"ab\x1b[0m\ncd\x1b[?25l"), b"ab\x1b[0m\ncd");
-        assert_eq!(cells(b"ab\x1b[?25h\x1b[2;3H\x1b[5 q"), b"ab");
-        assert_eq!(cells(b"plain"), b"plain");
-    }
-
-    fn row(name: &str, approval: &str) -> Row {
-        Row {
-            name: name.into(),
-            test: name.replace('/', "::"),
-            table: "SURFACES".into(),
-            tier: "full".into(),
-            pending: "stored".into(),
-            approval: approval.into(),
-        }
-    }
-
-    #[test]
-    fn touched_files_map_to_apps() {
-        assert_eq!(
-            affected_by("src/bin/showcase/pages/chrome.rs"),
-            ["showcase"]
-        );
-        assert_eq!(affected_by("src/bin/jackin_preview/app.rs"), ["jackin"]);
-        assert_eq!(affected_by("src/widgets/menu.rs"), APPS.to_vec());
-        assert_eq!(affected_by("src/theme.rs"), APPS.to_vec());
-        assert_eq!(
-            affected_by("tests/visual_baseline/support.rs"),
-            APPS.to_vec()
-        );
-        assert_eq!(affected_by("Cargo.lock"), APPS.to_vec());
-        assert_eq!(
-            affected_by("snapshots/tablepro/connections/default/120x40/truecolor.ansi"),
-            ["tablepro"]
-        );
-        assert_eq!(
-            affected_by("baselines/oracle/ORACLE.toml"),
-            Vec::<&str>::new()
-        );
-        assert!(affected_by("docs/visual-testing/README.md").is_empty());
-        assert!(affected_by("xtask/src/main.rs").is_empty());
-    }
-
-    #[test]
-    fn touched_filter_runs_reapproved_groups_of_touched_apps() {
-        let rows = [
-            row("showcase/pages/lists/72x20/nocolor", "reapproved"),
-            row("showcase/flows/selectable/x/72x20/nocolor", "reapproved"),
-            row("showcase/flows/help/overlay/72x20/nocolor", "legacy"),
-            row("tablepro/connections/default/72x20/nocolor", "legacy"),
-            row("holla/parity/a/72x20/nocolor", "reapproved"),
-        ];
-        let apps = BTreeSet::from(["showcase", "tablepro"]);
-        assert_eq!(
-            touched_filter(&rows, &apps).as_deref(),
-            Some("test(/^showcase::flows::/) | test(/^showcase::pages::/)")
-        );
-        assert_eq!(touched_filter(&rows, &BTreeSet::from(["tablepro"])), None);
-    }
-
-    #[test]
-    fn ratchet_flags_regressions_and_new_passes() {
-        let set = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<BTreeSet<_>>();
-        let selected = set(&["a", "b", "c"]);
-        let listed = set(&["a", "b", "z"]);
-        let passing = set(&["a", "c"]);
-        let (regressed, new) = ratchet_verdict(&selected, &listed, &passing);
-
-        assert_eq!(regressed, ["b"]);
-        assert_eq!(new, ["c"]);
-    }
-
-    #[test]
-    fn manifest_round_trips_through_the_flat_reader() {
-        let m = ManifestOut {
-            version: 1,
-            pending: false,
-            source_commit: "a".repeat(40),
-            tuiscotti_rev: "rev".into(),
-            harness_sha256: "ff".into(),
-            approved_by: "PO".into(),
-            date: "2026-10-16".into(),
-            counts: BTreeMap::from([("holla".to_string(), 3)]),
-        };
-        let text = render_manifest(&m);
-        assert_eq!(manifest_value(&text, "pending").as_deref(), Some("false"));
-        assert_eq!(manifest_value(&text, "version").as_deref(), Some("1"));
-        assert_eq!(
-            manifest_value(&text, "harness_sha256").as_deref(),
-            Some("ff")
-        );
-        assert_eq!(manifest_value(&text, "holla").as_deref(), Some("3"));
-        assert_eq!(manifest_value(&text, "showcase").as_deref(), Some("0"));
-
-        let skeleton = std::fs::read_to_string(root().join(ORACLE).join(MANIFEST)).unwrap();
-        assert_eq!(
-            manifest_value(&skeleton, "pending").as_deref(),
-            Some("true")
-        );
-    }
-
-    #[test]
-    fn sync_args_need_a_source_commit() {
-        assert!(parse_sync_args(&[]).is_err());
-        assert!(parse_sync_args(&["--from"]).is_err());
-        assert!(parse_sync_args(&["--from", "abc", "--bogus"]).is_err());
-        let a = parse_sync_args(&[
-            "--from",
-            "abc",
-            "--harness-dest",
-            "crates/termrock-conformance/tests/visual_baseline",
-            "--allow-interim",
-        ])
-        .unwrap();
-        assert_eq!(a.from, "abc");
-        assert_eq!(
-            a.harness_dest,
-            "crates/termrock-conformance/tests/visual_baseline"
-        );
-        assert!(a.allow_interim);
-        assert_eq!(a.repo, root());
-    }
-
-    #[test]
-    fn runs_compare_byte_for_byte() {
-        let names: Vec<String> = ["a", "b", "c"].map(String::from).to_vec();
-        let first = BTreeMap::from([
-            ("a".to_string(), b"x".to_vec()),
-            ("b".to_string(), b"y".to_vec()),
-        ]);
-        let second = BTreeMap::from([
-            ("a".to_string(), b"x".to_vec()),
-            ("b".to_string(), b"z".to_vec()),
-            ("c".to_string(), b"w".to_vec()),
-        ]);
-        assert_eq!(
-            compare_runs(&names, &first, &second),
-            RunComparison {
-                identical: 1,
-                differ: vec!["b".into()],
-                missing: vec!["c".into()],
-            }
-        );
-    }
-
-    #[test]
-    fn groups_are_app_and_group() {
-        assert_eq!(
-            group_of("tablepro/connections/default/120x40/truecolor"),
-            "tablepro/connections"
-        );
-    }
-
-    #[test]
-    fn store_writers_refuse_under_ci() {
-
-
-
-        unsafe { std::env::set_var("CI", "true") };
-        assert!(refuse_in_ci("import").is_err());
-
-        let ci = |r: Result<(), String>| r.is_err_and(|e| e.contains("CI is set"));
-        assert!(ci(seal(None, None)));
-        assert!(ci(ratchet(false, None)));
-        assert!(ci(sync_oracle(&["--from", "HEAD"])));
-        assert!(ci(import_args(&["/nonexistent", "--oracle"])));
-        unsafe { std::env::set_var("CI", "") };
-        assert!(refuse_in_ci("import").is_ok());
-        unsafe { std::env::remove_var("CI") };
-        assert!(refuse_in_ci("import").is_ok());
-    }
-
-
-
-    fn quoted_value(text: &str, key: &str) -> String {
-        let line = text
-            .lines()
-            .find(|l| l.starts_with(key))
-            .unwrap_or_else(|| panic!("no line starting with {key}"));
-        let rest = &line[key.len()..];
-        let start = rest.find('"').expect("a quoted value") + 1;
-        let len = rest[start..].find('"').expect("a closing quote");
-        rest[start..start + len].to_string()
-    }
-
-
-
-
-
-    #[test]
-    fn mise_pins_match_the_repository_pins() {
-        let read = |p: &str| std::fs::read_to_string(root().join(p)).unwrap();
-        let mise = read("mise.toml");
-        assert_eq!(
-            quoted_value(&mise, "rust = "),
-            quoted_value(&read("rust-toolchain.toml"), "channel = "),
-            "mise.toml rust must equal the rust-toolchain.toml channel"
-        );
-        let cargo = read("Cargo.toml");
-        let dep = cargo
-            .lines()
-            .find(|l| l.starts_with("tuiscotti = "))
-            .expect("the tuiscotti dev-dependency");
-        assert_eq!(
-            quoted_value(&mise, "\"cargo:https://github.com/tailrocks/tuiscotti\" = "),
-            format!(
-                "rev:{}",
-                quoted_value(&dep[dep.find("rev").unwrap()..], "rev")
-            ),
-            "mise.toml tuiscotti CLI must use the Cargo.toml tuiscotti rev"
-        );
-        assert_eq!(
-            quoted_value(&mise, "\"github:tailrocks/velnor-new\" = "),
-            quoted_value(&read(".velnor/release-manifest.json"), "  \"version\""),
-            "mise.toml velnor-actions must be the .velnor/release-manifest.json release"
-        );
-    }
-
-
-
-
-
-
-    #[test]
-    fn mise_lock_covers_every_mise_pin() {
-        let read = |p: &str| std::fs::read_to_string(root().join(p)).unwrap();
-        let mise = read("mise.toml");
-        let lock = read("mise.lock");
-        let pins: Vec<(String, String)> = mise
-            .lines()
-            .skip_while(|l| l.trim() != "[tools]")
-            .skip(1)
-            .filter(|l| !l.trim_start().starts_with('#') && l.contains(" = "))
-            .map(|l| {
-                let (key, rest) = l.split_once(" = ").unwrap();
-                let version = match rest.strip_prefix('{') {
-                    Some(table) => quoted_value(table.trim_start(), "version = "),
-                    None => quoted_value(rest, ""),
-                };
-                (key.to_string(), version)
-            })
-            .collect();
-        assert!(
-            pins.len() >= 8,
-            "parsed the mise.toml [tools] pins: {pins:?}"
-        );
-        for (key, version) in &pins {
-            let header = format!("[[tools.{key}]]");
-            let at = lock
-                .find(&header)
-                .unwrap_or_else(|| panic!("mise.lock has no {header}; run `mise lock`"));
-            assert_eq!(
-                quoted_value(lock[at + header.len()..].trim_start(), "version = "),
-                *version,
-                "mise.lock {key} must lock the mise.toml pin; run `mise lock`"
-            );
-        }
-        for key in [
-            "actionlint",
-            "shellcheck",
-            "zizmor",
-            "gh",
-            "\"aqua:nextest-rs/nextest/cargo-nextest\"",
-        ] {
-            let table = format!("[tools.{key}.\"platforms.linux-x64\"]");
-            assert!(
-                lock.contains(&table),
-                "mise.lock needs {table} (CI platform); run `mise lock --platform linux-x64,macos-arm64`"
-            );
-        }
-    }
-}

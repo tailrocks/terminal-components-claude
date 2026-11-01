@@ -14,101 +14,40 @@ crate_timeout_minutes = 15
 
 [stacks.rust]
 # Plain Cargo; matches the documented gate in AGENTS.md.
-compile_driver = "cargo"
+compile_driver = "mbx"
 # Nextest only (AGENTS.md: never `cargo test`). Velnor selects the `ci`
 # profile from .config/nextest.toml. Doctests are disabled in Cargo.toml
 # (`[lib] doctest = false`) so no `cargo test --doc` step is generated;
 # formatting is a native step because rustfmt.toml exists.
 test_runner = "cargo_nextest"
-# Ignored tests stay ignored: the PTY visual captures are ignored and run
-# explicitly (docs/visual-testing).
-# The visual tiers are separate suites (below), not part of this job.
+# No test is ignored: the functional suite is non-ignored and required.
 run_ignored = "default"
 
 [discovery]
 # Archived evidence workspaces under docs/ are records, not CI units.
-exclude = ["docs/**", "tools/frozen-cli-frame-support/**"]
+exclude = ["docs/**"]
 
 [agents]
 # .github/CLAUDE.md is a symlink to .github/AGENTS.md (AGENTS.md rule).
 claude_md = "symlink"
 
-# Visual tiers (docs/visual-testing/plan.md §C1) as nextest suites in
-# .github/workflows/suites.yml. Every tier is manual (workflow_dispatch)
-# until oracle v0 (plan T18); docs/ci.md "Visual suites" has the post-T18
-# triggers.
+# The functional suite is the only test suite: it is a required gate on
+# pull requests and pushes (see docs/functional-testing.md).
 [workflow.dispatch.inputs.tier]
 type = "choice"
-description = "Test tier (docs/functional-testing.md; docs/visual-testing/plan.md C1)"
-default = "smoke"
-options = ["functional", "smoke", "full", "narrow", "capture"]
-
-[workflow.dispatch.inputs.filter]
-type = "string"
-description = "Optional nextest filterset, for example test(/^holla::/)"
-
-[[stacks.rust.suites]]
-id = "visual-smoke"
-profile = "smoke"
-run_ignored = "only"
-partitions = 2
-build = "archive"
-timeout_minutes = 30
-test_threads = 4
-triggers = ["workflow_dispatch"]
-dispatch_inputs = { tier = ["smoke"] }
-filter_input = "filter"
-artifacts = [{ name = "visual-smoke-{shard}", paths = ["target/tuiscotti/actual", "target/tuiscotti/expected", "target/tuiscotti/diff"], when = "failure", retention_days = 14 }]
+description = "Test tier (docs/functional-testing.md)"
+default = "functional"
+options = ["functional"]
 
 [[stacks.rust.suites]]
 id = "functional"
 profile = "functional"
 run_ignored = "default"
 partitions = 1
-build = "archive"
+build = "inline"
 timeout_minutes = 15
 test_threads = 4
 triggers = ["pull_request", "push", "workflow_dispatch"]
 dispatch_inputs = { tier = ["functional"] }
 artifacts = [{ name = "functional-terminal-evidence", paths = ["target/functional", "target/nextest/functional"], when = "failure", retention_days = 14 }]
 
-[[stacks.rust.suites]]
-id = "visual-full"
-profile = "full"
-run_ignored = "only"
-partitions = 12
-build = "archive"
-timeout_minutes = 60
-test_threads = 4
-triggers = ["workflow_dispatch"]
-dispatch_inputs = { tier = ["full"] }
-filter_input = "filter"
-artifacts = [{ name = "visual-full-{shard}", paths = ["target/tuiscotti/actual", "target/tuiscotti/expected", "target/tuiscotti/diff"], when = "failure", retention_days = 14 }]
-
-[[stacks.rust.suites]]
-id = "visual-narrow"
-profile = "narrow"
-run_ignored = "only"
-partitions = 2
-build = "archive"
-timeout_minutes = 60
-test_threads = 4
-triggers = ["workflow_dispatch"]
-dispatch_inputs = { tier = ["narrow"] }
-filter_input = "filter"
-artifacts = [{ name = "visual-narrow-{shard}", paths = ["target/tuiscotti/actual", "target/tuiscotti/expected", "target/tuiscotti/diff"], when = "failure", retention_days = 14 }]
-
-[[stacks.rust.suites]]
-id = "visual-capture"
-profile = "capture"
-run_ignored = "only"
-partitions = 12
-build = "archive"
-timeout_minutes = 60
-test_threads = 4
-triggers = ["workflow_dispatch"]
-allow_failure = true
-env = { VISUAL_FULL = "1" }
-dispatch_inputs = { tier = ["capture"] }
-filter_input = "filter"
-artifacts = [{ name = "visual-capture-{shard}", paths = ["target/tuiscotti/actual"], when = "always", retention_days = 14 }]

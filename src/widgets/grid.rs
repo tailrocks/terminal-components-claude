@@ -1,12 +1,5 @@
 
 
-
-
-
-
-
-
-
 use std::collections::{BTreeSet, HashMap};
 
 use ratatui::buffer::Buffer;
@@ -37,8 +30,6 @@ use crate::widgets::option_editor::{
 use crate::widgets::scrollbar;
 use crate::widgets::table::SortDir;
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum CellValue {
     Null,
@@ -55,7 +46,6 @@ impl CellValue {
     pub fn text(&self) -> String {
         self.text_ref().into_owned()
     }
-
 
     pub fn text_ref(&self) -> std::borrow::Cow<'_, str> {
         match self {
@@ -75,7 +65,6 @@ impl CellValue {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CellKind {
@@ -118,11 +107,7 @@ pub struct ColumnSpec {
     pub min_width: u16,
     pub max_width: u16,
 
-
-
-
     pub type_label: String,
-
 
     pub editor: ColumnEditor,
 }
@@ -191,8 +176,6 @@ pub struct GridRows {
     pub more: bool,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum UndoAction {
     Cell {
@@ -208,8 +191,6 @@ pub enum UndoAction {
         row: usize,
     },
 }
-
-
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PendingChanges {
@@ -299,22 +280,12 @@ pub enum GridAction {
     LeaveForward,
     LeaveBackward,
 
-
-
-
     ReadOnly {
         reason: String,
     },
 }
 
-
-
-
-
-
-
 pub type CellParser = Validator<CellValue, ColumnSpec>;
-
 
 pub fn cell_validator(
     f: impl Fn(&ColumnSpec, &str) -> Result<CellValue, String> + 'static,
@@ -323,9 +294,6 @@ pub fn cell_validator(
         f(spec, text).map_err(FieldError::from)
     })
 }
-
-
-
 
 fn parse_cell(parser: &CellParser, spec: &ColumnSpec, text: &str) -> Result<CellValue, FieldError> {
     if text.is_empty() {
@@ -395,9 +363,6 @@ pub fn default_validator(col: &ColumnSpec, text: &str) -> Result<CellValue, Stri
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GridDrag {
 
@@ -409,10 +374,6 @@ enum GridDrag {
         mark: bool,
     },
 }
-
-
-
-
 
 impl crate::ui::measure::Measure for DataGrid {
     fn measure(
@@ -429,7 +390,6 @@ impl crate::ui::measure::Measure for DataGrid {
         GRID_MIN_W
     }
 }
-
 
 const GRID_CHROME_W: u16 = 6;
 
@@ -453,24 +413,17 @@ pub struct DataGrid {
 
     anchor: Option<(usize, usize)>,
 
-
     pub selection: RowSelection,
     pub pending: PendingChanges,
     undo: Vec<UndoAction>,
-
 
     pub scroll: ScrollPane,
     pub edit: Option<EditState>,
     pub editable: bool,
 
-
-
-
     pub click: ClickPolicy,
 
-
     pub toggle_mods: KeyModifiers,
-
 
     pub blur_action: BlurAction,
     pub read_only_reason: Option<String>,
@@ -483,10 +436,8 @@ pub struct DataGrid {
     pub area: Rect,
     body: Rect,
 
-
     drag: Option<GridDrag>,
     widths: Vec<u16>,
-
 
     pub sizing: ColumnSizing,
 
@@ -495,49 +446,31 @@ pub struct DataGrid {
     show_bar: bool,
     bar: [Button; 3],
 
-
-
     strings: crate::theme::Strings,
-
 
     pub reveal: Option<crate::ui::reveal::Reveal>,
 
-
     pub horizontal: Option<HScroll>,
 
-
-
     pub overflow_badges: bool,
-
-
 
     pub nav: NavKeys,
 
     pub keymap: KeyMap<GridCmd>,
 
-
-
     pub type_ahead: bool,
-
 
     pub type_ahead_column: Option<usize>,
 
-
-
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     typeahead: crate::core::typeahead::TypeAhead,
-
-
-
 
     pub width_sample_rows: usize,
 
     pub choice: Option<GridChoice>,
 
-
     pub editor_config: EditorConfig,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct GridChoice {
@@ -547,11 +480,8 @@ pub struct GridChoice {
     pub editor: ChoiceEditor,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GridCmd {
-
 
     ClearCell,
 
@@ -560,7 +490,6 @@ pub enum GridCmd {
     InsertRow,
 
     DuplicateRow,
-
 
     Copy,
 
@@ -571,7 +500,6 @@ pub enum GridCmd {
     Sort,
 
     ClearSort,
-
 
     FilterOnCell,
 
@@ -588,8 +516,6 @@ pub enum GridCmd {
     PreviewSql,
 
     FollowReference,
-
-
 
     SelectAll,
 }
@@ -646,8 +572,6 @@ impl Actions for GridCmd {
         ]
     }
 }
-
-
 
 pub const DEFAULT_WIDTH_SAMPLE_ROWS: usize = 200;
 
@@ -715,17 +639,14 @@ impl DataGrid {
         }
     }
 
-
     pub fn editor_config(mut self, cfg: EditorConfig) -> Self {
         self.editor_config = cfg;
         self
     }
 
-
     pub fn choice_id(&self) -> WidgetId {
         self.id.sub("choice")
     }
-
 
     pub fn open_id(&self, display: usize, col: usize) -> WidgetId {
         self.cell_id(display, col).part(PartRef::of(Part::ACTIONS))
@@ -734,8 +655,6 @@ impl DataGrid {
     fn locate_open(&self, id: WidgetId) -> Option<(usize, usize)> {
         self.parts.cell(id, Part::ACTIONS)
     }
-
-
 
     pub fn out_of_set(&self, src: usize, col: usize) -> bool {
         let Some(spec) = self.columns.get(col) else {
@@ -746,8 +665,6 @@ impl DataGrid {
             _ => false,
         }
     }
-
-
 
     fn apply_choice(
         &mut self,
@@ -765,8 +682,6 @@ impl DataGrid {
         self.record_cell(src, col, parsed);
         Ok(GridAction::CellChanged { row: src, col })
     }
-
-
 
     fn next_writable(&self, backward: bool) -> Result<usize, GridAction> {
         let n = self.columns.len();
@@ -788,7 +703,6 @@ impl DataGrid {
             }
         }
     }
-
 
     fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<GridAction> {
         let (value, tab) = match r? {
@@ -823,20 +737,15 @@ impl DataGrid {
         }
     }
 
-
-
-
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
         self
     }
 
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
     }
-
 
     pub fn type_ahead_precedence(
         mut self,
@@ -846,18 +755,15 @@ impl DataGrid {
         self
     }
 
-
     pub fn type_ahead_column(mut self, col: Option<usize>) -> Self {
         self.type_ahead_column = col;
         self
     }
 
-
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
-
 
     fn follow_strings(&mut self, s: crate::theme::Strings) {
         use crate::theme::Strings;
@@ -876,14 +782,10 @@ impl DataGrid {
         }
     }
 
-
     pub fn overflow_badges(mut self, on: bool) -> Self {
         self.overflow_badges = on;
         self
     }
-
-
-
 
     pub fn bar_labels(mut self, labels: [&str; 3]) -> Self {
         for (b, l) in self.bar.iter_mut().zip(labels) {
@@ -892,12 +794,10 @@ impl DataGrid {
         self
     }
 
-
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.empty = state;
         self
     }
-
 
     pub fn validator(
         mut self,
@@ -912,21 +812,15 @@ impl DataGrid {
         self
     }
 
-
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.click = policy;
         self
     }
 
-
     pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
         self.toggle_mods = mods;
         self
     }
-
-
-
-
 
     pub fn duplicate_keys(mut self, keys: &[Key]) -> Self {
         self.keymap.retain(|(_, a)| *a != GridCmd::DuplicateRow);
@@ -937,47 +831,35 @@ impl DataGrid {
         self
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<GridCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-
-
-
     pub fn width_sample_rows(mut self, rows: usize) -> Self {
         self.width_sample_rows = rows;
         self
     }
-
-
 
     pub fn resizable_columns(mut self, on: bool) -> Self {
         self.sizing.resizable = on;
         self
     }
 
-
-
     pub fn seam_hit_w(mut self, cells: u16) -> Self {
         self.sizing.seam_w = cells.max(1);
         self
     }
 
-
     fn col_w(&self, c: usize) -> u16 {
         self.sizing
             .width(c, self.widths.get(c).copied().unwrap_or(0))
     }
-
-
 
     pub fn autofit(&mut self, c: usize) {
         let Some(col) = self.columns.get(c) else {
@@ -1001,8 +883,6 @@ impl DataGrid {
         self.sizing.set(c, need.min(cap) as u16);
     }
 
-
-
     pub fn header_menu(&self, c: usize) -> Vec<(HeaderAction, crate::widgets::menu::MenuItem)> {
         let sortable = self.columns.get(c).is_some_and(|col| col.sortable);
         let sorted = self.sort.and_then(|(sc, d)| (sc == c).then_some(d));
@@ -1014,7 +894,6 @@ impl DataGrid {
             !self.sizing.is_default(),
         )
     }
-
 
     pub fn on_header_action(
         &mut self,
@@ -1035,8 +914,6 @@ impl DataGrid {
             }
         }
     }
-
-
 
     pub fn len(&self) -> usize {
         self.rows.len()
@@ -1060,7 +937,6 @@ impl DataGrid {
         })
     }
 
-
     pub fn set_rows(&mut self, data: GridRows) {
         self.rows = data.rows;
         self.total = data.total;
@@ -1083,7 +959,6 @@ impl DataGrid {
         self.scroll.set_content(self.content_rows());
         self.scroll.ensure_visible(self.cursor.0);
     }
-
 
     pub fn append_rows(&mut self, data: GridRows) {
         let start = self.rows.len();
@@ -1112,7 +987,6 @@ impl DataGrid {
                 let header = width(&c.name) as u16 + if c.primary { 2 } else { 0 } + 2;
 
                 let max = c.max_width.max(header.min(24));
-
 
                 let mut ws: Vec<usize> = self
                     .rows
@@ -1144,9 +1018,6 @@ impl DataGrid {
         self.row_state_with(src, |src| self.pending.cells.keys().any(|(r, _)| *r == src))
     }
 
-
-
-
     fn row_state_with(&self, src: usize, edited: impl Fn(usize) -> bool) -> RowState {
         if self.row_errors.contains_key(&src) {
             RowState::Error
@@ -1161,17 +1032,12 @@ impl DataGrid {
         }
     }
 
-
-
     pub fn is_editing(&self) -> bool {
         if self.choice.is_some() {
             return true;
         }
         self.edit.is_some()
     }
-
-
-
 
     fn edit_offset(&self, pos: Position) -> Option<usize> {
         let e = self.edit.as_ref()?;
@@ -1200,8 +1066,6 @@ impl DataGrid {
         self.order.get(self.cursor.0).copied()
     }
 
-
-
     pub fn read_only_reason_at_cursor(&self) -> Option<String> {
         let src = self.cursor_src()?;
         if !self.editable {
@@ -1219,8 +1083,6 @@ impl DataGrid {
             None
         }
     }
-
-
 
     pub fn cell_editable(&self) -> bool {
         self.editable
@@ -1240,7 +1102,6 @@ impl DataGrid {
         if let Some(reason) = self.read_only_reason_at_cursor() {
             return (Outcome::Changed, Some(GridAction::ReadOnly { reason }));
         }
-
 
         self.scroll.ensure_visible(self.cursor.0);
         self.ensure_col_visible();
@@ -1295,7 +1156,6 @@ impl DataGrid {
         }
         let mut field = EditField::single(v.edit_text());
 
-
         let (parser, spec) = (self.validator.clone(), self.columns[col].clone());
         field.validator = Some(Validator::new(move |text| {
             parse_cell(&parser, &spec, text).map(|_| ())
@@ -1331,10 +1191,6 @@ impl DataGrid {
         self.edit.take().is_some()
     }
 
-
-
-
-
     pub fn on_blur(&mut self) -> (Outcome, Option<GridAction>) {
         if let Some(c) = &self.choice {
             let r = match self.editor_config.blur {
@@ -1359,7 +1215,6 @@ impl DataGrid {
             BlurAction::Keep => (Outcome::Ignored, None),
         }
     }
-
 
     pub fn record_cell(&mut self, src: usize, col: usize, value: CellValue) {
         let before = self.pending.cells.get(&(src, col)).cloned();
@@ -1457,8 +1312,6 @@ impl DataGrid {
         Some(GridAction::RowInserted(src))
     }
 
-
-
     pub fn duplicate_row(&mut self) -> Option<GridAction> {
         let src = self.cursor_src()?;
         if !self.editable {
@@ -1512,7 +1365,6 @@ impl DataGrid {
         true
     }
 
-
     pub fn apply_commit_result(&mut self, result: Result<(), (usize, String)>) {
         match result {
             Ok(()) => {
@@ -1557,8 +1409,6 @@ impl DataGrid {
         self.row_errors.clear();
     }
 
-
-
     fn set_cursor(&mut self, row: usize, col: usize, extend: bool) {
         let n = self.content_rows();
         let row = row.min(n.saturating_sub(1));
@@ -1575,8 +1425,6 @@ impl DataGrid {
         self.ensure_col_visible();
     }
 
-
-
     fn point_cursor(&mut self, row: usize, col: usize, extend: bool) {
         self.scroll.pointer_move();
         self.set_cursor(row, col, extend);
@@ -1586,7 +1434,6 @@ impl DataGrid {
 
         self.scroll.reveal_column(self.cursor.1);
     }
-
 
     fn in_range(&self, row: usize, col: usize) -> bool {
         let Some(a) = self.anchor else {
@@ -1600,8 +1447,6 @@ impl DataGrid {
     fn on_more_row(&self) -> bool {
         self.more && self.cursor.0 == self.rows.len()
     }
-
-
 
     pub fn has_selection(&self) -> bool {
         self.anchor.is_some() || !self.selection.is_empty()
@@ -1724,7 +1569,6 @@ impl DataGrid {
         let n_rows = self.content_rows();
         if n_rows == 0 {
 
-
             return match lookup(&self.keymap, key) {
                 Some(GridCmd::InsertRow) if self.editable => (Outcome::Changed, self.insert_row()),
                 Some(GridCmd::Refresh) => (Outcome::Changed, Some(GridAction::Refresh)),
@@ -1758,13 +1602,11 @@ impl DataGrid {
             return (moved.outcome(), None);
         }
 
-
         let copy = (key.ctrl_char('c') && self.has_selection()).then_some(GridCmd::Copy);
         if let Some(action) = lookup(&self.keymap, key).or(copy) {
             return self.on_action(action);
         }
         if let Some(nav) = self.nav.action(key) {
-
 
             let letter = matches!(key.code, KeyCode::Char(_));
             let rows = RowFn {
@@ -1804,7 +1646,6 @@ impl DataGrid {
                 }
                 if !self.editable {
 
-
                     if let Some(reason) = self.read_only_reason_at_cursor() {
                         return (Outcome::Changed, Some(GridAction::ReadOnly { reason }));
                     }
@@ -1834,16 +1675,6 @@ impl DataGrid {
             _ => (Outcome::Ignored, None),
         }
     }
-
-
-
-
-
-
-
-
-
-
 
     pub fn context_items(&self) -> Vec<(GridCmd, crate::widgets::menu::MenuItem)> {
         use crate::ui::context::{ContextCmd, command_items};
@@ -1877,8 +1708,6 @@ impl DataGrid {
         ];
         command_items(&self.keymap, &cmds)
     }
-
-
 
     pub fn run(&mut self, cmd: GridCmd) -> (Outcome, Option<GridAction>) {
         if cmd == GridCmd::InsertRow && !self.editable {
@@ -2003,12 +1832,9 @@ impl DataGrid {
         }
     }
 
-
-
     pub fn header_id(&self, c: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::HEADER, ItemKey::index(c)))
     }
-
 
     pub fn cell_id(&self, display: usize, c: usize) -> WidgetId {
         self.id
@@ -2026,7 +1852,6 @@ impl DataGrid {
     fn seam_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::SEAM, 0..self.columns.len())
     }
-
 
     pub fn header_menu_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
@@ -2052,10 +1877,6 @@ impl DataGrid {
         self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
-
-
-
-
     fn cell_of(&self, id: WidgetId) -> Option<(usize, usize)> {
         self.parts.cell(id, Part::CELL)
     }
@@ -2068,11 +1889,7 @@ impl DataGrid {
         self.parts.index(id, Part::ROW_NUMBER)
     }
 
-
-
-
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
-
 
         if let Some((d, c)) = self.cell_of(id)
             && self
@@ -2103,15 +1920,9 @@ impl DataGrid {
         Outcome::Changed
     }
 
-
     pub fn on_click(&mut self, id: WidgetId, pos: Position) -> (Outcome, Option<GridAction>) {
         self.on_click_with(id, pos, KeyModifiers::NONE, 1)
     }
-
-
-
-
-
 
     pub fn context_selection(&mut self, display: usize, col: usize) {
         if self.anchor.is_some() && self.in_range(display, col) {
@@ -2125,19 +1936,9 @@ impl DataGrid {
         }
     }
 
-
-
     pub fn select_rows(&mut self, g: SelectGesture, display: usize) -> bool {
         self.selection.apply(g, display, &self.order, |_| true)
     }
-
-
-
-
-
-
-
-
 
     pub fn on_click_with(
         &mut self,
@@ -2207,7 +2008,6 @@ impl DataGrid {
         }
         if let Some(d) = self.rownum_of(id) {
 
-
             if let Some(GridDrag::Rows { id: from_id, .. }) = self.drag.take()
                 && from_id == id
             {
@@ -2224,7 +2024,6 @@ impl DataGrid {
         if let Some((d, c)) = self.cell_of(id) {
             if let Some(e) = &self.edit {
                 if self.order.get(d) == Some(&e.row) && e.col == c {
-
 
                     if let Some(at) = self.edit_offset(pos)
                         && let Some(e) = self.edit.as_mut()
@@ -2302,8 +2101,6 @@ impl DataGrid {
             return self.drag_rows(pressed, row_origin, pos);
         }
 
-
-
         let from_cell = matches!(self.drag, Some(GridDrag::Cells(id)) if id == pressed)
             || self.cell_of(pressed).is_some();
         if !from_cell || self.body.height == 0 {
@@ -2318,14 +2115,10 @@ impl DataGrid {
         Outcome::Ignored
     }
 
-
-
     fn drag_row(&self, y: u16) -> usize {
         let d = self.scroll.offset as isize + (y as isize - self.body.y as isize);
         (d.max(0) as usize).min(self.content_rows().saturating_sub(1))
     }
-
-
 
     pub(crate) fn column_at(&self, x: u16) -> Option<usize> {
         self.col_rects
@@ -2333,8 +2126,6 @@ impl DataGrid {
             .position(|r| x >= r.x && x < r.right())
             .map(|k| self.scroll.h.offset + k)
     }
-
-
 
     fn drag_col(&self, x: u16) -> usize {
         let (Some(first), Some(last)) = (self.col_rects.first(), self.col_rects.last()) else {
@@ -2354,8 +2145,6 @@ impl DataGrid {
         };
         c.min(self.columns.len().saturating_sub(1))
     }
-
-
 
     fn drag_rows(&mut self, pressed: WidgetId, origin: Option<usize>, pos: Position) -> Outcome {
         let d = self.drag_row(pos.y);
@@ -2401,16 +2190,12 @@ impl DataGrid {
         }
     }
 
-
-
-
     pub fn position_label(&self) -> String {
         match self.cols_label() {
             Some(c) => format!("{} · {c}", self.rows_label()),
             None => self.rows_label(),
         }
     }
-
 
     pub fn rows_label(&self) -> String {
         use crate::ui::text::thousands;
@@ -2436,7 +2221,6 @@ impl DataGrid {
         };
         format!("rows {}–{} of {total}", thousands(a), thousands(b))
     }
-
 
     pub fn cols_label(&self) -> Option<String> {
         if self.rows.is_empty() || !self.scroll.h.overflows() {
@@ -2465,8 +2249,6 @@ impl DataGrid {
         Some(parts.join(" · "))
     }
 
-
-
     fn layout_columns(&mut self, area: Rect) {
         let n = self.columns.len();
         let gap = 2u16;
@@ -2486,7 +2268,6 @@ impl DataGrid {
             x += w + gap;
         }
 
-
         let next = self.scroll.h.offset + fit;
         if next < n && x < area.right() {
             let rest = area.right() - x;
@@ -2495,7 +2276,6 @@ impl DataGrid {
             }
         }
     }
-
 
     fn fit_header_marks(&mut self) {
         for ci in 0..self.columns.len() {
@@ -2516,8 +2296,6 @@ impl DataGrid {
             }
         }
     }
-
-
 
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
@@ -2569,8 +2347,6 @@ impl DataGrid {
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.scroll.h_cfg = h_cfg;
 
-
-
         let rows_len = self.content_rows();
         let mut has_sb = body.height > 0 && rows_len > body.height as usize;
 
@@ -2592,8 +2368,6 @@ impl DataGrid {
         };
         self.layout_columns(cols_for(has_sb));
 
-
-
         let has_rows = !self.rows.is_empty() || self.more;
         let has_hb = has_rows && body.height > 1 && h_cfg.shows_bar(&self.scroll.h);
         if has_hb {
@@ -2610,7 +2384,6 @@ impl DataGrid {
         if has_rows {
             ctx.autoscroll(body);
         }
-
 
         let header_y = grid_area.y;
         fill(
@@ -2687,12 +2460,9 @@ impl DataGrid {
                 );
             } else if (cut || !col.type_label.is_empty()) && !ctx.inert {
 
-
                 ctx.hits.register_hover(hid, head);
             }
             if !col.type_label.is_empty() {
-
-
 
                 let tip = crate::ui::tooltip::Tip::new(&format!(
                     "{}{}{}",
@@ -2746,7 +2516,6 @@ impl DataGrid {
             }
             return;
         }
-
 
         let edited_rows: std::collections::HashSet<usize> =
             self.pending.cells.keys().map(|&(r, _)| r).collect();
@@ -2898,7 +2667,6 @@ impl DataGrid {
                     }
                     let is_cursor = is_cursor || in_choice;
 
-
                     let flagged = cfg.flag_out_of_set && self.out_of_set(src, ci);
                     let err = self.cell_errors.get(&(src, ci));
                     let err = err.or(flagged.then_some(&flagged_msg));
@@ -2913,8 +2681,6 @@ impl DataGrid {
                             Affordance::Always => true,
                             Affordance::Focused => is_cursor || hovered_cell == Some(ci),
                         };
-
-
 
                     let ref_mark = col.references.is_some()
                         && !matches!(v, CellValue::Null | CellValue::Default)
@@ -2933,8 +2699,6 @@ impl DataGrid {
                         }
                         _ => cell_text_with(v, col.kind, text_w, &t.glyphs),
                     };
-
-
 
                     let on = st.bg.unwrap_or(bg);
                     let literal = |st: Style, tone: SyntaxTone| {
@@ -3005,7 +2769,6 @@ impl DataGrid {
                         open_marks.push((d, ci, mark));
                     }
 
-
                     let full = v.text_ref();
                     if text != *full {
                         crate::ui::reveal::truncated(
@@ -3015,7 +2778,6 @@ impl DataGrid {
                             Rect::new(rect.x, y, rect.width, 1),
                             &full,
                         );
-
 
                         let cfg = self.reveal.unwrap_or(ctx.reveal);
                         if is_cursor && (cfg.hover || cfg.keyboard.is_some()) {
@@ -3056,8 +2818,6 @@ impl DataGrid {
             c.editor.render(anchor, buf, ctx, &self.editor_config);
         }
 
-
-
         ctx.scrollable(self.id, area);
         if has_sb {
             crate::ui::fade::scroll_edges(
@@ -3076,7 +2836,6 @@ impl DataGrid {
         }
         if has_hb {
 
-
             let y = body.bottom();
             let right = area.right() - u16::from(has_sb);
             fill(
@@ -3087,7 +2846,6 @@ impl DataGrid {
             let hb = Rect::new(cols_area.x, y, right.saturating_sub(cols_area.x), 1);
             self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
-
 
         if bar_h > 0 {
             let by = area.bottom() - 1;
@@ -3133,7 +2891,6 @@ impl DataGrid {
         [self.bar[0].id, self.bar[1].id, self.bar[2].id]
     }
 
-
     pub fn on_bar_key(&mut self, id: WidgetId, key: &Key) -> (Outcome, Option<GridAction>) {
         for (i, b) in self.bar.iter_mut().enumerate() {
             if b.id == id {
@@ -3171,12 +2928,9 @@ fn cmp_cells(a: &CellValue, b: &CellValue) -> std::cmp::Ordering {
     }
 }
 
-
 pub fn cell_text(v: &CellValue, kind: CellKind, w: usize) -> String {
     cell_text_with(v, kind, w, &crate::theme::Glyphs::UNICODE)
 }
-
-
 
 pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme::Glyphs) -> String {
     match v {
@@ -3207,12 +2961,7 @@ pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme:
     }
 }
 
-
-
 const TEXT_CELL_CHARS: usize = 10_000;
-
-
-
 
 fn sanitized(s: &str, limit: usize, g: &crate::theme::Glyphs) -> (String, bool) {
     let mut out = String::new();
@@ -3234,8 +2983,6 @@ fn sanitized(s: &str, limit: usize, g: &crate::theme::Glyphs) -> (String, bool) 
     (out, true)
 }
 
-
-
 fn one_line_json(j: &str, limit: usize) -> (String, bool) {
     let mut out = String::new();
     for word in j.split_whitespace() {
@@ -3249,12 +2996,6 @@ fn one_line_json(j: &str, limit: usize) -> (String, bool) {
     }
     (out, true)
 }
-
-
-
-
-
-
 
 fn shown_prefix(w: usize, make: impl Fn(usize) -> (String, bool)) -> String {
     let mut limit = w.saturating_mul(4).saturating_add(64);
@@ -3280,8 +3021,6 @@ impl Theme {
     }
 }
 
-
-
 pub(crate) fn header_style(
     ctx: &RenderCtx,
     id: WidgetId,
@@ -3302,7 +3041,6 @@ pub(crate) fn header_style(
         t.text_muted
     };
     let st = base.fg(t.legible(ink, base.bg.unwrap_or(bg)));
-
 
     if active {
         st.add_modifier(ratatui::style::Modifier::BOLD)
@@ -3325,14 +3063,11 @@ impl Scrollable for DataGrid {
         &mut self.scroll
     }
 
-
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         let c = self.choice.as_mut().filter(|_| axis == Axis::Vertical)?;
         Some(c.editor.wheel(axis, delta))
     }
 }
-
-
 
 impl RowSource for DataGrid {
     fn len(&self) -> usize {
@@ -3349,13 +3084,6 @@ impl Navigable for DataGrid {
         Cursor::new(self.cursor.0)
     }
 }
-
-
-
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for DataGrid {
     type Action = GridAction;
@@ -3382,7 +3110,6 @@ impl crate::core::pointer::MouseTarget for DataGrid {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
 
-
         if let Some(c) = self.choice.as_mut()
             && ev.on(c.editor.id)
             && ev.wheel().is_none()
@@ -3390,7 +3117,6 @@ impl crate::core::pointer::MouseTarget for DataGrid {
             let (out, r) = c.editor.pointer(ev).into_parts();
             return (out, self.on_choice(r)).into();
         }
-
 
         if (ev.on(self.id) || ev.wheel().is_some())
             && let Some(r) = crate::core::pointer::scroll_input(self, ev)
@@ -3407,1459 +3133,3 @@ impl crate::core::pointer::MouseTarget for DataGrid {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-
-
-    #[test]
-    fn measure_is_natural_and_min_width_flexible() {
-        use crate::core::focus::FocusRing;
-        use crate::core::hit::HitRegistry;
-        use crate::ui::measure::Measure;
-        let t = crate::theme::Theme::junie();
-        let cols = (0..8)
-            .map(|i| ColumnSpec::new(&format!("column {i}"), CellKind::Text))
-            .collect();
-        let mut g = DataGrid::new(WidgetId::of("g"), cols);
-        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
-        {
-            let mut ctx = RenderCtx::new(
-                &t,
-                crate::ui::ctx::Interaction::default(),
-                &mut hits,
-                &mut ring,
-            );
-            let area = Rect::new(0, 0, 200, 10);
-            let mut buf = Buffer::empty(area);
-            g.render(area, &mut buf, &mut ctx, t.canvas);
-        }
-        let ctx = RenderCtx::new(
-            &t,
-            crate::ui::ctx::Interaction::default(),
-            &mut hits,
-            &mut ring,
-        );
-        let any = ratatui::layout::Size::new(0, 0);
-        assert!(g.min_width(any, &ctx) < g.measure(any, &ctx).width);
-    }
-    use crate::core::{focus::FocusRing, hit::HitRegistry};
-    use crate::theme::ColorLevel;
-    use crate::ui::ctx::Interaction;
-    use ratatui::crossterm::event::KeyModifiers;
-
-    fn render_editor(grid: &mut DataGrid, level: ColorLevel) -> (Buffer, Position) {
-        let area = Rect::new(0, 0, 80, 8);
-        let mut buf = Buffer::empty(area);
-        let theme = Theme::for_level(level);
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(
-            &theme,
-            Interaction {
-                focus: Some(grid.id),
-                ..Default::default()
-            },
-            &mut hits,
-            &mut ring,
-        );
-        grid.render(area, &mut buf, &mut ctx, theme.surface);
-        let cursor = ctx.cursor.unwrap();
-        (buf, cursor)
-    }
-
-    fn grid() -> DataGrid {
-        let cols = vec![
-            ColumnSpec::new("id", CellKind::Id).primary(),
-            ColumnSpec::new("name", CellKind::Text),
-            ColumnSpec::new("qty", CellKind::Number).nullable(false),
-            ColumnSpec::new("active", CellKind::Bool),
-        ];
-        let mut g = DataGrid::new(WidgetId::of("g"), cols);
-        let rows = (0..10)
-            .map(|i| {
-                vec![
-                    CellValue::Text(format!("id-{i}")),
-                    CellValue::Text(format!("row {i}")),
-                    CellValue::Int(i),
-                    CellValue::Bool(i % 2 == 0),
-                ]
-            })
-            .collect();
-        g.set_rows(GridRows {
-            rows,
-            total: RowTotal::Exact(10),
-            more: false,
-        });
-        g.scroll.set_viewport(5);
-        g
-    }
-
-    #[test]
-    fn bar_labels_override_the_theme_and_default_labels_follow_it() {
-        let de = crate::theme::Strings {
-            preview_sql: "Vorschau",
-            ..crate::theme::Strings::DEFAULT
-        };
-        let labels = |g: &DataGrid| g.bar.iter().map(|b| b.label.clone()).collect::<Vec<_>>();
-        let mut g = grid().bar_labels(["SQL", "Undo all", "Write"]);
-        g.follow_strings(de);
-        assert_eq!(labels(&g), ["SQL", "Undo all", "Write"]);
-        let mut g = grid();
-        g.follow_strings(de);
-        assert_eq!(labels(&g), ["Vorschau", "Discard", "Save"]);
-        g.follow_strings(crate::theme::Strings::DEFAULT);
-        assert_eq!(labels(&g), ["Preview SQL", "Discard", "Save"]);
-    }
-
-    #[test]
-    fn rendering_without_focus_never_ends_the_cell_edit() {
-        let mut g = grid();
-        g.set_cursor(0, 1, false);
-        g.begin_edit();
-        g.edit.as_mut().unwrap().field.buffer.set_text("renamed");
-        render_at(&mut g, Rect::new(0, 0, 80, 12), Interaction::default());
-        assert!(g.is_editing(), "render is not a blur");
-        assert!(
-            g.pending.is_empty(),
-            "nothing committed behind the owner's back"
-        );
-    }
-
-    #[test]
-    fn blur_commits_cancels_or_keeps_the_cell_edit() {
-        let edited = |action| {
-            let mut g = grid();
-            g.blur_action = action;
-            assert_eq!(g.on_blur(), (Outcome::Ignored, None));
-            g.set_cursor(0, 1, false);
-            g.begin_edit();
-            g.edit.as_mut().unwrap().field.buffer.set_text("renamed");
-            g
-        };
-        let mut commit = edited(BlurAction::Commit);
-        assert_eq!(
-            commit.on_blur(),
-            (
-                Outcome::Changed,
-                Some(GridAction::CellChanged { row: 0, col: 1 })
-            )
-        );
-        assert!(!commit.is_editing());
-        assert!(!commit.pending.is_empty());
-        let mut cancel = edited(BlurAction::Cancel);
-        assert_eq!(cancel.on_blur(), (Outcome::Changed, None));
-        assert!(!cancel.is_editing());
-        assert!(cancel.pending.is_empty());
-        let mut keep = edited(BlurAction::Keep);
-        assert_eq!(keep.on_blur(), (Outcome::Ignored, None));
-        assert!(keep.is_editing());
-
-        let mut bad = grid();
-        bad.set_cursor(0, 2, false);
-        bad.begin_edit();
-        bad.edit
-            .as_mut()
-            .unwrap()
-            .field
-            .buffer
-            .set_text("not a number");
-        assert_eq!(bad.on_blur(), (Outcome::Changed, None));
-        assert!(bad.edit_error().is_some());
-    }
-
-    #[test]
-    fn cells_row_numbers_and_headers_resolve_to_the_grid() {
-        use crate::core::hit::Hit;
-        use crate::core::id::{ItemKey, Part, PartRef};
-        let mut g = grid();
-        g.row_numbers = true;
-        let (_, hits) = render_at(&mut g, Rect::new(0, 0, 80, 10), Interaction::default());
-        let cell = hits.area_of(g.cell_id(1, 2)).expect("cell (1, 2) is drawn");
-        assert_eq!(
-            hits.resolve(Position::new(cell.x, cell.y)),
-            Some(Hit {
-                owner: g.id,
-                part: PartRef::item(Part::CELL, ItemKey::index(1))
-            })
-        );
-        assert_eq!(g.cell_of(g.cell_id(1, 2)), Some((1, 2)));
-        let num = hits.area_of(g.rownum_id(1)).expect("row numbers are drawn");
-        assert_eq!(
-            hits.resolve(Position::new(num.x, num.y)).map(|h| h.part),
-            Some(PartRef::item(Part::ROW_NUMBER, ItemKey::index(1)))
-        );
-        assert_eq!(g.rownum_of(g.rownum_id(1)), Some(1));
-        for r in hits.regions().iter().filter(|r| !r.scroll_only) {
-            assert_eq!(r.owner, g.id, "{r:?} belongs to the grid");
-        }
-    }
-
-    #[test]
-    fn clicking_another_cell_keeps_invalid_editor_and_cursor() {
-        let mut g = grid();
-        g.scroll.h.set_viewport(g.columns.len());
-        g.set_cursor(0, 2, false);
-        g.begin_edit();
-        g.edit
-            .as_mut()
-            .unwrap()
-            .field
-            .buffer
-            .set_text("not a number");
-
-        render_at(&mut g, Rect::new(0, 0, 80, 10), Interaction::default());
-        g.on_click(g.cell_id(1, 2), Position::ORIGIN);
-        assert_eq!(g.cursor, (0, 2));
-        assert_eq!(g.edit.as_ref().unwrap().field.buffer.text(), "not a number");
-        assert!(g.edit_error().is_some());
-        g.on_click(g.cell_id(1, 2), Position::ORIGIN);
-        assert_eq!(g.edit.as_ref().unwrap().field.buffer.text(), "not a number");
-        assert!(g.pending.is_empty());
-    }
-
-
-
-
-
-
-    #[test]
-    fn a_cell_edit_rechecks_after_an_error_undoes_and_flattens_pastes() {
-        let ctrl = |c| Key {
-            code: KeyCode::Char(c),
-            mods: KeyModifiers::CONTROL,
-        };
-        let mut g = grid();
-        g.set_cursor(0, 2, false);
-        g.begin_edit();
-        g.edit.as_mut().unwrap().field.buffer.set_text("x");
-        g.on_key(&key(KeyCode::Enter));
-        assert!(g.edit_error().is_some(), "the commit marks the value");
-        g.on_key(&key(KeyCode::Char('y')));
-        assert!(g.edit_error().is_some(), "still invalid: the error stays");
-        g.on_key(&ctrl('z'));
-        assert_eq!(g.edit.as_ref().unwrap().field.text(), "x", "Ctrl+Z");
-        for _ in 0..2 {
-            g.on_key(&key(KeyCode::Backspace));
-        }
-        g.on_key(&key(KeyCode::Char('7')));
-        assert_eq!(g.edit_error(), None, "valid again: the error goes at once");
-        g.on_paste("8\n9\n");
-        assert_eq!(g.edit.as_ref().unwrap().field.text(), "78 9");
-    }
-
-    #[test]
-    fn invalid_edit_blocks_header_sort_request_and_preserves_draft() {
-        let mut g = grid();
-        g.set_cursor(0, 2, false);
-        g.begin_edit();
-        g.edit
-            .as_mut()
-            .unwrap()
-            .field
-            .buffer
-            .set_text("not a number");
-        let (_, event) = g.on_click(g.header_id(2), Position::ORIGIN);
-        assert_eq!(event, None);
-        assert_eq!(g.sort, None);
-        assert_eq!(g.edit.as_ref().unwrap().field.buffer.text(), "not a number");
-        assert!(g.edit_error().is_some());
-    }
-
-    #[test]
-    fn unicode_edit_window_keeps_cells_bounded_and_clicks_at_display_position() {
-        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
-            let mut g = grid();
-            g.set_cursor(0, 1, false);
-            g.begin_edit();
-            let (before, _) = render_editor(&mut g, level);
-            g.edit.as_mut().unwrap().field.buffer.select_all();
-            let text = format!("{}終", "日本語👩‍💻cafe\u{301}".repeat(8));
-            g.on_paste(&text);
-            let (after, cursor) = render_editor(&mut g, level);
-            let rect = g.col_rects[1 - g.scroll.h.offset];
-            let cell = Rect::new(rect.x, cursor.y, rect.width, 1);
-            assert!(cell.contains(cursor));
-            assert_eq!(after[(cursor.x - 2, cursor.y)].symbol(), "終");
-            let expected = g
-                .edit
-                .as_ref()
-                .unwrap()
-                .field
-                .buffer
-                .offset_at(0, crate::ui::text::width(&text) - 2);
-            g.on_click(g.cell_id(0, 1), Position::new(cursor.x - 2, cursor.y));
-            assert_eq!(
-                g.edit.as_ref().unwrap().field.buffer.cursor_offset(),
-                expected
-            );
-            g.on_key(&Key {
-                code: KeyCode::Home,
-                mods: ratatui::crossterm::event::KeyModifiers::NONE,
-            });
-            let (home, _) = render_editor(&mut g, level);
-            for x in 0..80 {
-                if !cell.contains(Position::new(x, cursor.y)) {
-                    assert_eq!(
-                        after[(x, cursor.y)].symbol(),
-                        before[(x, cursor.y)].symbol()
-                    );
-                    assert_eq!(home[(x, cursor.y)].symbol(), before[(x, cursor.y)].symbol());
-                }
-            }
-        }
-    }
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        }
-    }
-
-    fn wide_grid() -> DataGrid {
-        let cols = (0..11)
-            .map(|i| ColumnSpec::new(&format!("column_{i}"), CellKind::Text))
-            .collect();
-        let mut g = DataGrid::new(WidgetId::of("wide"), cols);
-        let rows = (0..3)
-            .map(|r| {
-                (0..11)
-                    .map(|c| CellValue::Text(format!("r{r}c{c}-9e3d2906-68f5")))
-                    .collect()
-            })
-            .collect();
-        g.set_rows(GridRows {
-            rows,
-            total: RowTotal::Exact(3),
-            more: false,
-        });
-        g
-    }
-
-    fn render_at(g: &mut DataGrid, area: Rect, interaction: Interaction) -> (Buffer, HitRegistry) {
-        let mut buf = Buffer::empty(area);
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        {
-            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            g.render(area, &mut buf, &mut ctx, theme.surface);
-        }
-        (buf, hits)
-    }
-
-    fn row_text(buf: &Buffer, y: u16) -> String {
-        (0..buf.area.width)
-            .map(|x| buf[(x, y)].symbol().to_string())
-            .collect()
-    }
-
-
-    fn thumb_x(buf: &Buffer, y: u16) -> Option<u16> {
-        (0..buf.area.width).find(|&x| buf[(x, y)].symbol() == scrollbar::H_THUMB)
-    }
-
-
-    fn hit_x(hits: &HitRegistry, y: u16, w: u16, id: WidgetId) -> Option<u16> {
-        (0..w).find(|&x| hits.hit(Position::new(x, y)) == Some(id))
-    }
-
-    #[test]
-    fn typed_literals_take_the_syntax_hues_and_null_stays_italic() {
-        let cols = vec![
-            ColumnSpec::new("name", CellKind::Text),
-            ColumnSpec::new("active", CellKind::Bool),
-            ColumnSpec::new("meta", CellKind::Json),
-        ];
-        let mut g = DataGrid::new(WidgetId::of("g"), cols);
-        g.set_rows(GridRows {
-            rows: vec![vec![
-                CellValue::Null,
-                CellValue::Bool(true),
-                CellValue::Json("{\"a\":1}".into()),
-            ]],
-            total: RowTotal::Exact(1),
-            more: false,
-        });
-        let area = Rect::new(0, 0, 60, 6);
-        let (buf, _) = render_at(&mut g, area, Interaction::default());
-        let t = Theme::junie();
-        let find = |needle: &str| {
-            let n: Vec<String> = needle.chars().map(String::from).collect();
-            (0..area.height)
-                .flat_map(|y| (0..area.width).map(move |x| (x, y)))
-                .find(|&(x, y)| {
-                    n.iter().enumerate().all(|(i, c)| {
-                        x + (i as u16) < area.width && buf[(x + i as u16, y)].symbol() == c
-                    })
-                })
-                .unwrap_or_else(|| panic!("{needle} not drawn"))
-        };
-        let (x, y) = find("NULL");
-        assert_eq!(buf[(x, y)].fg, t.syntax_literal);
-        assert!(buf[(x, y)].modifier.contains(Modifier::ITALIC));
-        let (x, y) = find("true");
-        assert_eq!(buf[(x, y)].fg, t.syntax_literal);
-        let (x, y) = find("{\"a\"");
-        assert_eq!(buf[(x, y)].fg, t.syntax_string);
-    }
-
-    #[test]
-    fn a_reference_arrow_never_covers_the_value() {
-
-
-        let cols = vec![
-            ColumnSpec::new("account_id", CellKind::Number).references("accounts"),
-            ColumnSpec::new("owner", CellKind::Text).references("users"),
-        ];
-        let mut g = DataGrid::new(WidgetId::of("g"), cols);
-        g.set_rows(GridRows {
-            rows: vec![vec![
-                CellValue::Int(201),
-                CellValue::Text("a-long-owner-handle-that-fills-the-cell".into()),
-            ]],
-            total: RowTotal::Exact(1),
-            more: false,
-        });
-        let area = Rect::new(0, 0, 60, 6);
-        let (buf, _) = render_at(&mut g, area, Interaction::default());
-        let row: String = (0..area.width).map(|x| buf[(x, 1)].symbol()).collect();
-        let arrow = Theme::junie().glyphs.arrow;
-        assert!(row.contains(&format!("201 {arrow}")), "{row}");
-        assert!(row.contains(&format!("… {arrow}")), "{row}");
-    }
-
-    #[test]
-    fn dragging_a_header_seam_resizes_the_column_cell_by_cell() {
-        let mut g = wide_grid();
-        let area = Rect::new(0, 0, 100, 8);
-        let (_, hits) = render_at(&mut g, area, Interaction::default());
-        let before = g.col_rects[0].width;
-        let sid = g.seam_id(0);
-
-        let x = hit_x(&hits, area.y, area.width, sid).expect("a seam after column 0");
-        assert_eq!(x, g.col_rects[0].right());
-        assert_eq!(
-            g.on_press(sid, Position::new(x + 1, 0), 1),
-            Outcome::Changed
-        );
-
-        g.on_drag(sid, Position::new(x + 1, 0));
-        render_at(&mut g, area, Interaction::default());
-        assert_eq!(g.col_rects[0].width, before);
-        g.on_drag(sid, Position::new(x + 6, 0));
-        let (buf, _) = render_at(&mut g, area, Interaction::default());
-        assert_eq!(g.col_rects[0].width, before + 5);
-        assert_eq!(g.col_rects[1].x, x + 5 + 2, "the next column follows");
-
-        let glyphs = Theme::junie().glyphs;
-        assert_eq!(buf[(x + 5, 0)].symbol(), glyphs.scroll_thumb);
-        g.on_click(sid, Position::new(x + 6, 0));
-        assert_eq!(g.on_drag(sid, Position::new(x + 9, 0)), Outcome::Consumed);
-        let (rest, _) = render_at(&mut g, area, Interaction::default());
-        let hover = Interaction {
-            hover: Some(sid),
-            ..Default::default()
-        };
-        let (hovered, _) = render_at(&mut g, area, hover);
-        assert_eq!(rest[(x + 5, 0)].symbol(), " ", "invisible at rest");
-        assert_eq!(
-            hovered[(x + 5, 0)].symbol(),
-            glyphs.scroll_thumb,
-            "heavy on hover"
-        );
-
-        let mut g = wide_grid().resizable_columns(false);
-        let (_, hits) = render_at(&mut g, area, Interaction::default());
-        assert_eq!(hit_x(&hits, 0, area.width, g.seam_id(0)), None);
-    }
-
-    #[test]
-    fn double_clicking_a_seam_autofits_and_the_header_menu_resets() {
-        let cols = vec![
-            ColumnSpec::new("id", CellKind::Number),
-            ColumnSpec::new("name", CellKind::Text),
-        ];
-        let mut g = DataGrid::new(WidgetId::of("fit"), cols);
-        g.set_rows(GridRows {
-            rows: vec![vec![CellValue::Int(1), CellValue::Text("Ada".into())]],
-            total: RowTotal::Exact(1),
-            more: false,
-        });
-        let area = Rect::new(0, 0, 60, 6);
-        render_at(&mut g, area, Interaction::default());
-        let sid = g.seam_id(1);
-        let w0 = g.col_rects[1].width;
-        g.on_press(sid, Position::new(0, 0), 1);
-        g.on_drag(sid, Position::new(20, 0));
-        render_at(&mut g, area, Interaction::default());
-        assert_eq!(g.col_rects[1].width, w0 + 20, "dragged wider");
-
-        g.on_press(sid, Position::new(20, 0), 2);
-        render_at(&mut g, area, Interaction::default());
-        assert_eq!(g.col_rects[1].width, 4, "\"name\" is the widest text");
-
-        let menu = g.header_menu(1);
-        let labels: Vec<_> = menu.iter().map(|(_, m)| m.item.label.as_str()).collect();
-        assert_eq!(
-            labels,
-            [
-                "Sort Ascending",
-                "Sort Descending",
-                "Clear Sort",
-                "Size Column to Fit",
-                "Reset Column Widths"
-            ]
-        );
-        assert!(menu[2].1.item.disabled, "nothing to clear");
-        assert!(!menu[4].1.item.disabled, "a user width exists");
-        g.on_header_action(1, HeaderAction::ResetWidths);
-        assert!(g.sizing.is_default());
-        g.on_header_action(1, HeaderAction::SortDesc);
-        assert_eq!(g.sort, Some((1, SortDir::Desc)));
-        let (_, hits) = render_at(&mut g, area, Interaction::default());
-        let secondary = |id| {
-            crate::core::pointer::PointerEvent::new(
-                &hits,
-                crate::core::intent::Phase::Secondary,
-                id,
-                Position::new(0, 0),
-                1,
-                ratatui::crossterm::event::KeyModifiers::NONE,
-            )
-        };
-        assert_eq!(g.header_menu_at(&secondary(g.header_id(1))), Some(1));
-        assert_eq!(g.header_menu_at(&secondary(sid)), Some(1));
-    }
-
-    #[test]
-    fn a_cut_header_title_reveals_on_hover() {
-        let long = "customer_lifetime_value_in_reporting_currency";
-        let cols = vec![ColumnSpec::new(long, CellKind::Number)];
-        let mut g = DataGrid::new(WidgetId::of("cut"), cols);
-        g.set_rows(GridRows {
-            rows: vec![vec![CellValue::Int(1)]],
-            total: RowTotal::Exact(1),
-            more: false,
-        });
-        let area = Rect::new(0, 0, 80, 8);
-        let (buf, _) = render_at(&mut g, area, Interaction::default());
-        assert!(!row_text(&buf, 0).contains(long), "the title is cut");
-        let theme = Theme::junie();
-        let mut buf = Buffer::empty(area);
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let hover = Interaction {
-            hover: Some(g.header_id(0)),
-            ..Default::default()
-        };
-        let mut ctx = RenderCtx::new(&theme, hover, &mut hits, &mut ring);
-        g.render(area, &mut buf, &mut ctx, theme.surface);
-        ctx.flush_overlays(&mut buf);
-        let all: String = (0..area.height).map(|y| row_text(&buf, y)).collect();
-        assert!(all.contains(long), "{all}");
-    }
-
-
-
-
-    #[test]
-    fn a_column_type_label_is_its_header_tooltip() {
-        let long = "customer_lifetime_value_in_reporting_currency";
-        let cols = vec![
-            ColumnSpec::new("price", CellKind::Number).type_label("numeric(10,2)"),
-            ColumnSpec::new(long, CellKind::Number).type_label("bigint"),
-        ];
-        let mut g = DataGrid::new(WidgetId::of("typed"), cols);
-        g.set_rows(GridRows {
-            rows: vec![vec![CellValue::Int(1), CellValue::Int(2)]],
-            total: RowTotal::Exact(1),
-            more: false,
-        });
-        let area = Rect::new(0, 0, 80, 8);
-        let screen = |g: &mut DataGrid, hover: Option<WidgetId>| {
-            let theme = Theme::junie();
-            let mut buf = Buffer::empty(area);
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let inter = Interaction {
-                hover,
-                hover_ms: Some(5_000),
-                ..Default::default()
-            };
-            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
-            g.render(area, &mut buf, &mut ctx, theme.surface);
-            ctx.flush_overlays(&mut buf);
-            (0..area.height)
-                .map(|y| row_text(&buf, y))
-                .collect::<Vec<_>>()
-                .join(
-                    "
-",
-                )
-        };
-        let rest = screen(&mut g, None);
-        assert!(
-            !rest.contains("numeric"),
-            "not drawn at rest:
-{rest}"
-        );
-        let (h0, h1) = (g.header_id(0), g.header_id(1));
-        let on_price = screen(&mut g, Some(h0));
-        assert!(on_price.contains("price · numeric(10,2)"), "{on_price}");
-
-        let on_long = screen(&mut g, Some(h1));
-        assert!(
-            on_long.contains(&format!("{long} ·")) && on_long.contains("bigint"),
-            "{on_long}"
-        );
-    }
-
-    #[test]
-    fn dragging_the_vertical_thumb_keeps_the_grabbed_row_under_the_pointer() {
-        let mut g = grid();
-        let area = Rect::new(0, 0, 60, 9);
-        let (_, hits) = render_at(&mut g, area, Interaction::default());
-        let bar = scrollbar::id_for(g.id);
-        let track = hits.area_of(bar).expect("vertical bar");
-        let (start, len) = g.scroll.thumb(track.height as usize);
-        assert!(len >= 2 && start == 0, "{start} {len}");
-
-
-        g.on_drag(bar, Position::new(track.x, track.y + 1));
-        g.on_drag(bar, Position::new(track.x, track.y + 3));
-        let (moved, _) = g.scroll.thumb(track.height as usize);
-        assert_eq!(moved, 2, "offset {}", g.scroll.offset);
-    }
-
-    #[test]
-    fn wide_columns_show_a_horizontal_bar_that_follows_wheel_and_drag() {
-        let mut g = wide_grid();
-        let area = Rect::new(0, 0, 60, 8);
-        let (buf, hits) = render_at(&mut g, area, Interaction::default());
-        assert!(g.scroll.h.overflows());
-        let y = area.bottom() - 1;
-        let bar = row_text(&buf, y);
-        assert!(
-            bar.contains(scrollbar::H_THUMB),
-            "bar on the bottom row: {bar:?}"
-        );
-        assert!(bar.contains(scrollbar::H_TRACK));
-        assert_eq!(
-            thumb_x(&buf, y),
-            Some(g.scroll.h_track().x),
-            "the thumb starts at the left"
-        );
-        assert_eq!(
-            hits.hit(Position::new(g.scroll.h_track().x + 1, y)),
-            Some(scrollbar::h_id_for(g.id))
-        );
-        assert!(
-            !row_text(&buf, 1).contains(scrollbar::H_THUMB),
-            "rows are not drawn over"
-        );
-
-
-        assert_eq!(g.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
-        assert_eq!(g.scroll.h.offset, 1);
-        let (buf, _) = render_at(&mut g, area, Interaction::default());
-        assert!(thumb_x(&buf, y) > Some(g.scroll.h_track().x));
-
-
-        let grab = Position::new(thumb_x(&buf, y).unwrap(), y);
-        let (out, _) = g.on_click(scrollbar::h_id_for(g.id), grab);
-        assert_eq!(out, Outcome::Consumed, "pressing the thumb only grabs it");
-        assert_eq!(
-            g.on_drag(scrollbar::h_id_for(g.id), Position::new(area.right(), y)),
-            Outcome::Changed
-        );
-        assert_eq!(g.scroll.h.offset, g.scroll.h.max_offset());
-        let (buf, _) = render_at(&mut g, area, Interaction::default());
-        assert!(
-            row_text(&buf, 0).contains("column_10"),
-            "last column in view"
-        );
-        assert_eq!(
-            g.cols_label().as_deref().map(|l| l.ends_with("of 11")),
-            Some(true)
-        );
-    }
-
-    #[test]
-    fn horizontal_policy_and_badges_are_configurable() {
-        let area = Rect::new(0, 0, 60, 8);
-        let mut g = wide_grid()
-            .horizontal(HScroll::default().bar(crate::core::scroll::ScrollbarVisibility::Never))
-            .overflow_badges(false);
-        let (buf, hits) = render_at(&mut g, area, Interaction::default());
-        assert!(!row_text(&buf, area.bottom() - 1).contains(scrollbar::H_THUMB));
-        assert_eq!(hits.area_of(scrollbar::h_id_for(g.id)), None);
-        assert!(!row_text(&buf, 0).contains('›'), "no hidden-column badge");
-        assert_eq!(
-            g.wheel(Axis::Horizontal, 1).outcome(),
-            Outcome::Changed,
-            "still scrolls"
-        );
-
-        let mut off = wide_grid().horizontal(HScroll::off());
-        render_at(&mut off, area, Interaction::default());
-        assert_eq!(off.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
-
-
-        let mut fits = grid();
-        let (buf, _) = render_at(&mut fits, Rect::new(0, 0, 80, 8), Interaction::default());
-        assert!(!row_text(&buf, 7).contains(scrollbar::H_THUMB));
-    }
-
-    #[test]
-    fn dirty_back_to_original_clears_change() {
-        let mut g = grid();
-        g.record_cell(1, 1, CellValue::Text("x".into()));
-        assert_eq!(g.pending.total(), 1);
-        assert_eq!(g.row_state(1), RowState::Modified);
-        g.record_cell(1, 1, CellValue::Text("row 1".into()));
-        assert!(g.pending.is_empty());
-        assert_eq!(g.row_state(1), RowState::Clean);
-    }
-
-    #[test]
-    fn delete_removes_update_and_undo_restores() {
-        let mut g = grid();
-        g.record_cell(2, 1, CellValue::Text("x".into()));
-        g.toggle_delete(2);
-        assert_eq!(g.row_state(2), RowState::Deleted);
-        assert!(!g.pending.is_dirty(2, 1));
-        g.undo();
-        assert_eq!(g.row_state(2), RowState::Clean);
-    }
-
-    #[test]
-    fn insert_then_undo_shifts_nothing_else() {
-        let mut g = grid();
-        g.insert_row();
-        assert_eq!(g.len(), 11);
-        assert_eq!(g.row_state(10), RowState::Inserted);
-        assert_eq!(g.cursor, (10, 1));
-        g.undo();
-        assert_eq!(g.len(), 10);
-        assert!(g.pending.is_empty());
-    }
-
-    #[test]
-    fn edit_commit_validates_by_kind() {
-        let mut g = grid();
-        g.cursor = (0, 2);
-        g.begin_edit();
-        assert!(g.is_editing());
-        g.edit.as_mut().unwrap().field.buffer.insert_str("abc");
-        assert!(g.commit_edit().is_none());
-        assert_eq!(g.edit_error(), Some("Must be a number"));
-        g.cancel_edit();
-        g.cursor = (0, 3);
-        g.begin_edit();
-        assert!(!g.is_editing());
-        assert_eq!(g.value(0, 3), &CellValue::Bool(false));
-    }
-
-    #[test]
-    fn a_validator_can_capture_state() {
-        let allowed = ["red".to_owned(), "blue".to_owned()];
-        let mut g = grid().validator(move |_, text| {
-            if allowed.iter().any(|a| a == text) {
-                Ok(CellValue::Text(text.to_owned()))
-            } else {
-                Err(format!("One of {}", allowed.join(", ")))
-            }
-        });
-        g.cursor = (0, 2);
-        g.begin_edit();
-        g.edit.as_mut().unwrap().field.buffer.insert_str("green");
-        assert!(g.commit_edit().is_none());
-        assert_eq!(g.edit_error(), Some("One of red, blue"));
-    }
-
-    #[test]
-    fn duplicate_keys_are_configurable() {
-        let ctrl_d = Key {
-            code: KeyCode::Char('d'),
-            mods: KeyModifiers::CONTROL,
-        };
-        let alt_d = Key {
-            code: KeyCode::Char('d'),
-            mods: KeyModifiers::ALT,
-        };
-
-        let mut g = grid().editable(true).duplicate_keys(&[alt_d]);
-        assert_eq!(g.on_key(&ctrl_d).1, None);
-        assert_eq!(g.rows().len(), 10);
-        assert_eq!(g.on_key(&alt_d).1, Some(GridAction::RowInserted(10)));
-
-        let mut g = grid().editable(true).duplicate_keys(&[]);
-        assert_eq!(g.on_key(&alt_d).1, None);
-        assert_eq!(g.rows().len(), 10);
-    }
-
-    #[test]
-    fn enter_on_a_read_only_cell_says_why_and_hints_drop_edit() {
-        let mut g = grid().editable(true);
-        g.columns[0].read_only = true;
-        assert!(!g.cell_editable(), "the cursor starts on the read-only id");
-        let (o, ev) = g.on_key(&key(KeyCode::Enter));
-        assert_eq!(o, Outcome::Changed);
-        assert_eq!(
-            ev,
-            Some(GridAction::ReadOnly {
-                reason: "id is read-only".into()
-            })
-        );
-        assert!(!g.is_editing());
-        g.on_key(&key(KeyCode::Right));
-        assert!(g.cell_editable());
-
-        let mut ro = grid();
-        ro.editable = false;
-        ro.read_only_reason = Some("Views cannot be edited".into());
-        assert!(!ro.cell_editable());
-        let (_, ev) = ro.on_key(&key(KeyCode::Enter));
-        assert_eq!(
-            ev,
-            Some(GridAction::ReadOnly {
-                reason: "Views cannot be edited".into()
-            })
-        );
-
-        ro.read_only_reason = None;
-        let (_, ev) = ro.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(GridAction::Activated(0)));
-    }
-
-    #[test]
-    fn duplicate_chords_share_defaults_undo_and_read_only_guards() {
-        for mods in [KeyModifiers::ALT, KeyModifiers::CONTROL] {
-            let mut g = grid().editable(true);
-            let duplicate = Key {
-                code: KeyCode::Char('d'),
-                mods,
-            };
-            assert_eq!(g.on_key(&duplicate).1, Some(GridAction::RowInserted(10)));
-            assert_eq!(g.value(10, 0), &CellValue::Default);
-            assert_eq!(g.value(10, 1), &CellValue::Text("row 0".into()));
-            assert!(g.undo());
-            assert_eq!(g.rows().len(), 10);
-            g.editable = false;
-            assert_eq!(g.on_key(&duplicate).1, None);
-            assert_eq!(g.rows().len(), 10);
-            assert_eq!(g.pending.total(), 0);
-        }
-    }
-
-    #[test]
-    fn keys_navigate_select_and_sort_request() {
-        let mut g = grid();
-        g.on_key(&key(KeyCode::Down));
-        g.on_key(&key(KeyCode::Right));
-        assert_eq!(g.cursor, (1, 1));
-        g.on_key(&key(KeyCode::Char(' ')));
-        assert!(g.selection.contains(1));
-        let (_, ev) = g.on_key(&key(KeyCode::Char('s')));
-        assert_eq!(ev, Some(GridAction::SortRequested(Some((1, SortDir::Asc)))));
-        let (_, ev) = g.on_key(&key(KeyCode::Char('s')));
-        assert_eq!(
-            ev,
-            Some(GridAction::SortRequested(Some((1, SortDir::Desc))))
-        );
-        let (_, ev) = g.on_key(&key(KeyCode::Char('s')));
-        assert_eq!(ev, Some(GridAction::SortRequested(None)));
-        g.local_sort = true;
-        g.on_key(&key(KeyCode::Char('s')));
-        g.on_key(&key(KeyCode::Char('s')));
-        assert_eq!(g.source_row(0), 9);
-
-        g.record_cell(9, 1, CellValue::Text("z".into()));
-        assert!(g.pending.is_dirty(9, 1));
-        assert_eq!(g.row_state(g.source_row(0)), RowState::Modified);
-    }
-
-
-
-
-    #[test]
-    fn the_cursor_inside_a_range_takes_its_own_fill() {
-        let mut g = grid();
-        let shift = ratatui::crossterm::event::KeyModifiers::SHIFT;
-        g.on_key(&Key {
-            code: KeyCode::Down,
-            mods: shift,
-        });
-        g.on_key(&Key {
-            code: KeyCode::Right,
-            mods: shift,
-        });
-        let focus = Interaction {
-            focus: Some(g.id),
-            ..Default::default()
-        };
-        let (buf, _) = render_at(&mut g, Rect::new(0, 0, 60, 10), focus);
-        let t = Theme::junie();
-        let cursor: String = buf
-            .content()
-            .iter()
-            .filter(|c| c.bg == t.highlight_on_selection)
-            .map(|c| c.symbol())
-            .collect();
-        assert!(cursor.contains("row 1"), "{cursor:?}");
-    }
-
-    #[test]
-    fn range_selection_and_copy() {
-        let mut g = grid();
-        g.on_key(&Key {
-            code: KeyCode::Down,
-            mods: ratatui::crossterm::event::KeyModifiers::SHIFT,
-        });
-        g.on_key(&Key {
-            code: KeyCode::Right,
-            mods: ratatui::crossterm::event::KeyModifiers::SHIFT,
-        });
-        assert!(g.in_range(0, 0) && g.in_range(1, 1));
-        let text = g.copy_text(false);
-        assert_eq!(text.lines().count(), 2);
-        assert!(text.starts_with("id-0\trow 0"));
-    }
-
-    #[test]
-    fn position_label_variants() {
-        let mut g = grid();
-        assert_eq!(g.position_label(), "rows 1–5 of 10");
-        g.more = true;
-        g.total = RowTotal::Estimated(1_203_338);
-        assert_eq!(
-            g.position_label(),
-            "rows 1–5 of 10 loaded · ~1,203,338 total"
-        );
-        g.set_rows(GridRows {
-            rows: vec![],
-            total: RowTotal::Exact(0),
-            more: false,
-        });
-        assert_eq!(g.position_label(), "0 rows");
-    }
-
-    #[test]
-    fn fetch_more_row_is_reachable() {
-        let mut g = grid();
-        g.more = true;
-        g.scroll.set_content(g.content_rows());
-
-        g.on_key(&Key {
-            code: KeyCode::End,
-            mods: ratatui::crossterm::event::KeyModifiers::CONTROL,
-        });
-        assert!(g.on_more_row());
-        let (_, ev) = g.on_key(&key(KeyCode::Enter));
-        assert_eq!(ev, Some(GridAction::FetchMore));
-    }
-
-    #[test]
-    fn commit_result_folds_and_drops() {
-        let mut g = grid();
-        g.record_cell(0, 1, CellValue::Text("new".into()));
-        g.toggle_delete(3);
-        g.apply_commit_result(Ok(()));
-        assert_eq!(g.len(), 9);
-        assert_eq!(g.value(0, 1), &CellValue::Text("new".into()));
-        assert!(g.pending.is_empty());
-        g.record_cell(0, 1, CellValue::Text("bad".into()));
-        g.apply_commit_result(Err((0, "boom".into())));
-        assert_eq!(g.row_state(0), RowState::Error);
-    }
-
-
-    fn cell_text_reference(v: &CellValue, kind: CellKind, w: usize) -> String {
-        match v {
-            CellValue::Null => "NULL".into(),
-            CellValue::Default => "DEFAULT".into(),
-            CellValue::Text(s) if s.is_empty() => "''".into(),
-            CellValue::Json(j) => {
-                let one: String = j.split_whitespace().collect::<Vec<_>>().join(" ");
-                if w < 8 {
-                    if one.starts_with('[') {
-                        "[…]".into()
-                    } else {
-                        "{…}".into()
-                    }
-                } else {
-                    truncate(&one, w)
-                }
-            }
-            CellValue::Text(s) => {
-                let sanitized: String = s
-                    .chars()
-                    .take(10_000)
-                    .map(|c| match c {
-                        '\n' => '↵',
-                        '\t' => '⇥',
-                        c if c.is_control() => '·',
-                        c => c,
-                    })
-                    .collect();
-                if kind == CellKind::Id {
-                    truncate_middle(&sanitized, w)
-                } else {
-                    truncate(&sanitized, w)
-                }
-            }
-            other => truncate(&other.text(), w),
-        }
-    }
-
-    #[test]
-    fn cell_text_from_a_prefix_matches_the_whole_value() {
-        let mut values = vec![
-            CellValue::Null,
-            CellValue::Default,
-            CellValue::Int(-42),
-            CellValue::Num(2.5049),
-            CellValue::Bool(true),
-            CellValue::Text(String::new()),
-            CellValue::Json("  [ 1,\n 2 ]".into()),
-            CellValue::Json("\n\t{\"a\":   {\"b\": [1, 2, 3]}}\n".into()),
-        ];
-        for seed in [
-            "plain words",
-            "multi\nline\ttext\u{7}",
-            "日本語のテキスト",
-            "👩\u{200D}👩\u{200D}👧 ⌚\u{FE0E}",
-            "e\u{301}",
-        ] {
-            for n in [1, 9, 3_000] {
-                values.push(CellValue::Text(seed.repeat(n)));
-                values.push(CellValue::Json(format!(
-                    "{{\"k\": \"{}\"}}",
-                    seed.repeat(n)
-                )));
-            }
-        }
-
-        values.push(CellValue::Text("ab\n".repeat(6_000)));
-        for v in &values {
-            for kind in [CellKind::Text, CellKind::Id, CellKind::Json] {
-                for w in (0..40).chain([80, 400]) {
-                    assert_eq!(
-                        cell_text(v, kind, w),
-                        cell_text_reference(v, kind, w),
-                        "{kind:?} {w} {v:?}"
-                    );
-                }
-            }
-        }
-    }
-
-
-
-    #[test]
-    fn cell_text_reads_a_prefix_bounded_by_the_cell_width() {
-        let long = "word ".repeat(400_000);
-        let asked = std::cell::Cell::new(0);
-        let shown = shown_prefix(40, |limit| {
-            asked.set(asked.get().max(limit));
-            sanitized(&long, limit, &crate::theme::Glyphs::UNICODE)
-        });
-        assert!(asked.get() <= 4 * 40 + 64, "read {} bytes", asked.get());
-        assert_eq!(truncate(&shown, 40), truncate(&long, 40));
-        let json = format!("[{}]", "1, ".repeat(400_000));
-        asked.set(0);
-        shown_prefix(40, |limit| {
-            asked.set(asked.get().max(limit));
-            one_line_json(&json, limit)
-        });
-        assert!(asked.get() <= 4 * 40 + 64, "read {} bytes", asked.get());
-    }
-
-    #[test]
-    fn width_sampling_is_configurable_and_reads_only_the_sample() {
-        let cols = vec![ColumnSpec::new("note", CellKind::Text)];
-        let rows = |n: usize, wide_from: usize| GridRows {
-            rows: (0..n)
-                .map(|r| {
-                    vec![CellValue::Text(if r >= wide_from {
-                        "x".repeat(70_000)
-                    } else {
-                        "short".into()
-                    })]
-                })
-                .collect(),
-            total: RowTotal::Exact(n),
-            more: false,
-        };
-        let mut g = DataGrid::new(WidgetId::of("s"), cols.clone());
-        assert_eq!(g.width_sample_rows, DEFAULT_WIDTH_SAMPLE_ROWS);
-        g.set_rows(rows(400, 200));
-        let narrow = g.widths[0];
-        let mut g = DataGrid::new(WidgetId::of("s"), cols).width_sample_rows(400);
-        g.set_rows(rows(400, 200));
-        assert!(
-            g.widths[0] > narrow,
-            "the wider sample sees the long values"
-        );
-
-        assert_eq!(g.widths[0], g.columns[0].max_width.max(8));
-    }
-
-    #[test]
-    fn hovering_a_cut_cell_reveals_the_whole_value() {
-        let long = "a note far longer than any text column is wide by default";
-        let mut g = grid();
-        let mut rows: Vec<Vec<CellValue>> = (0..3)
-            .map(|i| {
-                vec![
-                    CellValue::Text(format!("id-{i}")),
-                    CellValue::Text(format!("row {i}")),
-                    CellValue::Int(i),
-                    CellValue::Bool(true),
-                ]
-            })
-            .collect();
-        rows[0][1] = CellValue::Text(long.into());
-        g.set_rows(GridRows {
-            rows,
-            total: RowTotal::Exact(3),
-            more: false,
-        });
-        let theme = Theme::junie();
-        let mut draw = |hover| {
-            let mut buf = Buffer::empty(Rect::new(0, 0, 100, 8));
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let interaction = Interaction {
-                hover,
-                ..Default::default()
-            };
-            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            g.render(Rect::new(0, 0, 60, 8), &mut buf, &mut ctx, theme.surface);
-            ctx.flush_overlays(&mut buf);
-            (0..8)
-                .map(|y| (0..100).map(|x| buf[(x, y)].symbol()).collect::<String>())
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-        assert!(!draw(None).contains(long));
-        let shown = draw(Some(grid().cell_id(0, 1)));
-        assert!(shown.contains(long), "{shown}");
-        assert!(!draw(Some(grid().cell_id(1, 1))).contains(long));
-    }
-
-
-    fn holding(id: WidgetId) -> Interaction {
-        Interaction {
-            pressed: Some(id),
-            ..Interaction::default()
-        }
-    }
-
-
-
-    #[test]
-    fn a_double_click_edits_a_cell_and_one_click_never_does() {
-        let mut g = grid();
-        let area = Rect::new(0, 0, 60, 8);
-        render_at(&mut g, area, Interaction::default());
-        let cell = g.cell_id(2, 1);
-        let at = Position::new(g.col_rects[1].x, g.body.y + 2);
-        g.on_click(cell, at);
-        g.on_click(cell, at);
-        assert!(g.edit.is_none(), "one click, however often, only moves");
-        assert_eq!(g.cursor, (2, 1));
-        g.on_click_with(cell, at, KeyModifiers::NONE, 2);
-        assert!(g.edit.is_some(), "a double click edits");
-
-        let mut again =
-            grid().click(ClickPolicy::DATA.edit_on(crate::core::selection::Activate::ClickAgain));
-        render_at(&mut again, area, Interaction::default());
-        again.on_click(cell, at);
-        again.on_click(cell, at);
-        assert!(again.edit.is_some());
-    }
-
-
-
-
-    #[test]
-    fn row_numbers_and_cells_take_the_click_modifiers() {
-        let mut g = grid().toggle_mods(SelectGesture::TOGGLE_CTRL_CMD);
-        let area = Rect::new(0, 0, 60, 8);
-        render_at(&mut g, area, Interaction::default());
-        let p = Position::ORIGIN;
-        g.on_click_with(g.rownum_id(1), p, KeyModifiers::NONE, 1);
-        g.on_click_with(g.rownum_id(1), p, KeyModifiers::NONE, 1);
-        assert_eq!(g.selection.to_vec(), vec![1], "a plain click marks only");
-        g.on_click_with(g.rownum_id(3), p, KeyModifiers::SHIFT, 1);
-        assert_eq!(g.selection.to_vec(), vec![1, 2, 3], "Shift extends");
-        g.on_click_with(g.rownum_id(2), p, KeyModifiers::CONTROL, 1);
-        assert_eq!(g.selection.to_vec(), vec![1, 3], "Ctrl toggles");
-        g.on_click_with(g.rownum_id(0), p, KeyModifiers::NONE, 1);
-        assert_eq!(g.selection.to_vec(), vec![0]);
-
-        let from = g.cell_id(1, 1);
-        g.on_click(from, Position::new(g.col_rects[1].x, g.body.y + 1));
-        let to = g.cell_id(3, 2);
-        g.on_click_with(
-            to,
-            Position::new(g.col_rects[2].x, g.body.y + 3),
-            KeyModifiers::SHIFT,
-            1,
-        );
-        assert_eq!(g.anchor, Some((1, 1)));
-        assert_eq!(g.cursor, (3, 2));
-    }
-
-
-
-    #[test]
-    fn a_right_click_outside_the_range_ends_it() {
-        use crate::ui::context::ContextSource;
-        let mut g = grid();
-        let area = Rect::new(0, 0, 60, 8);
-        render_at(&mut g, area, Interaction::default());
-        g.on_click(g.cell_id(0, 1), Position::new(g.col_rects[1].x, g.body.y));
-        g.on_click_with(
-            g.cell_id(2, 2),
-            Position::new(g.col_rects[2].x, g.body.y + 2),
-            KeyModifiers::SHIFT,
-            1,
-        );
-        assert_eq!((g.anchor, g.cursor), (Some((0, 1)), (2, 2)));
-        g.context_select((1, 1));
-        assert_eq!((g.anchor, g.cursor), (Some((0, 1)), (2, 2)), "inside: kept");
-        g.context_select((4, 3));
-        assert_eq!((g.anchor, g.cursor), (None, (4, 3)), "outside: ends");
-
-        g.select_rows(SelectGesture::Toggle, 0);
-        g.select_rows(SelectGesture::Toggle, 1);
-        g.context_select((1, 0));
-        assert_eq!(g.selection.to_vec(), vec![0, 1], "a marked row keeps them");
-        g.context_select((5, 0));
-        assert_eq!(g.selection.to_vec(), vec![5]);
-    }
-
-
-
-
-    #[test]
-    fn a_right_click_offers_the_grid_commands_from_its_key_map() {
-        use crate::core::intent::Phase;
-        use crate::core::pointer::PointerEvent;
-        use crate::ui::context::ContextConfig;
-        use crate::widgets::menu::MenuAction;
-        let mut g = grid();
-        g.editable = true;
-        let area = Rect::new(0, 0, 60, 8);
-        let (_, hits) = render_at(&mut g, area, Interaction::default());
-        let pos = Position::new(g.col_rects[1].x + 1, g.body.y + 2);
-        let ev = PointerEvent::new(
-            &hits,
-            Phase::Secondary,
-            hits.hit(pos).expect("a cell"),
-            pos,
-            1,
-            KeyModifiers::NONE,
-        );
-        let req = ContextConfig::DEFAULT
-            .on_secondary(&mut g, &ev)
-            .expect("a cell has a menu");
-        assert_eq!(g.cursor, (2, 1), "the menu is about the clicked cell");
-        let items = g.context_items();
-        let row = |items: &[(GridCmd, crate::widgets::menu::MenuItem)], c: GridCmd| {
-            let (_, i) = items.iter().find(|(x, _)| *x == c).expect("listed");
-            (
-                i.item.label.clone(),
-                i.shortcut.as_deref().map(str::to_owned),
-                i.item.disabled,
-            )
-        };
-        assert_eq!(
-            row(&items, GridCmd::InsertRow),
-            ("Insert row".into(), Some("+".into()), false)
-        );
-        assert_eq!(
-            row(&items, GridCmd::ToggleDelete),
-            ("Mark for deletion".into(), Some("-".into()), false)
-        );
-        assert_eq!(
-            row(&items, GridCmd::Undo),
-            ("Undo".into(), Some("u".into()), true),
-            "nothing to undo yet"
-        );
-        assert_eq!(row(&items, GridCmd::FilterOnCell).0, "Filter on cell");
-        assert_eq!(row(&items, GridCmd::Copy).0, "Copy");
-
-        let mut menu = req.menu(
-            WidgetId::of("g.menu"),
-            items.iter().map(|(_, i)| i.clone()).collect(),
-        );
-        let i = items
-            .iter()
-            .position(|(c, _)| *c == GridCmd::InsertRow)
-            .unwrap();
-        assert_eq!(menu.on_click(menu.row_id(i)), Some(MenuAction::Chosen(i)));
-        let (_, action) = g.run(items[i].0);
-        assert!(matches!(action, Some(GridAction::RowInserted(_))));
-        assert!(
-            !row(&g.context_items(), GridCmd::Undo).2,
-            "the insert can be undone from the menu"
-        );
-
-        g.keymap = vec![(KeyBinding::char('i'), GridCmd::InsertRow)];
-        assert_eq!(
-            row(&g.context_items(), GridCmd::InsertRow).1,
-            Some("i".into())
-        );
-        g.editable = false;
-        let (_, ro) = g
-            .context_items()
-            .into_iter()
-            .find(|(c, _)| *c == GridCmd::InsertRow)
-            .unwrap();
-        assert_eq!(ro.item.reason.as_deref(), Some("Read-only rows"));
-    }
-
-    #[test]
-    fn a_range_drag_held_past_the_bottom_edge_keeps_scrolling_and_extending() {
-        let mut g = grid();
-        let area = Rect::new(0, 0, 60, 6);
-        render_at(&mut g, area, Interaction::default());
-        let origin = g.cell_id(0, 1);
-        g.on_click(origin, Position::new(g.col_rects[1].x, g.body.y));
-        let (_, hits) = render_at(&mut g, area, holding(origin));
-        assert_eq!(
-            hits.autoscroll_at(Position::new(g.body.x + 8, g.body.y)),
-            Some(g.body),
-            "the rows are the autoscroll body"
-        );
-
-
-        let below = Position::new(g.col_rects[1].x, g.body.bottom());
-        let mut last = g.cursor.0;
-        for _ in 0..5 {
-            assert_eq!(g.on_drag(origin, below), Outcome::Changed);
-            render_at(&mut g, area, holding(origin));
-            assert!(g.cursor.0 > last, "cursor {:?}", g.cursor);
-            last = g.cursor.0;
-        }
-        assert!(g.scroll.offset > 0, "the rows scrolled");
-        assert_eq!(g.anchor, Some((0, 1)), "the range keeps its anchor");
-        assert_eq!(g.cursor.1, 1);
-
-        render_at(&mut g, area, Interaction::default());
-        assert_eq!(g.on_drag(origin, below), Outcome::Ignored);
-    }
-
-    #[test]
-    fn a_drag_from_a_row_number_paints_the_marks_and_autoscrolls() {
-        let mut g = grid();
-        let area = Rect::new(0, 0, 60, 6);
-        render_at(&mut g, area, Interaction::default());
-        let origin = g.rownum_id(0);
-        render_at(&mut g, area, holding(origin));
-        let gutter_x = g.body.x + 1;
-        assert_eq!(
-            g.on_drag(origin, Position::new(gutter_x, g.body.y + 2)),
-            Outcome::Changed
-        );
-        assert_eq!(g.selection.to_vec(), [0, 1, 2]);
-
-
-        g.on_drag(origin, Position::new(gutter_x, g.body.y));
-        let (out, _) = g.on_click(origin, Position::new(gutter_x, g.body.y));
-        assert_eq!(out, Outcome::Changed);
-        assert!(g.selection.contains(0), "{:?}", g.selection);
-
-
-        render_at(&mut g, area, Interaction::default());
-        let origin = g.rownum_id(3);
-        render_at(&mut g, area, holding(origin));
-        for _ in 0..4 {
-            g.on_drag(origin, Position::new(gutter_x, g.body.bottom()));
-            render_at(&mut g, area, holding(origin));
-        }
-        assert!(g.scroll.offset > 0);
-        assert!((3..8).all(|r| g.selection.contains(r)), "{:?}", g.selection);
-    }
-}
-
-#[cfg(test)]
-#[path = "grid_choice_tests.rs"]
-mod choice_tests;
-
-
-#[cfg(test)]
-mod select_all_tests {
-    use super::*;
-
-    #[test]
-    fn cmd_or_ctrl_a_marks_every_row() {
-        use ratatui::crossterm::event::KeyModifiers;
-        for mods in [KeyModifiers::SUPER, KeyModifiers::CONTROL] {
-            let mut g = DataGrid::new(
-                WidgetId::of("g"),
-                vec![ColumnSpec::new("name", CellKind::Text)],
-            )
-            .type_ahead(true);
-            g.set_rows(GridRows {
-                rows: (0..4)
-                    .map(|i| vec![CellValue::Text(format!("a{i}"))])
-                    .collect(),
-                total: RowTotal::Exact(4),
-                more: false,
-            });
-            let (out, _) = g.on_key(&Key {
-                code: KeyCode::Char('a'),
-                mods,
-            });
-            assert_eq!(out, Outcome::Changed);
-            assert_eq!(g.selection.len(), 4);
-            assert_eq!(g.cursor.0, 0, "never a type-ahead `a`");
-        }
-    }
-}
-
-
-
-#[cfg(test)]
-mod cmd_copy_tests {
-    use super::*;
-    use crate::core::keymap::hint_key;
-    use ratatui::crossterm::event::KeyModifiers;
-
-    #[test]
-    fn cmd_c_copies_the_marked_rows_and_the_hint_falls_back_to_y() {
-        let mut g = DataGrid::new(
-            WidgetId::of("g"),
-            vec![ColumnSpec::new("name", CellKind::Text)],
-        );
-        g.set_rows(GridRows {
-            rows: (0..3)
-                .map(|i| vec![CellValue::Text(format!("a{i}"))])
-                .collect(),
-            total: RowTotal::Exact(3),
-            more: false,
-        });
-        let cmd = |c| Key {
-            code: KeyCode::Char(c),
-            mods: KeyModifiers::SUPER,
-        };
-        g.on_key(&cmd('a'));
-        let (out, ev) = g.on_key(&cmd('c'));
-        assert_eq!(out, Outcome::Changed);
-        match ev {
-            Some(GridAction::Copy(text)) => assert!(text.contains("a2"), "{text}"),
-            other => panic!("Cmd+C copies: {other:?}"),
-        }
-        assert_eq!(hint_key(&g.keymap, GridCmd::Copy), Some("y"));
-        crate::core::keyboard::set_super_delivered(true);
-        let label = KeyBinding::cmd('c').label();
-        assert_eq!(hint_key(&g.keymap, GridCmd::Copy), Some(label.as_str()));
-    }
-}

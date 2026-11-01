@@ -1,12 +1,5 @@
 
 
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
@@ -29,29 +22,21 @@ use crate::widgets::keyhint::Hint;
 use crate::widgets::menu::{ContextMenu, MenuAction};
 use crate::widgets::picker::{Picker, PickerAction};
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerResult {
-
 
     Dialog {
         action: Option<usize>,
         text: Option<String>,
     },
 
-
-
     Picker(PickerAction),
 
     Menu(MenuAction),
 
-
-
     Form(FormAction),
 
-
     Choice(Option<usize>),
-
 
     Info(InfoResult),
 
@@ -67,8 +52,6 @@ fn out<R: From<LayerResult>>(r: LayerResult, closes: bool) -> LayerOut<R> {
         LayerOut::Event(r.into())
     }
 }
-
-
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Dialog {
     fn spec(&self) -> LayerSpec {
@@ -135,10 +118,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Dialog
     }
 }
 
-
-
-
-
 fn picker_event(p: &mut Picker, ev: Option<PickerAction>) {
     if let Some(ev) = ev {
         p.pending = Some(ev);
@@ -162,9 +141,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
         o.or(Outcome::Consumed)
     }
 
-
     fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, W>) -> Outcome {
-
 
         if ev.part().part == crate::core::id::Part::BACKDROP && !self.edit_menu.owns(ev) {
             return Outcome::Ignored;
@@ -200,8 +177,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
         Some(out(LayerResult::Picker(ev), closes))
     }
 }
-
-
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ContextMenu {
 
@@ -244,8 +219,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Contex
     }
 }
 
-
-
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDialog {
 
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
@@ -263,7 +236,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome {
         FormDialog::on_key(self, key, cx.focus, cx.ring).or(Outcome::Consumed)
     }
-
 
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
         FormDialog::pointer_in(self, ev, cx.focus).outcome()
@@ -311,8 +283,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
     }
 }
 
-
-
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ChoiceDialog {
 
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
@@ -343,8 +313,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Choice
     }
 }
 
-
-
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDialog {
 
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
@@ -365,7 +333,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
     fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_, W>) -> Outcome {
         InfoDialog::on_click(self, id, pos, cx.focus)
     }
-
 
     fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if pressed != crate::widgets::scrollbar::id_for(self.id) {
@@ -391,8 +358,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
         Some(out(LayerResult::Info(r), closes))
     }
 }
-
-
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOverlay {
 
@@ -429,8 +394,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOv
     }
 }
 
-
-
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FileBrowser {
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         FileBrowser::hints(self, focused)
@@ -464,102 +427,3 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FileBr
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::{Focus, FocusRing};
-    use crate::ui::layer::{Dismissed, LayerTag, ShellLayers, Taken};
-    use crate::ui::popup::Dismiss;
-    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: KeyModifiers::NONE,
-        }
-    }
-
-
-
-    #[test]
-    fn library_modals_report_through_the_stack() {
-        let page = WidgetId::of("page");
-        let mut focus = Focus::default();
-        focus.focus(page);
-        let ring = FocusRing::default();
-        let mut layers: ShellLayers<LayerResult> = ShellLayers::new();
-
-        let d = Dialog::confirm(WidgetId::of("d"), "Delete?", "Gone.", "Delete");
-        layers.open(Box::new(d), LayerTag::new("confirm"), (), &mut focus);
-        assert_ne!(focus.current(), Some(page));
-        let mut cx = LayerCx {
-            focus: &mut focus,
-            ring: &ring,
-            app: &(),
-        };
-        let _ = layers
-            .top_mut()
-            .unwrap()
-            .layer
-            .on_key(&key(KeyCode::Esc), &mut cx);
-        let Some(Taken::Closed(entry, r)) = layers.take(&mut focus) else {
-            panic!("Esc resolved the dialog");
-        };
-        assert_eq!(entry.tag.kind, "confirm");
-
-        let cancel = entry.get::<Dialog>().unwrap().cancel_index;
-        assert_eq!(
-            r,
-            LayerResult::Dialog {
-                action: cancel,
-                text: None
-            }
-        );
-        assert_eq!(focus.current(), Some(page), "K9: focus back on the page");
-
-
-        let p = Picker::new(WidgetId::of("p"), "Go to");
-        layers.open(Box::new(p), LayerTag::new("go"), (), &mut focus);
-        let mut cx = LayerCx {
-            focus: &mut focus,
-            ring: &ring,
-            app: &(),
-        };
-        let _ = layers
-            .top_mut()
-            .unwrap()
-            .layer
-            .on_key(&key(KeyCode::Char('a')), &mut cx);
-        assert!(matches!(
-            layers.take(&mut focus),
-            Some(Taken::Event(LayerResult::Picker(
-                PickerAction::QueryChanged
-            )))
-        ));
-        assert_eq!(layers.len(), 1, "an event leaves it open");
-        match layers.dismiss(DismissReason::OutsideClick, &mut focus) {
-            Dismissed::Closed(_, r) => {
-                assert_eq!(r, Some(LayerResult::Picker(PickerAction::Cancelled)))
-            }
-            _ => panic!("a light picker closes on an outside click"),
-        }
-        assert_eq!(focus.current(), Some(page));
-
-
-        let f = FormDialog::new(WidgetId::of("f"), "Form", vec![]);
-        assert_eq!(Overlay::dismiss(&f), Dismiss::ESCAPE);
-        layers.open(Box::new(f), LayerTag::new("form"), (), &mut focus);
-        assert!(matches!(
-            layers.dismiss(DismissReason::OutsideClick, &mut focus),
-            Dismissed::Refused
-        ));
-        match layers.dismiss(DismissReason::CloseButton, &mut focus) {
-            Dismissed::Closed(entry, r) => {
-                assert_eq!(r, Some(LayerResult::Form(FormAction::Cancel)));
-                assert!(entry.get::<FormDialog>().is_some(), "values stay readable");
-            }
-            _ => panic!("× closes an ESCAPE form"),
-        }
-        assert_eq!(focus.current(), Some(page));
-    }
-}

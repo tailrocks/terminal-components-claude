@@ -298,14 +298,6 @@ impl DiskPage {
         self.selected.retain(|s| live.contains(s.as_str()));
     }
 
-    #[cfg(test)]
-    pub fn overview_rows(&self) -> Vec<(String, &'static str)> {
-        self.overview
-            .iter()
-            .map(|r| (r.label.clone(), r.kind))
-            .collect()
-    }
-
     fn cursor_fs_path(&self) -> Option<String> {
         let p = self.tree.cursor_path()?;
         self.paths
@@ -1809,8 +1801,4 @@ impl Screen for DiskPage {
         }
     }
 
-    #[cfg(test)]
-    fn as_disk(&mut self) -> Option<&mut DiskPage> {
-        Some(self)
-    }
 }

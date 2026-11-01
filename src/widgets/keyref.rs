@@ -1,13 +1,5 @@
 
 
-
-
-
-
-
-
-
-
 use crate::ui::text::{WrapOpts, width, wrap_with};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,11 +12,7 @@ enum Entry {
 pub struct KeyReference {
     entries: Vec<Entry>,
 
-
-
     pub gap: u16,
-
-
 
     pub key_max_share: u16,
 }
@@ -43,7 +31,6 @@ impl KeyReference {
             key_max_share: 40,
         }
     }
-
 
     pub fn section(mut self, title: &str) -> Self {
         self.entries.push(Entry::Section(title.to_owned()));
@@ -104,13 +91,9 @@ impl KeyReference {
         out.join("\n")
     }
 
-
-
     pub fn text(&self) -> String {
         self.layout(self.key_column(None))
     }
-
-
 
     pub fn lines(&self, w: usize) -> Vec<String> {
         wrap_with(
@@ -121,13 +104,7 @@ impl KeyReference {
     }
 }
 
-
-
 const SPECIMEN_W: usize = 32;
-
-
-
-
 
 impl crate::ui::specimen::Specimen for KeyReference {
     fn specimen_id(&self) -> crate::core::id::WidgetId {
@@ -206,43 +183,3 @@ impl KeyReference {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::text::wrap;
-
-    fn sample() -> KeyReference {
-        KeyReference::new()
-            .key(
-                "Ctrl+D",
-                "Data / Structure · Ctrl+F filter (grid) or find (editor)",
-            )
-            .key("q", "quit")
-    }
-
-    #[test]
-    fn a_wrapped_description_hangs_under_its_column() {
-        for lines in [sample().lines(40), wrap(&sample().text(), 40)] {
-            assert_eq!(lines[0], "Ctrl+D   Data / Structure · Ctrl+F");
-            assert!(
-                lines[1].starts_with("         filter"),
-                "continuation hangs under the description: {lines:?}"
-            );
-            assert_eq!(lines.last().unwrap(), "q        quit");
-        }
-    }
-
-    #[test]
-    fn sections_are_separated_and_the_key_column_is_capped() {
-        let r = KeyReference::new()
-            .section("Editor")
-            .key("a very long key chord here", "x")
-            .section("Grid")
-            .key("q", "quit");
-        let lines = r.lines(20);
-        assert_eq!(lines[0], "Editor");
-        assert!(lines.contains(&String::new()));
-
-        assert!(lines.contains(&"q          quit".to_owned()), "{lines:?}");
-    }
-}

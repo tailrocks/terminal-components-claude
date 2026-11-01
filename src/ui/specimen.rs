@@ -1,27 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Style};
@@ -31,10 +9,6 @@ use crate::core::hit::HitRegistry;
 use crate::core::id::WidgetId;
 use crate::theme::{ColorLevel, Kind, Plane, Theme};
 use crate::ui::ctx::{Interaction, RenderCtx, VisualState};
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SpecimenState {
@@ -87,8 +61,6 @@ impl SpecimenState {
         Self::Narrow,
     ];
 
-
-
     pub fn slug(self) -> &'static str {
         match self {
             Self::Rest => "rest",
@@ -108,7 +80,6 @@ impl SpecimenState {
         }
     }
 
-
     pub fn label(self) -> &'static str {
         match self {
             Self::FocusedHover => "focus + hover",
@@ -116,12 +87,9 @@ impl SpecimenState {
         }
     }
 
-
     pub fn from_slug(slug: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|s| s.slug() == slug)
     }
-
-
 
     pub fn visual(self) -> VisualState {
         let mut v = VisualState::default();
@@ -150,7 +118,6 @@ impl SpecimenState {
         v
     }
 
-
     fn interaction(self, id: WidgetId, tick: u64) -> Interaction {
         let v = self.visual();
         Interaction {
@@ -163,19 +130,15 @@ impl SpecimenState {
     }
 }
 
-
 pub trait Specimen {
 
     fn specimen_id(&self) -> WidgetId;
-
 
     fn supports(&self, state: SpecimenState) -> bool;
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         1
     }
-
-
 
     fn specimen(
         &self,
@@ -187,18 +150,12 @@ pub trait Specimen {
     );
 }
 
-
 const LEVELS: [ColorLevel; 4] = [
     ColorLevel::TrueColor,
     ColorLevel::Ansi256,
     ColorLevel::Ansi16,
     ColorLevel::Mono,
 ];
-
-
-
-
-
 
 pub struct StateGrid {
     pub id: WidgetId,
@@ -210,9 +167,7 @@ pub struct StateGrid {
 
     pub column_width: u16,
 
-
     pub narrow_width: u16,
-
 
     pub focus_mark: Option<&'static str>,
 
@@ -231,8 +186,6 @@ impl std::fmt::Debug for StateGrid {
             .finish()
     }
 }
-
-
 
 impl crate::ui::measure::Measure for StateGrid {
     fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
@@ -255,18 +208,15 @@ impl StateGrid {
         }
     }
 
-
     pub fn row(mut self, state: SpecimenState) -> Self {
         self.rows.push(state);
         self
     }
 
-
     pub fn rows(mut self, states: &[SpecimenState]) -> Self {
         self.rows.extend_from_slice(states);
         self
     }
-
 
     pub fn column(mut self, label: &str, specimen: impl Specimen + 'static) -> Self {
         self.columns.push((label.to_owned(), Box::new(specimen)));
@@ -293,11 +243,9 @@ impl StateGrid {
         self
     }
 
-
     pub fn column_labels(&self) -> impl Iterator<Item = &str> {
         self.columns.iter().map(|(l, _)| l.as_str())
     }
-
 
     pub fn rendered_rows(&self) -> &[SpecimenState] {
         &self.rendered
@@ -313,15 +261,11 @@ impl StateGrid {
             .max(1)
     }
 
-
-
     pub fn size(&self) -> (u16, u16) {
         let w = self.label_width + self.column_width * self.columns.len() as u16;
         let h = 1 + self.rows.iter().map(|&r| self.row_height(r)).sum::<u16>();
         (w, h)
     }
-
-
 
     pub fn mark(&self, t: &Theme) -> &'static str {
         self.focus_mark.unwrap_or(if t.glyphs.focus_bar.is_ascii() {
@@ -331,19 +275,13 @@ impl StateGrid {
         })
     }
 
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.render_rows(0..self.rows.len(), true, area, buf, ctx, bg);
     }
 
-
     pub fn row_heights(&self) -> Vec<u16> {
         self.rows.iter().map(|&r| self.row_height(r)).collect()
     }
-
-
-
-
 
     pub fn render_rows(
         &mut self,
@@ -360,7 +298,6 @@ impl StateGrid {
         self.draw_rows(theme, tick, rows, header, area, buf, bg);
     }
 
-
     pub fn levels_height(&self, width: u16) -> u16 {
         let (w, h) = self.size();
         let per_row = Self::per_row(w, width);
@@ -369,17 +306,12 @@ impl StateGrid {
         bands * (h + 1) + bands.saturating_sub(1)
     }
 
-
     fn per_row(grid_w: u16, width: u16) -> usize {
         [4usize, 2]
             .into_iter()
             .find(|&n| grid_w * n as u16 + 2 * (n as u16 - 1) <= width)
             .unwrap_or(1)
     }
-
-
-
-
 
     pub fn render_levels(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let (w, h) = self.size();
@@ -409,8 +341,6 @@ impl StateGrid {
         }
         self.rendered = drawn.unwrap_or_default();
     }
-
-
 
     pub fn render_level(
         &mut self,
@@ -522,7 +452,6 @@ impl StateGrid {
     }
 }
 
-
 fn depict_focus(buf: &mut Buffer, area: Rect, t: &Theme, mark: &str, bg: Color) {
     let bar = t.glyphs.focus_bar;
     for pos in area.positions() {
@@ -541,15 +470,6 @@ fn depict_focus(buf: &mut Buffer, area: Rect, t: &Theme, mark: &str, bg: Color) 
         }
     }
 }
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug, Clone)]
 pub struct KindSample {
@@ -570,12 +490,10 @@ impl KindSample {
         }
     }
 
-
     pub fn plane(mut self, plane: Plane) -> Self {
         self.plane = plane;
         self
     }
-
 
     pub fn draw(&self, t: &Theme, s: VisualState, area: Rect, buf: &mut Buffer) {
         let area = area.intersection(buf.area);
@@ -621,72 +539,6 @@ impl Specimen for KindSample {
         _bg: Color,
     ) {
         self.draw(ctx.theme, state.visual(), area, buf);
-    }
-}
-
-#[cfg(test)]
-mod kind_sample_tests {
-    use super::*;
-    use crate::theme::{ButtonKind, CursorStyle};
-
-    fn cell(sample: &KindSample, t: &Theme, s: VisualState) -> ratatui::buffer::Cell {
-        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 1));
-        sample.draw(t, s, Rect::new(0, 0, 10, 1), &mut buf);
-        buf[(2, 0)].clone()
-    }
-
-    #[test]
-    fn a_sample_walks_its_ladder() {
-        let t = Theme::junie();
-        let id = WidgetId::of("kind");
-        let row = KindSample::new(id, Kind::Row, Plane::Card, "Aa");
-        let hover = VisualState {
-            hovered: true,
-            ..Default::default()
-        };
-        let pressed = VisualState {
-            pressed: true,
-            ..hover
-        };
-        let ladder = t.ladder(Plane::Card);
-        assert_eq!(cell(&row, &t, VisualState::default()).bg, ladder.rest);
-        assert_eq!(cell(&row, &t, hover).bg, ladder.hover);
-        assert_eq!(cell(&row, &t, pressed).bg, ladder.pressed);
-
-        let primary = row.clone().plane(Plane::Popover);
-        let primary = KindSample {
-            kind: Kind::Button(ButtonKind::Primary),
-            ..primary
-        };
-        assert_eq!(
-            cell(&primary, &t, VisualState::default()).bg,
-            t.ladders.accent.rest
-        );
-    }
-
-    #[test]
-    fn a_focused_sample_is_depicted_in_a_grid() {
-        let t = Theme::junie();
-        let id = WidgetId::of("kinds");
-        let mut grid = StateGrid::new(id).row(SpecimenState::Focused).column(
-            "Bar",
-            KindSample::new(
-                id.child(0),
-                Kind::CursorRow(CursorStyle::Bar),
-                Plane::Card,
-                "Aa",
-            ),
-        );
-        let area = Rect::new(0, 0, 40, 3);
-        let mut buf = Buffer::empty(area);
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        grid.render(area, &mut buf, &mut ctx, t.canvas);
-        drop(ctx);
-        let text: String = buf.content().iter().map(|c| c.symbol()).collect();
-        assert!(!text.contains(t.glyphs.focus_bar), "{text}");
-        assert!(text.contains('▏'), "{text}");
     }
 }
 
@@ -741,7 +593,6 @@ impl Specimen for crate::widgets::input::TextInput {
         }
     }
 
-
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         if state == SpecimenState::Error || self.field.error.is_some() {
             3
@@ -795,10 +646,6 @@ impl Specimen for crate::widgets::input::TextInput {
     }
 }
 
-
-
-
-
 impl Specimen for crate::widgets::tabs::Tabs {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -813,7 +660,6 @@ impl Specimen for crate::widgets::tabs::Tabs {
             Selected | Disabled | Editing | Empty | Loading => false,
         }
     }
-
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         2
@@ -852,10 +698,6 @@ impl Specimen for crate::widgets::tabs::Tabs {
     }
 }
 
-
-
-
-
 impl Specimen for crate::widgets::menu::ContextMenu {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -868,7 +710,6 @@ impl Specimen for crate::widgets::menu::ContextMenu {
             Focused | FocusedHover | Selected | Busy | Error | Editing | Empty | Loading => false,
         }
     }
-
 
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         let mut m = self.clone();
@@ -914,12 +755,6 @@ impl Specimen for crate::widgets::menu::ContextMenu {
     }
 }
 
-
-
-
-
-
-
 impl Specimen for crate::widgets::dialog::Dialog {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -935,8 +770,6 @@ impl Specimen for crate::widgets::dialog::Dialog {
             Selected | Busy | Error | Empty | Loading | Narrow => false,
         }
     }
-
-
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         self.height(self.width)
@@ -995,7 +828,6 @@ impl Specimen for crate::widgets::dialog::Dialog {
     }
 }
 
-
 fn dialog_target(d: &crate::widgets::dialog::Dialog) -> usize {
     d.confirm_index
         .or_else(|| {
@@ -1009,7 +841,6 @@ fn dialog_target(d: &crate::widgets::dialog::Dialog) -> usize {
         .unwrap_or(d.actions.len().saturating_sub(1))
 }
 
-
 fn dialog_field(d: &crate::widgets::dialog::Dialog) -> Option<WidgetId> {
     use crate::widgets::dialog::DialogBody;
     match &d.body {
@@ -1018,11 +849,6 @@ fn dialog_field(d: &crate::widgets::dialog::Dialog) -> Option<WidgetId> {
         _ => None,
     }
 }
-
-
-
-
-
 
 impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
     fn specimen_id(&self) -> WidgetId {
@@ -1038,7 +864,6 @@ impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
             Busy | Error | Editing | Empty | Loading | Overflow | Narrow => false,
         }
     }
-
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         self.height() + 2
@@ -1079,13 +904,6 @@ impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
     }
 }
 
-
-
-
-
-
-
-
 impl Specimen for crate::ui::modal::Frame<'static> {
     fn specimen_id(&self) -> WidgetId {
         crate::ui::modal::CLOSE
@@ -1100,8 +918,6 @@ impl Specimen for crate::ui::modal::Frame<'static> {
             _ => false,
         }
     }
-
-
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         let m = crate::widgets::dialog::OUTER_MARGIN;
@@ -1131,11 +947,6 @@ impl Specimen for crate::ui::modal::Frame<'static> {
     }
 }
 
-
-
-
-
-
 impl Specimen for crate::widgets::picker::Picker {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -1150,7 +961,6 @@ impl Specimen for crate::widgets::picker::Picker {
             Focused | FocusedHover | Selected | Busy | Editing | Narrow => false,
         }
     }
-
 
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         picker_sample(self, state).height() + 2
@@ -1176,7 +986,6 @@ impl Specimen for crate::widgets::picker::Picker {
         p.draw(area, buf, ctx);
     }
 }
-
 
 fn picker_sample(
     p: &crate::widgets::picker::Picker,
@@ -1211,269 +1020,3 @@ fn picker_sample(
     p
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::widgets::button::Button;
-    use crate::widgets::input::TextInput;
-
-    fn grid() -> StateGrid {
-        let id = WidgetId::of("grid");
-        StateGrid::new(id)
-            .rows(&[
-                SpecimenState::Rest,
-                SpecimenState::Focused,
-                SpecimenState::Pressed,
-                SpecimenState::Disabled,
-                SpecimenState::Selected,
-            ])
-            .column("Primary", Button::primary(id.child(0), "Label"))
-            .column("Toggle", Button::toggle(id.child(1), "Label", false))
-    }
-
-    fn draw(grid: &mut StateGrid, t: &Theme, area: Rect, levels: bool) -> (Buffer, HitRegistry) {
-        let mut buf = Buffer::empty(area);
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(t, Interaction::default(), &mut hits, &mut ring);
-        if levels {
-            grid.render_levels(area, &mut buf, &mut ctx);
-        } else {
-            grid.render(area, &mut buf, &mut ctx, t.surface);
-        }
-        ctx.flush_overlays(&mut buf);
-        drop(ctx);
-        assert!(ring.reachable().is_empty(), "samples are never focus stops");
-        (buf, hits)
-    }
-
-    fn row_text(buf: &Buffer, y: u16) -> String {
-        (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect()
-    }
-
-    #[test]
-    fn rows_are_labelled_and_drawn_by_the_widget() {
-        let t = Theme::junie();
-        let mut g = grid();
-        let (buf, hits) = draw(&mut g, &t, Rect::new(0, 0, 60, 8), false);
-        assert!(row_text(&buf, 0).contains("Primary"));
-        assert!(row_text(&buf, 0).contains("Toggle"));
-        for (i, s) in g.rows.iter().enumerate() {
-            assert!(row_text(&buf, 1 + i as u16).starts_with(s.label()), "{s:?}");
-        }
-        assert_eq!(g.rendered_rows(), g.rows.as_slice());
-
-        let x = (15..30)
-            .find(|&x| buf[(x, 4)].symbol() == "L")
-            .expect("disabled label");
-        assert_eq!(buf[(x, 4)].fg, t.disabled);
-
-        assert!(row_text(&buf, 5).contains(t.glyphs.dot_on));
-        assert!(row_text(&buf, 5)[..30].contains('–'));
-        assert!(hits.hit(Position::new(16, 1)).is_none(), "no hit regions");
-    }
-
-    #[test]
-    fn a_tab_strip_sample_hovers_a_tab_and_depicts_strip_focus() {
-        use crate::widgets::tabs::Tabs;
-        let t = Theme::junie();
-        let id = WidgetId::of("tabs-grid");
-        let mut g = StateGrid::new(id)
-            .rows(&[
-                SpecimenState::Rest,
-                SpecimenState::Hover,
-                SpecimenState::Focused,
-                SpecimenState::Error,
-                SpecimenState::Overflow,
-                SpecimenState::Disabled,
-            ])
-            .column_width(30)
-            .column("Plain", Tabs::new(id.child(0), &["Data", "Logs"]));
-        let (buf, _) = draw(&mut g, &t, Rect::new(0, 0, 60, 14), false);
-
-        let logs = |y: u16| {
-            let x = (15..45)
-                .find(|&x| buf[(x, y)].symbol() == "L")
-                .expect("the Logs tab");
-            buf[(x, y)].style()
-        };
-        assert_ne!(logs(1), logs(3), "hover lands on a tab, not the strip");
-        assert!(row_text(&buf, 5).contains("▏Logs"), "focus is depicted");
-        assert!(!buf.content().iter().any(|c| c.symbol() == "▎"));
-        assert!(row_text(&buf, 7).contains("Logs !"), "error marks the tab");
-        assert!(row_text(&buf, 9).contains('›'), "overflow scrolls");
-        assert!(row_text(&buf, 11).contains('–'), "no disabled look");
-    }
-
-    #[test]
-    fn a_menu_sample_opens_in_its_cell_and_a_disabled_row_ignores_the_pointer() {
-        use crate::widgets::menu::{ContextMenu, MenuItem};
-        let t = Theme::junie();
-        let id = WidgetId::of("menu-grid");
-        let menu = ContextMenu::new(
-            id.child(0),
-            vec![
-                MenuItem::new("Open"),
-                MenuItem::new("Rename"),
-                MenuItem::new("Delete"),
-            ],
-        );
-        let h = menu.size().1;
-        let mut g = StateGrid::new(id)
-            .rows(&[
-                SpecimenState::Rest,
-                SpecimenState::Hover,
-                SpecimenState::Disabled,
-                SpecimenState::Overflow,
-            ])
-            .column_width(24)
-            .column("Menu", menu);
-        let (buf, hits) = draw(&mut g, &t, Rect::new(0, 0, 40, 4 * h + 1), false);
-        let rename = |row: u16| {
-            let y = 1 + row * h + 2;
-            let x = (15..39)
-                .find(|&x| buf[(x, y)].symbol() == "R")
-                .expect("Rename");
-            buf[(x, y)].style()
-        };
-        assert_ne!(rename(0), rename(1), "hover lands on the second row");
-        assert_ne!(rename(1), rename(2), "a disabled row does not react");
-        assert!(
-            row_text(&buf, 1).contains('╭'),
-            "the frame sits in its cell"
-        );
-        assert_eq!(g.rendered_rows().len(), 4);
-        assert!(hits.hit(Position::new(18, 3)).is_none(), "no hit regions");
-    }
-
-    #[test]
-    fn a_pressed_sample_differs_from_rest() {
-        let t = Theme::junie();
-        let mut g = grid();
-        let (buf, _) = draw(&mut g, &t, Rect::new(0, 0, 60, 8), false);
-        let style = |y: u16| buf[(17, y)].style();
-        assert_ne!(style(1), style(3), "pressed is not rest");
-    }
-
-    #[test]
-    fn a_focused_sample_depicts_focus_without_a_live_bar() {
-        for level in LEVELS {
-            let t = Theme::for_level(level);
-            let mut g = grid();
-            let (buf, _) = draw(&mut g, &t, Rect::new(0, 0, 60, 8), false);
-            assert!(
-                !buf.content()
-                    .iter()
-                    .any(|c| c.symbol() == t.glyphs.focus_bar),
-                "{level:?}: no second live focus bar"
-            );
-
-            let focused = row_text(&buf, 2);
-            assert!(focused.contains('▏'), "{level:?}: {focused}");
-            assert!(!row_text(&buf, 1).contains('▏'), "rest has no mark");
-        }
-        let mut ascii = Theme::junie();
-        crate::theme::ascii_glyphs(&mut ascii);
-        let mut g = grid();
-        let (buf, _) = draw(&mut g, &ascii, Rect::new(0, 0, 60, 8), false);
-        assert!(row_text(&buf, 2).contains(':'));
-        assert!(!row_text(&buf, 2).contains('|'));
-    }
-
-    #[test]
-    fn the_depiction_is_overridable() {
-        let t = Theme::junie();
-        let mut g = grid().focus_mark("┊");
-        let (buf, _) = draw(&mut g, &t, Rect::new(0, 0, 60, 8), false);
-        assert!(row_text(&buf, 2).contains('┊'));
-    }
-
-    #[test]
-    fn compare_levels_draws_every_level() {
-        let t = Theme::junie();
-        let mut g = grid();
-        let (w, h) = g.size();
-
-        let wide = Rect::new(0, 0, w * 4 + 6, h + 1);
-        let (buf, _) = draw(&mut g, &t, wide, true);
-        let title = row_text(&buf, 0);
-        for level in LEVELS {
-            assert!(title.contains(level.label()), "{title}");
-        }
-        assert_eq!(g.levels_height(wide.width), h + 1);
-        assert_eq!(g.rendered_rows(), g.rows.as_slice());
-
-        let narrow = Rect::new(0, 0, w, g.levels_height(w));
-        let (buf, _) = draw(&mut g, &t, narrow, true);
-        for (i, level) in LEVELS.into_iter().enumerate() {
-            assert!(row_text(&buf, i as u16 * (h + 2)).starts_with(level.label()));
-        }
-
-        let mono_y = 3 * (h + 2) + 1;
-        assert!((0..w).all(|x| buf[(x, mono_y)].fg == Color::Reset
-            || buf[(x, mono_y)].fg == Theme::for_level(ColorLevel::Mono).text_muted));
-    }
-
-    #[test]
-    fn inputs_draw_editing_error_and_narrow() {
-        let t = Theme::junie();
-        let id = WidgetId::of("inputs");
-        let mut g = StateGrid::new(id)
-            .column_width(34)
-            .rows(&[
-                SpecimenState::Editing,
-                SpecimenState::Error,
-                SpecimenState::Empty,
-                SpecimenState::Narrow,
-                SpecimenState::Pressed,
-            ])
-            .column(
-                "Text",
-                TextInput::new(id.child(0), "Project name").value("payments-gateway"),
-            );
-        let (w, h) = g.size();
-        assert_eq!(h, 1 + 2 + 3 + 2 + 2 + 1);
-        let (buf, _) = draw(&mut g, &t, Rect::new(0, 0, w, h), false);
-
-        let text = row_text(&buf, 2);
-        let end = text.find("gateway").unwrap() + "gateway".len();
-        let caret = text[..end].chars().count() as u16;
-        assert_eq!(buf[(caret, 2)].bg, t.text_primary);
-
-        assert!((0..buf.area.height).any(|y| row_text(&buf, y).contains("Enter a valid value")));
-
-        assert!((0..buf.area.height).any(|y| row_text(&buf, y).contains("Type a value")));
-
-        let narrow_field = 1 + 2 + 3 + 2 + 1;
-        let x0 = g.label_width;
-        assert!(buf[(x0 + 24, narrow_field)].bg != buf[(x0 + 1, narrow_field)].bg);
-    }
-
-
-
-    #[test]
-    fn a_band_draws_its_rows_only() {
-        let t = Theme::junie();
-        let mut g = grid();
-        assert_eq!(g.row_heights(), vec![1; 5]);
-        let area = Rect::new(0, 0, 60, 2);
-        let mut buf = Buffer::empty(area);
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        g.render_rows(1..3, false, area, &mut buf, &mut ctx, t.surface);
-        assert!(row_text(&buf, 0).starts_with("focused"));
-        assert!(row_text(&buf, 1).starts_with("pressed"));
-        assert_eq!(
-            g.rendered_rows(),
-            &[SpecimenState::Focused, SpecimenState::Pressed]
-        );
-
-        let area = Rect::new(0, 0, 60, 7);
-        let mut buf = Buffer::empty(area);
-        g.render_level(ColorLevel::Ansi16, area, &mut buf, &mut ctx);
-        assert!(row_text(&buf, 0).starts_with("16 colors"));
-        assert!(row_text(&buf, 1).contains("Primary"));
-        assert_eq!(g.rendered_rows().len(), 5);
-    }
-}

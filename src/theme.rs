@@ -1,36 +1,17 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::ui::ctx::VisualState;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CursorStyle {
-
 
     #[default]
     Fill,
 
-
     Bar,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Interactive {
@@ -38,14 +19,10 @@ pub struct Interactive {
     pub gutter: &'static str,
     pub gutter_style: Style,
 
-
     pub on_fill: bool,
 }
 
-
 pub type CursorRow = Interactive;
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Plane {
@@ -57,7 +34,6 @@ pub enum Plane {
     Card,
 
     Field,
-
 
     Raised,
 
@@ -86,16 +62,12 @@ impl Plane {
         Plane::Danger,
     ];
 
-
-
     pub fn is_fill(self) -> bool {
         matches!(
             self,
             Plane::Highlight | Plane::HighlightDanger | Plane::Accent | Plane::Danger
         )
     }
-
-
 
     pub fn up(self) -> Plane {
         match self {
@@ -106,8 +78,6 @@ impl Plane {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
 
@@ -117,7 +87,6 @@ pub enum Kind {
     Button(ButtonKind),
 
     Tab,
-
 
     Title,
 
@@ -134,12 +103,10 @@ pub enum Kind {
 
 impl Kind {
 
-
     pub fn is_glyph(self) -> bool {
         matches!(self, Kind::Handle | Kind::Seam)
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ladder {
@@ -157,7 +124,6 @@ impl Ladder {
         }
     }
 
-
     pub fn step(&self, hovered: bool, pressed: bool) -> Color {
         if pressed {
             self.pressed
@@ -173,9 +139,6 @@ impl Ladder {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ladders {
     pub canvas: Ladder,
@@ -189,18 +152,10 @@ pub struct Ladders {
     pub accent: Ladder,
     pub danger: Ladder,
 
-
-
-
-
     pub handle: Ladder,
-
-
 
     pub seam: Ladder,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StateModifiers {
@@ -217,24 +172,16 @@ pub struct StateModifiers {
 
     pub focused: Modifier,
 
-
-
-
-
     pub selected: Modifier,
 
     pub disabled: Modifier,
 
-
-
     pub thumb_hover: Modifier,
-
 
     pub thumb_pressed: Modifier,
 }
 
 impl StateModifiers {
-
 
     pub const COLOR: Self = Self {
         hover: Modifier::empty(),
@@ -249,7 +196,6 @@ impl StateModifiers {
         thumb_pressed: Modifier::empty(),
     };
 
-
     pub const ANSI16: Self = Self {
         hover: Modifier::empty(),
         hover_flat: Modifier::UNDERLINED,
@@ -262,7 +208,6 @@ impl StateModifiers {
         thumb_hover: Modifier::empty(),
         thumb_pressed: Modifier::empty(),
     };
-
 
     pub const MONO: Self = Self {
         hover: Modifier::UNDERLINED,
@@ -278,9 +223,6 @@ impl StateModifiers {
     };
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LevelOverrides {
     pub truecolor: Option<fn(&mut Theme)>,
@@ -290,8 +232,6 @@ pub struct LevelOverrides {
 }
 
 impl LevelOverrides {
-
-
 
     pub const ASCII_MONO: Self = Self {
         truecolor: None,
@@ -310,12 +250,9 @@ impl LevelOverrides {
     }
 }
 
-
 pub fn ascii_glyphs(t: &mut Theme) {
     t.glyphs = Glyphs::ASCII;
 }
-
-
 
 pub fn ascii(t: &mut Theme) {
     t.glyphs = Glyphs::ASCII;
@@ -363,26 +300,8 @@ impl ColorLevel {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Charset {
-
 
     #[default]
     Unicode,
@@ -392,14 +311,9 @@ pub enum Charset {
 
 impl Charset {
 
-
     pub const OVERRIDE_ENV: &'static str = "JUNIE_TUI_GLYPHS";
 
-
-
-
     pub const ASCII_TERMS: [&'static str; 5] = ["linux", "vt", "cons25", "dumb", "pcansi"];
-
 
     pub const fn glyphs(self) -> Glyphs {
         match self {
@@ -408,7 +322,6 @@ impl Charset {
         }
     }
 
-
     pub const fn strings(self) -> Strings {
         match self {
             Self::Unicode => Strings::DEFAULT,
@@ -416,14 +329,11 @@ impl Charset {
         }
     }
 
-
     pub fn apply(self, theme: Theme) -> Theme {
         theme
             .with_glyphs(self.glyphs())
             .with_strings(self.strings())
     }
-
-
 
     fn parse(value: &str) -> Option<Self> {
         match value.trim().to_ascii_lowercase().as_str() {
@@ -432,12 +342,6 @@ impl Charset {
             _ => None,
         }
     }
-
-
-
-
-
-
 
     pub fn from_env(get: impl Fn(&str) -> Option<String>, windows: bool) -> Self {
         if let Some(charset) = get(Self::OVERRIDE_ENV).as_deref().and_then(Self::parse) {
@@ -466,13 +370,10 @@ impl Charset {
         Self::Unicode
     }
 
-
-
     pub fn detect() -> Self {
         Self::from_env(|k| std::env::var(k).ok(), cfg!(windows))
     }
 }
-
 
 mod palette {
     use ratatui::style::Color;
@@ -502,11 +403,9 @@ mod palette {
     pub const WHITE_30: Color = rgb(0x4d4d4d);
     pub const WHITE_15: Color = rgb(0x262626);
 
-
     pub const WHITE_43: Color = rgb(0x737373);
 
     pub const WHITE_23: Color = rgb(0x3a3a3a);
-
 
     pub const WHITE_28: Color = rgb(0x474747);
 
@@ -517,13 +416,11 @@ mod palette {
     pub const GREEN_10: Color = rgb(0x0a1c0c);
     pub const ON_GREEN: Color = rgb(0x19191c);
 
-
     pub const RED: Color = rgb(0xf05d5d);
 
     pub const RED_STRONG: Color = rgb(0xff8a8a);
 
     pub const SUCCESS_STRONG: Color = rgb(0x56d364);
-
 
     pub const MUTED: Color = rgb(0x8a8a8a);
     pub const RED_20: Color = rgb(0x2e0f0f);
@@ -533,14 +430,11 @@ mod palette {
     pub const RED_45: Color = rgb(0x7a2a2a);
     pub const AMBER: Color = rgb(0xf59e09);
 
-
     pub const BLUE_INFO: Color = rgb(0x79b8ff);
 
     pub const SYNTAX_STRING: Color = rgb(0x8bd5ca);
 
     pub const SYNTAX_LITERAL: Color = rgb(0xc6a0f6);
-
-
 
     pub const CANVAS_HOVER: Color = rgb(0x1c1c1f);
     pub const CANVAS_PRESSED: Color = rgb(0x303036);
@@ -569,26 +463,14 @@ mod palette {
 
     pub const BLUE_20: Color = rgb(0x1f3460);
 
-
     pub const GREY_INACTIVE: Color = rgb(0x33363e);
 }
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum InactiveSelection {
 
-
     #[default]
     Accent,
-
 
     Neutral,
 
@@ -604,7 +486,6 @@ impl InactiveSelection {
     ];
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Theme {
     pub level: ColorLevel,
@@ -617,19 +498,14 @@ pub struct Theme {
     pub field_hover: Color,
     pub popover: Color,
 
-
     pub highlight: Color,
 
     pub highlight_danger: Color,
-
 
     pub error_soft: Color,
 
     pub border_subtle: Color,
     pub border_strong: Color,
-
-
-
 
     pub scroll_track: Color,
 
@@ -654,11 +530,9 @@ pub struct Theme {
     pub warning: Color,
     pub success: Color,
 
-
     pub info: Color,
 
     pub link: Color,
-
 
     pub error_strong: Color,
 
@@ -670,23 +544,15 @@ pub struct Theme {
 
     pub syntax_literal: Color,
 
-
     pub selection_bg: Color,
-
-
-
 
     pub highlight_on_selection: Color,
 
-
     pub accent_bg_hover: Color,
-
 
     pub selection_inactive: Color,
 
-
     pub inactive_selection: InactiveSelection,
-
 
     pub danger_label: Color,
 
@@ -694,39 +560,24 @@ pub struct Theme {
 
     pub mods: StateModifiers,
 
-
-
     pub tint_selection: bool,
-
 
     pub hintbar: HintBarStyle,
 
     pub spacing: Spacing,
 
-
     pub glyphs: Glyphs,
-
 
     pub strings: Strings,
 
-
-
     pub edit_entry: crate::core::edit::EditEntry,
 
-
-
-
-
     pub field_keys: Option<crate::core::edit::FieldKeys>,
-
-
-
 
     pub card_heading: crate::widgets::panel::CardHeading,
 }
 
 impl Theme {
-
 
     pub const DEFAULT_EDIT_ENTRY: crate::core::edit::EditEntry =
         crate::core::edit::EditEntry::Immediate;
@@ -804,19 +655,14 @@ impl Theme {
         }
     }
 
-
     pub fn for_level(level: ColorLevel) -> Self {
         Self::for_level_with(level, &LevelOverrides::default())
     }
-
-
-
 
     pub fn centred_hints(mut self) -> Self {
         self.hintbar.align = HintAlign::Center;
         self
     }
-
 
     pub fn for_level_with(level: ColorLevel, overrides: &LevelOverrides) -> Self {
         let mut t = Self::junie();
@@ -830,7 +676,6 @@ impl Theme {
         }
         t
     }
-
 
     fn downgrade_all(&mut self, level: ColorLevel) {
         macro_rules! map {
@@ -905,9 +750,6 @@ impl Theme {
         };
         self.tint_selection = matches!(level, ColorLevel::TrueColor | ColorLevel::Ansi256);
     }
-
-
-
 
     fn apply_level_table(&mut self, level: ColorLevel) {
         match level {
@@ -994,17 +836,14 @@ impl Theme {
         self.highlight = Blue;
         self.highlight_danger = Red;
 
-
         self.highlight_on_selection = Blue;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
-
 
         self.scroll_track = DarkGray;
         self.text_primary = White;
         self.text_secondary = Gray;
         self.text_muted = Gray;
-
 
         self.text_faint = Gray;
         self.text_ghost = DarkGray;
@@ -1014,8 +853,6 @@ impl Theme {
         self.accent_pressed = Green;
         self.accent_bg = Black;
         self.accent_bg_hover = DarkGray;
-
-
 
         self.selection_bg = Black;
         self.accent_bg_subtle = Black;
@@ -1053,8 +890,6 @@ impl Theme {
     fn apply_mono(&mut self) {
         use Color::*;
 
-
-
         let flat = |c| Ladder::new(c, c, c);
         self.canvas = Black;
         self.surface = Black;
@@ -1068,7 +903,6 @@ impl Theme {
         self.highlight_on_selection = DarkGray;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
-
 
         self.scroll_track = DarkGray;
         self.text_primary = White;
@@ -1091,8 +925,6 @@ impl Theme {
         self.error = White;
         self.error_strong = White;
 
-
-
         self.error_soft = White;
         self.danger_label = White;
         self.error_bg = Black;
@@ -1112,65 +944,45 @@ impl Theme {
         };
     }
 
-
     pub fn with_ladder(mut self, plane: Plane, ladder: Ladder) -> Self {
         *self.ladder_mut(plane) = ladder;
         self
     }
-
-
 
     pub const fn with_glyphs(mut self, glyphs: Glyphs) -> Self {
         self.glyphs = glyphs;
         self
     }
 
-
-
     pub const fn with_strings(mut self, strings: Strings) -> Self {
         self.strings = strings;
         self
     }
-
-
 
     pub const fn with_edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
         self.edit_entry = entry;
         self
     }
 
-
-
-
     pub const fn with_inactive_selection(mut self, look: InactiveSelection) -> Self {
         self.inactive_selection = look;
         self
     }
-
-
-
 
     pub const fn with_card_heading(mut self, style: crate::widgets::panel::CardHeading) -> Self {
         self.card_heading = style;
         self
     }
 
-
-
     pub const fn with_field_keys(mut self, keys: crate::core::edit::FieldKeys) -> Self {
         self.field_keys = Some(keys);
         self
     }
 
-
-
-
     pub fn with_state_modifiers(mut self, mods: StateModifiers) -> Self {
         self.mods = mods;
         self
     }
-
-
 
     pub fn base(&self) -> Style {
         Style::new().fg(self.text_primary).bg(self.canvas)
@@ -1236,10 +1048,6 @@ impl Theme {
         })
     }
 
-
-
-
-
     pub fn backdrop(&self, style: Style) -> Style {
         let bg = match style.bg {
             Some(c) if c == self.canvas || c == self.surface || c == self.surface_elevated => c,
@@ -1247,8 +1055,6 @@ impl Theme {
             Some(_) => self.surface_overlay,
             None => self.canvas,
         };
-
-
 
         let dark_plane = style.bg.is_none_or(|c| {
             [
@@ -1261,10 +1067,6 @@ impl Theme {
             .contains(&c)
         });
 
-
-
-
-
         let reads = |fg: Color, bg: Color| contrast_ratio(fg, bg).is_some_and(|r| r >= 3.0);
         let plane = style.bg.unwrap_or(self.canvas);
         let blank = match style.fg {
@@ -1276,8 +1078,6 @@ impl Theme {
             _ if blank => bg,
             Some(c) if c == self.canvas || c == self.surface => self.text_muted,
 
-
-
             Some(c) if c == self.accent || c == self.focus => self.text_faint,
             Some(c) if c == self.text_primary || c == self.error || c == self.warning => {
                 self.text_muted
@@ -1285,9 +1085,6 @@ impl Theme {
             Some(c) if c == self.text_secondary || c == self.text_on_accent => self.text_faint,
             _ => self.text_ghost,
         };
-
-
-
 
         let fg = match style.fg {
             Some(c) if !blank && reads(c, plane) && !reads(fg, bg) => {
@@ -1298,8 +1095,6 @@ impl Theme {
             }
             _ => fg,
         };
-
-
 
         if !blank && (fg == bg || matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono)) {
             let ink = if self.text_muted != bg {
@@ -1312,13 +1107,6 @@ impl Theme {
         Style::new().fg(fg).bg(bg)
     }
 
-
-
-
-
-
-
-
     pub fn disabled_style(&self) -> Style {
         let style = Style::new().fg(self.disabled);
         if self.level == ColorLevel::Mono {
@@ -1327,14 +1115,6 @@ impl Theme {
             style
         }
     }
-
-
-
-
-
-
-
-
 
     pub fn ladder(&self, plane: Plane) -> Ladder {
         let l = &self.ladders;
@@ -1368,9 +1148,6 @@ impl Theme {
         }
     }
 
-
-
-
     pub fn plane_of(&self, bg: Color) -> Plane {
         let tokens = [
             (self.canvas, Plane::Canvas),
@@ -1403,9 +1180,6 @@ impl Theme {
         Plane::Canvas
     }
 
-
-
-
     pub fn interactive(&self, kind: Kind, s: VisualState, plane: Plane) -> Interactive {
         let m = self.mods;
 
@@ -1428,7 +1202,6 @@ impl Theme {
 
         if s.disabled {
 
-
             let rest = if body.is_fill() {
                 match kind {
                     Kind::Button(_) => self.ladder(Plane::Raised).rest,
@@ -1442,13 +1215,11 @@ impl Theme {
             let mut dim = m.disabled;
             if fg == bg {
 
-
                 fg = self.text_muted;
                 dim |= Modifier::DIM;
             }
             let mut style = Style::new().fg(fg).add_modifier(dim);
             if glyph {
-
 
                 style = style.add_modifier(Modifier::DIM);
             } else {
@@ -1463,10 +1234,6 @@ impl Theme {
         }
 
         if glyph {
-
-
-
-
 
             let lad = if kind == Kind::Handle {
                 self.ladders.handle
@@ -1494,8 +1261,6 @@ impl Theme {
             mods |= m.fill;
         }
         let row_like = matches!(kind, Kind::Row | Kind::CursorRow(CursorStyle::Bar));
-
-
 
         let inactive = self.inactive_look(s);
         let sel = row_like && s.selected && self.tint_selection;
@@ -1528,7 +1293,6 @@ impl Theme {
                 mods |= m.hover_flat;
             }
         }
-
 
         let lifted = s.hovered || s.pressed || s.focused;
         let mut fg = match kind {
@@ -1570,7 +1334,6 @@ impl Theme {
         }
         fg = self.legible(fg, bg);
 
-
         let weighted = match kind {
             Kind::Button(ButtonKind::Primary) => true,
             Kind::CursorRow(CursorStyle::Fill) => fill,
@@ -1581,7 +1344,6 @@ impl Theme {
         if weighted && !s.busy {
             mods |= m.focused;
         }
-
 
         if s.selected && row_like {
             mods |= m.selected;
@@ -1597,10 +1359,8 @@ impl Theme {
             bg
         } else if fill || danger_press {
 
-
             fg
         } else {
-
 
             self.legible_mark(self.focus, bg)
         };
@@ -1611,15 +1371,6 @@ impl Theme {
             on_fill: fill,
         }
     }
-
-
-
-
-
-
-
-
-
 
     pub fn legible(&self, fg: Color, bg: Color) -> Color {
         let Some(c) = contrast_ratio(fg, bg) else {
@@ -1655,14 +1406,6 @@ impl Theme {
             .0
     }
 
-
-
-
-
-
-
-
-
     pub fn legible_mark(&self, fg: Color, bg: Color) -> Color {
         const MARK: f64 = 3.0;
         let reads = |ink: Color| contrast_ratio(ink, bg).is_none_or(|r| r >= MARK);
@@ -1694,13 +1437,6 @@ impl Theme {
             .0
     }
 
-
-
-
-
-
-
-
     pub fn beside_label(&self, ink: Color, bg: Color, label: Color) -> Color {
         let reads = |c: Color| contrast_ratio(c, bg).is_none_or(|r| r >= 4.5);
         if reads(ink) {
@@ -1713,13 +1449,6 @@ impl Theme {
             .and_then(|pos| ladder[pos + 1..].iter().copied().find(|&c| reads(c)))
             .unwrap_or(label)
     }
-
-
-
-
-
-
-
 
     pub fn frame_on(&self, bg: Color) -> Color {
         let subtle = self.border_subtle;
@@ -1738,31 +1467,17 @@ impl Theme {
         .unwrap_or(self.text_primary)
     }
 
-
     pub fn row(&self, s: VisualState, bg: Color) -> Style {
         self.interactive(Kind::Row, s, self.plane_of(bg)).style
     }
-
-
-
-
-
 
     pub fn cursor_row(&self, s: VisualState, bg: Color, cursor: CursorStyle) -> CursorRow {
         self.interactive(Kind::CursorRow(cursor), s, self.plane_of(bg))
     }
 
-
-
-
-
     pub fn row_ink(&self, row: &CursorRow, ink: Color) -> Color {
         if row.on_fill { self.text_primary } else { ink }
     }
-
-
-
-
 
     pub fn chosen(&self, focused: bool) -> Color {
         if focused {
@@ -1772,12 +1487,6 @@ impl Theme {
         }
     }
 
-
-
-
-
-
-
     pub fn chosen_in(&self, s: VisualState) -> Color {
         if s.focused || self.inactive_look(s) == InactiveSelection::Accent {
             self.accent
@@ -1786,8 +1495,6 @@ impl Theme {
         }
     }
 
-
-
     pub fn inactive_look(&self, s: VisualState) -> InactiveSelection {
         match s.inactive_selection.unwrap_or(self.inactive_selection) {
             InactiveSelection::Accent if s.backdrop => InactiveSelection::Neutral,
@@ -1795,18 +1502,10 @@ impl Theme {
         }
     }
 
-
-
     pub fn lift(&self, bg: Color) -> Color {
         let l = self.ladder(self.plane_of(bg));
         if bg == l.hover { l.pressed } else { l.hover }
     }
-
-
-
-
-
-
 
     pub fn gutter_symbol(&self, s: VisualState) -> &'static str {
         if s.focused && !s.disabled {
@@ -1815,9 +1514,6 @@ impl Theme {
             " "
         }
     }
-
-
-
 
     pub fn gutter(&self, s: VisualState, bg: Color, on_accent: bool) -> Style {
         let fg = if !s.focused || s.disabled {
@@ -1834,8 +1530,6 @@ impl Theme {
         self.interactive(Kind::Button(kind), s, self.plane_of(bg))
             .style
     }
-
-
 
     pub fn field_style(&self, s: VisualState) -> Style {
         let s = VisualState {
@@ -1854,9 +1548,6 @@ impl Theme {
         })
     }
 
-
-
-
     pub fn close_glyph(&self, s: VisualState, host: Style) -> Style {
         let bg = host.bg.unwrap_or(self.canvas);
         let s = VisualState {
@@ -1871,16 +1562,9 @@ impl Theme {
         }
     }
 
-
-
-
-
     pub fn close_plate(&self, s: VisualState, host: Style, danger: bool) -> Style {
         self.danger_plate(s, self.close_glyph(s, host), danger)
     }
-
-
-
 
     pub fn danger_plate(&self, s: VisualState, style: Style, danger: bool) -> Style {
         if !danger || s.disabled {
@@ -1897,9 +1581,6 @@ impl Theme {
         }
     }
 
-
-
-
     pub fn cell_cursor(&self, error: bool, pressed: bool) -> Style {
         let s = VisualState {
             focused: true,
@@ -1910,11 +1591,6 @@ impl Theme {
         self.interactive(Kind::CursorRow(CursorStyle::Fill), s, Plane::Canvas)
             .style
     }
-
-
-
-
-
 
     pub fn cursor_in_selection(&self, error: bool, pressed: bool) -> Style {
         let st = self.cell_cursor(error, pressed);
@@ -1931,9 +1607,6 @@ impl Theme {
             .fg(self.legible(st.fg.unwrap_or(self.text_primary), bg))
     }
 
-
-
-
     pub fn rule_on(&self, bg: Color) -> Color {
         let rule = match self.plane_of(bg) {
             Plane::Raised | Plane::Popover | Plane::Field => self.border_strong,
@@ -1941,9 +1614,6 @@ impl Theme {
         };
         if rule == bg { self.text_muted } else { rule }
     }
-
-
-
 
     pub fn match_current(&self) -> Style {
         let style = Style::new()
@@ -1957,11 +1627,6 @@ impl Theme {
         }
     }
 
-
-
-
-
-
     pub fn selection(&self) -> Style {
         let style = Style::new().fg(self.text_primary).bg(self.selection_bg);
         if matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono) {
@@ -1971,14 +1636,9 @@ impl Theme {
         }
     }
 
-
-
     pub fn scrollbar_track(&self) -> Style {
         Style::new().fg(self.scroll_track)
     }
-
-
-
 
     pub fn scrollbar_thumb(&self, hovered: bool, pressed: bool) -> Style {
         let s = VisualState {
@@ -2004,14 +1664,9 @@ impl Theme {
         }
     }
 
-
-
-
     pub fn tone_on(&self, tone: Tone, bg: Color) -> Color {
         self.legible(self.tone(tone), bg)
     }
-
-
 
     pub fn link_style(&self, hovered_or_focused: bool) -> Style {
         let style = Style::new().fg(self.link);
@@ -2022,14 +1677,9 @@ impl Theme {
         }
     }
 
-
-
-
-
     pub fn status(&self, kind: StatusKind) -> (&'static str, Style) {
         self.status_at(kind, 0)
     }
-
 
     pub fn status_at(&self, kind: StatusKind, tick: u64) -> (&'static str, Style) {
         let g = &self.glyphs;
@@ -2050,8 +1700,6 @@ impl Theme {
         (glyph, style)
     }
 
-
-
     pub fn status_label(&self, kind: StatusKind) -> Style {
         Style::new().fg(match kind {
             StatusKind::Running => self.info,
@@ -2063,9 +1711,6 @@ impl Theme {
         self.tone(kind.tone())
     }
 
-
-
-
     pub fn env(&self, env: EnvKind) -> (&'static str, Style) {
         let style = Style::new().fg(self.tone(env.tone()));
         let style = if env == EnvKind::Production {
@@ -2075,11 +1720,6 @@ impl Theme {
         };
         (self.glyphs.env(env), style)
     }
-
-
-
-
-
 
     pub fn syntax(&self, tone: SyntaxTone) -> Style {
         match tone {
@@ -2108,9 +1748,6 @@ impl Theme {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tone {
     #[default]
@@ -2128,8 +1765,6 @@ pub enum Tone {
 
     Danger,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusKind {
@@ -2163,10 +1798,6 @@ impl StatusKind {
         StatusKind::Skipped,
     ];
 
-
-
-
-
     pub const fn tone(self) -> Tone {
         match self {
             StatusKind::Ok => Tone::Success,
@@ -2180,7 +1811,6 @@ impl StatusKind {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnvKind {
     Production,
@@ -2191,8 +1821,6 @@ pub enum EnvKind {
 
 impl EnvKind {
 
-
-
     pub const fn tone(self) -> Tone {
         match self {
             EnvKind::Production => Tone::Danger,
@@ -2202,7 +1830,6 @@ impl EnvKind {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyntaxTone {
@@ -2232,24 +1859,14 @@ pub enum BadgeKind {
     Edit,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HintAlign {
-
 
     #[default]
     Start,
 
     Center,
 }
-
-
-
-
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Glyphs {
@@ -2284,7 +1901,6 @@ pub struct Glyphs {
 
     pub check_mixed: &'static str,
 
-
     pub tick: &'static str,
 
     pub check_off_narrow: &'static str,
@@ -2309,23 +1925,15 @@ pub struct Glyphs {
 
     pub overflow_right: &'static str,
 
-
     pub more_titles: &'static str,
-
-
 
     pub scroll_track: &'static str,
 
-
     pub scroll_thumb: &'static str,
-
-
 
     pub scroll_h_track: &'static str,
 
-
     pub scroll_h_thumb: &'static str,
-
 
     pub divider: &'static str,
 
@@ -2350,7 +1958,6 @@ pub struct Glyphs {
     pub bar_fill: &'static str,
 
     pub bar_empty: &'static str,
-
 
     pub bar_stale: &'static str,
 
@@ -2395,7 +2002,6 @@ impl Glyphs {
             EnvKind::Local => "",
         }
     }
-
 
     pub const UNICODE: Self = Self {
         focus_bar: "▎",
@@ -2460,8 +2066,6 @@ impl Glyphs {
         border: ratatui::symbols::border::ROUNDED,
     };
 
-
-
     pub const ASCII: Self = Self {
         focus_bar: "|",
         current: ">",
@@ -2491,7 +2095,6 @@ impl Glyphs {
         overflow_left: "<",
         overflow_right: ">",
         more_titles: ">",
-
 
         scroll_track: ":",
         scroll_thumb: "#",
@@ -2536,16 +2139,12 @@ impl Glyphs {
         },
     };
 
-
     pub fn spinner_frame(&self, tick: u64) -> &'static str {
         match self.spinner.len() {
             0 => " ",
             n => self.spinner[(tick % n as u64) as usize],
         }
     }
-
-
-
 
     pub fn key_label<'a>(&self, s: &'a str) -> std::borrow::Cow<'a, str> {
         if self.arrows == Self::UNICODE.arrows
@@ -2576,17 +2175,6 @@ impl Default for Glyphs {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Strings {
 
@@ -2596,26 +2184,19 @@ pub struct Strings {
 
     pub close: &'static str,
 
-
     pub type_to_confirm: &'static str,
-
 
     pub type_to_confirm_hint: &'static str,
 
-
     pub ack_mismatch: &'static str,
 
-
     pub grid_read_only: &'static str,
-
 
     pub grid_row_deleted: &'static str,
 
     pub leave_unsaved_title: &'static str,
 
-
     pub leave_unsaved_body: &'static str,
-
 
     pub leave_discard_body: &'static str,
 
@@ -2632,7 +2213,6 @@ pub struct Strings {
     pub leave_stop: &'static str,
 
     pub leave_stay: &'static str,
-
 
     pub more_cut: &'static str,
 
@@ -2654,9 +2234,7 @@ pub struct Strings {
 
     pub loading_rows: &'static str,
 
-
     pub fetching: &'static str,
-
 
     pub fetch_more: &'static str,
 
@@ -2700,9 +2278,7 @@ pub struct Strings {
 
     pub help_footer: &'static str,
 
-
     pub not_in_preview: &'static str,
-
 
     pub done: &'static str,
 
@@ -2713,7 +2289,6 @@ pub struct Strings {
     pub tip_remove: &'static str,
 
     pub tip_new_tab: &'static str,
-
 
     pub tip_overflow: &'static str,
 }
@@ -2780,8 +2355,6 @@ impl Strings {
         tip_overflow: "Show hidden",
     };
 
-
-
     pub const ASCII: Self = Self {
         more_cut: "... {} more",
         search_placeholder: "Type to search...",
@@ -2791,8 +2364,6 @@ impl Strings {
         help_footer: "^v Scroll | Esc Close",
         ..Self::DEFAULT
     };
-
-
 
     pub fn fill(template: &str, args: &[&dyn std::fmt::Display]) -> String {
         let mut out = String::with_capacity(template.len() + 8);
@@ -2810,9 +2381,6 @@ impl Strings {
         out
     }
 
-
-
-
     pub fn follow(text: &mut String, old: &str, new: &str) {
         if old != new && text == old {
             new.clone_into(text);
@@ -2826,8 +2394,6 @@ impl Default for Strings {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Insets {
     pub x: u16,
@@ -2840,8 +2406,6 @@ impl Insets {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Spacing {
 
@@ -2852,7 +2416,6 @@ pub struct Spacing {
     pub panel: Insets,
 
     pub popup: Insets,
-
 
     pub chrome_edge: u16,
 }
@@ -2873,25 +2436,14 @@ impl Default for Spacing {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HintBarStyle {
 
     pub align: HintAlign,
 
-
-
-
     pub status_min_share: u8,
 
-
-
-
     pub compact: bool,
-
-
 
     pub pinned_keys: &'static [&'static str],
 }
@@ -2910,8 +2462,6 @@ impl Default for HintBarStyle {
         Self::DEFAULT
     }
 }
-
-
 
 fn approx_rgb(c: Color) -> Option<(u8, u8, u8)> {
     const BASIC: [(u8, u8, u8); 16] = [
@@ -2964,8 +2514,6 @@ fn approx_rgb(c: Color) -> Option<(u8, u8, u8)> {
     })
 }
 
-
-
 fn bright(c: Color) -> Option<Color> {
     Some(match c {
         Color::Red => Color::LightRed,
@@ -2979,7 +2527,6 @@ fn bright(c: Color) -> Option<Color> {
     })
 }
 
-
 fn rel_luminance((r, g, b): (u8, u8, u8)) -> f64 {
     let ch = |v: u8| {
         let v = v as f64 / 255.0;
@@ -2991,8 +2538,6 @@ fn rel_luminance((r, g, b): (u8, u8, u8)) -> f64 {
     };
     0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
 }
-
-
 
 pub fn contrast_ratio(a: Color, b: Color) -> Option<f64> {
     let (x, y) = (rel_luminance(approx_rgb(a)?), rel_luminance(approx_rgb(b)?));
@@ -3024,7 +2569,6 @@ fn nearest_256(r: u8, g: u8, b: u8) -> u8 {
     let gi = ((avg - 8).max(0) / 10).min(23);
     let gv = 8 + gi * 10;
     let gray_err = (gv - r as i32).pow(2) + (gv - g as i32).pow(2) + (gv - b as i32).pow(2);
-
 
     let chroma = r.max(g).max(b) as i32 - r.min(g).min(b) as i32;
     if gray_err < cube_err && chroma <= 30 {
@@ -3073,1124 +2617,3 @@ fn nearest_16(r: u8, g: u8, b: u8) -> Color {
     }
 }
 
-#[cfg(test)]
-mod tests {
-
-    fn luminance(c: Color) -> f64 {
-        let Color::Rgb(r, g, b) = c else {
-            panic!("truecolor expected, got {c:?}")
-        };
-        let ch = |v: u8| {
-            let v = v as f64 / 255.0;
-            if v <= 0.03928 {
-                v / 12.92
-            } else {
-                ((v + 0.055) / 1.055).powf(2.4)
-            }
-        };
-        0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
-    }
-
-    fn contrast(a: Color, b: Color) -> f64 {
-        let (x, y) = (luminance(a), luminance(b));
-        (x.max(y) + 0.05) / (x.min(y) + 0.05)
-    }
-
-
-
-
-
-
-    #[test]
-    fn an_unfocused_selected_row_keeps_its_inactive_selection() {
-        for level in ColorLevel::ALL {
-            let base = Theme::for_level(level);
-            for plane in [Plane::Canvas, Plane::Surface, Plane::Card] {
-                let lad = base.ladder(plane);
-                let row = |t: &Theme, s: VisualState| t.interactive(Kind::Row, s, plane).style;
-                let sel = VisualState {
-                    selected: true,
-                    ..Default::default()
-                };
-                let hover = row(
-                    &base,
-                    VisualState {
-                        hovered: true,
-                        ..Default::default()
-                    },
-                );
-                let focused = row(
-                    &base,
-                    VisualState {
-                        focused: true,
-                        ..sel
-                    },
-                );
-                for look in InactiveSelection::ALL {
-                    let t = base.with_inactive_selection(look);
-                    let st = row(&t, sel);
-                    let bg = st.bg.unwrap();
-                    let want = match (look, base.tint_selection) {
-                        (_, false) | (InactiveSelection::None, _) => lad.rest,
-                        (InactiveSelection::Accent, _) => base.accent_bg,
-                        (InactiveSelection::Neutral, _) => base.selection_inactive,
-                    };
-                    assert_eq!(bg, want, "{level:?} {plane:?} {look:?}");
-
-                    assert!(
-                        st.add_modifier.contains(base.mods.selected)
-                            && !base.mods.selected.is_empty()
-                            || bg != lad.rest,
-                        "{level:?} {plane:?} {look:?}: no cue"
-                    );
-                    assert_ne!(st, hover, "{level:?} {plane:?} {look:?}: like hover");
-                    if look == InactiveSelection::Neutral && base.tint_selection {
-                        assert_ne!(bg, lad.hover, "{level:?} {plane:?}: neutral is hover");
-                        assert_ne!(st, focused, "{level:?} {plane:?}: neutral is focused");
-                    }
-                    if let (Some(fg), Some(r)) =
-                        (st.fg, st.fg.and_then(|fg| contrast_ratio(fg, bg)))
-                    {
-                        assert!(
-                            r >= 4.5,
-                            "{level:?} {plane:?} {look:?}: {fg:?} on {bg:?} {r:.2}"
-                        );
-                    }
-
-                    let under = row(
-                        &t,
-                        VisualState {
-                            backdrop: true,
-                            ..sel
-                        },
-                    );
-                    let neutral = row(
-                        &base.with_inactive_selection(InactiveSelection::Neutral),
-                        sel,
-                    );
-                    if look != InactiveSelection::None {
-                        assert_eq!(under, neutral, "{level:?} {plane:?} {look:?} under a layer");
-                    }
-
-                    let own = row(
-                        &t,
-                        VisualState {
-                            inactive_selection: Some(InactiveSelection::None),
-                            ..sel
-                        },
-                    );
-                    assert_eq!(own.bg, Some(lad.rest));
-
-
-                    let ink = t.chosen_in(sel);
-                    if look == InactiveSelection::Accent {
-                        assert_eq!(ink, t.accent);
-                        if let Some(r) = contrast_ratio(ink, lad.rest) {
-                            assert!(r >= 3.0, "{level:?} {plane:?}: mark {r:.2}");
-                        }
-                    } else {
-                        assert_eq!(ink, t.text_primary);
-                    }
-                    assert_eq!(
-                        t.chosen_in(VisualState {
-                            backdrop: true,
-                            ..sel
-                        }),
-                        t.text_primary,
-                        "{level:?}: no accent under a layer"
-                    );
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn the_modal_backdrop_keeps_reversed_text_readable() {
-        let t = Theme::junie();
-
-        let st = t.backdrop(Style::new().fg(t.canvas).bg(t.text_primary));
-        assert_ne!(st.fg, st.bg);
-
-        let st = t.backdrop(Style::new().fg(t.canvas).bg(t.canvas));
-        assert_eq!(st.fg, st.bg);
-    }
-
-    #[test]
-    fn the_modal_backdrop_dims_text_without_erasing_it() {
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            let planes = [
-                t.canvas,
-                t.surface,
-                t.surface_elevated,
-                t.field,
-                t.field_hover,
-                t.surface_overlay,
-                t.popover,
-            ];
-            for bg in planes {
-
-
-
-                for fg in [
-                    t.canvas,
-                    t.text_ghost,
-                    t.text_faint,
-                    t.text_muted,
-                    t.border_strong,
-                ] {
-                    if contrast_ratio(fg, bg).is_none_or(|r| r < 3.0) {
-                        continue;
-                    }
-                    let st = t.backdrop(Style::new().fg(fg).bg(bg));
-                    let (ink, plane) = (st.fg.unwrap(), st.bg.unwrap());
-                    let r = contrast_ratio(ink, plane).unwrap();
-                    assert!(
-                        r >= 3.0,
-                        "{level:?}: {fg:?} on {bg:?} dims to {ink:?} on {plane:?} ({r:.2})"
-                    );
-                }
-            }
-
-            let st = t.backdrop(Style::new().fg(t.text_ghost).bg(t.canvas));
-            if level == ColorLevel::TrueColor {
-                assert_eq!(st.fg, Some(t.text_ghost));
-            }
-        }
-    }
-
-    #[test]
-    fn row_text_stays_readable_in_every_state_including_retinted_values() {
-        let t = Theme::junie();
-        for bg in [t.canvas, t.surface, t.surface_elevated] {
-            for bits in 0u8..16 {
-                let s = crate::ui::ctx::VisualState {
-                    focused: bits & 1 != 0,
-                    hovered: bits & 2 != 0,
-                    pressed: bits & 4 != 0,
-                    selected: bits & 8 != 0,
-                    ..Default::default()
-                };
-                let st = t.row(s, bg);
-                let fill = st.bg.unwrap();
-
-                for fg in [st.fg.unwrap(), t.text_primary] {
-                    let c = contrast(fg, fill);
-                    assert!(c >= 4.5, "{s:?} on {bg:?}: {fg:?}/{fill:?} = {c:.2}");
-                }
-            }
-        }
-    }
-
-    use super::*;
-
-
-
-
-    #[test]
-    fn charset_follows_the_terminal() {
-        let env = |pairs: &'static [(&'static str, &'static str)]| {
-            move |k: &str| {
-                pairs
-                    .iter()
-                    .find(|(key, _)| *key == k)
-                    .map(|(_, v)| (*v).to_string())
-            }
-        };
-        for term in [
-            "linux",
-            "linux-16color",
-            "LINUX",
-            "vt100",
-            "vt102",
-            "vt220",
-            "vt52",
-            "vt100-am",
-            "cons25",
-            "dumb",
-        ] {
-            let get = move |k: &str| (k == "TERM").then(|| term.to_string());
-            assert_eq!(Charset::from_env(get, false), Charset::Ascii, "{term}");
-            assert_eq!(Charset::from_env(get, true), Charset::Ascii, "{term}");
-        }
-        for term in [
-            "xterm-256color",
-            "xterm-ghostty",
-            "xterm-kitty",
-            "screen-256color",
-            "tmux-256color",
-            "alacritty",
-            "vte",
-            "linuxish",
-        ] {
-            let get = move |k: &str| (k == "TERM").then(|| term.to_string());
-            assert_eq!(Charset::from_env(get, false), Charset::Unicode, "{term}");
-        }
-
-        assert_eq!(Charset::from_env(env(&[]), false), Charset::Unicode);
-        assert_eq!(Charset::from_env(env(&[]), true), Charset::Ascii);
-        for modern in [
-            &[("WT_SESSION", "1b2c")][..],
-            &[("TERM_PROGRAM", "vscode")],
-            &[("ConEmuANSI", "ON")],
-            &[("TERM", "xterm-256color")],
-        ] {
-            let get = move |k: &str| {
-                modern
-                    .iter()
-                    .find(|(key, _)| *key == k)
-                    .map(|(_, v)| (*v).to_string())
-            };
-            assert_eq!(Charset::from_env(get, true), Charset::Unicode, "{modern:?}");
-        }
-
-        let forced = env(&[("TERM", "linux"), ("JUNIE_TUI_GLYPHS", "Unicode")]);
-        assert_eq!(Charset::from_env(forced, false), Charset::Unicode);
-        let forced = env(&[("TERM", "xterm-256color"), ("JUNIE_TUI_GLYPHS", "ascii")]);
-        assert_eq!(Charset::from_env(forced, false), Charset::Ascii);
-        let junk = env(&[("TERM", "linux"), ("JUNIE_TUI_GLYPHS", "fancy")]);
-        assert_eq!(Charset::from_env(junk, false), Charset::Ascii);
-
-        let t = Charset::Ascii.apply(Theme::junie());
-        assert_eq!((t.glyphs, t.strings), (Glyphs::ASCII, Strings::ASCII));
-        let t = Charset::Unicode.apply(t);
-        assert_eq!((t.glyphs, t.strings), (Glyphs::UNICODE, Strings::DEFAULT));
-    }
-
-    #[test]
-    fn accent_survives_downgrade() {
-        let t = Theme::for_level(ColorLevel::Ansi256);
-        assert!(matches!(t.accent, Color::Indexed(_)));
-        let t16 = Theme::for_level(ColorLevel::Ansi16);
-        assert_eq!(t16.accent, Color::LightGreen);
-        assert_eq!(t16.error, Color::LightRed);
-        assert_eq!(t16.canvas, Color::Black);
-    }
-
-    #[test]
-    fn hover_and_focus_are_distinct_styles() {
-        let t = Theme::junie();
-        let base = t.row(VisualState::default(), t.canvas);
-        let hovered = t.row(
-            VisualState {
-                hovered: true,
-                ..Default::default()
-            },
-            t.canvas,
-        );
-        let focused = t.row(
-            VisualState {
-                focused: true,
-                ..Default::default()
-            },
-            t.canvas,
-        );
-        assert_ne!(base.bg, hovered.bg);
-        assert_eq!(base.bg, focused.bg);
-        assert!(focused.add_modifier.contains(Modifier::BOLD));
-        assert!(!hovered.add_modifier.contains(Modifier::BOLD));
-    }
-
-    #[test]
-    fn disabled_button_ignores_hover() {
-        let t = Theme::junie();
-        let d = VisualState {
-            disabled: true,
-            ..Default::default()
-        };
-        let dh = VisualState {
-            disabled: true,
-            hovered: true,
-            ..Default::default()
-        };
-        assert_eq!(
-            t.button(ButtonKind::Primary, d, t.surface),
-            t.button(ButtonKind::Primary, dh, t.surface)
-        );
-    }
-
-    const KINDS: [Kind; 15] = [
-        Kind::Row,
-        Kind::CursorRow(CursorStyle::Fill),
-        Kind::CursorRow(CursorStyle::Bar),
-        Kind::Button(ButtonKind::Primary),
-        Kind::Button(ButtonKind::Secondary),
-        Kind::Button(ButtonKind::Subtle),
-        Kind::Button(ButtonKind::Danger),
-        Kind::Button(ButtonKind::Toggle),
-        Kind::Tab,
-        Kind::Title,
-        Kind::Chip,
-        Kind::Close,
-        Kind::Field,
-        Kind::Handle,
-        Kind::Seam,
-    ];
-
-
-
-    fn looks_distinct(t: &Theme, kind: Kind, a: &Interactive, b: &Interactive) -> bool {
-        let mods = a.style.add_modifier != b.style.add_modifier || a.gutter != b.gutter;
-        if t.level == ColorLevel::Mono {
-            return mods;
-        }
-        let ink = if kind.is_glyph() {
-            a.style.fg != b.style.fg
-        } else {
-            a.style.bg != b.style.bg
-        };
-        mods || ink
-    }
-
-    fn st(f: impl FnOnce(&mut VisualState)) -> VisualState {
-        let mut s = VisualState::default();
-        f(&mut s);
-        s
-    }
-
-    #[test]
-    fn every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart() {
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            for kind in KINDS {
-                for plane in Plane::ALL {
-                    if kind.is_glyph() && !glyph_plane(plane) {
-                        continue;
-                    }
-
-
-                    for base in [
-                        VisualState::default(),
-                        st(|s| s.focused = true),
-                        st(|s| s.selected = true),
-                        st(|s| {
-                            s.selected = true;
-                            s.focused = true
-                        }),
-                    ] {
-                        let r = |f: fn(&mut VisualState)| {
-                            let mut s = base;
-                            f(&mut s);
-                            t.interactive(kind, s, plane)
-                        };
-                        let rest = r(|_| {});
-                        let hover = r(|s| s.hovered = true);
-                        let pressed = r(|s| {
-                            s.hovered = true;
-                            s.pressed = true
-                        });
-                        let flash = r(|s| s.pressed = true);
-                        let ctx = format!("{level:?} {kind:?} on {plane:?} from {base:?}");
-                        assert!(
-                            looks_distinct(&t, kind, &rest, &hover),
-                            "rest = hover: {ctx}"
-                        );
-                        assert!(
-                            looks_distinct(&t, kind, &hover, &pressed),
-                            "hover = pressed: {ctx}"
-                        );
-                        assert!(
-                            looks_distinct(&t, kind, &rest, &pressed),
-                            "rest = pressed: {ctx}"
-                        );
-                        assert!(
-                            looks_distinct(&t, kind, &rest, &flash),
-                            "rest = flash: {ctx}"
-                        );
-
-
-                        let dis = |f: fn(&mut VisualState)| {
-                            let mut s = base;
-                            s.disabled = true;
-                            f(&mut s);
-                            t.interactive(kind, s, plane)
-                        };
-                        let d = dis(|_| {});
-                        assert_eq!(d, dis(|s| s.hovered = true), "disabled hover: {ctx}");
-                        assert_eq!(
-                            d,
-                            dis(|s| {
-                                s.hovered = true;
-                                s.pressed = true
-                            }),
-                            "disabled press: {ctx}"
-                        );
-
-                        for (name, it) in [
-                            ("rest", rest),
-                            ("hover", hover),
-                            ("pressed", pressed),
-                            ("disabled", d),
-                        ] {
-                            let fg = it.style.fg.unwrap();
-                            let bg = it.style.bg.unwrap_or_else(|| t.ladder(plane).rest);
-                            assert_ne!(fg, bg, "{name} ink = fill: {ctx}");
-                            if level == ColorLevel::TrueColor && name != "disabled" {
-
-
-                                let min = if kind.is_glyph() { 3.0 } else { 4.5 };
-                                if !(kind.is_glyph() && name == "rest") {
-                                    let c = contrast(fg, bg);
-                                    assert!(c >= min, "{name} {fg:?} on {bg:?} = {c:.2}: {ctx}");
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    fn glyph_plane(p: Plane) -> bool {
-        matches!(
-            p,
-            Plane::Canvas | Plane::Surface | Plane::Card | Plane::Field
-        )
-    }
-
-    #[test]
-    fn interactive_states_differ_from_focus_and_disabled_at_every_level() {
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            for kind in KINDS {
-                for plane in [Plane::Canvas, Plane::Card, Plane::Popover] {
-                    let i = |s: VisualState| t.interactive(kind, s, plane);
-                    let focused = i(st(|s| s.focused = true));
-                    let rest = i(VisualState::default());
-                    let disabled = i(st(|s| s.disabled = true));
-                    let ctx = format!("{level:?} {kind:?} on {plane:?}");
-                    for (name, other) in [
-                        ("hover", i(st(|s| s.hovered = true))),
-                        ("pressed", i(st(|s| s.pressed = true))),
-                    ] {
-                        assert!(
-                            looks_distinct(&t, kind, &other, &disabled),
-                            "{name} = disabled: {ctx}"
-                        );
-
-
-                        if !matches!(kind, Kind::CursorRow(_) | Kind::Close | Kind::Field) {
-                            assert!(
-                                looks_distinct(&t, kind, &other, &focused),
-                                "{name} = focused: {ctx}"
-                            );
-                        }
-                    }
-                    if !matches!(kind, Kind::Close) || level != ColorLevel::Mono {
-                        assert!(
-                            looks_distinct(&t, kind, &rest, &disabled)
-                                || rest.style.fg != disabled.style.fg,
-                            "rest = disabled: {ctx}"
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn reduced_levels_pin_state_tokens_instead_of_snapping_to_greys() {
-        let is_grey = |c: Color| matches!(c, Color::Indexed(i) if i >= 232);
-        let t = Theme::for_level(ColorLevel::Ansi256);
-
-        let a = t.ladder(Plane::Accent);
-        assert_eq!(
-            (a.rest, a.hover, a.pressed),
-            (Color::Indexed(78), Color::Indexed(71), Color::Indexed(65))
-        );
-        assert!(contrast_ratio(t.text_on_accent, a.pressed).unwrap() >= 4.5);
-
-        for c in [
-            t.accent_pressed,
-            t.highlight_danger,
-            t.accent_bg,
-            t.error_bg,
-        ] {
-            assert!(!is_grey(c), "{c:?} snapped to a grey");
-        }
-        assert!(!is_grey(Color::Indexed(nearest_256(0x0f, 0x2e, 0x13))));
-
-        assert_ne!(t.highlight_danger, t.popover);
-
-        assert_ne!(t.accent_bg, t.surface_elevated);
-
-        let t = Theme::for_level(ColorLevel::Ansi16);
-
-        for kind in [
-            ButtonKind::Primary,
-            ButtonKind::Secondary,
-            ButtonKind::Danger,
-        ] {
-            let st = t.button(
-                kind,
-                VisualState {
-                    disabled: true,
-                    ..Default::default()
-                },
-                t.canvas,
-            );
-            assert_ne!(st.fg, st.bg, "{kind:?}");
-        }
-
-        let chip = t.interactive(Kind::Chip, VisualState::default(), Plane::Canvas);
-        assert_ne!(chip.style.fg, chip.style.bg);
-
-        let ink = t.legible(t.error_soft, t.popover);
-        assert!(contrast_ratio(ink, t.popover).unwrap() >= 4.5);
-
-        assert_ne!(t.border_subtle, t.canvas);
-        assert_ne!(t.border_strong, t.popover);
-
-        let t = Theme::for_level(ColorLevel::Mono);
-        assert_ne!(t.border_subtle, t.canvas);
-    }
-
-    #[test]
-    fn no_color_buttons_and_menu_cursors_carry_state_in_modifiers() {
-        let t = Theme::for_level(ColorLevel::Mono);
-        let pressed = VisualState {
-            hovered: true,
-            pressed: true,
-            ..Default::default()
-        };
-        let hovered = VisualState {
-            hovered: true,
-            ..Default::default()
-        };
-        for kind in [
-            ButtonKind::Secondary,
-            ButtonKind::Subtle,
-            ButtonKind::Danger,
-        ] {
-            let p = t.button(kind, pressed, t.canvas);
-            assert!(p.add_modifier.contains(Modifier::REVERSED), "{kind:?}");
-            let h = t.button(kind, hovered, t.canvas);
-            assert!(h.add_modifier.contains(Modifier::UNDERLINED), "{kind:?}");
-        }
-
-        let cursor = VisualState {
-            focused: true,
-            ..Default::default()
-        };
-        let row = t.cursor_row(cursor, t.popover, CursorStyle::Fill);
-        assert!(row.style.add_modifier.contains(Modifier::REVERSED));
-        let rest = t.cursor_row(VisualState::default(), t.popover, CursorStyle::Fill);
-        assert!(!rest.style.add_modifier.contains(Modifier::REVERSED));
-    }
-
-    #[test]
-    fn backdrop_text_never_lands_on_the_backdrop_grey_at_reduced_levels() {
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            for bg in [
-                t.canvas,
-                t.surface_elevated,
-                t.surface_overlay,
-                t.popover,
-                t.accent,
-            ] {
-                for fg in [
-                    t.text_primary,
-                    t.text_secondary,
-                    t.text_muted,
-                    t.text_faint,
-                    t.text_ghost,
-                    t.accent,
-                ] {
-                    if fg == bg {
-                        continue;
-                    }
-                    let st = t.backdrop(Style::new().fg(fg).bg(bg));
-                    assert_ne!(st.fg, st.bg, "{level:?}: {fg:?} on {bg:?}");
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn faint_text_reads_and_stays_apart_from_disabled_and_success_from_focus() {
-        let t = Theme::junie();
-        for bg in [
-            t.canvas,
-            t.surface,
-            t.surface_elevated,
-            t.field,
-            t.surface_overlay,
-        ] {
-            let c = contrast(t.text_faint, bg);
-            assert!(c >= 3.0, "faint on {bg:?} = {c:.2}");
-            let b = contrast(t.border_subtle, bg);
-            assert!(
-                b > 1.3 || bg == t.surface_overlay,
-                "border on {bg:?} = {b:.2}"
-            );
-        }
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            assert_ne!(t.text_faint, t.disabled, "{level:?}");
-            if level != ColorLevel::Mono {
-                assert_ne!(t.success, t.accent, "{level:?}");
-            }
-        }
-    }
-
-    #[test]
-    fn the_thumb_ladder_is_neutral_lighter_then_accent_at_every_level() {
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            let h = t.ladders.handle;
-            let thumb = |hovered, pressed| t.scrollbar_thumb(hovered, pressed);
-            let (rest, hover, pressed) =
-                (thumb(false, false), thumb(true, false), thumb(true, true));
-            if level == ColorLevel::Mono {
-
-                assert_eq!(rest.add_modifier, Modifier::empty());
-                assert_eq!(hover.add_modifier, Modifier::BOLD);
-                assert_eq!(pressed.add_modifier, Modifier::REVERSED);
-                continue;
-            }
-            assert!(
-                h.rest != h.hover && h.hover != h.pressed && h.rest != h.pressed,
-                "{level:?}: {h:?}"
-            );
-            assert_eq!(h.pressed, t.accent, "{level:?}: pressed is the accent");
-            assert_ne!(
-                h.rest, t.border_subtle,
-                "{level:?}: the thumb stands off the track"
-            );
-            assert_ne!(h.hover, t.accent, "{level:?}");
-            assert_eq!(
-                (rest.fg, hover.fg, pressed.fg),
-                (Some(h.rest), Some(h.hover), Some(h.pressed))
-            );
-            for st in [rest, hover, pressed] {
-                assert_eq!(
-                    st.add_modifier,
-                    Modifier::empty(),
-                    "{level:?}: colour carries it"
-                );
-            }
-
-            let focused = t.interactive(
-                Kind::Handle,
-                VisualState {
-                    focused: true,
-                    ..Default::default()
-                },
-                Plane::Canvas,
-            );
-            assert_eq!(focused.style, rest, "{level:?}");
-        }
-
-        let t = Theme::junie();
-        assert!(luminance(t.ladders.handle.hover) > luminance(t.ladders.handle.rest));
-    }
-
-
-    fn text_planes(t: &Theme) -> [(&'static str, Color); 5] {
-        [
-            ("canvas", t.canvas),
-            ("surface", t.surface),
-            ("card", t.surface_elevated),
-            ("field", t.field),
-            ("raised", t.surface_overlay),
-        ]
-    }
-
-    #[test]
-    fn semantic_hues_read_on_every_plane_they_can_land_on() {
-        let t = Theme::junie();
-        let tokens = [
-            ("info", t.info),
-            ("link", t.link),
-            ("error", t.error),
-            ("warning", t.warning),
-            ("success", t.success),
-            ("danger_label", t.danger_label),
-            ("syntax_keyword", t.syntax_keyword),
-            ("syntax_string", t.syntax_string),
-            ("syntax_literal", t.syntax_literal),
-            ("accent", t.accent),
-        ];
-        for (name, fg) in tokens {
-            for (plane, bg) in text_planes(&t) {
-                let c = contrast(fg, bg);
-                assert!(c >= 4.5, "{name} on {plane} = {c:.2}");
-            }
-        }
-
-
-        for (plane, bg) in &text_planes(&t)[..4] {
-            let c = contrast(t.text_muted, *bg);
-            assert!(c >= 4.5, "text_muted on {plane} = {c:.2}");
-        }
-
-        for tone in [
-            Tone::Error,
-            Tone::Success,
-            Tone::Warning,
-            Tone::Info,
-            Tone::Danger,
-            Tone::Muted,
-            Tone::Faint,
-            Tone::Secondary,
-        ] {
-            for bg in [t.popover, t.surface_overlay, t.field_hover] {
-                let ink = t.tone_on(tone, bg);
-                let c = contrast(ink, bg);
-                assert!(c >= 4.5, "{tone:?} on {bg:?} = {c:.2} ({ink:?})");
-            }
-        }
-        assert_eq!(t.tone_on(Tone::Error, t.popover), t.error_strong);
-        assert_eq!(t.tone_on(Tone::Success, t.popover), t.success_strong);
-        assert_eq!(t.tone_on(Tone::Error, t.surface_elevated), t.error);
-    }
-
-
-
-
-    #[test]
-    fn frames_focus_bars_and_tab_marks_read_on_their_plane_at_every_level() {
-        let states = [
-            VisualState {
-                selected: true,
-                ..Default::default()
-            },
-            VisualState {
-                selected: true,
-                hovered: true,
-                ..Default::default()
-            },
-            VisualState {
-                selected: true,
-                hovered: true,
-                pressed: true,
-                ..Default::default()
-            },
-        ];
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            let ratio = |a, b| contrast_ratio(a, b).unwrap();
-
-            let frame = t.frame_on(t.popover);
-            assert_ne!(frame, t.popover, "{level:?}: frame vanishes");
-            let rule = t.rule_on(t.popover);
-            assert_ne!(rule, t.popover, "{level:?}: separator vanishes");
-
-
-            if matches!(level, ColorLevel::Ansi16 | ColorLevel::Mono) {
-                for (name, ink) in [("frame", frame), ("separator", rule)] {
-                    let r = ratio(ink, t.popover);
-                    assert!(r >= 3.0, "{level:?}: popover {name} {r:.2}");
-                }
-            }
-
-            for s in states {
-                for strip in [Plane::Canvas, Plane::Surface, Plane::Card] {
-                    let look = t.interactive(Kind::Tab, s, strip).style;
-                    let (fill, label) = (look.bg.unwrap(), look.fg.unwrap());
-                    let at = format!("{level:?} {strip:?} {s:?}");
-                    let text = [
-                        ("label", label),
-                        ("prefix", t.beside_label(t.text_muted, fill, label)),
-                        ("error", t.tone_on(Tone::Error, fill)),
-                    ];
-                    for (name, ink) in text {
-                        let r = ratio(ink, fill);
-                        assert!(r >= 4.5, "{at}: {name} {r:.2}");
-                    }
-                    let marks = [
-                        ("spinner", t.legible_mark(t.accent, fill)),
-                        ("dirty", t.legible_mark(t.warning, fill)),
-                        ("suffix", t.legible_mark(t.text_secondary, fill)),
-                        ("done", t.tone_on(Tone::Success, fill)),
-                    ];
-                    for (name, ink) in marks {
-                        let r = ratio(ink, fill);
-                        assert!(r >= 3.0, "{at}: {name} {r:.2}");
-                    }
-                }
-            }
-        }
-
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            let kinds = [
-                Kind::Row,
-                Kind::CursorRow(CursorStyle::Bar),
-                Kind::Button(ButtonKind::Secondary),
-                Kind::Button(ButtonKind::Subtle),
-                Kind::Button(ButtonKind::Toggle),
-                Kind::Tab,
-                Kind::Title,
-                Kind::Chip,
-            ];
-            for plane in Plane::ALL.into_iter().filter(|p| !p.is_fill()) {
-                for kind in kinds {
-                    for (hovered, pressed, selected) in [
-                        (false, false, false),
-                        (true, false, false),
-                        (true, true, false),
-                        (false, false, true),
-                    ] {
-                        let s = VisualState {
-                            focused: true,
-                            hovered,
-                            pressed,
-                            selected,
-                            ..Default::default()
-                        };
-                        let look = t.interactive(kind, s, plane);
-                        if look.gutter != t.glyphs.focus_bar {
-                            continue;
-                        }
-                        let (fg, bg) = (look.gutter_style.fg, look.gutter_style.bg);
-                        let r = contrast_ratio(fg.unwrap(), bg.unwrap()).unwrap();
-                        assert!(
-                            r >= 3.0,
-                            "{level:?} {kind:?} on {plane:?} {s:?}: bar {r:.2}"
-                        );
-                    }
-                }
-                let bg = t.ladder(plane).rest;
-                let g = t.gutter(
-                    VisualState {
-                        focused: true,
-                        ..Default::default()
-                    },
-                    bg,
-                    false,
-                );
-                let r = contrast_ratio(g.fg.unwrap(), bg).unwrap();
-                assert!(r >= 3.0, "{level:?} gutter on {plane:?}: {r:.2}");
-            }
-        }
-
-        let t = Theme::for_level(ColorLevel::Ansi16);
-        assert_eq!(t.legible_mark(t.warning, t.popover), Color::LightYellow);
-        assert_eq!(t.legible_mark(t.accent, t.canvas), t.accent);
-        let t = Theme::junie();
-        assert_eq!(t.legible_mark(t.accent, t.surface_overlay), t.accent);
-        assert_eq!(t.frame_on(t.popover), t.border_subtle);
-    }
-
-    #[test]
-    fn semantic_hues_read_at_256_colours() {
-        let t = Theme::for_level(ColorLevel::Ansi256);
-        let pins = [
-            (t.info, 111),
-            (t.link, 111),
-            (t.warning, 214),
-            (t.success, 71),
-            (t.error, 203),
-            (t.text_muted, 245),
-            (t.syntax_keyword, 111),
-            (t.syntax_string, 116),
-            (t.syntax_literal, 183),
-        ];
-        for (c, i) in pins {
-            assert_eq!(c, Color::Indexed(i));
-        }
-        for fg in [
-            t.info,
-            t.error,
-            t.warning,
-            t.success,
-            t.syntax_string,
-            t.syntax_literal,
-        ] {
-            for bg in [
-                t.canvas,
-                t.surface,
-                t.surface_elevated,
-                t.field,
-                t.surface_overlay,
-            ] {
-                let c = contrast_ratio(fg, bg).unwrap();
-                assert!(c >= 4.5, "{fg:?} on {bg:?} = {c:.2}");
-            }
-        }
-        for tone in [Tone::Error, Tone::Success, Tone::Muted] {
-            let ink = t.tone_on(tone, t.popover);
-            let c = contrast_ratio(ink, t.popover).unwrap();
-            assert!(c >= 4.5, "{tone:?} on the popover = {c:.2}");
-        }
-    }
-
-    #[test]
-    fn semantic_hues_stay_apart_at_reduced_levels() {
-        for level in [ColorLevel::Ansi256, ColorLevel::Ansi16] {
-            let t = Theme::for_level(level);
-            let hues = [
-                ("info", t.info),
-                ("warning", t.warning),
-                ("success", t.success),
-                ("error", t.error),
-                ("accent", t.accent),
-            ];
-            for (i, (a, x)) in hues.iter().enumerate() {
-                for (b, y) in &hues[i + 1..] {
-                    assert_ne!(x, y, "{level:?}: {a} and {b} collide");
-                }
-            }
-            let syntax = [t.syntax_keyword, t.syntax_string, t.syntax_literal];
-            for (i, a) in syntax.iter().enumerate() {
-                assert!(
-                    !syntax[i + 1..].contains(a),
-                    "{level:?}: syntax hues collide"
-                );
-                assert_ne!(*a, t.text_primary, "{level:?}");
-            }
-
-            let sel = t.selection();
-            assert!(
-                sel.bg != Some(t.highlight) || sel.add_modifier.contains(Modifier::REVERSED),
-                "{level:?}"
-            );
-
-            let row = t.cursor_row(
-                VisualState {
-                    focused: true,
-                    ..Default::default()
-                },
-                t.popover,
-                CursorStyle::Fill,
-            );
-            assert_eq!(t.row_ink(&row, t.info), t.text_primary, "{level:?}");
-        }
-        let t = Theme::for_level(ColorLevel::Ansi16);
-        assert_eq!(t.info, Color::LightBlue);
-        assert_ne!(t.selection_bg, t.highlight);
-        assert!(t.selection().add_modifier.contains(Modifier::REVERSED));
-    }
-
-    #[test]
-    fn statuses_carry_a_glyph_at_every_level_and_glyph_set() {
-        for level in ColorLevel::ALL {
-            for glyphs in [Glyphs::UNICODE, Glyphs::ASCII] {
-                let t = Theme::for_level(level).with_glyphs(glyphs);
-                let mut seen = vec![];
-                for kind in StatusKind::ALL {
-                    let (g, st) = t.status(kind);
-                    assert_eq!(crate::ui::text::width(g), 1, "{kind:?}: one cell");
-                    assert!(st.fg.is_some(), "{kind:?}");
-                    if kind != StatusKind::Running {
-                        assert!(!seen.contains(&g), "{level:?} {kind:?}: {g} reused");
-                        seen.push(g);
-                    }
-                    if glyphs == Glyphs::ASCII {
-                        assert!(g.is_ascii(), "{kind:?}: {g}");
-                    }
-                }
-
-                assert_eq!(
-                    t.status_at(StatusKind::Running, 1).0,
-                    t.glyphs.spinner_frame(1)
-                );
-
-                for kind in StatusKind::ALL {
-                    assert_eq!(t.status(kind).1.fg, Some(t.tone(kind.tone())), "{kind:?}");
-                }
-                for env in [
-                    EnvKind::Production,
-                    EnvKind::Staging,
-                    EnvKind::Development,
-                    EnvKind::Local,
-                ] {
-                    assert_eq!(t.env(env).1.fg, Some(t.tone(env.tone())), "{env:?}");
-                }
-
-
-                let (g, st) = t.env(EnvKind::Production);
-                assert!(st.add_modifier.contains(Modifier::BOLD));
-                assert_eq!(crate::ui::text::width(g), 1);
-                let envs: Vec<_> = [EnvKind::Production, EnvKind::Staging, EnvKind::Development]
-                    .map(|e| t.env(e).0)
-                    .to_vec();
-                assert!(envs[0] != envs[1] && envs[1] != envs[2] && envs[0] != envs[2]);
-            }
-        }
-        let t = Theme::junie();
-        assert_eq!(t.status(StatusKind::Ok), ("✓", Style::new().fg(t.success)));
-        assert_eq!(t.status_label(StatusKind::Running).fg, Some(t.info));
-        assert_eq!(t.status(StatusKind::Running).1.fg, Some(t.accent));
-
-        assert!(
-            !t.link_style(false)
-                .add_modifier
-                .contains(Modifier::UNDERLINED)
-        );
-        assert!(
-            t.link_style(true)
-                .add_modifier
-                .contains(Modifier::UNDERLINED)
-        );
-        let mono = Theme::for_level(ColorLevel::Mono);
-        assert!(
-            mono.link_style(false)
-                .add_modifier
-                .contains(Modifier::UNDERLINED)
-        );
-    }
-
-    #[test]
-    fn syntax_classes_differ_without_colour() {
-        let t = Theme::for_level(ColorLevel::Mono);
-        let kw = t.syntax(SyntaxTone::Keyword);
-        let lit = t.syntax(SyntaxTone::Literal);
-        let id = t.syntax(SyntaxTone::Ident);
-        assert!(kw.add_modifier.contains(Modifier::BOLD));
-        assert!(lit.add_modifier.contains(Modifier::ITALIC));
-        assert_eq!(id.add_modifier, Modifier::empty());
-        assert_eq!(t.syntax(SyntaxTone::Number), lit);
-
-        let t = Theme::junie();
-        assert_eq!(t.syntax(SyntaxTone::Keyword).fg, Some(t.syntax_keyword));
-        assert_eq!(t.syntax(SyntaxTone::Str).fg, Some(t.syntax_string));
-        assert_eq!(t.syntax(SyntaxTone::Literal).fg, Some(t.syntax_literal));
-        assert_eq!(t.syntax(SyntaxTone::Ident).fg, Some(t.text_primary));
-    }
-
-
-
-
-    #[test]
-    fn the_cursor_inside_a_selection_reads_and_stands_apart() {
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            let c = t.cursor_in_selection(false, false);
-            let sel = t.selection();
-            assert_ne!(
-                (c.bg, c.add_modifier),
-                (sel.bg, sel.add_modifier),
-                "{level:?}: the cursor looks like the range"
-            );
-            if level == ColorLevel::Mono {
-                continue;
-            }
-            let bg = c.bg.unwrap();
-            let r = contrast_ratio(c.fg.unwrap(), bg).unwrap();
-            assert!(r >= 4.5, "{level:?}: cursor text {r:.2}");
-            if level != ColorLevel::Ansi16 {
-
-                assert_ne!(bg, t.selection_bg, "{level:?}");
-                assert_ne!(bg, t.highlight, "{level:?}");
-            }
-        }
-    }
-
-    #[test]
-    fn legible_steps_up_the_text_ladder_instead_of_jumping_to_primary() {
-        let t = Theme::junie();
-
-        assert_eq!(t.legible(t.text_faint, t.canvas), t.text_muted);
-
-        assert_eq!(t.legible(t.text_muted, t.popover), t.text_secondary);
-
-        assert_eq!(t.legible(t.text_faint, t.canvas), t.text_muted);
-        assert_eq!(t.legible(t.text_secondary, t.canvas), t.text_secondary);
-
-        assert_eq!(t.legible(t.text_muted, t.accent), t.text_on_accent);
-    }
-}

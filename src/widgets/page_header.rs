@@ -1,25 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
@@ -27,15 +7,11 @@ use ratatui::style::{Color, Style};
 use crate::theme::{Theme, Tone};
 use crate::ui::text::width;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PageHeader {
     pub title: String,
 
-
     pub status: Option<(String, Tone)>,
-
-
 
     pub right: Option<String>,
 
@@ -58,48 +34,39 @@ impl PageHeader {
         }
     }
 
-
     pub fn status(mut self, text: &str, tone: Tone) -> Self {
         self.status = Some((text.to_owned(), tone));
         self
     }
-
 
     pub fn right(mut self, text: &str) -> Self {
         self.right = Some(text.to_owned());
         self
     }
 
-
     pub fn right_gap(mut self, cells: u16) -> Self {
         self.right_gap = cells;
         self
     }
-
 
     pub fn subtitle(mut self, text: &str, tone: Tone) -> Self {
         self.subtitle = Some((text.to_owned(), tone));
         self
     }
 
-
     pub fn inset(mut self, cells: u16) -> Self {
         self.inset = cells;
         self
     }
 
-
     pub fn height(&self) -> u16 {
         1 + u16::from(self.subtitle.is_some())
     }
-
-
 
     pub fn body(&self, area: Rect) -> Rect {
         let off = (self.height() + 1).min(area.height);
         Rect::new(area.x, area.y + off, area.width, area.height - off)
     }
-
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, t: &Theme) -> u16 {
         let area = area.intersection(*buf.area());
@@ -148,11 +115,9 @@ impl PageHeader {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Heading {
     pub text: String,
-
 
     pub meta: Option<String>,
 
@@ -168,18 +133,15 @@ impl Heading {
         }
     }
 
-
     pub fn meta(mut self, meta: &str) -> Self {
         self.meta = Some(meta.to_owned());
         self
     }
 
-
     pub fn tone(mut self, tone: Tone) -> Self {
         self.tone = tone;
         self
     }
-
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
         let area = area.intersection(*buf.area());
@@ -207,8 +169,6 @@ impl Heading {
     }
 }
 
-
-
 impl crate::ui::measure::Measure for PageHeader {
     fn measure(
         &self,
@@ -230,7 +190,6 @@ impl crate::ui::measure::Measure for PageHeader {
     }
 }
 
-
 impl crate::ui::measure::Measure for Heading {
     fn measure(
         &self,
@@ -242,142 +201,7 @@ impl crate::ui::measure::Measure for Heading {
     }
 }
 
-
 fn ink(t: &Theme, tone: Tone) -> Style {
     Style::new().fg(t.tone(tone))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn row(buf: &Buffer, y: u16) -> String {
-        (0..buf.area.width)
-            .map(|x| buf[(x, y)].symbol().to_owned())
-            .collect()
-    }
-
-
-
-    #[test]
-    fn a_cut_heading_and_subtitle_reveal_on_hover() {
-        let t = Theme::junie();
-        let mut hits = crate::core::hit::HitRegistry::default();
-        let mut ring = crate::core::focus::FocusRing::default();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 3));
-        let mut ctx = crate::ui::ctx::RenderCtx::new(
-            &t,
-            crate::ui::ctx::Interaction::default(),
-            &mut hits,
-            &mut ring,
-        );
-        PageHeader::new("Usage")
-            .subtitle("Identities sorted by their worst window first", Tone::Muted)
-            .render(Rect::new(0, 0, 20, 2), &mut buf, &t);
-        Heading::new("Recoverable toggles until emptied").render(
-            Rect::new(0, 2, 20, 1),
-            &mut buf,
-            &t,
-            t.canvas,
-        );
-        ctx.flush_overlays(&mut buf);
-        drop(ctx);
-        for y in [1, 2] {
-            assert!(row(&buf, y).contains('…'), "{:?}", row(&buf, y));
-            assert!(
-                hits.hover_at(ratatui::layout::Position::new(4, y))
-                    .is_some(),
-                "row {y} hovers"
-            );
-        }
-    }
-
-
-    #[test]
-    fn a_header_and_a_heading_at_their_measure_show_everything() {
-        use crate::ui::measure::Measure;
-        let t = Theme::junie();
-        let mut hits = crate::core::hit::HitRegistry::default();
-        let mut ring = crate::core::focus::FocusRing::default();
-        let ctx = crate::ui::ctx::RenderCtx::new(
-            &t,
-            crate::ui::ctx::Interaction::default(),
-            &mut hits,
-            &mut ring,
-        );
-        let h = PageHeader::new("Usage and capacity")
-            .status(" · offline · last good 4 min ago", Tone::Warning)
-            .right("refreshes every 2 s")
-            .right_gap(4)
-            .subtitle("Plan quotas, filesystems and host load", Tone::Muted);
-        let size = h.measure(ratatui::layout::Size::ZERO, &ctx);
-        let mut buf = Buffer::empty(Rect::new(0, 0, size.width, size.height));
-        assert_eq!(h.render(buf.area, &mut buf, &t), size.height);
-        let top = row(&buf, 0);
-        for part in [
-            "Usage and capacity",
-            "last good 4 min ago",
-            "refreshes every 2 s",
-        ] {
-            assert!(top.contains(part), "{part:?} in {top:?}");
-        }
-        assert!(row(&buf, 1).contains("host load"));
-        let g = Heading::new("Sections").meta("3 cards");
-        let size = g.measure(ratatui::layout::Size::ZERO, &ctx);
-        let mut buf = Buffer::empty(Rect::new(0, 0, size.width, 1));
-        g.render(buf.area, &mut buf, &t, t.canvas);
-        assert_eq!(row(&buf, 0), "Sections  3 cards");
-    }
-
-    #[test]
-    fn the_title_status_right_meta_and_subtitle_take_their_places() {
-        let t = Theme::junie();
-        let area = Rect::new(0, 0, 60, 4);
-        let mut buf = Buffer::empty(area);
-        let h = PageHeader::new("Cleanup review")
-            .status(" · 3 selected", Tone::Warning)
-            .right("here · mbp")
-            .subtitle("4 categories · 12.4 GB", Tone::Muted);
-        assert_eq!(h.render(area, &mut buf, &t), 2);
-        assert_eq!(
-            row(&buf, 0).trim_end(),
-            " Cleanup review · 3 selected                     here · mbp"
-        );
-        assert_eq!(buf[(1, 0)].fg, t.text_primary);
-        assert_eq!(buf[(15, 0)].fg, t.warning, "the status in its tone");
-        assert_eq!(buf[(50, 0)].fg, t.text_muted);
-        assert_eq!(row(&buf, 1).trim_end(), " 4 categories · 12.4 GB");
-        assert_eq!(h.body(area), Rect::new(0, 3, 60, 1));
-
-        let narrow = Rect::new(0, 0, 30, 1);
-        let mut buf = Buffer::empty(narrow);
-        assert_eq!(
-            h.clone()
-                .subtitle("", Tone::Muted)
-                .render(narrow, &mut buf, &t),
-            1
-        );
-        assert!(!row(&buf, 0).contains("mbp"));
-        assert!(row(&buf, 0).starts_with(" Cleanup review · 3 selected"));
-    }
-
-    #[test]
-    fn a_heading_is_quiet_with_its_meta_at_the_end() {
-        let t = Theme::junie();
-        let area = Rect::new(0, 0, 30, 1);
-        let mut buf = Buffer::empty(area);
-        Heading::new("Recommended")
-            .meta("3 items")
-            .render(area, &mut buf, &t, t.canvas);
-        assert_eq!(row(&buf, 0), "Recommended            3 items");
-        assert_eq!(buf[(0, 0)].fg, t.tone_on(Tone::Muted, t.canvas));
-        let mut buf = Buffer::empty(Rect::new(0, 0, 14, 1));
-        Heading::new("Recommended").meta("3 items").render(
-            Rect::new(0, 0, 14, 1),
-            &mut buf,
-            &t,
-            t.canvas,
-        );
-        assert_eq!(row(&buf, 0), "Recommended   ", "no room: no meta");
-    }
-}

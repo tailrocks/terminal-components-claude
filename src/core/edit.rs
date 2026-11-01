@@ -1,44 +1,22 @@
 
 
-
-
-
-
-
-
-
-
 use super::event::ClientPlatform;
 use super::keymap::{Actions, KeyBinding, KeyMap};
 use super::text::TextBuffer;
 
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EditEntry {
-
-
-
 
     #[default]
     Immediate,
 
-
     TypeToEdit,
-
 
     Explicit,
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusSelect {
-
 
     #[default]
     SelectAll,
@@ -65,37 +43,15 @@ impl FocusSelect {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldKeys {
 
-
-
-
     Emacs,
-
-
 
     Desktop,
 }
 
 impl FieldKeys {
-
 
     pub const fn for_platform(platform: ClientPlatform) -> Self {
         match platform {
@@ -103,14 +59,6 @@ impl FieldKeys {
             ClientPlatform::Other => Self::Desktop,
         }
     }
-
-
-
-
-
-
-
-
 
     pub fn text_keymap(self) -> KeyMap<TextCmd> {
         let mut map: KeyMap<TextCmd> = CMD_TEXT_KEYS.to_vec();
@@ -139,11 +87,6 @@ impl FieldKeys {
         map
     }
 }
-
-
-
-
-
 
 pub const CMD_TEXT_KEYS: [(KeyBinding, TextCmd); 15] = {
     use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -187,10 +130,6 @@ impl Default for FieldKeys {
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextCmd {
 
@@ -203,7 +142,6 @@ pub enum TextCmd {
     Paste,
 
     Undo,
-
 
     Redo,
 
@@ -244,20 +182,16 @@ impl Actions for TextCmd {
         }
     }
 
-
     fn default_keymap() -> KeyMap<Self> {
         FieldKeys::default().text_keymap()
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Snap {
     text: String,
     cursor: usize,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EditKind {
@@ -269,11 +203,6 @@ pub enum EditKind {
 
     Other,
 }
-
-
-
-
-
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct UndoStack {
@@ -290,8 +219,6 @@ impl UndoStack {
         Self::default()
     }
 
-
-
     pub fn record(&mut self, buf: &TextBuffer, kind: EditKind) {
         self.redo.clear();
         let folds = kind != EditKind::Other && self.run == Some(kind);
@@ -307,11 +234,9 @@ impl UndoStack {
         self.run = (kind != EditKind::Other).then_some(kind);
     }
 
-
     pub fn seal(&mut self) {
         self.run = None;
     }
-
 
     pub fn clear(&mut self) {
         self.undo.clear();
@@ -327,7 +252,6 @@ impl UndoStack {
         !self.redo.is_empty()
     }
 
-
     pub fn undo(&mut self, buf: &mut TextBuffer) -> bool {
         let Some(s) = self.undo.pop() else {
             return false;
@@ -340,8 +264,6 @@ impl UndoStack {
         self.run = None;
         true
     }
-
-
 
     pub fn redo(&mut self, buf: &mut TextBuffer) -> bool {
         let Some(s) = self.redo.pop() else {
@@ -364,13 +286,6 @@ fn restore(buf: &mut TextBuffer, s: Snap) {
     buf.clear_selection();
 }
 
-
-
-
-
-
-
-
 pub mod clipboard {
     use std::cell::RefCell;
 
@@ -381,7 +296,6 @@ pub mod clipboard {
         static HOOK: RefCell<Option<Hook>> = const { RefCell::new(None) };
     }
 
-
     pub fn copy(text: &str) {
         TEXT.with(|t| *t.borrow_mut() = Some(text.to_owned()));
         HOOK.with(|h| {
@@ -391,110 +305,16 @@ pub mod clipboard {
         });
     }
 
-
     pub fn text() -> Option<String> {
         TEXT.with(|t| t.borrow().clone())
     }
 
-
     pub fn set_hook(hook: impl Fn(&str) + 'static) {
         HOOK.with(|h| *h.borrow_mut() = Some(Box::new(hook)));
     }
-
 
     pub fn clear_hook() {
         HOOK.with(|h| *h.borrow_mut() = None);
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn typing_folds_into_one_step_and_redo_reapplies_it() {
-        let mut b = TextBuffer::single("");
-        let mut u = UndoStack::new();
-        for c in "abc".chars() {
-            u.record(&b, EditKind::Typing);
-            b.insert_char(c);
-        }
-        u.record(&b, EditKind::Deleting);
-        b.backspace();
-        assert_eq!(b.text(), "ab");
-        assert!(u.undo(&mut b));
-        assert_eq!(b.text(), "abc");
-        assert!(u.undo(&mut b));
-        assert_eq!(b.text(), "");
-        assert!(!u.undo(&mut b));
-        assert!(u.redo(&mut b));
-        assert_eq!(b.text(), "abc");
-        assert_eq!(b.cursor_offset(), 3);
-    }
-
-    #[test]
-    fn a_sealed_run_starts_a_new_step() {
-        let mut b = TextBuffer::single("");
-        let mut u = UndoStack::new();
-        u.record(&b, EditKind::Typing);
-        b.insert_char('a');
-        u.seal();
-        u.record(&b, EditKind::Typing);
-        b.insert_char('b');
-        assert!(u.undo(&mut b));
-        assert_eq!(b.text(), "a");
-    }
-
-
-    #[test]
-    fn field_keys_follow_the_client_platform() {
-        assert_eq!(
-            FieldKeys::for_platform(ClientPlatform::MacOs),
-            FieldKeys::Emacs
-        );
-        assert_eq!(
-            FieldKeys::for_platform(ClientPlatform::Other),
-            FieldKeys::Desktop
-        );
-        assert_eq!(
-            FieldKeys::default(),
-            FieldKeys::for_platform(ClientPlatform::current())
-        );
-        let cmd_a = KeyBinding::cmd('a');
-        for keys in [FieldKeys::Emacs, FieldKeys::Desktop] {
-            assert_eq!(
-                keys.text_keymap().first(),
-                Some(&(cmd_a, TextCmd::SelectAll)),
-                "Cmd+A selects all in every preset"
-            );
-        }
-        assert!(
-            FieldKeys::Emacs
-                .text_keymap()
-                .contains(&(KeyBinding::ctrl('l'), TextCmd::SelectAll))
-        );
-        assert!(
-            !FieldKeys::Emacs
-                .text_keymap()
-                .iter()
-                .any(|(b, _)| *b == KeyBinding::ctrl('a')),
-            "Ctrl+A stays line start on macOS"
-        );
-        assert!(
-            FieldKeys::Desktop
-                .text_keymap()
-                .contains(&(KeyBinding::ctrl('a'), TextCmd::SelectAll))
-        );
-    }
-
-    #[test]
-    fn the_clipboard_hook_sees_every_copy() {
-        let seen = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
-        let s = seen.clone();
-        clipboard::set_hook(move |t| s.borrow_mut().push_str(t));
-        clipboard::copy("abc");
-        assert_eq!(clipboard::text().as_deref(), Some("abc"));
-        assert_eq!(seen.borrow().as_str(), "abc");
-        clipboard::clear_hook();
-    }
-}

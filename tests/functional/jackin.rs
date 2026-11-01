@@ -1,8 +1,5 @@
 use super::support::{App, JACKIN, Point, crop, find, find_all, row_text, text};
 
-fn inside(p: Point) -> Point {
-    Point { x: p.x + 2, ..p }
-}
 const PAUSED: &[&str] = &["--motion", "paused", "--frame", "40"];
 
 fn button(app: &App, label: &str) -> Point {

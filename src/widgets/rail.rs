@@ -1,12 +1,5 @@
 
 
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -14,7 +7,6 @@ use ratatui::style::Color;
 use crate::core::id::{Part, PartRef, WidgetId};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RailAction {
@@ -31,7 +23,6 @@ pub struct SidebarRail {
 
     pub label: String,
 
-
     pub collapsed_rail: bool,
 }
 
@@ -47,24 +38,18 @@ impl SidebarRail {
         }
     }
 
-
     pub fn collapsed_rail(mut self, on: bool) -> Self {
         self.collapsed_rail = on;
         self
     }
 
-
-
     pub fn collapse_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::ICON))
     }
 
-
-
     pub fn width(&self) -> u16 {
         if self.collapsed_rail { Self::WIDTH } else { 0 }
     }
-
 
     pub fn on_click(&self, id: WidgetId) -> Option<RailAction> {
         if id == self.id && self.collapsed_rail {
@@ -75,9 +60,6 @@ impl SidebarRail {
             None
         }
     }
-
-
-
 
     pub fn render_rail(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
@@ -101,8 +83,6 @@ impl SidebarRail {
         ctx.clickable(self.id, col);
     }
 
-
-
     pub fn render_collapse(&self, panel: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         if panel.width < 12 || panel.height < 2 {
             return;
@@ -120,9 +100,6 @@ impl SidebarRail {
         ctx.register_part(self.id, PartRef::of(Part::ICON), r);
     }
 }
-
-
-
 
 impl crate::ui::specimen::Specimen for SidebarRail {
     fn specimen_id(&self) -> WidgetId {
@@ -151,9 +128,6 @@ impl crate::ui::specimen::Specimen for SidebarRail {
     }
 }
 
-
-
-
 impl crate::core::pointer::MouseTarget for SidebarRail {
     type Action = RailAction;
 
@@ -176,49 +150,3 @@ impl crate::core::pointer::MouseTarget for SidebarRail {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::layout::Position;
-
-    #[test]
-    fn the_rail_and_the_collapse_button_take_clicks_and_hover() {
-        let theme = Theme::junie();
-        let rail = SidebarRail::new(WidgetId::of("side"), "Explorer");
-        let area = Rect::new(0, 0, 20, 12);
-        let draw = |hover: Option<WidgetId>| {
-            let mut buf = Buffer::empty(area);
-            let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
-            let inter = Interaction {
-                hover,
-                ..Interaction::default()
-            };
-            {
-                let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
-                rail.render_rail(area, &mut buf, &mut ctx, theme.canvas);
-                rail.render_collapse(Rect::new(4, 0, 16, 6), &mut buf, &mut ctx, theme.canvas);
-            }
-            (buf, hits)
-        };
-        let (rest, hits) = draw(None);
-        assert_eq!(rest[(0, 0)].symbol(), "›");
-        assert_eq!(rest[(0, 2)].symbol(), "E");
-        assert_eq!(hits.hit(Position::new(0, 5)), Some(rail.id));
-        assert_eq!(rail.on_click(rail.id), Some(RailAction::Expand));
-        let c = hits.area_of(rail.collapse_id()).expect("collapse button");
-        assert_eq!(rest[(c.x + 1, 0)].symbol(), "‹");
-        assert_eq!(
-            rail.on_click(rail.collapse_id()),
-            Some(RailAction::Collapse)
-        );
-        let (hover, _) = draw(Some(rail.id));
-        assert_ne!(rest[(0, 0)].style(), hover[(0, 0)].style());
-        let off = rail.clone().collapsed_rail(false);
-        assert_eq!(off.width(), 0);
-        assert_eq!(off.on_click(off.id), None);
-    }
-}

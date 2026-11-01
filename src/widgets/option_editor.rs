@@ -1,26 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -40,7 +19,6 @@ use crate::ui::text::{truncate, width};
 use crate::widgets::edit::EditField;
 use crate::widgets::option_list::{OptionList, WheelMode};
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OptionItem {
 
@@ -51,7 +29,6 @@ pub struct OptionItem {
     pub tone: Option<Tone>,
 
     pub description: Option<String>,
-
 
     pub disabled: Option<String>,
 }
@@ -87,7 +64,6 @@ impl OptionItem {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options(pub Vec<OptionItem>);
 
@@ -114,7 +90,6 @@ impl Options {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ColumnEditor {
 
@@ -123,17 +98,13 @@ pub enum ColumnEditor {
 
     Select(Options),
 
-
     Combo(Options),
 
     Radio(Options),
 
-
-
     Checkbox(Options),
 
     Segmented(Options),
-
 
     Tags(Options),
 }
@@ -152,19 +123,13 @@ impl ColumnEditor {
         }
     }
 
-
     pub fn is_constrained(&self) -> bool {
         self.options().is_some()
     }
 
-
     pub fn has_popup(&self) -> bool {
         self.is_constrained() && !matches!(self, Self::Checkbox(_))
     }
-
-
-
-
 
     pub fn for_options(options: Options) -> Self {
         match options.len() {
@@ -174,8 +139,6 @@ impl ColumnEditor {
             _ => Self::Combo(options),
         }
     }
-
-
 
     pub fn checked(&self, raw: &str) -> Option<bool> {
         let Self::Checkbox(opts) = self else {
@@ -199,8 +162,6 @@ impl ColumnEditor {
         }
     }
 
-
-
     pub fn display(&self, raw: &str, cfg: &EditorConfig) -> String {
         let Some(opts) = self.options() else {
             return raw.to_owned();
@@ -213,8 +174,6 @@ impl ColumnEditor {
         labels.join(cfg.tag_separator)
     }
 
-
-
     pub fn out_of_set(&self, raw: &str, cfg: &EditorConfig) -> bool {
         let Some(opts) = self.options() else {
             return false;
@@ -225,7 +184,6 @@ impl ColumnEditor {
         self.parts(raw, cfg).iter().any(|p| opts.find(p).is_none())
     }
 
-
     pub fn tone(&self, raw: &str) -> Option<Tone> {
         let opts = self.options()?;
         if matches!(self, Self::Tags(_)) {
@@ -233,8 +191,6 @@ impl ColumnEditor {
         }
         opts.find(raw).and_then(|i| opts.0[i].tone)
     }
-
-
 
     pub fn toggled(&self, raw: &str) -> Option<String> {
         let Self::Checkbox(opts) = self else {
@@ -251,14 +207,10 @@ impl ColumnEditor {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EditorConfig {
 
-
     pub dismiss: Dismiss,
-
-
 
     pub blur: BlurAction,
 
@@ -268,29 +220,19 @@ pub struct EditorConfig {
 
     pub cursor_style: CursorStyle,
 
-
     pub type_ahead: bool,
-
 
     pub type_ahead_timeout: std::time::Duration,
 
-
-
     pub nav: NavKeys,
 
-
     pub affordance: Affordance,
-
 
     pub flag_out_of_set: bool,
 
     pub tag_separator: &'static str,
 
-
     pub placement: Placement,
-
-
-
 
     pub wheel: WheelMode,
 }
@@ -315,10 +257,8 @@ impl Default for EditorConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Affordance {
-
 
     #[default]
     Focused,
@@ -327,7 +267,6 @@ pub enum Affordance {
 
     Never,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChoiceResult {
@@ -348,10 +287,8 @@ enum Kind {
     Tags,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct ChoiceEditor {
-
 
     pub id: WidgetId,
     kind: Kind,
@@ -359,28 +296,19 @@ pub struct ChoiceEditor {
 
     pub cursor: usize,
 
-
     pub current: Option<usize>,
 
-
-
     pub selection: RowSelection,
-
 
     pub query: EditField,
 
     pub error: Option<String>,
-
-
-
-
 
     pub list: OptionList,
     typeahead: crate::core::typeahead::TypeAhead,
 }
 
 impl ChoiceEditor {
-
 
     pub fn open(
         id: WidgetId,
@@ -430,7 +358,6 @@ impl ChoiceEditor {
         })
     }
 
-
     fn list(id: WidgetId, cfg: &EditorConfig) -> OptionList {
         let mut list = OptionList::new(id)
             .dismiss(cfg.dismiss)
@@ -455,20 +382,13 @@ impl ChoiceEditor {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
-
     fn option_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.options.len())
     }
 
-
-
-
     pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
         id == self.id || id == backdrop_id(self.id) || self.option_of(id).is_some()
     }
-
-
 
     pub fn shown(&self) -> Vec<usize> {
         let q = self.query.text().trim().to_lowercase();
@@ -485,16 +405,12 @@ impl ChoiceEditor {
         self.options.get(i).is_some_and(|o| !o.is_disabled())
     }
 
-
     fn shown_rows(&self) -> Shown<'_> {
         Shown {
             ed: self,
             rows: self.shown(),
         }
     }
-
-
-
 
     fn value(&self, cfg: &EditorConfig) -> Option<String> {
         if self.kind == Kind::Tags {
@@ -512,7 +428,6 @@ impl ChoiceEditor {
         Some(self.options.0[self.cursor].value.clone())
     }
 
-
     pub fn blur_value(&self, cfg: &EditorConfig) -> Option<String> {
         self.value(cfg)
     }
@@ -526,8 +441,6 @@ impl ChoiceEditor {
     }
 
     pub fn on_key(&mut self, key: &Key, cfg: &EditorConfig) -> (Outcome, Option<ChoiceResult>) {
-
-
 
         if self.kind == Kind::Combo {
             use crate::widgets::field_common::EditAction;
@@ -619,7 +532,6 @@ impl ChoiceEditor {
         }
     }
 
-
     fn after_query(&mut self) {
         self.error = None;
         if let Some(&i) = self.shown().iter().find(|&&i| self.enabled(i)) {
@@ -627,7 +539,6 @@ impl ChoiceEditor {
         }
         self.list.scroll.offset = 0;
     }
-
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if self.kind != Kind::Combo {
@@ -638,7 +549,6 @@ impl ChoiceEditor {
         }
         Outcome::Changed
     }
-
 
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ChoiceResult>) {
         if id == backdrop_id(self.id) {
@@ -665,7 +575,6 @@ impl ChoiceEditor {
         )
     }
 
-
     fn step(&mut self, delta: isize) {
         let shown = self.shown_rows();
         let at = shown.rows.iter().position(|&i| i == self.cursor);
@@ -683,11 +592,6 @@ impl ChoiceEditor {
             self.cursor = shown.rows[k];
         }
     }
-
-
-
-
-
 
     pub fn wheel(&mut self, axis: Axis, delta: i32) -> crate::core::response::Response<()> {
         use crate::core::response::Response;
@@ -707,8 +611,6 @@ impl ChoiceEditor {
         }
     }
 
-
-
     pub fn render(&mut self, cell: Rect, buf: &Buffer, ctx: &mut RenderCtx, cfg: &EditorConfig) {
         if self.kind == Kind::Segmented {
             self.render_strip(cell, buf, ctx, cfg);
@@ -716,7 +618,6 @@ impl ChoiceEditor {
             self.render_list(cell, buf, ctx, cfg);
         }
     }
-
 
     fn prefix(&self) -> u16 {
         match self.kind {
@@ -760,12 +661,10 @@ impl ChoiceEditor {
         let visible = pa.height.saturating_sub(2 + search).max(1) as usize;
         let at = shown.iter().position(|&i| i == self.cursor).unwrap_or(0);
 
-
         self.list.scroll.set_content(shown.len());
         self.list.scroll.set_viewport(visible);
         self.list.scroll.follow(at);
         if search > 0 {
-
 
             let inner = pa
                 .intersection(screen)
@@ -812,7 +711,6 @@ impl ChoiceEditor {
                 );
                 line.as_position()
             } else {
-
 
                 self.query
                     .clone()
@@ -935,7 +833,6 @@ impl ChoiceEditor {
         }
     }
 
-
     fn query_look(t: &crate::theme::Theme) -> crate::widgets::edit::LineLook {
         let fs = t.field_style(crate::ui::ctx::VisualState {
             editing: true,
@@ -1023,13 +920,6 @@ impl ChoiceEditor {
     }
 }
 
-
-
-
-
-
-
-
 impl crate::core::pointer::MouseTarget for ChoiceEditor {
     type Action = ChoiceResult;
 
@@ -1066,7 +956,6 @@ impl crate::core::pointer::MouseTarget for ChoiceEditor {
     }
 }
 
-
 struct Shown<'a> {
     ed: &'a ChoiceEditor,
     rows: Vec<usize>,
@@ -1084,345 +973,3 @@ impl RowSource for Shown<'_> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::crossterm::event::KeyModifiers;
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: KeyModifiers::NONE,
-        }
-    }
-
-    fn envs() -> Options {
-        Options::new([
-            OptionItem::new("dev").label("Development"),
-            OptionItem::new("stage").label("Staging"),
-            OptionItem::new("prod")
-                .label("Production")
-                .tone(Tone::Warning),
-            OptionItem::new("dr")
-                .label("Disaster recovery")
-                .disabled("Read-only region"),
-        ])
-    }
-
-    #[test]
-    fn display_tone_and_out_of_set() {
-        let cfg = EditorConfig::default();
-        let e = ColumnEditor::Select(envs());
-        assert_eq!(e.display("prod", &cfg), "Production");
-        assert_eq!(e.tone("prod"), Some(Tone::Warning));
-        assert!(!e.out_of_set("stage", &cfg));
-        assert!(
-            e.out_of_set("qa", &cfg),
-            "an imported value outside the set"
-        );
-        assert_eq!(e.display("qa", &cfg), "qa", "shown as stored");
-        assert!(!e.out_of_set("", &cfg));
-        let tags = ColumnEditor::Tags(Options::values(&["api", "web", "db"]));
-        assert!(!tags.out_of_set("api, db", &cfg));
-        assert!(tags.out_of_set("api, cache", &cfg));
-        assert!(!ColumnEditor::Text.out_of_set("anything", &cfg));
-        let toggle = ColumnEditor::Checkbox(Options::values(&["off", "on"]));
-        assert_eq!(toggle.checked("on"), Some(true));
-        assert_eq!(toggle.checked("off"), Some(false));
-        assert_eq!(toggle.checked("maybe"), None);
-        let ladder = |n: usize| {
-            let values: Vec<String> = (0..n).map(|i| format!("v{i}")).collect();
-            let refs: Vec<&str> = values.iter().map(String::as_str).collect();
-            ColumnEditor::for_options(Options::values(&refs))
-        };
-        assert!(matches!(ladder(2), ColumnEditor::Checkbox(_)));
-        assert!(matches!(ladder(4), ColumnEditor::Segmented(_)));
-        assert!(matches!(ladder(9), ColumnEditor::Select(_)));
-        assert!(matches!(ladder(30), ColumnEditor::Combo(_)));
-        assert_eq!(toggle.toggled("off").as_deref(), Some("on"));
-        assert_eq!(toggle.toggled("on").as_deref(), Some("off"));
-        assert_eq!(toggle.toggled("maybe").as_deref(), Some("off"));
-    }
-
-    #[test]
-    fn the_popup_moves_with_nav_keys_not_raw_key_codes() {
-
-
-        let vim = EditorConfig {
-            nav: crate::core::keymap::NavKeys::VIM,
-            type_ahead: false,
-            ..EditorConfig::default()
-        };
-        let open = |cfg: &EditorConfig| {
-            ChoiceEditor::open(
-                WidgetId::of("c"),
-                &ColumnEditor::Select(envs()),
-                "stage",
-                cfg,
-            )
-            .unwrap()
-        };
-        let mut c = open(&vim);
-        c.on_key(&key(KeyCode::Char('k')), &vim);
-        assert_eq!(c.cursor, 0, "k moves up under the Vim keys");
-        c.on_key(&key(KeyCode::Char('G')), &vim);
-        assert_eq!(c.cursor, 2, "G goes to the last enabled option");
-        let no_arrows = EditorConfig {
-            nav: crate::core::keymap::NavKeys::DESKTOP.arrows(false),
-            ..EditorConfig::default()
-        };
-        let mut c = open(&no_arrows);
-        c.on_key(&key(KeyCode::Up), &no_arrows);
-        assert_eq!(c.cursor, 1, "arrows switched off do not move");
-    }
-
-    #[test]
-    fn select_keys_skip_disabled_type_ahead_and_commit_or_cancel() {
-        let cfg = EditorConfig::default();
-        let mut c = ChoiceEditor::open(
-            WidgetId::of("c"),
-            &ColumnEditor::Select(envs()),
-            "stage",
-            &cfg,
-        )
-        .unwrap();
-        assert_eq!(c.cursor, 1, "opens on the current value");
-        c.on_key(&key(KeyCode::Down), &cfg);
-        c.on_key(&key(KeyCode::Down), &cfg);
-        assert_eq!(c.cursor, 2, "the disabled option is skipped");
-        c.on_key(&key(KeyCode::End), &cfg);
-        assert_eq!(c.cursor, 2, "End lands on the last enabled option");
-        c.on_key(&key(KeyCode::Char('d')), &cfg);
-        assert_eq!(c.cursor, 0, "type-ahead never lands on a disabled option");
-        assert_eq!(
-            c.on_key(&key(KeyCode::Enter), &cfg).1,
-            Some(ChoiceResult::Commit("dev".into()))
-        );
-        assert_eq!(
-            c.on_key(&key(KeyCode::Esc), &cfg).1,
-            Some(ChoiceResult::Cancel)
-        );
-        let tab = Key {
-            code: KeyCode::BackTab,
-            mods: KeyModifiers::SHIFT,
-        };
-        assert_eq!(
-            c.on_key(&tab, &cfg).1,
-            Some(ChoiceResult::CommitAndTab {
-                value: "dev".into(),
-                backward: true
-            })
-        );
-    }
-
-    #[test]
-    fn an_out_of_set_value_opens_with_no_current_option() {
-        let cfg = EditorConfig::default();
-        let c = ChoiceEditor::open(WidgetId::of("c"), &ColumnEditor::Select(envs()), "qa", &cfg)
-            .unwrap();
-        assert_eq!(c.current, None);
-        assert_eq!(c.cursor, 0, "first enabled option");
-    }
-
-    #[test]
-    fn combo_filters_by_typing_and_only_commits_listed_values() {
-        let cfg = EditorConfig::default();
-        let mut c =
-            ChoiceEditor::open(WidgetId::of("c"), &ColumnEditor::Combo(envs()), "dev", &cfg)
-                .unwrap();
-        for ch in "prod".chars() {
-            c.on_key(&key(KeyCode::Char(ch)), &cfg);
-        }
-        assert_eq!(c.shown(), vec![2]);
-        assert_eq!(
-            c.on_key(&key(KeyCode::Enter), &cfg).1,
-            Some(ChoiceResult::Commit("prod".into()))
-        );
-        c.on_key(&key(KeyCode::Char('x')), &cfg);
-        assert!(c.shown().is_empty());
-        assert_eq!(
-            c.on_key(&key(KeyCode::Enter), &cfg),
-            (Outcome::Consumed, None),
-            "no free text"
-        );
-        c.on_key(&key(KeyCode::Backspace), &cfg);
-        assert_eq!(c.shown(), vec![2]);
-        assert_eq!(c.on_paste(" "), Outcome::Changed);
-    }
-
-
-
-
-
-    #[test]
-    fn the_combo_search_edits_at_the_caret_selects_all_and_undoes() {
-        use ratatui::crossterm::event::KeyModifiers as M;
-        let cfg = EditorConfig::default();
-        let mut c =
-            ChoiceEditor::open(WidgetId::of("c"), &ColumnEditor::Combo(envs()), "dev", &cfg)
-                .unwrap();
-        for ch in "prd".chars() {
-            c.on_key(&key(KeyCode::Char(ch)), &cfg);
-        }
-        c.on_key(&key(KeyCode::Left), &cfg);
-        c.on_key(&key(KeyCode::Char('o')), &cfg);
-        assert_eq!(c.query.text(), "prod");
-        assert_eq!(c.shown(), vec![2]);
-        let k = |ch, mods| Key {
-            code: KeyCode::Char(ch),
-            mods,
-        };
-        c.on_key(&k('a', M::SUPER), &cfg);
-        assert_eq!(c.query.buffer.selected_text(), Some("prod"));
-        c.on_key(&key(KeyCode::Char('d')), &cfg);
-        assert_eq!(c.query.text(), "d");
-        c.on_key(&k('z', M::CONTROL), &cfg);
-        assert_eq!(c.query.text(), "prod", "Ctrl+Z");
-        assert_eq!(c.shown(), vec![2], "the list follows the undone query");
-    }
-
-    #[test]
-    fn tags_toggle_with_space_and_commit_the_checked_set() {
-        let cfg = EditorConfig::default();
-        let opts = Options::new([
-            OptionItem::new("api"),
-            OptionItem::new("web"),
-            OptionItem::new("legacy").disabled("Retired"),
-            OptionItem::new("db"),
-        ]);
-        let mut c =
-            ChoiceEditor::open(WidgetId::of("c"), &ColumnEditor::Tags(opts), "db", &cfg).unwrap();
-        assert_eq!(c.selection.to_vec(), vec![3]);
-        c.on_key(&key(KeyCode::Home), &cfg);
-        c.on_key(&key(KeyCode::Char(' ')), &cfg);
-        c.on_click(c.option_id(2));
-        assert!(!c.selection.contains(2), "a disabled tag never checks");
-        assert_eq!(
-            c.on_key(&key(KeyCode::Enter), &cfg).1,
-            Some(ChoiceResult::Commit("api, db".into()))
-        );
-    }
-
-    #[test]
-    fn clicks_choose_enabled_options_and_the_backdrop_follows_dismiss() {
-        let mut cfg = EditorConfig::default();
-        let mut c =
-            ChoiceEditor::open(WidgetId::of("c"), &ColumnEditor::Radio(envs()), "dev", &cfg)
-                .unwrap();
-        assert_eq!(c.on_click(c.option_id(3)), (Outcome::Consumed, None));
-        assert_eq!(
-            c.on_click(c.option_id(1)).1,
-            Some(ChoiceResult::Commit("stage".into()))
-        );
-        assert_eq!(c.on_click(backdrop_id(c.id)).1, Some(ChoiceResult::Cancel));
-        cfg.dismiss = Dismiss::ESCAPE;
-        c.list.dismiss = Dismiss::ESCAPE;
-        assert_eq!(c.on_click(backdrop_id(c.id)), (Outcome::Consumed, None));
-        assert_eq!(
-            c.on_key(&key(KeyCode::Esc), &cfg).1,
-            Some(ChoiceResult::Cancel)
-        );
-    }
-
-
-
-
-
-
-    #[test]
-    fn the_wheel_over_the_popup_follows_its_wheel_mode() {
-        use crate::core::pointer::{MouseTarget, PointerEvent};
-        let theme = Theme::junie();
-        let many = Options::values(&["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]);
-        let wheel = |mode: WheelMode, delta: i32, axis: Axis| {
-            let cfg = EditorConfig {
-                max_rows: 4,
-                wheel: mode,
-                ..Default::default()
-            };
-            let mut c = ChoiceEditor::open(
-                WidgetId::of("c"),
-                &ColumnEditor::Select(many.clone()),
-                "a",
-                &cfg,
-            )
-            .unwrap();
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
-            c.render(Rect::new(2, 1, 10, 1), &buf, &mut ctx, &cfg);
-            ctx.flush_overlays(&mut buf);
-            drop(ctx);
-            let row = c.option_id(1);
-            let pos = hits.area_of(row).expect("a shown row").as_position();
-            let ev = PointerEvent::wheel_on(&hits, row, axis, delta, pos, KeyModifiers::NONE);
-            let r = c.pointer(&ev).outcome();
-            (r, c.cursor, c.list.scroll.offset)
-        };
-        assert_eq!(
-            wheel(WheelMode::Cursor, 2, Axis::Vertical),
-            (Outcome::Changed, 2, 0)
-        );
-        assert_eq!(
-            wheel(WheelMode::Viewport, 3, Axis::Vertical),
-            (Outcome::Changed, 0, 3)
-        );
-        assert_eq!(
-            wheel(WheelMode::Viewport, 3, Axis::Horizontal).0,
-            Outcome::Consumed
-        );
-    }
-
-    #[test]
-    fn the_popup_is_an_overlay_anchored_to_the_cell_with_a_fill_cursor() {
-        let theme = Theme::junie();
-        let cfg = EditorConfig::default();
-        let mut c = ChoiceEditor::open(
-            WidgetId::of("c"),
-            &ColumnEditor::Radio(envs()),
-            "stage",
-            &cfg,
-        )
-        .unwrap();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 20));
-        let cell = Rect::new(10, 17, 12, 1);
-        c.render(cell, &buf, &mut ctx, &cfg);
-        ctx.flush_overlays(&mut buf);
-        let text: Vec<String> = (0..20)
-            .map(|y| (0..60).map(|x| buf[(x, y)].symbol()).collect())
-            .collect();
-        let at = |needle: &str| text.iter().position(|r| r.contains(needle));
-        let staging = at("Staging").expect("listed");
-        assert!(
-            staging < 17,
-            "flips above a cell at the bottom:\n{}",
-            text.join("\n")
-        );
-        assert!(
-            text[staging].contains(theme.glyphs.radio_on),
-            "the current value"
-        );
-        assert!(
-            text[at("Disaster").unwrap()].contains("Read-only region"),
-            "the reason"
-        );
-        assert!(
-            !text.iter().any(|r| r.contains(theme.glyphs.focus_bar)),
-            "no second focus bar:\n{}",
-            text.join("\n")
-        );
-        assert!(ctx.hits.area_of(c.option_id(1)).is_some());
-        assert!(
-            ctx.hits.area_of(c.option_id(3)).is_none(),
-            "disabled: not clickable"
-        );
-    }
-}

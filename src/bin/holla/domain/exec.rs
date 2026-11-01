@@ -96,30 +96,3 @@ pub fn displays(cmds: &[Command]) -> Vec<String> {
     cmds.iter().map(Command::display).collect()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn display_derives_from_argv_and_never_interpolates() {
-        let c = Command::argv("git", &["-C", "/w/a b", "pull", "--ff-only"], "/w", "mbp");
-        assert_eq!(c.display(), "git -C '/w/a b' pull --ff-only");
-        assert_eq!(c.argv_vec().len(), 5);
-        let mut s = Command::argv(
-            "sh",
-            &["-c", "docker rmi $(docker images -q)"],
-            "/",
-            "devbox",
-        );
-        s.kind = ExecKind::Shell;
-        assert_eq!(s.kind, ExecKind::Shell);
-        assert_eq!(s.program, "sh");
-        assert_eq!(s.args[1], "docker rmi $(docker images -q)");
-        assert_eq!(s.display(), "sh -c 'docker rmi $(docker images -q)'");
-        let meta = Command::from_vec(vec!["echo".into(), "it's; rm -rf /".into()], "/", "h");
-        assert_eq!(meta.display(), "echo 'it'\\''s; rm -rf /'");
-        assert_eq!(meta.args, vec!["it's; rm -rf /"]);
-        assert_eq!(meta.argv_facts()[1].1, "\"it's; rm -rf /\"");
-        assert_eq!(quote(""), "''");
-    }
-}

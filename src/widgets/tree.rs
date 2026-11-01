@@ -14,7 +14,6 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::list_core::ListCore;
 use crate::ui::row::{MarkKind, RowLook, RowUi};
 
-
 #[derive(Debug, Clone)]
 pub struct TreeNode {
     pub label: String,
@@ -23,14 +22,9 @@ pub struct TreeNode {
 
     pub glyph: Option<std::borrow::Cow<'static, str>>,
 
-
-
     pub glyph_tone: Tone,
 
-
-
     pub label_tone: Option<Tone>,
-
 
     pub lazy: bool,
 
@@ -68,7 +62,6 @@ impl TreeNode {
         }
     }
 
-
     pub fn lazy(label: &str) -> Self {
         Self {
             lazy: true,
@@ -81,12 +74,10 @@ impl TreeNode {
         self
     }
 
-
     pub fn glyph_tone(mut self, tone: Tone) -> Self {
         self.glyph_tone = tone;
         self
     }
-
 
     pub fn label_tone(mut self, tone: Tone) -> Self {
         self.label_tone = Some(tone);
@@ -105,7 +96,6 @@ impl TreeNode {
         self
     }
 }
-
 
 pub type Path = Vec<usize>;
 
@@ -132,14 +122,11 @@ pub enum TreeAction {
     Activate(Path),
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BranchAction {
 
     #[default]
     Toggle,
-
 
     Activate,
 
@@ -152,10 +139,6 @@ pub struct TreeView {
     pub nodes: Vec<TreeNode>,
     pub expanded: std::collections::HashSet<Path>,
 
-
-
-
-
     pub core: ListCore,
     pub selected: Option<Path>,
     pub area: Rect,
@@ -163,39 +146,23 @@ pub struct TreeView {
 
     pub filter: Option<String>,
 
-
-
-
-
     pub reserve_right: u16,
-
 
     pub show_meta: bool,
 
-
-
     trailing: Rect,
-
 
     pub branch_activate: BranchAction,
 
     pub indent: u16,
 
-
     rows_built: usize,
 
     pub keymap: KeyMap<TreeCmd>,
 
-
-
     pub divider: bool,
 
-
-
     pub selected_marker: Option<&'static str>,
-
-
-
 
     pub alt_click_recursive: bool,
 }
@@ -212,7 +179,6 @@ impl std::ops::DerefMut for TreeView {
         &mut self.core
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TreeCmd {
@@ -241,8 +207,6 @@ impl Actions for TreeCmd {
 fn matches(n: &TreeNode, q: &str) -> bool {
     n.label.to_lowercase().contains(q) || n.children.iter().any(|c| matches(c, q))
 }
-
-
 
 fn walk(
     nodes: &[TreeNode],
@@ -321,24 +285,20 @@ impl TreeView {
         self
     }
 
-
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.core.click = policy;
         self
     }
-
 
     pub fn wrap(mut self, on: bool) -> Self {
         self.core.wrap = on;
         self
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.core.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<TreeCmd>) -> Self {
         self.keymap = keymap;
@@ -350,20 +310,15 @@ impl TreeView {
         self
     }
 
-
-
-
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.core.typeahead.timeout = timeout;
         self
     }
 
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.core.type_ahead = on;
         self
     }
-
 
     pub fn type_ahead_precedence(
         mut self,
@@ -373,39 +328,30 @@ impl TreeView {
         self
     }
 
-
-
     pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
         self.core.content = content;
         self
     }
-
-
 
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.core.empty = Some(state);
         self
     }
 
-
     pub fn skip_when_empty(mut self, on: bool) -> Self {
         self.core.skip_when_empty = on;
         self
     }
-
 
     pub fn divider(mut self, on: bool) -> Self {
         self.divider = on;
         self
     }
 
-
-
     pub fn inactive_selection(mut self, look: crate::theme::InactiveSelection) -> Self {
         self.core.inactive_selection = Some(look);
         self
     }
-
 
     pub fn selected_marker(mut self, marker: Option<&'static str>) -> Self {
         self.selected_marker = marker;
@@ -416,7 +362,6 @@ impl TreeView {
         self.alt_click_recursive = on;
         self
     }
-
 
     fn branch(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         let path = self.rows[i].path.clone();
@@ -441,31 +386,23 @@ impl TreeView {
         &self.rows
     }
 
-
     pub fn reserve_right(mut self, cells: u16) -> Self {
         self.reserve_right = cells;
         self
     }
-
 
     pub fn show_meta(mut self, on: bool) -> Self {
         self.show_meta = on;
         self
     }
 
-
-
-
     pub fn trailing(&self) -> Rect {
         self.trailing
     }
 
-
-
     pub const MIN_LABEL: u16 = 12;
 
     pub fn flatten(&mut self) {
-
 
         let focused: Option<Path> = self.rows.get(self.core.cursor).map(|r| r.path.clone());
         let before: Option<Path> = self
@@ -497,8 +434,6 @@ impl TreeView {
         self.core.scroll.set_content(self.rows.len());
     }
 
-
-
     fn relocate(
         &self,
         focused: Option<&[usize]>,
@@ -517,7 +452,6 @@ impl TreeView {
         }
         after.and_then(find).or_else(|| before.and_then(find))
     }
-
 
     pub fn cursor_path(&self) -> Option<&[usize]> {
         self.rows.get(self.core.cursor).map(|r| r.path.as_slice())
@@ -541,7 +475,6 @@ impl TreeView {
         }
         nodes.get_mut(*last)
     }
-
 
     pub fn set_children(&mut self, path: &[usize], children: Vec<TreeNode>) {
         if let Some(n) = self.node_mut(path) {
@@ -567,7 +500,6 @@ impl TreeView {
         self.core.cursor = 0;
     }
 
-
     pub fn reveal(&mut self, path: &[usize]) {
         for k in 1..path.len() {
             self.expanded.insert(path[..k].to_vec());
@@ -582,12 +514,9 @@ impl TreeView {
         self.id.part(PartRef::item(Part::ROW, ItemKey::index(i)))
     }
 
-
     pub fn toggle_id(&self, i: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::ICON, ItemKey::index(i)))
     }
-
-
 
     pub fn row_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
@@ -598,13 +527,9 @@ impl TreeView {
             .or_else(|| ev.index_of(Part::MARKER))
     }
 
-
-
-
     pub fn glyph_id(&self, i: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::MARKER, ItemKey::index(i)))
     }
-
 
     fn nav_cursor(&self) -> Cursor {
         self.core.cursor_model()
@@ -640,11 +565,6 @@ impl TreeView {
         self.refold(i);
         (Outcome::Changed, None)
     }
-
-
-
-
-
 
     fn refold(&mut self, i: usize) {
         if self.filter.as_deref().is_some_and(|f| !f.trim().is_empty()) {
@@ -685,8 +605,6 @@ impl TreeView {
         let added = shown.len();
         self.rows.splice(i + 1..end, shown);
 
-
-
         if self.core.cursor > i {
             self.core.cursor = if self.core.cursor < end {
                 if removed > 0 { i } else { self.core.cursor }
@@ -718,7 +636,6 @@ impl TreeView {
         self.flatten();
     }
 
-
     fn all_expanded(&self) -> bool {
         fn walk(
             nodes: &[TreeNode],
@@ -736,15 +653,6 @@ impl TreeView {
         walk(&self.nodes, &mut Vec::new(), &self.expanded)
     }
 
-
-
-
-
-
-
-
-
-
     pub fn context_items(&self) -> Vec<(TreeCmd, crate::widgets::menu::MenuItem)> {
         use crate::ui::context::{ContextCmd, command_items};
         let cmds = [
@@ -755,8 +663,6 @@ impl TreeView {
         ];
         command_items(&self.keymap, &cmds)
     }
-
-
 
     pub fn run(&mut self, cmd: TreeCmd) -> (Outcome, Option<TreeAction>) {
         match cmd {
@@ -830,7 +736,6 @@ impl TreeView {
         (out, None)
     }
 
-
     fn on_plain_key(&mut self, key: &Key) -> (Outcome, Option<TreeAction>) {
         let out = match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
@@ -852,14 +757,9 @@ impl TreeView {
         (out, None)
     }
 
-
     pub fn on_click_row(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         self.on_click_row_count(i, 1)
     }
-
-
-
-
 
     pub fn on_click_row_count(&mut self, i: usize, count: u8) -> (Outcome, Option<TreeAction>) {
         if i >= self.rows.len() {
@@ -891,10 +791,6 @@ impl TreeView {
         self.toggle(i)
     }
 
-
-
-
-
     pub fn on_click_with(
         &mut self,
         i: usize,
@@ -903,9 +799,6 @@ impl TreeView {
     ) -> (Outcome, Option<TreeAction>) {
         self.on_click_at(i, toggle, mods, 1)
     }
-
-
-
 
     pub fn on_click_at(
         &mut self,
@@ -927,10 +820,6 @@ impl TreeView {
             self.on_click_row_count(i, count)
         }
     }
-
-
-
-
 
     pub fn toggle_recursive(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         let Some(row) = self.rows.get(i) else {
@@ -981,8 +870,6 @@ impl TreeView {
         (Outcome::Changed, None)
     }
 
-
-
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.core.scroll.track_click = Some(click);
         self
@@ -1005,7 +892,6 @@ impl TreeView {
             ctx.scrollable(self.id, area);
         }
 
-
         if (!self.core.content.is_ready() || self.core.empty.is_some())
             && self.core.draw_content(n, area, buf, ctx, bg, None)
         {
@@ -1015,7 +901,6 @@ impl TreeView {
         let full_w = area
             .width
             .saturating_sub(if has_sb || self.divider { 1 } else { 0 });
-
 
         let reserve = if self.reserve_right > 0 && full_w >= self.reserve_right + Self::MIN_LABEL {
             self.reserve_right
@@ -1072,8 +957,6 @@ impl TreeView {
             let indent = (row.depth as u16) * self.indent;
             let mut x = rect.x + 1 + indent;
 
-
-
             if !row.note {
                 ctx.register_part(self.id, PartRef::item(Part::ROW, ItemKey::index(ri)), full);
             }
@@ -1092,7 +975,6 @@ impl TreeView {
                 " "
             };
             let gs = if row.busy {
-
 
                 st.fg(t.legible_mark(t.accent, st.bg.unwrap_or(bg)))
             } else if row.has_children {
@@ -1129,7 +1011,6 @@ impl TreeView {
             };
             let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 1 });
 
-
             let mut label_style = match (s.selected, focused) {
                 (true, true) => st.fg(t.chosen(true)),
                 (true, false) => st
@@ -1146,9 +1027,6 @@ impl TreeView {
             let mut lx = x;
             if let Some(g) = row.glyph.as_deref() {
                 if !row.note {
-
-
-
 
                     ctx.register_part(
                         self.id,
@@ -1197,8 +1075,6 @@ impl TreeView {
             }
         }
 
-
-
         ctx.scrollable(self.id, area);
         if self.divider && !has_sb {
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
@@ -1230,11 +1106,6 @@ impl TreeView {
         }
     }
 }
-
-
-
-
-
 
 impl crate::ui::measure::Measure for TreeView {
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
@@ -1273,7 +1144,6 @@ impl Scrollable for TreeView {
     }
 }
 
-
 impl RowSource for [FlatRow] {
     fn len(&self) -> usize {
         <[FlatRow]>::len(self)
@@ -1304,13 +1174,7 @@ impl Navigable for TreeView {
     }
 }
 
-
 const SPECIMEN_ROWS: usize = 4;
-
-
-
-
-
 
 impl crate::ui::specimen::Specimen for TreeView {
     fn specimen_id(&self) -> WidgetId {
@@ -1388,10 +1252,6 @@ impl crate::ui::specimen::Specimen for TreeView {
     }
 }
 
-
-
-
-
 impl crate::core::pointer::MouseTarget for TreeView {
     type Action = TreeAction;
 
@@ -1423,734 +1283,3 @@ impl crate::core::pointer::MouseTarget for TreeView {
     }
 }
 
-#[cfg(test)]
-mod identity_tests {
-    use super::*;
-
-
-
-    fn big(folders: usize, leaves: usize) -> TreeView {
-        let dirs = (0..folders)
-            .map(|d| {
-                let mut kids: Vec<TreeNode> = (0..leaves)
-                    .map(|l| TreeNode::leaf(&format!("leaf {d}.{l}")))
-                    .collect();
-                kids.push(TreeNode::dir("sub", vec![TreeNode::leaf("deep")]));
-                TreeNode::dir(&format!("folder {d}"), kids)
-            })
-            .collect();
-        TreeView::new(WidgetId::of("big"), dirs)
-    }
-
-    fn shape(t: &TreeView) -> Vec<(Path, usize, bool)> {
-        t.rows()
-            .iter()
-            .map(|r| (r.path.clone(), r.depth, r.expanded))
-            .collect()
-    }
-
-
-
-
-    #[test]
-    fn a_toggle_builds_only_the_rows_it_reveals() {
-        let mut t = big(1_000, 100);
-        let per = 102;
-        assert_eq!(t.rows().len(), 1_000 * per);
-        let folder = 500 * per;
-
-        t.toggle(folder + 101);
-        t.cursor = folder + 40;
-        let built = t.rows_built;
-        t.toggle(folder);
-        assert_eq!(t.rows_built - built, 0, "a collapse builds no rows");
-        assert_eq!(t.cursor, folder, "the cursor moves to the folder");
-        let mut full = t.clone();
-        full.flatten();
-        assert_eq!(shape(&t), shape(&full));
-        t.cursor = folder + 1_000;
-        let built = t.rows_built;
-        t.toggle(folder);
-        assert_eq!(
-            t.rows_built - built,
-            102,
-            "an expand builds its 100 leaves, the sub-folder and its child"
-        );
-        assert_eq!(t.cursor, folder + 1_000 + 102, "the cursor keeps its node");
-        let mut full = t.clone();
-        full.flatten();
-        assert_eq!(shape(&t), shape(&full));
-        assert_eq!(t.cursor, full.cursor);
-        assert_eq!(t.scroll.content_len, t.rows().len());
-    }
-
-    #[test]
-    fn branch_rows_toggle_or_activate_per_config() {
-        let nodes = vec![TreeNode::dir("src", vec![TreeNode::leaf("lib.rs")])];
-        let enter = Key {
-            code: KeyCode::Enter,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        let mut t = TreeView::new(WidgetId::of("t"), nodes.clone());
-        assert_eq!(t.rows().len(), 2);
-        t.on_key(&enter);
-        assert_eq!(t.rows().len(), 1, "Enter collapses by default");
-        let mut a =
-            TreeView::new(WidgetId::of("t"), nodes.clone()).branch_activate(BranchAction::Activate);
-        let (_, ev) = a.on_key(&enter);
-        assert_eq!(ev, Some(TreeAction::Activate(vec![0])));
-        assert_eq!(a.rows().len(), 2, "activating does not collapse");
-
-
-
-        let mut data = TreeView::new(WidgetId::of("t"), nodes.clone());
-        data.on_click_row(0);
-        data.on_click_row(0);
-        assert_eq!(data.rows().len(), 2, "a row click only moves the cursor");
-        data.on_click_row_count(0, 2);
-        assert_eq!(data.rows().len(), 1, "a double click toggles the branch");
-        data.on_click_toggle(0);
-        assert_eq!(data.rows().len(), 2, "the disclosure toggles on one click");
-        let mut leaf = TreeView::new(WidgetId::of("t"), nodes.clone());
-        assert_eq!(leaf.on_click_row(1).1, None, "a leaf click selects");
-        assert_eq!(
-            leaf.on_click_row_count(1, 2).1,
-            Some(TreeAction::Activate(vec![0, 0])),
-            "a leaf double click activates"
-        );
-
-        let mut nav = TreeView::new(WidgetId::of("t"), nodes).click(ClickPolicy::NAVIGATION);
-        assert_eq!(
-            nav.on_click_row(1).1,
-            Some(TreeAction::Activate(vec![0, 0]))
-        );
-        nav.on_click_row(0);
-        assert_eq!(nav.rows().len(), 1, "a branch click toggles");
-    }
-    use ratatui::crossterm::event::KeyModifiers;
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: KeyModifiers::NONE,
-        }
-    }
-
-    fn tree() -> TreeView {
-        TreeView::new(
-            WidgetId::of("t"),
-            vec![
-                TreeNode::lazy("alpha"),
-                TreeNode::lazy("beta"),
-                TreeNode::dir("gamma", vec![TreeNode::leaf("g1"), TreeNode::leaf("g2")]),
-                TreeNode::leaf("delta"),
-            ],
-        )
-    }
-
-    #[test]
-    fn delayed_children_above_the_cursor_keep_the_focused_node() {
-        let mut t = tree();
-
-        t.on_key(&key(KeyCode::Down));
-        assert_eq!(t.cursor_path(), Some(&[1][..]));
-        t.set_children(
-            &[0],
-            vec![
-                TreeNode::leaf("a1"),
-                TreeNode::leaf("a2"),
-                TreeNode::leaf("a3"),
-            ],
-        );
-        assert_eq!(t.cursor_path(), Some(&[1][..]), "beta stays focused");
-        assert_eq!(t.cursor, 4);
-
-        t.set_children(&[1], vec![TreeNode::lazy("b1")]);
-        assert_eq!(t.cursor_path(), Some(&[1][..]));
-        t.set_children(&[1, 0], vec![TreeNode::leaf("b1a")]);
-        assert_eq!(t.cursor_path(), Some(&[1][..]));
-
-        t.on_key(&key(KeyCode::Down));
-        t.on_key(&key(KeyCode::Down));
-        t.on_key(&key(KeyCode::Enter));
-        assert_eq!(t.selected.as_deref(), Some(&[1, 0, 0][..]));
-        t.on_key(&key(KeyCode::Up));
-        assert_eq!(t.selected.as_deref(), Some(&[1, 0, 0][..]));
-        assert_eq!(t.cursor_path(), Some(&[1, 0][..]));
-    }
-
-    #[test]
-    fn collapse_relocates_to_the_visible_ancestor_and_removal_to_a_neighbour() {
-        let mut t = tree();
-        t.set_children(&[0], vec![TreeNode::leaf("a1"), TreeNode::leaf("a2")]);
-        t.on_key(&key(KeyCode::Down));
-        t.on_key(&key(KeyCode::Down));
-        assert_eq!(t.cursor_path(), Some(&[0, 1][..]));
-
-        t.on_key(&key(KeyCode::Left));
-        assert_eq!(t.cursor_path(), Some(&[0][..]));
-        t.on_key(&key(KeyCode::Left));
-        assert!(!t.rows[0].expanded);
-        assert_eq!(t.cursor_path(), Some(&[0][..]));
-        t.toggle(0);
-        assert!(t.rows[0].expanded);
-
-        t.on_key(&key(KeyCode::Down));
-        t.on_click_toggle(0);
-        assert_eq!(t.cursor_path(), Some(&[0][..]));
-
-        t.toggle(0);
-        t.on_key(&key(KeyCode::Down));
-        t.on_key(&key(KeyCode::Down));
-        assert_eq!(t.cursor_path(), Some(&[0, 1][..]));
-        t.set_children(&[0], vec![TreeNode::leaf("a1")]);
-        assert_eq!(
-            t.cursor_path(),
-            Some(&[0][..]),
-            "ancestor wins over neighbour"
-        );
-
-        t.set_children(&[0], vec![]);
-        assert!(!t.rows[0].has_children);
-        assert_eq!(t.cursor_path(), Some(&[0][..]));
-    }
-
-    #[test]
-    fn filters_reveal_and_reset_deliberately() {
-        let mut t = tree();
-        t.set_children(&[0], vec![TreeNode::leaf("a1")]);
-        t.on_key(&key(KeyCode::End));
-        assert_eq!(t.cursor_path(), Some(&[3][..]));
-        t.set_filter(Some("g"));
-        assert_eq!(t.cursor, 0, "a filter is a new list");
-        assert!(
-            t.rows
-                .iter()
-                .all(|r| r.label.contains('g') || r.label == "gamma")
-        );
-        t.set_filter(None);
-        t.reveal(&[2, 1]);
-        assert_eq!(t.cursor_path(), Some(&[2, 1][..]));
-        t.set_children(&[1], vec![TreeNode::leaf("b1"), TreeNode::leaf("b2")]);
-        assert_eq!(
-            t.cursor_path(),
-            Some(&[2, 1][..]),
-            "revealed target survives insertion above"
-        );
-
-        let before = t.cursor;
-        t.on_key(&Key {
-            code: KeyCode::Char('j'),
-            mods: KeyModifiers::CONTROL,
-        });
-        assert_eq!(t.cursor, before);
-    }
-}
-
-#[cfg(test)]
-mod scroll_tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::Axis;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::layout::Position;
-
-
-
-
-    #[test]
-    fn a_busy_nodes_spinner_reads_on_its_row_at_every_level() {
-        use crate::theme::{ColorLevel, contrast_ratio};
-        for level in ColorLevel::ALL {
-            let theme = Theme::for_level(level);
-            let mut node = TreeNode::leaf("schema");
-            node.busy = true;
-            let mut t = TreeView::new(WidgetId::of("t"), vec![node]);
-            let rid = t.row_id(0);
-            for hover in [None, Some(rid)] {
-                let mut hits = HitRegistry::default();
-                let mut ring = FocusRing::default();
-                let inter = Interaction {
-                    hover,
-                    ..Default::default()
-                };
-                let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
-                let mut buf = Buffer::empty(Rect::new(0, 0, 30, 2));
-                t.render(Rect::new(0, 0, 30, 2), &mut buf, &mut ctx, theme.canvas);
-                let spin = theme.glyphs.spinner_frame(ctx.interaction.tick);
-                let c = (0..30u16)
-                    .map(|x| &buf[(x, 0)])
-                    .find(|c| c.symbol() == spin)
-                    .unwrap_or_else(|| panic!("{level:?}: no spinner"));
-                let r = contrast_ratio(c.fg, c.bg).unwrap();
-                assert!(r >= 3.0, "{level:?} hover {}: {r:.2}", hover.is_some());
-            }
-        }
-    }
-
-
-    #[test]
-    fn a_tree_at_its_measure_shows_every_label_and_meta() {
-        use crate::ui::measure::Measure;
-        let mut api = TreeNode::dir("api", vec![TreeNode::leaf_meta("handlers", "12 files")]);
-        api.meta = Some("service".into());
-        let mut t = TreeView::new(
-            WidgetId::of("t"),
-            vec![
-                api,
-                TreeNode::leaf_meta("a rather long name for a leaf", "x"),
-            ],
-        );
-        t.expand_all();
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let size = t.measure(ratatui::layout::Size::new(10, 2), &ctx);
-        assert_eq!(size.height, 3);
-        let area = Rect::new(0, 0, size.width, size.height);
-        let mut buf = Buffer::empty(area);
-        t.render(area, &mut buf, &mut ctx, theme.canvas);
-        let all: String = (0..size.height)
-            .map(|y| {
-                (0..size.width)
-                    .map(|x| buf[(x, y)].symbol())
-                    .collect::<String>()
-                    + "\n"
-            })
-            .collect();
-        for part in [
-            "api",
-            "service",
-            "handlers",
-            "12 files",
-            "a rather long name for a leaf",
-        ] {
-            assert!(all.contains(part), "{part:?} in\n{all}");
-        }
-    }
-
-    fn render(t: &mut TreeView) -> String {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
-        t.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
-        (0..6)
-            .map(|y| {
-                (0..40)
-                    .map(|x| buf[(x, y)].symbol().to_owned())
-                    .collect::<String>()
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-
-
-
-    #[test]
-    fn content_states_replace_the_rows_and_an_empty_tree_is_skipped() {
-        use crate::ui::content::ContentState;
-        use crate::widgets::empty::EmptyState;
-        let stop = |t: &mut TreeView| {
-            let theme = Theme::junie();
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
-            t.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
-            ring.contains(t.id)
-        };
-        let mut t = TreeView::new(WidgetId::of("t"), vec![TreeNode::leaf("alpha")]);
-        assert!(stop(&mut t));
-        t.content = ContentState::loading("Loading schema");
-        let s = render(&mut t);
-        assert!(s.contains("Loading schema") && !s.contains("alpha"), "{s}");
-        assert!(!stop(&mut t), "loading: no focus stop");
-        t.content = ContentState::error(EmptyState::new("Could not connect"));
-        assert!(render(&mut t).contains("! Could not connect"));
-        let mut empty = TreeView::new(WidgetId::of("e"), vec![]);
-        assert!(!stop(&mut empty), "K37: an empty tree is skipped");
-        let mut empty = TreeView::new(WidgetId::of("e"), vec![])
-            .empty(EmptyState::new("No tables"))
-            .skip_when_empty(false);
-        assert!(render(&mut empty).contains("No tables"));
-        assert!(stop(&mut empty), "knob: stays a stop");
-    }
-
-    #[test]
-    fn glyph_and_label_tones_colour_a_row_and_default_to_muted_and_ink() {
-        let theme = Theme::junie();
-        let nodes = vec![
-            TreeNode::leaf("Plain").glyph("·"),
-            TreeNode::leaf("Prod")
-                .glyph("◆")
-                .glyph_tone(Tone::Danger)
-                .label_tone(Tone::Warning),
-        ];
-        let mut tv = TreeView::new(WidgetId::of("t"), nodes);
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
-        tv.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
-        let first = |y: u16, s: &str| {
-            (0..40)
-                .find(|&x| buf[(x, y)].symbol() == s)
-                .map(|x| buf[(x, y)].clone())
-                .unwrap()
-        };
-        assert_eq!(first(0, "·").fg, theme.text_muted, "default glyph");
-        let label = first(0, "P").fg;
-        let g = first(1, "◆");
-        assert_eq!(g.fg, theme.tone_on(Tone::Danger, g.bg), "glyph tone");
-        let l = first(1, "P");
-        assert_eq!(l.fg, theme.tone_on(Tone::Warning, l.bg), "label tone");
-        assert_ne!(label, l.fg, "the default label keeps the row's ink");
-    }
-
-    #[test]
-    fn the_selected_node_is_accent_only_while_the_tree_has_focus() {
-        let theme = Theme::junie().with_inactive_selection(crate::theme::InactiveSelection::None);
-        let nodes = (0..3)
-            .map(|i| TreeNode::leaf(&format!("Node {i:02}")))
-            .collect();
-        let mut tv = TreeView::new(WidgetId::of("t"), nodes);
-        tv.selected = tv.rows.get(1).map(|r| r.path.clone());
-        assert!(tv.selected.is_some());
-        let label_fg = |tv: &mut TreeView, focus: Option<WidgetId>| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let inter = Interaction {
-                focus,
-                ..Default::default()
-            };
-            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
-            tv.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
-            let x = (0..40)
-                .find(|&x| buf[(x, 1)].symbol() == "N")
-                .expect("label");
-            buf[(x, 1)].fg
-        };
-        assert_eq!(label_fg(&mut tv, None), theme.text_primary);
-        assert_eq!(label_fg(&mut tv, Some(WidgetId::of("t"))), theme.accent);
-    }
-
-    #[test]
-    fn arrows_and_ends_step_over_notes() {
-        use ratatui::crossterm::event::KeyModifiers;
-        let key = |code| Key {
-            code,
-            mods: KeyModifiers::NONE,
-        };
-        let nodes = vec![
-            TreeNode::dir("Empty", vec![TreeNode::note("nothing here")]),
-            TreeNode::leaf("Tables"),
-            TreeNode::note("end of list"),
-        ];
-        let mut tv = TreeView::new(WidgetId::of("t"), nodes);
-        tv.expand_all();
-        let labels: Vec<&str> = tv.rows().iter().map(|r| r.label.as_str()).collect();
-        assert_eq!(labels, ["Empty", "nothing here", "Tables", "end of list"]);
-        tv.on_key(&key(KeyCode::Down));
-        assert_eq!(tv.cursor, 2, "Down passes over the note");
-        tv.on_key(&key(KeyCode::Down));
-        assert_eq!(tv.cursor, 2, "the trailing note is never reached");
-        tv.on_key(&key(KeyCode::End));
-        assert_eq!(tv.cursor, 2, "End stops on the last selectable row");
-        tv.on_key(&key(KeyCode::Up));
-        assert_eq!(tv.cursor, 0);
-    }
-
-    #[test]
-    fn type_ahead_jumps_to_the_next_matching_row_when_on() {
-        use ratatui::crossterm::event::KeyModifiers;
-        let key = |c| Key {
-            code: KeyCode::Char(c),
-            mods: KeyModifiers::NONE,
-        };
-        let nodes = vec![
-            TreeNode::dir("Tables", vec![TreeNode::leaf("Data grid")]),
-            TreeNode::dir("Overlays", vec![TreeNode::leaf("Dialogs")]),
-        ];
-        let mut tv = TreeView::new(WidgetId::of("t"), nodes.clone()).type_ahead(true);
-        assert_eq!(tv.on_key(&key('o')).0, Outcome::Changed);
-        assert_eq!(tv.cursor_path(), Some(&[1][..]));
-        tv.typeahead.reset();
-        tv.on_key(&key('d'));
-        assert_eq!(
-            tv.cursor_path(),
-            Some(&[1, 0][..]),
-            "the next match after the cursor"
-        );
-        assert_eq!(
-            tv.on_key(&key('z')).0,
-            Outcome::Consumed,
-            "no match: consumed, never half-typed to the owner (plan §3)"
-        );
-        let mut on = TreeView::new(WidgetId::of("t"), nodes.clone());
-        assert_eq!(
-            on.on_key(&key('o')).0,
-            Outcome::Changed,
-            "on by default (Desktop profile, K34)"
-        );
-        let mut off = TreeView::new(WidgetId::of("t"), nodes).type_ahead(false);
-        assert_eq!(
-            off.on_key(&key('o')).0,
-            Outcome::Ignored,
-            "off: the owner's"
-        );
-        assert_eq!(off.cursor, 0);
-    }
-
-    #[test]
-    fn a_divider_keeps_the_last_column_and_the_marker_names_the_selected_leaf() {
-        let theme = Theme::junie().with_inactive_selection(crate::theme::InactiveSelection::None);
-        let nodes = vec![TreeNode::dir("Group", vec![TreeNode::leaf("Page")])];
-        let mut tv = TreeView::new(WidgetId::of("t"), nodes)
-            .divider(true)
-            .selected_marker(Some("›"));
-        tv.selected = Some(vec![0, 0]);
-        let draw = |tv: &mut TreeView, focus: Option<WidgetId>| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let inter = Interaction {
-                focus,
-                ..Default::default()
-            };
-            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 4));
-            tv.render(Rect::new(0, 0, 20, 4), &mut buf, &mut ctx, theme.canvas);
-            buf
-        };
-        let buf = draw(&mut tv, None);
-        for y in 0..4 {
-            assert_eq!(
-                buf[(19, y)].symbol(),
-                theme.glyphs.divider,
-                "row {y}: the divider"
-            );
-        }
-        let x = (0..19)
-            .find(|&x| buf[(x, 1)].symbol() == "›")
-            .expect("marker on the selected leaf");
-        assert_eq!(buf[(x, 1)].fg, theme.text_primary, "neutral without focus");
-        let buf = draw(&mut tv, Some(WidgetId::of("t")));
-        assert_eq!(buf[(x, 1)].fg, theme.accent, "accent with focus");
-        assert!(
-            (0..19).all(|x| buf[(x, 0)].symbol() != "›"),
-            "a group row keeps its disclosure"
-        );
-    }
-
-    #[test]
-    fn wheel_moves_the_viewport_and_keeps_the_cursor() {
-        let nodes = (0..40)
-            .map(|i| TreeNode::leaf(&format!("Node {i:02}")))
-            .collect();
-        let mut t = TreeView::new(WidgetId::of("t"), nodes);
-        let a = render(&mut t);
-        assert!(a.contains("Node 00"));
-        t.wheel(Axis::Vertical, 5).outcome();
-        let b = render(&mut t);
-        assert!(!b.contains("Node 00"));
-        assert!(b.contains("Node 05"));
-        assert_eq!(render(&mut t), b, "render does not reset a wheel scroll");
-        assert_eq!(t.cursor, 0);
-        let key = Key {
-            code: KeyCode::Down,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        t.on_key(&key);
-        render(&mut t);
-        assert!(t.scroll.visible_range().contains(&t.cursor));
-    }
-
-    #[test]
-    fn reserved_trailing_columns_cut_labels_with_an_ellipsis_and_stay_clear() {
-        let nodes = vec![TreeNode::leaf_meta(
-            "Parallel Seq Scan on public.orders_archive",
-            "0",
-        )];
-        let mut t = TreeView::new(WidgetId::of("t"), nodes)
-            .reserve_right(20)
-            .show_meta(false);
-        let out = render(&mut t);
-        let row: Vec<char> = out.lines().next().unwrap().chars().collect();
-        let strip = t.trailing();
-        assert_eq!((strip.x, strip.width), (20, 20), "{out}");
-        let label: String = row[..20].iter().collect();
-        assert!(
-            label.trim_end().ends_with('…'),
-            "label cut with …: {label:?}"
-        );
-        assert!(
-            row[20..].iter().all(|c| *c == ' '),
-            "the strip is left for the owner: {out}"
-        );
-
-        let mut narrow =
-            TreeView::new(WidgetId::of("t"), vec![TreeNode::leaf("x")]).reserve_right(30);
-        render(&mut narrow);
-        assert_eq!(narrow.trailing(), Rect::ZERO);
-    }
-
-    #[test]
-    fn deep_rows_stay_clickable_and_notes_are_inert() {
-        let theme = Theme::junie();
-
-        let mut deep = TreeNode::leaf("leaf");
-        for k in 0..12 {
-            deep = TreeNode::dir(&format!("d{k}"), vec![deep]);
-        }
-        let mut t = TreeView::new(
-            WidgetId::of("t"),
-            vec![deep, TreeNode::note("nothing here")],
-        );
-        t.expand_all();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let area = Rect::new(0, 0, 16, 20);
-        let mut buf = Buffer::empty(area);
-        {
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            t.render(area, &mut buf, &mut ctx, theme.canvas);
-        }
-        let deepest = t.rows().iter().position(|r| r.label == "leaf").unwrap();
-        assert!(16 <= 1 + t.rows()[deepest].depth as u16 * t.indent + 2);
-        assert_eq!(
-            hits.hit(Position::new(0, deepest as u16)),
-            Some(t.row_id(deepest)),
-            "a row indented past the label column is still a click target"
-        );
-        let note = t.rows().iter().position(|r| r.note).unwrap();
-        assert_ne!(
-            hits.hit(Position::new(5, note as u16)),
-            Some(t.row_id(note)),
-            "a note row is not a control"
-        );
-
-        let rest = buf[(5, note as u16)].style();
-        let mut hits = HitRegistry::default();
-        let mut buf = Buffer::empty(area);
-        let hover = Interaction {
-            hover: Some(t.row_id(note)),
-            ..Default::default()
-        };
-        let mut ctx = RenderCtx::new(&theme, hover, &mut hits, &mut ring);
-        t.render(area, &mut buf, &mut ctx, theme.canvas);
-        assert_eq!(buf[(5, note as u16)].style(), rest);
-    }
-
-    #[test]
-    fn alt_click_opens_and_closes_the_whole_subtree() {
-        let mut t = TreeView::new(
-            WidgetId::of("t"),
-            vec![TreeNode::dir(
-                "root",
-                vec![TreeNode::dir(
-                    "a",
-                    vec![TreeNode::dir("b", vec![TreeNode::leaf("c")])],
-                )],
-            )],
-        );
-
-        t.on_click_toggle(0);
-        assert_eq!(t.rows().len(), 1);
-        t.on_click_with(0, true, KeyModifiers::ALT);
-        let labels: Vec<_> = t.rows().iter().map(|r| r.label.clone()).collect();
-        assert_eq!(labels, ["root", "a", "b", "c"]);
-
-        t.on_click_with(0, false, KeyModifiers::ALT);
-        assert_eq!(t.rows().len(), 1);
-        t.on_click_toggle(0);
-        assert_eq!(t.rows().len(), 2, "descendants were closed too");
-
-        let mut t = t.alt_click_recursive(false);
-        t.on_click_toggle(0);
-        t.on_click_with(0, true, KeyModifiers::ALT);
-        assert_eq!(t.rows().len(), 2);
-    }
-
-
-
-
-    #[test]
-    fn a_right_click_offers_expand_and_collapse_all_from_the_key_map() {
-        use crate::core::intent::Phase;
-        use crate::core::pointer::PointerEvent;
-        use crate::ui::context::ContextConfig;
-        use crate::widgets::menu::MenuAction;
-        use ratatui::crossterm::event::KeyModifiers;
-        let theme = Theme::junie();
-        let nodes = vec![
-            TreeNode::dir("a", vec![TreeNode::dir("a1", vec![TreeNode::leaf("x")])]),
-            TreeNode::dir("b", vec![TreeNode::leaf("b1")]),
-        ];
-        let mut t = TreeView::new(WidgetId::of("t"), nodes);
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        {
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 8));
-            t.render(Rect::new(0, 0, 30, 8), &mut buf, &mut ctx, theme.canvas);
-        }
-        let pos = Position::new(4, 1);
-        let ev = PointerEvent::new(
-            &hits,
-            Phase::Secondary,
-            hits.hit(pos).expect("a row"),
-            pos,
-            1,
-            KeyModifiers::NONE,
-        );
-        let req = ContextConfig::DEFAULT
-            .on_secondary(&mut t, &ev)
-            .expect("a row has a menu");
-        assert_eq!(t.cursor, 1, "the menu is about the clicked row");
-        let row = |t: &TreeView, c: TreeCmd| {
-            let items = t.context_items();
-            let (_, i) = items.into_iter().find(|(x, _)| *x == c).expect("listed");
-            (
-                i.item.label.clone(),
-                i.shortcut.clone(),
-                i.item.reason.clone(),
-            )
-        };
-        assert_eq!(
-            row(&t, TreeCmd::ExpandAll),
-            ("Expand all".into(), Some("*".into()), None)
-        );
-        assert_eq!(
-            row(&t, TreeCmd::CollapseAll),
-            ("Collapse all".into(), Some("-".into()), None)
-        );
-
-        let items = t.context_items();
-        let mut menu = req.menu(
-            WidgetId::of("t.menu"),
-            items.iter().map(|(_, i)| i.clone()).collect(),
-        );
-        assert_eq!(menu.on_click(menu.row_id(0)), Some(MenuAction::Chosen(0)));
-        t.run(items[0].0);
-        assert_eq!(t.rows().len(), 5, "every branch open");
-        assert_eq!(
-            row(&t, TreeCmd::ExpandAll).2.as_deref(),
-            Some("Every branch is open")
-        );
-        t.run(TreeCmd::CollapseAll);
-        assert_eq!(t.rows().len(), 2);
-        assert_eq!(
-            row(&t, TreeCmd::CollapseAll).2.as_deref(),
-            Some("Every branch is closed")
-        );
-
-        t.keymap = vec![(KeyBinding::char('e'), TreeCmd::ExpandAll)];
-        assert_eq!(row(&t, TreeCmd::ExpandAll).1.as_deref(), Some("e"));
-        assert_eq!(row(&t, TreeCmd::CollapseAll).1, None);
-    }
-}

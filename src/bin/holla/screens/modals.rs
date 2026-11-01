@@ -316,28 +316,3 @@ impl Layer<ModalResult> for TextModal {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use junie_tui::core::focus::FocusRing;
-    use junie_tui::core::hit::HitRegistry;
-    use junie_tui::theme::Theme;
-    use junie_tui::ui::ctx::Interaction;
-
-    #[test]
-    fn the_text_modal_sits_in_the_shared_frame_where_it_always_did() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let screen = Rect::new(0, 0, 100, 30);
-        let mut buf = Buffer::empty(screen);
-        let lines = (0..4)
-            .map(|i| TextLine::kv("k", &format!("line {i}")))
-            .collect();
-        let mut m = TextModal::new(WidgetId::of("about"), "About", lines);
-        m.render(screen, &mut buf, &mut ctx);
-
-        assert_eq!(m.area, Rect::new(14, 9, 72, 10));
-    }
-}

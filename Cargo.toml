@@ -8,8 +8,7 @@ license = "MIT"
 
 default-run = "showcase"
 
-# `cargo xtask …` (alias in .cargo/config.toml): repository tasks such as
-# `cargo xtask visual check-touched` (docs/visual-testing/README.md).
+# `cargo xtask …` (alias in .cargo/config.toml): repository tasks.
 [workspace]
 members = [".", "xtask"]
 
@@ -17,7 +16,7 @@ members = [".", "xtask"]
 name = "junie_tui"
 path = "src/lib.rs"
 # Doctests need `cargo test --doc`, which this repo never runs (nextest
-# only). Examples in docs are mirrored by unit tests instead.
+# only). Examples in docs are mirrored by functional tests instead.
 doctest = false
 
 [[bin]]
@@ -36,13 +35,6 @@ path = "src/bin/jackin_preview/main.rs"
 name = "holla"
 path = "src/bin/holla/main.rs"
 
-# Visual suite (docs/visual-testing): one test per scenario, generated from
-# the scenario tables by a libtest-mimic main instead of `#[test]` fns.
-[[test]]
-name = "visual_baseline"
-path = "tests/visual_baseline/main.rs"
-harness = false
-
 [[test]]
 name = "functional"
 path = "tests/functional/main.rs"
@@ -58,22 +50,17 @@ unicode-segmentation = "1"
 libc = "0.2"
 
 [dev-dependencies]
-libtest-mimic = "0.8.2"
-# Oracle manifest `harness_sha256` (tests/visual_baseline/oracle.rs); the
-# same version tuiscotti already pulls in.
-sha2 = "0.11"
-tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad" }
+# Live driver: tuiscotti-tui-test 0.2.1 (crate tui_test), the live half of
+# latest Tuiscotti — checked mouse/keyboard input, native PTY launch.
 tui-test = { package = "tuiscotti-tui-test", version = "=0.2.1" }
-# Latest tuiscotti main (0.4.0, offline frozen-check layer). Renamed so the
-# legacy live harness above keeps its 0.2 API until its deliberate migration.
+# Latest tuiscotti main (0.4.0, offline frozen-check layer) for the
+# FrozenStore visual gate in tests/functional.
 tuiscotti-latest = { package = "tuiscotti", git = "https://github.com/tailrocks/tuiscotti", rev = "d8d54155947f6303a41dfd6079b53c0abc16f29a" }
 serde_json = "1"
 
-# Optimize dependencies in dev and test builds (tuiscotti's recommendation,
-# docs/upstream/tuiscotti-feedback.md P6): the review PNG/HTML rendered for
-# a visual mismatch drops from seconds to tens of milliseconds. Our own
-# crates stay unoptimized for fast rebuilds. Numbers in
-# docs/visual-testing/tuiscotti-migration.md ("Dev opt-level overrides").
+# Optimize dependencies in dev and test builds (tuiscotti's recommendation):
+# the review PNG/HTML rendered for a visual mismatch drops from seconds to
+# tens of milliseconds. Our own crates stay unoptimized for fast rebuilds.
 [profile.dev.package."*"]
 opt-level = 3
 

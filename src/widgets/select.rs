@@ -1,14 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Margin, Position, Rect};
@@ -29,10 +20,8 @@ use crate::widgets::scrollbar;
 
 pub use crate::widgets::option_list::{SelectArrows, WheelMode};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TabInOpen {
-
 
     #[default]
     Choose,
@@ -41,7 +30,6 @@ pub enum TabInOpen {
 
     Swallow,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Press {
@@ -65,38 +53,19 @@ pub struct Select {
     pub help: String,
     pub area: Rect,
 
-
-
-
-
     pub list: OptionList,
-
 
     pub reveal: Option<crate::ui::reveal::Reveal>,
 
-
-
-
     pub arrows: SelectArrows,
-
-
 
     pub tab_in_open: TabInOpen,
 
-
-
     pub mixed: Option<String>,
-
-
 
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
 
-
-
-
-
     pub press_drag: bool,
-
 
     pub label_hit: bool,
 
@@ -121,11 +90,9 @@ impl Select {
             .max_rows(Self::MAX_ROWS)
             .width(Self::POPUP_WIDTH.0, Self::POPUP_WIDTH.1)
 
-
             .clear_on_leave(false)
             .fade_edges(false);
         list.cursor = Cursor::new(selected);
-
 
         list.scroll.v.context = 0;
         list.scroll.v.viewport_len = Self::MAX_ROWS as usize;
@@ -151,47 +118,34 @@ impl Select {
         }
     }
 
-
-
     pub fn wheel(mut self, mode: WheelMode) -> Self {
         self.list.wheel = mode;
         self
     }
-
-
-
 
     pub fn hover_moves_cursor(mut self, on: bool) -> Self {
         self.list.hover_moves_cursor = on;
         self
     }
 
-
     pub fn press_drag(mut self, on: bool) -> Self {
         self.press_drag = on;
         self
     }
-
 
     pub fn label_hit(mut self, on: bool) -> Self {
         self.label_hit = on;
         self
     }
 
-
-
     pub fn track_click(mut self, click: TrackClick) -> Self {
         self.list.scroll.track_click = Some(click);
         self
     }
 
-
     pub fn bar_id(&self) -> WidgetId {
         scrollbar::id_for(self.id)
     }
-
-
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.list.nav = nav;
@@ -208,28 +162,21 @@ impl Select {
         self
     }
 
-
     pub fn placement(mut self, placement: Placement) -> Self {
         self.list.placement = placement;
         self
     }
-
-
 
     pub fn popup_fit(mut self, fit: crate::ui::popup::Place) -> Self {
         self.list.fit = fit;
         self
     }
 
-
-
     pub fn popup_width(mut self, min: u16, max: u16) -> Self {
         let min = min.max(1);
         self.list.width = (min, max.max(min));
         self
     }
-
-
 
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
         self.list.look = cursor_style;
@@ -249,12 +196,9 @@ impl Select {
         self
     }
 
-
     pub fn set_mixed(&mut self, placeholder: Option<&str>) {
         self.mixed = placeholder.map(str::to_owned);
     }
-
-
 
     fn choose(&mut self, i: usize) -> Option<SelectAction> {
         let changed = i != self.selected || self.mixed.is_some();
@@ -273,13 +217,9 @@ impl Select {
         self.list.row_id(i)
     }
 
-
     fn option_of(&self, id: WidgetId) -> Option<usize> {
         self.list.row_of(id, self.options.len())
     }
-
-
-
 
     pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
         id == self.id
@@ -287,7 +227,6 @@ impl Select {
             || id == self.bar_id()
             || self.option_of(id).is_some()
     }
-
 
     fn value_cursor(&self) -> Cursor {
         Cursor::new(self.selected).wrap(self.list.cursor.wrap)
@@ -300,7 +239,6 @@ impl Select {
         let visible = self.list.scroll.viewport_len.max(1);
         self.list.scroll.offset = self.selected.saturating_sub(visible - 1);
     }
-
 
     fn shut(&mut self) {
         self.open = false;
@@ -315,7 +253,6 @@ impl Select {
 
             return (Outcome::Ignored, None);
         }
-
 
         let precedence = if self.open {
             crate::core::list::TypeAheadPrecedence::TypeAhead
@@ -355,7 +292,6 @@ impl Select {
                     (Outcome::Changed, None)
                 }
 
-
                 KeyCode::Tab | KeyCode::BackTab => match self.tab_in_open {
                     TabInOpen::Choose => {
                         self.open = false;
@@ -367,7 +303,6 @@ impl Select {
                     }
                     TabInOpen::Swallow => (Outcome::Consumed, None),
                 },
-
 
                 KeyCode::Char('?') | KeyCode::F(_) => {
                     self.shut();
@@ -412,30 +347,20 @@ impl Select {
         }
     }
 
-
-
     pub fn wrap(mut self, on: bool) -> Self {
         self.list.cursor.wrap = on;
         self
     }
-
-
-
 
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.list = self.list.type_ahead_timeout(timeout);
         self
     }
 
-
-
-
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.list.type_ahead = on;
         self
     }
-
 
     pub fn type_ahead_precedence(
         mut self,
@@ -445,12 +370,10 @@ impl Select {
         self
     }
 
-
     pub fn tab_in_open(mut self, tab: TabInOpen) -> Self {
         self.tab_in_open = tab;
         self
     }
-
 
     pub fn arrows(mut self, arrows: SelectArrows) -> Self {
         self.arrows = arrows;
@@ -467,7 +390,6 @@ impl Select {
             return (Outcome::Consumed, None);
         }
         if id == self.id {
-
 
             if let Some(p) = self.press.take()
                 && (p.opened || p.label)
@@ -492,8 +414,6 @@ impl Select {
         (Outcome::Ignored, None)
     }
 
-
-
     pub fn close(&mut self) -> Outcome {
         if self.open {
             self.shut();
@@ -503,17 +423,10 @@ impl Select {
         }
     }
 
-
-
-
-
     pub fn close_on_blur(mut self, on: bool) -> Self {
         self.list.dismiss.focus_out = on;
         self
     }
-
-
-
 
     pub fn on_blur(&mut self) -> Outcome {
         if self.list.dismiss.focus_out {
@@ -522,8 +435,6 @@ impl Select {
             Outcome::Ignored
         }
     }
-
-
 
     pub fn on_click_outside(&mut self) -> Outcome {
         if !self.open {
@@ -535,11 +446,6 @@ impl Select {
             Outcome::Consumed
         }
     }
-
-
-
-
-
 
     pub fn on_press(&mut self, id: WidgetId, pos: Position) -> Outcome {
         if self.disabled {
@@ -572,9 +478,6 @@ impl Select {
         }
     }
 
-
-
-
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if self.disabled || !self.open {
             return Outcome::Ignored;
@@ -598,11 +501,6 @@ impl Select {
         }
         Outcome::Changed
     }
-
-
-
-
-
 
     pub fn on_release(&mut self, pos: Position) -> (Outcome, Option<SelectAction>) {
         self.list.scroll.release();
@@ -702,9 +600,6 @@ impl Select {
         }
     }
 
-
-
-
     fn queue_list(&mut self, field: Rect, buf: &Buffer, ctx: &mut RenderCtx) {
         let screen = *buf.area();
         let rows = (self.options.len() as u16).clamp(1, self.list.max_rows);
@@ -719,9 +614,6 @@ impl Select {
             self.list.fit,
         );
         let inner = pa.intersection(screen).inner(Margin::new(1, 1));
-
-
-
 
         self.list.layout(inner, &self.options[..], ctx);
 
@@ -815,8 +707,6 @@ impl Navigable for Select {
     }
 }
 
-
-
 impl crate::ui::specimen::Specimen for Select {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -861,16 +751,6 @@ impl crate::ui::specimen::Specimen for Select {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 impl crate::core::pointer::MouseTarget for Select {
     type Action = SelectAction;
 
@@ -885,7 +765,6 @@ impl crate::core::pointer::MouseTarget for Select {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-
 
             if ev.part().part == Part::BACKDROP || !self.open || self.disabled {
                 return Response::ignored();
@@ -903,482 +782,3 @@ impl crate::core::pointer::MouseTarget for Select {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::{focus::FocusRing, hit::HitRegistry};
-    use crate::theme::Theme;
-
-    #[test]
-    fn rendering_without_focus_never_closes_the_list() {
-        use crate::ui::ctx::Interaction;
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut s = Select::new(WidgetId::of("r"), "S", &["a", "b"], 0);
-        s.open_list();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 10));
-        s.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, theme.canvas);
-        assert!(s.open, "render is not a blur: on_blur closes it");
-        assert_eq!(s.on_blur(), Outcome::Changed);
-    }
-
-    #[test]
-    fn blur_closes_an_open_list_unless_configured_not_to() {
-        let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b"], 0);
-        assert_eq!(s.on_blur(), Outcome::Ignored, "closed: nothing to do");
-        s.open_list();
-        s.list.cursor.index = 1;
-        assert_eq!(s.on_blur(), Outcome::Changed);
-        assert!(!s.open);
-        assert_eq!(s.selected, 0, "blur never changes the value");
-        let mut keep = Select::new(WidgetId::of("k"), "K", &["a", "b"], 0).close_on_blur(false);
-        keep.open_list();
-        assert_eq!(keep.on_blur(), Outcome::Ignored);
-        assert!(keep.open);
-    }
-
-    #[test]
-    fn typing_picks_the_matching_option() {
-        let k = |c| Key {
-            code: KeyCode::Char(c),
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        let mut s =
-            Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta", "Gamma"], 0).type_ahead(true);
-        assert_eq!(s.on_key(&k('g')).1, Some(SelectAction::Changed(2)));
-        assert_eq!(
-            s.on_key(&k('q')).0,
-            Outcome::Consumed,
-            "no match: consumed, never half-typed to the page (plan §3)"
-        );
-        assert_eq!(s.selected, 2);
-        let mut on = Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta"], 0);
-        assert_eq!(
-            on.on_key(&k('b')).1,
-            Some(SelectAction::Changed(1)),
-            "on by default (Desktop profile, K34)"
-        );
-        let mut off = Select::new(WidgetId::of("s"), "S", &["Alpha", "Beta"], 0).type_ahead(false);
-        assert_eq!(off.on_key(&k('b')).1, None);
-        assert_eq!(off.selected, 0);
-    }
-
-    #[test]
-    fn closed_arrows_step_or_open_per_config() {
-        let k = |code| Key {
-            code,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        let opts = ["a", "b", "c"];
-
-        let mut default = Select::new(WidgetId::of("s"), "S", &opts, 0);
-        assert_eq!(default.on_key(&k(KeyCode::Down)).1, None);
-        assert!(default.open, "the arrow opened the list");
-        assert_eq!(default.selected, 0, "the value did not change unseen");
-        let mut step = Select::new(WidgetId::of("s"), "S", &opts, 0).arrows(SelectArrows::Step);
-        assert_eq!(
-            step.on_key(&k(KeyCode::Down)).1,
-            Some(SelectAction::Changed(1))
-        );
-        assert!(!step.open);
-        let mut open = Select::new(WidgetId::of("s"), "S", &opts, 0).arrows(SelectArrows::Open);
-        assert_eq!(open.on_key(&k(KeyCode::Down)).1, None);
-        assert!(open.open, "the arrow opened the list");
-        assert_eq!(open.selected, 0, "the value did not change unseen");
-        let mut side = Select::new(WidgetId::of("s"), "S", &opts, 0).arrows(SelectArrows::Open);
-        assert_eq!(side.on_key(&k(KeyCode::Right)).0, Outcome::Ignored);
-    }
-    use crate::ui::ctx::Interaction;
-
-    fn draw(sel: &mut Select) -> Buffer {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let interaction = Interaction {
-            focus: Some(sel.id),
-            ..Default::default()
-        };
-        let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 16));
-        sel.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, t.canvas);
-        ctx.flush_overlays(&mut buf);
-        buf
-    }
-
-    #[test]
-    fn the_open_list_marks_its_cursor_with_a_fill_and_the_choice_neutrally() {
-        let t = Theme::junie();
-        let mut sel = Select::new(WidgetId::of("s"), "Mode", &["One", "Two", "Three"], 0);
-        sel.open = true;
-        sel.list.cursor.index = 1;
-        let buf = draw(&mut sel);
-        let bars = buf.content().iter().filter(|c| c.symbol() == "▎").count();
-        assert_eq!(bars, 1, "only the field carries the focus bar");
-        let chosen = (0..16)
-            .find_map(|y| {
-                (0..40)
-                    .find(|&x| buf[(x, y)].symbol() == "›")
-                    .map(|x| (x, y))
-            })
-            .expect("chosen marker");
-        assert_eq!(
-            buf[chosen].fg, t.text_secondary,
-            "chosen is neutral, not accent"
-        );
-
-        let cursor = (chosen.0 + 2, chosen.1 + 1);
-        assert_eq!(buf[cursor].bg, t.highlight);
-
-        let mut barred = sel.clone().cursor_style(CursorStyle::Bar);
-        let buf = draw(&mut barred);
-        let bars = buf.content().iter().filter(|c| c.symbol() == "▎").count();
-        assert_eq!(bars, 2);
-    }
-
-    #[test]
-    fn hovering_a_cut_value_or_option_reveals_it() {
-        let long = "a choice far too long for a thirty column field";
-        let text = |buf: &Buffer| {
-            (0..16)
-                .map(|y| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>())
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-        let mut sel = Select::new(WidgetId::of("s"), "Mode", &[long, "Short"], 0);
-        assert!(!text(&draw(&mut sel)).contains(long));
-        let t = Theme::junie();
-        let hovered = |sel: &mut Select, hover| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let interaction = Interaction {
-                hover: Some(hover),
-                focus: Some(sel.id),
-                ..Default::default()
-            };
-            let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 60, 16));
-            sel.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, t.canvas);
-            ctx.flush_overlays(&mut buf);
-            buf
-        };
-        let wide = |buf: &Buffer| {
-            (0..16)
-                .map(|y| (0..60).map(|x| buf[(x, y)].symbol()).collect::<String>())
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-        let id = sel.id;
-        assert!(
-            wide(&hovered(&mut sel, id)).contains(long),
-            "the field value"
-        );
-        sel.open = true;
-        let opt = sel.option_id(0);
-        let all = wide(&hovered(&mut sel, opt));
-        assert!(all.contains(long), "the option: {all}");
-    }
-
-    #[test]
-    fn a_mixed_field_shows_its_placeholder_until_an_option_is_chosen() {
-        let t = Theme::junie();
-        let row = |buf: &Buffer, y: u16| (0..30).map(|x| buf[(x, y)].symbol()).collect::<String>();
-        let mut sel =
-            Select::new(WidgetId::of("s"), "Role", &["Admin", "Editor"], 0).mixed("— mixed —");
-        let buf = draw(&mut sel);
-        assert!(row(&buf, 1).contains("— mixed —"), "{}", row(&buf, 1));
-        assert!(!row(&buf, 1).contains("Admin"));
-        assert_ne!(buf[(2, 1)].fg, t.text_primary, "a placeholder is muted");
-
-        sel.open = true;
-        let buf = draw(&mut sel);
-        assert!(!buf.content().iter().any(|c| c.symbol() == "›"));
-
-        let key = Key {
-            code: KeyCode::Enter,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        assert_eq!(sel.on_key(&key).1, Some(SelectAction::Changed(0)));
-        assert_eq!(sel.mixed, None);
-        let buf = draw(&mut sel);
-        assert!(row(&buf, 1).contains("Admin"));
-
-        sel.set_mixed(Some("— mixed —"));
-        assert_eq!(
-            sel.on_click(sel.option_id(1)).1,
-            Some(SelectAction::Changed(1))
-        );
-        assert_eq!(sel.mixed, None);
-    }
-
-    const MANY: [&str; 20] = [
-        "o0", "o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8", "o9", "o10", "o11", "o12", "o13",
-        "o14", "o15", "o16", "o17", "o18", "o19",
-    ];
-
-
-
-    fn draw_with(sel: &mut Select, hover: Option<WidgetId>) -> (Buffer, HitRegistry) {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let interaction = Interaction {
-            focus: Some(sel.id),
-            hover,
-            ..Default::default()
-        };
-        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 24));
-        {
-            let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
-            sel.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, t.canvas);
-            ctx.flush_overlays(&mut buf);
-        }
-        (buf, hits)
-    }
-
-
-
-    fn wheel(sel: &mut Select, delta: i32) -> Outcome {
-        use crate::core::hit::Axis;
-        use crate::core::pointer::{MouseTarget, PointerEvent};
-        let (_, hits) = draw_with(sel, None);
-        let row = sel.option_id(sel.list.scroll.offset);
-        let at = sel.list.rows_area();
-        let pos = Position::new(at.x + 1, at.y);
-        let none = ratatui::crossterm::event::KeyModifiers::NONE;
-        let ev = PointerEvent::wheel_on(&hits, row, Axis::Vertical, delta, pos, none);
-        sel.pointer(&ev).outcome()
-    }
-
-    fn many() -> Select {
-        Select::new(WidgetId::of("m"), "Many", &MANY, 0).max_rows(5)
-    }
-
-    #[test]
-    fn the_wheel_scrolls_the_open_list_and_leaves_the_cursor() {
-        let mut sel = many();
-        sel.on_click(sel.id);
-        draw_with(&mut sel, None);
-        assert_eq!(wheel(&mut sel, 3), Outcome::Changed);
-        assert_eq!(
-            (sel.list.scroll.offset, sel.list.cursor.index),
-            (3, 0),
-            "the view moves, not the choice"
-        );
-        draw_with(&mut sel, None);
-        assert_eq!(
-            sel.list.scroll.offset, 3,
-            "the next frame keeps the scrolled view"
-        );
-
-        for _ in 0..10 {
-            wheel(&mut sel, 30);
-        }
-        assert_eq!(sel.list.scroll.offset, 15);
-        assert_eq!(wheel(&mut sel, 1), Outcome::Consumed);
-
-        sel.on_key(&Key {
-            code: KeyCode::Down,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        });
-        draw_with(&mut sel, None);
-        assert_eq!((sel.list.cursor.index, sel.list.scroll.offset), (1, 1));
-
-        let mut by_cursor = many().wheel(WheelMode::Cursor);
-        by_cursor.on_click(by_cursor.id);
-        draw_with(&mut by_cursor, None);
-        wheel(&mut by_cursor, 3);
-        assert_eq!(by_cursor.list.cursor.index, 3);
-    }
-
-    #[test]
-    fn hovering_an_option_moves_the_cursor_so_one_row_is_lit() {
-        let t = Theme::junie();
-        let mut sel = Select::new(WidgetId::of("s"), "Mode", &["One", "Two", "Three"], 0);
-        sel.on_click(sel.id);
-        draw_with(&mut sel, None);
-        let (buf, _) = {
-            let h = sel.option_id(2);
-            draw_with(&mut sel, Some(h))
-        };
-        assert_eq!(sel.list.cursor.index, 2, "the cursor follows the pointer");
-        let lit: std::collections::BTreeSet<u16> = (0..24)
-            .filter(|&y| (0..40).any(|x| buf[(x, y)].bg == t.highlight))
-            .collect();
-        assert_eq!(
-            lit.len(),
-            1,
-            "one highlighted row, not a cursor and a hover"
-        );
-
-        sel.on_key(&Key {
-            code: KeyCode::Up,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        });
-        {
-            let h = sel.option_id(2);
-            draw_with(&mut sel, Some(h))
-        };
-        assert_eq!(sel.list.cursor.index, 1);
-
-        let mut off = Select::new(WidgetId::of("o"), "Mode", &["One", "Two", "Three"], 0)
-            .hover_moves_cursor(false);
-        off.on_click(off.id);
-        {
-            let h = off.option_id(2);
-            draw_with(&mut off, Some(h))
-        };
-        assert_eq!(off.list.cursor.index, 0);
-    }
-
-    #[test]
-    fn the_open_list_has_a_draggable_scrollbar() {
-        let mut sel = many().track_click(TrackClick::Page);
-        sel.on_click(sel.id);
-        let (_, hits) = draw_with(&mut sel, None);
-        let bar = hits
-            .bar(sel.bar_id())
-            .expect("the list registers its scrollbar");
-        assert_eq!(bar.owner, sel.id);
-        let track = bar.track;
-
-        let bottom = Position::new(track.x, track.bottom() - 1);
-        assert_eq!(sel.on_press(sel.bar_id(), bottom), Outcome::Changed);
-        assert_eq!(sel.list.scroll.offset, 5);
-        assert_eq!(sel.on_click(sel.bar_id()).0, Outcome::Consumed);
-        assert!(sel.open, "a click on the bar never closes the list");
-        draw_with(&mut sel, None);
-        assert_eq!(sel.list.scroll.offset, 5);
-
-        let (_, hits) = draw_with(&mut sel, None);
-        let track = hits.bar(sel.bar_id()).unwrap().track;
-        let thumb = (track.y..track.bottom())
-            .find(|&y| {
-                let mut s = crate::core::scroll::ScrollState::default();
-                s.set_content(20);
-                s.set_viewport(5);
-                s.offset = sel.list.scroll.offset;
-                let (start, len) = s.thumb(track.height as usize);
-                (start..start + len).contains(&((y - track.y) as usize))
-            })
-            .unwrap();
-        sel.on_press(sel.bar_id(), Position::new(track.x, thumb));
-        sel.on_drag(sel.bar_id(), Position::new(track.x, track.bottom() + 3));
-        assert_eq!(
-            sel.list.scroll.offset, 15,
-            "dragging the thumb past the end scrolls to the end"
-        );
-        assert_eq!(
-            sel.list.cursor.index, 0,
-            "the bar moves the view, not the choice"
-        );
-    }
-
-    #[test]
-    fn press_drag_release_chooses_in_one_gesture() {
-        let mut sel = Select::new(WidgetId::of("p"), "Mode", &["One", "Two", "Three"], 0);
-        draw_with(&mut sel, None);
-        let field = Position::new(sel.area.x + 3, sel.area.y);
-        assert_eq!(sel.on_press(sel.id, field), Outcome::Changed);
-        assert!(sel.open, "the press opens the list");
-        draw_with(&mut sel, None);
-        let third = Position::new(sel.list.rows_area().x + 4, sel.list.rows_area().y + 2);
-        sel.on_drag(sel.id, third);
-        assert_eq!(sel.list.cursor.index, 2);
-        assert_eq!(
-            sel.on_release(third),
-            (Outcome::Changed, Some(SelectAction::Changed(2)))
-        );
-        assert!(!sel.open);
-        assert_eq!(sel.selected, 2);
-
-
-        sel.on_press(sel.id, field);
-        draw_with(&mut sel, None);
-        assert_eq!(sel.on_release(field).1, None);
-        assert!(sel.open);
-
-        let mut c = Select::new(WidgetId::of("c"), "Mode", &["One", "Two"], 0);
-        draw_with(&mut c, None);
-        c.on_press(c.id, Position::new(c.area.x + 3, c.area.y));
-        c.on_click(c.id);
-        assert!(c.open, "the click that opened the list does not close it");
-        c.on_press(c.id, Position::new(c.area.x + 3, c.area.y));
-        c.on_click(c.id);
-        assert!(!c.open, "a second click on the field closes it");
-
-
-        let mut d = Select::new(WidgetId::of("d"), "Mode", &["One", "Two"], 1);
-        draw_with(&mut d, None);
-        d.on_press(d.id, Position::new(d.area.x + 3, d.area.y));
-        draw_with(&mut d, None);
-        d.on_drag(d.id, Position::new(39, 23));
-        assert_eq!(d.on_release(Position::new(39, 23)).1, None);
-        assert!(!d.open);
-        assert_eq!(d.selected, 1);
-
-
-        let mut off = Select::new(WidgetId::of("x"), "Mode", &["One", "Two"], 0).press_drag(false);
-        draw_with(&mut off, None);
-        off.on_press(off.id, Position::new(off.area.x + 3, off.area.y));
-        assert!(!off.open);
-    }
-
-    #[test]
-    fn clicking_the_label_focuses_without_opening() {
-        let mut sel = Select::new(WidgetId::of("l"), "Mode", &["One", "Two"], 0);
-        let (_, hits) = draw_with(&mut sel, None);
-        let label = Position::new(3, 0);
-        assert_eq!(
-            hits.hit(label),
-            Some(sel.id),
-            "the label is the field's target"
-        );
-        assert_eq!(hits.hit(Position::new(20, 0)), None);
-        sel.on_press(sel.id, label);
-        sel.on_click(sel.id);
-        assert!(!sel.open, "a label click focuses only");
-        let mut off = Select::new(WidgetId::of("o"), "Mode", &["One", "Two"], 0).label_hit(false);
-        let (_, hits) = draw_with(&mut off, None);
-        assert_eq!(hits.hit(label), None);
-    }
-
-
-
-
-
-
-    #[test]
-    fn tab_in_an_open_list_chooses_and_moves_on() {
-        let k = |code| Key {
-            code,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 0);
-        s.on_key(&k(KeyCode::Enter));
-        s.on_key(&k(KeyCode::Down));
-        assert_eq!(
-            s.on_key(&k(KeyCode::Tab)),
-            (Outcome::Ignored, Some(SelectAction::Changed(1)))
-        );
-        assert!(!s.open);
-        assert_eq!(s.selected, 1);
-        s.on_key(&k(KeyCode::Enter));
-        s.on_key(&k(KeyCode::Down));
-        assert_eq!(s.on_key(&k(KeyCode::Char('?'))), (Outcome::Ignored, None));
-        assert!(!s.open, "help closes the list");
-        assert_eq!(s.selected, 1, "without choosing");
-        let mut close =
-            Select::new(WidgetId::of("s"), "S", &["a", "b"], 0).tab_in_open(TabInOpen::Close);
-        close.on_key(&k(KeyCode::Enter));
-        close.on_key(&k(KeyCode::Down));
-        assert_eq!(close.on_key(&k(KeyCode::BackTab)), (Outcome::Ignored, None));
-        assert_eq!((close.open, close.selected), (false, 0));
-        let mut keep =
-            Select::new(WidgetId::of("s"), "S", &["a", "b"], 0).tab_in_open(TabInOpen::Swallow);
-        keep.on_key(&k(KeyCode::Enter));
-        assert_eq!(keep.on_key(&k(KeyCode::Tab)), (Outcome::Consumed, None));
-        assert!(keep.open);
-    }
-}

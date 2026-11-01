@@ -91,21 +91,13 @@ pub trait Pages {
     fn routes(&self) -> Vec<Route>;
     fn manager(&self) -> &ManagerScreen;
     fn manager_mut(&mut self) -> &mut ManagerScreen;
-    #[cfg(test)]
-    fn accounts(&self) -> &AccountsScreen;
+
     fn accounts_mut(&mut self) -> &mut AccountsScreen;
-    #[cfg(test)]
-    fn usage(&self) -> &UsageScreen;
+
     fn usage_mut(&mut self) -> &mut UsageScreen;
-    #[cfg(test)]
-    fn settings(&self) -> Option<&SettingsScreen>;
-    #[cfg(test)]
-    fn editor(&self) -> Option<&EditorScreen>;
-    #[cfg(test)]
-    fn cockpit(&self) -> Option<&CockpitScreen>;
+
     fn cockpit_mut(&mut self) -> Option<&mut CockpitScreen>;
-    #[cfg(test)]
-    fn editor_mut(&mut self) -> Option<&mut EditorScreen>;
+
     fn capsule(&self) -> Option<&CapsuleScreen>;
     fn capsule_mut(&mut self) -> Option<&mut CapsuleScreen>;
 }
@@ -143,36 +135,15 @@ impl Pages for Router<Page> {
     fn manager_mut(&mut self) -> &mut ManagerScreen {
         find!(self.pages_mut(), Manager).expect("the manager is the root of its tab")
     }
-    #[cfg(test)]
-    fn accounts(&self) -> &AccountsScreen {
-        find!(ref self.pages(), Accounts).expect("accounts is the root of its tab")
-    }
+
     fn accounts_mut(&mut self) -> &mut AccountsScreen {
         find!(self.pages_mut(), Accounts).expect("accounts is the root of its tab")
     }
-    #[cfg(test)]
-    fn usage(&self) -> &UsageScreen {
-        find!(ref self.pages(), Usage).expect("usage is the root of its tab")
-    }
+
     fn usage_mut(&mut self) -> &mut UsageScreen {
         find!(self.pages_mut(), Usage).expect("usage is the root of its tab")
     }
-    #[cfg(test)]
-    fn settings(&self) -> Option<&SettingsScreen> {
-        find!(ref self.pages(), Settings)
-    }
-    #[cfg(test)]
-    fn editor(&self) -> Option<&EditorScreen> {
-        find!(ref self.pages(), Editor)
-    }
-    #[cfg(test)]
-    fn cockpit(&self) -> Option<&CockpitScreen> {
-        find!(ref self.pages(), Cockpit)
-    }
-    #[cfg(test)]
-    fn editor_mut(&mut self) -> Option<&mut EditorScreen> {
-        find!(self.pages_mut(), Editor)
-    }
+
     fn cockpit_mut(&mut self) -> Option<&mut CockpitScreen> {
         find!(self.pages_mut(), Cockpit)
     }

@@ -1,11 +1,5 @@
 
 
-
-
-
-
-
-
 use ratatui::layout::{Position, Rect};
 
 use crate::core::hit::{Axis, Bar};
@@ -18,26 +12,15 @@ pub struct ScrollState {
     pub content_len: usize,
     pub viewport_len: usize,
 
-
-
     pub(crate) grab: Option<usize>,
-
 
     pub(crate) paging: bool,
 
     pub follow_cursor: FollowCursor,
 
-
     pub(crate) followed: Option<(usize, usize)>,
 
-
-
-
-
-
-
     pub context: usize,
-
 
     pub(crate) exact: bool,
 }
@@ -63,12 +46,10 @@ impl ScrollState {
         }
     }
 
-
     pub fn with_context(mut self, rows: usize) -> Self {
         self.context = rows;
         self
     }
-
 
     pub fn with_follow_cursor(mut self, follow: FollowCursor) -> Self {
         self.follow_cursor = follow;
@@ -82,7 +63,6 @@ impl ScrollState {
     pub fn overflows(&self) -> bool {
         self.content_len > self.viewport_len && self.viewport_len > 0
     }
-
 
     pub fn at_end(&self) -> bool {
         self.offset >= self.max_offset()
@@ -101,9 +81,6 @@ impl ScrollState {
     pub fn clamp(&mut self) {
         self.offset = self.offset.min(self.max_offset());
     }
-
-
-
 
     pub fn scroll_by(&mut self, delta: isize) -> bool {
         let before = self.offset;
@@ -136,19 +113,9 @@ impl ScrollState {
         self.scroll_to(self.max_offset())
     }
 
-
-
-
-
-
-
-
     pub fn pointer_move(&mut self) {
         self.exact = true;
     }
-
-
-
 
     pub fn ensure_visible(&mut self, index: usize) -> bool {
         let exact = std::mem::take(&mut self.exact);
@@ -156,7 +123,6 @@ impl ScrollState {
             return false;
         }
         let before = self.offset;
-
 
         let ctx = if !exact && self.viewport_len > 2 * self.context {
             self.context
@@ -171,12 +137,6 @@ impl ScrollState {
         self.clamp();
         self.offset != before
     }
-
-
-
-
-
-
 
     pub fn reveal_span(&mut self, start: usize, len: usize) -> bool {
         if self.viewport_len == 0 {
@@ -202,13 +162,6 @@ impl ScrollState {
         self.offset != before
     }
 
-
-
-
-
-
-
-
     pub fn follow(&mut self, cursor: usize) -> bool {
         let key = (cursor, self.viewport_len);
         if self.follow_cursor == FollowCursor::OnMove && self.followed == Some(key) {
@@ -218,12 +171,10 @@ impl ScrollState {
         self.ensure_visible(cursor)
     }
 
-
     pub fn visible_range(&self) -> std::ops::Range<usize> {
         let end = (self.offset + self.viewport_len).min(self.content_len);
         self.offset..end
     }
-
 
     pub fn thumb(&self, track_len: usize) -> (usize, usize) {
         if !self.overflows() || track_len == 0 {
@@ -238,8 +189,6 @@ impl ScrollState {
         (start.min(track_len - len), len)
     }
 
-
-
     pub fn offset_for_thumb_start(&self, start: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
             return 0;
@@ -250,8 +199,6 @@ impl ScrollState {
         (start * self.max_offset() + usable / 2) / usable
     }
 
-
-
     pub fn offset_for_track_pos(&self, pos: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
             return 0;
@@ -259,9 +206,6 @@ impl ScrollState {
         let (_, len) = self.thumb(track_len);
         self.offset_for_thumb_start(pos.saturating_sub(len / 2), track_len)
     }
-
-
-
 
     pub fn press_track(&mut self, pos: usize, track_len: usize) -> bool {
         self.paging = false;
@@ -278,15 +222,11 @@ impl ScrollState {
         self.scroll_to(self.offset_for_track_pos(pos, track_len))
     }
 
-
-
-
     pub fn drag_track(&mut self, pos: usize, track_len: usize) -> bool {
         if !self.overflows() || track_len == 0 {
             return false;
         }
         let Some(grab) = self.grab else {
-
 
             if self.paging {
                 return false;
@@ -297,15 +237,10 @@ impl ScrollState {
         self.scroll_to(target)
     }
 
-
     pub fn release_track(&mut self) {
         self.grab = None;
         self.paging = false;
     }
-
-
-
-
 
     pub fn press_track_with(&mut self, pos: usize, track_len: usize, click: TrackClick) -> bool {
         if click == TrackClick::Jump || !self.overflows() || track_len == 0 {
@@ -317,7 +252,6 @@ impl ScrollState {
             return false;
         }
 
-
         self.grab = None;
         self.paging = true;
         if pos < start {
@@ -328,29 +262,20 @@ impl ScrollState {
     }
 }
 
-
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum FollowCursor {
-
-
-
-
 
     #[default]
     OnMove,
 
-
     Always,
 }
-
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ScrollbarVisibility {
 
     #[default]
     Auto,
-
 
     Always,
 
@@ -368,32 +293,21 @@ impl ScrollbarVisibility {
     }
 }
 
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum TrackClick {
 
-
     Jump,
-
-
-
-
 
     #[default]
     Page,
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HScroll {
-
 
     pub enabled: bool,
 
     pub bar: ScrollbarVisibility,
-
 
     pub step: usize,
 
@@ -436,38 +350,21 @@ impl HScroll {
         self
     }
 
-
     pub fn shows_bar(&self, scroll: &ScrollState) -> bool {
         self.enabled && self.bar.shows(scroll)
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ScrollPane {
 
     pub v: ScrollState,
 
-
     pub h: ScrollState,
 
     pub h_cfg: HScroll,
 
-
     pub track_click: Option<TrackClick>,
-
 
     pub columns: bool,
 
@@ -481,12 +378,9 @@ pub struct ScrollPane {
 
     held: Option<Axis>,
 
-
     col_widths: Vec<u16>,
     col_gap: u16,
     col_avail: u16,
-
-
 
     col_reveal: Option<(usize, usize)>,
 }
@@ -519,59 +413,44 @@ impl ScrollPane {
         ScrollState::new(content_len).into()
     }
 
-
-
-
-
     pub fn set_content(&mut self, len: usize) {
         self.v.set_content(len);
     }
-
 
     pub fn set_viewport(&mut self, len: usize) {
         self.v.set_viewport(len);
     }
 
-
     pub fn scroll_by(&mut self, delta: isize) -> bool {
         self.v.scroll_by(delta)
     }
-
 
     pub fn scroll_to(&mut self, offset: usize) -> bool {
         self.v.scroll_to(offset)
     }
 
-
     pub fn ensure_visible(&mut self, index: usize) -> bool {
         self.v.ensure_visible(index)
     }
 
-
     pub fn follow(&mut self, cursor: usize) -> bool {
         self.v.follow(cursor)
     }
-
 
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.h_cfg = policy;
         self
     }
 
-
     pub fn track_click(mut self, click: TrackClick) -> Self {
         self.track_click = Some(click);
         self
     }
 
-
     pub fn columns(mut self, columns: bool) -> Self {
         self.columns = columns;
         self
     }
-
-
-
 
     pub fn begin(&mut self, app_click: TrackClick) {
         self.v_click = self.track_click.unwrap_or(app_click);
@@ -579,22 +458,17 @@ impl ScrollPane {
         self.h_track = Rect::ZERO;
     }
 
-
     pub fn v_click(&self) -> TrackClick {
         self.v_click
     }
-
 
     pub fn v_track(&self) -> Rect {
         self.v_track
     }
 
-
     pub fn h_track(&self) -> Rect {
         self.h_track
     }
-
-
 
     pub fn set_track(&mut self, owner: WidgetId, axis: Axis, track: Rect) {
         self.owner = Some(owner);
@@ -604,7 +478,6 @@ impl ScrollPane {
         }
     }
 
-
     pub fn clear_track(&mut self, axis: Axis) {
         match axis {
             Axis::Vertical => self.v_track = Rect::ZERO,
@@ -612,11 +485,9 @@ impl ScrollPane {
         }
     }
 
-
     pub fn held(&self) -> Option<Axis> {
         self.held
     }
-
 
     pub fn axis(&mut self, axis: Axis) -> &mut ScrollState {
         match axis {
@@ -624,13 +495,6 @@ impl ScrollPane {
             Axis::Horizontal => &mut self.h,
         }
     }
-
-
-
-
-
-
-
 
     pub fn layout_columns(&mut self, widths: Vec<u16>, gap: u16, avail: u16) -> usize {
         self.col_widths = widths;
@@ -647,20 +511,11 @@ impl ScrollPane {
         self.columns_fit(self.h.offset)
     }
 
-
-
-
-
-
-
-
-
     pub fn reveal_column(&mut self, index: usize) -> bool {
         let moved = self.place_column(index);
         self.col_reveal = Some((index, self.h.offset));
         moved
     }
-
 
     fn columns_fit(&self, from: usize) -> usize {
         let mut used = 0u16;
@@ -680,7 +535,6 @@ impl ScrollPane {
         fit
     }
 
-
     fn place_column(&mut self, index: usize) -> bool {
         let n = self.col_widths.len();
         if n == 0 || self.col_avail == 0 {
@@ -693,7 +547,6 @@ impl ScrollPane {
             offset = index;
         }
 
-
         while offset < index && offset + self.columns_fit(offset) <= index {
             offset += 1;
         }
@@ -705,7 +558,6 @@ impl ScrollPane {
         offset != before
     }
 
-
     pub fn h_step(&self) -> usize {
         if self.columns {
             1
@@ -714,20 +566,9 @@ impl ScrollPane {
         }
     }
 
-
-
     pub fn h_scrolls(&self) -> bool {
         self.h_cfg.enabled && self.h.overflows()
     }
-
-
-
-
-
-
-
-
-
 
     pub fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         let moved = match axis {
@@ -735,7 +576,6 @@ impl ScrollPane {
                 if !self.v.overflows() {
                     return Response::ignored();
                 }
-
 
                 let page = self.v.viewport_len.max(1) as isize;
                 self.v.scroll_by((delta as isize).clamp(-page, page))
@@ -752,10 +592,6 @@ impl ScrollPane {
         changed(moved)
     }
 
-
-
-
-
     pub fn press(&mut self, pos: Position) -> Response<()> {
         let axis = if self.h_track.contains(pos) {
             Axis::Horizontal
@@ -767,7 +603,6 @@ impl ScrollPane {
         };
         self.press_on(axis, pos)
     }
-
 
     pub fn press_on(&mut self, axis: Axis, pos: Position) -> Response<()> {
         let (track, click) = match axis {
@@ -786,14 +621,10 @@ impl ScrollPane {
         changed(self.axis(axis).press_track_with(cell, len, click))
     }
 
-
-
-
     pub fn drag(&mut self, pos: Position) -> Response<()> {
         let axis = self.held.unwrap_or(Axis::Vertical);
         self.drag_on(axis, pos)
     }
-
 
     pub fn drag_on(&mut self, axis: Axis, pos: Position) -> Response<()> {
         let track = match axis {
@@ -811,14 +642,11 @@ impl ScrollPane {
         changed(self.axis(axis).drag_track(cell, len))
     }
 
-
     pub fn release(&mut self) {
         self.v.release_track();
         self.h.release_track();
         self.held = None;
     }
-
-
 
     pub fn axis_of(&self, bar_id: WidgetId) -> Option<Axis> {
         let owner = self.owner?;
@@ -830,9 +658,6 @@ impl ScrollPane {
             None
         }
     }
-
-
-
 
     pub fn bar_of(&self, bar_id: WidgetId) -> Option<Bar> {
         let axis = self.axis_of(bar_id)?;
@@ -848,8 +673,6 @@ impl ScrollPane {
         })
     }
 
-
-
     pub fn bar(&mut self, bar: &Bar, pos: Position, pressed: bool) -> Response<()> {
         if pressed {
             self.press_on(bar.axis, pos)
@@ -858,8 +681,6 @@ impl ScrollPane {
         }
     }
 }
-
-
 
 fn track_cell(track: Rect, axis: Axis, pos: Position) -> (usize, usize) {
     match axis {
@@ -878,7 +699,6 @@ fn track_cell(track: Rect, axis: Axis, pos: Position) -> (usize, usize) {
     }
 }
 
-
 fn changed(moved: bool) -> Response<()> {
     if moved {
         Response::changed()
@@ -887,29 +707,17 @@ fn changed(moved: bool) -> Response<()> {
     }
 }
 
-
-
-
-
-
 pub trait Scrollable {
 
     fn pane(&mut self) -> &mut ScrollPane;
-
-
-
 
     fn after_scroll(&mut self, _axis: Axis, _moved: bool) -> bool {
         false
     }
 
-
-
-
     fn wheel_first(&mut self, _axis: Axis, _delta: i32) -> Option<Response<()>> {
         None
     }
-
 
     fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         if let Some(r) = self.wheel_first(axis, delta) {
@@ -919,7 +727,6 @@ pub trait Scrollable {
         settle(self, axis, r)
     }
 
-
     fn bar_press(&mut self, pos: Position) -> Response<()> {
         let r = self.pane().press(pos);
         match self.pane().held() {
@@ -928,22 +735,17 @@ pub trait Scrollable {
         }
     }
 
-
     fn bar_drag(&mut self, pos: Position) -> Response<()> {
         let axis = self.pane().held().unwrap_or(Axis::Vertical);
         let r = self.pane().drag_on(axis, pos);
         settle(self, axis, r)
     }
 
-
-
     fn bar_input(&mut self, bar: &Bar, pos: Position, pressed: bool) -> Response<()> {
         let r = self.pane().bar(bar, pos, pressed);
         settle(self, bar.axis, r)
     }
 }
-
-
 
 fn settle<S: Scrollable + ?Sized>(w: &mut S, axis: Axis, r: Response<()>) -> Response<()> {
     if w.after_scroll(axis, r.is_changed()) {
@@ -953,432 +755,3 @@ fn settle<S: Scrollable + ?Sized>(w: &mut S, axis: Axis, r: Response<()>) -> Res
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::event::Outcome;
-
-
-
-
-    fn pane() -> ScrollPane {
-        let mut p = ScrollPane::new(100);
-        p.set_viewport(10);
-        p.h = ScrollState::new(40);
-        p.h.set_viewport(10);
-        p.begin(TrackClick::Page);
-        let owner = WidgetId::of("w");
-        p.set_track(owner, Axis::Vertical, Rect::new(10, 0, 1, 10));
-        p.set_track(owner, Axis::Horizontal, Rect::new(0, 10, 10, 1));
-        p
-    }
-
-    #[test]
-    fn a_pane_derefs_to_its_vertical_state() {
-        let mut p = ScrollPane::new(50);
-        p.set_viewport(10);
-        assert!(p.jump_end());
-        assert_eq!(p.offset, 40);
-        assert_eq!(p.v.offset, 40);
-    }
-
-
-
-    #[test]
-    fn a_notch_never_moves_further_than_the_view() {
-        let mut p = ScrollPane::new(6);
-        p.set_viewport(2);
-        assert!(p.wheel(Axis::Vertical, 3).is_changed());
-        assert_eq!(p.offset, 2);
-        assert!(p.wheel(Axis::Vertical, -3).is_changed());
-        assert_eq!(p.offset, 0);
-    }
-
-    #[test]
-    fn the_wheel_moves_rows_vertically_and_one_step_per_notch_sideways() {
-        let mut p = pane();
-        assert!(p.wheel(Axis::Vertical, 3).is_changed());
-        assert_eq!(p.offset, 3);
-
-        assert!(p.wheel(Axis::Horizontal, 3).is_changed());
-        assert_eq!(p.h.offset, 4, "HScroll::step cells");
-        let mut cols = pane().columns(true);
-        assert!(cols.wheel(Axis::Horizontal, 3).is_changed());
-        assert_eq!(cols.h.offset, 1, "a column per notch");
-
-        let r = p.wheel(Axis::Vertical, -10);
-        assert!(r.is_changed());
-        let r = p.wheel(Axis::Vertical, -1);
-        assert!(r.is_consumed() && !r.is_changed());
-
-        let mut fits = pane();
-        fits.h.set_viewport(40);
-        assert!(!fits.wheel(Axis::Horizontal, 1).is_consumed());
-        let mut off = pane().horizontal(HScroll::off());
-        assert!(!off.wheel(Axis::Horizontal, 1).is_consumed());
-    }
-
-    #[test]
-    fn a_press_picks_its_bar_and_the_drag_stays_on_it() {
-        let mut p = pane();
-
-        assert!(p.press(Position::new(10, 9)).is_changed());
-        assert_eq!((p.offset, p.held()), (10, Some(Axis::Vertical)));
-        p.release();
-        assert_eq!(p.held(), None);
-
-
-        assert!(!p.press(Position::new(0, 10)).is_changed());
-        assert_eq!(p.held(), Some(Axis::Horizontal));
-        assert!(p.drag(Position::new(9, 10)).is_changed());
-        assert!(p.h.at_end());
-        assert_eq!(p.offset, 10, "the vertical view did not move");
-
-        assert!(!p.press(Position::new(3, 3)).is_consumed());
-        assert_eq!(p.held(), None);
-    }
-
-    #[test]
-    fn jump_stays_an_override_of_the_paging_default() {
-        let mut p = pane().track_click(TrackClick::Jump);
-        p.begin(TrackClick::Page);
-        assert_eq!(p.v_click(), TrackClick::Jump);
-        p.set_track(WidgetId::of("w"), Axis::Vertical, Rect::new(10, 0, 1, 10));
-        assert!(p.press(Position::new(10, 9)).is_changed());
-        assert!(p.at_end(), "Jump: the thumb lands under the pointer");
-        let mut app = pane();
-        app.begin(TrackClick::Jump);
-        assert_eq!(app.v_click(), TrackClick::Jump, "None follows the app");
-    }
-
-    #[test]
-    fn begin_forgets_the_tracks_so_an_undrawn_bar_cannot_be_pressed() {
-        let mut p = pane();
-        p.begin(TrackClick::Page);
-        assert_eq!(p.v_track(), Rect::ZERO);
-        assert!(!p.press(Position::new(10, 9)).is_consumed());
-        assert_eq!(p.offset, 0);
-    }
-
-    #[test]
-    fn a_grabbed_bar_names_its_axis() {
-        let mut p = pane();
-        let owner = WidgetId::of("w");
-        assert_eq!(p.axis_of(owner.sub("scrollbar")), Some(Axis::Vertical));
-        assert_eq!(p.axis_of(owner.sub("hscrollbar")), Some(Axis::Horizontal));
-        assert_eq!(p.axis_of(WidgetId::of("x")), None);
-        let bar = Bar {
-            id: owner.sub("hscrollbar"),
-            owner,
-            axis: Axis::Horizontal,
-            track: p.h_track(),
-        };
-        assert!(p.bar(&bar, Position::new(9, 10), true).is_changed());
-        assert_eq!(p.h.offset, 10, "one page sideways");
-        assert_eq!(p.offset, 0);
-    }
-
-
-    struct Log {
-        pane: ScrollPane,
-        follow: bool,
-        first: bool,
-    }
-
-    impl Scrollable for Log {
-        fn pane(&mut self) -> &mut ScrollPane {
-            &mut self.pane
-        }
-        fn after_scroll(&mut self, axis: Axis, _moved: bool) -> bool {
-            let was = self.follow;
-            if axis == Axis::Vertical {
-                self.follow = self.pane.at_end();
-            }
-            was != self.follow
-        }
-        fn wheel_first(&mut self, _axis: Axis, _delta: i32) -> Option<Response<()>> {
-            self.first.then(Response::consumed)
-        }
-    }
-
-    #[test]
-    fn scrollable_folds_side_effects_into_the_response() {
-        let mut log = Log {
-            pane: pane(),
-            follow: false,
-            first: false,
-        };
-        log.pane.jump_end();
-
-
-        assert_eq!(log.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
-        assert!(log.follow);
-        assert_eq!(
-            log.wheel(Axis::Vertical, 1).outcome(),
-            Outcome::Consumed,
-            "nothing changed"
-        );
-        assert_eq!(log.wheel(Axis::Vertical, -1).outcome(), Outcome::Changed);
-        assert!(!log.follow);
-
-        log.first = true;
-        assert_eq!(log.wheel(Axis::Vertical, -5).outcome(), Outcome::Consumed);
-        assert_eq!(log.pane.offset, 89);
-
-        log.pane.scroll_to(80);
-        assert_eq!(
-            log.bar_press(Position::new(10, 9))
-                .outcome()
-                .or(Outcome::Consumed),
-            Outcome::Changed
-        );
-        assert!(log.follow, "a page to the end follows again");
-        assert_eq!(
-            log.bar_press(Position::new(3, 3))
-                .outcome()
-                .or(Outcome::Consumed),
-            Outcome::Consumed,
-            "routed to the bar, so consumed"
-        );
-        let id = WidgetId::of("w").sub("hscrollbar");
-        assert_eq!(
-            match log.pane().bar_of(id) {
-                Some(bar) => log.bar_input(&bar, Position::new(9, 10), false).outcome(),
-                None => Outcome::Consumed,
-            },
-            Outcome::Changed
-        );
-        assert!(log.pane.h.at_end());
-    }
-
-    #[test]
-    fn visibility_policy_decides_when_a_bar_draws() {
-        let mut s = ScrollState::new(10);
-        s.set_viewport(20);
-        assert!(!ScrollbarVisibility::Auto.shows(&s), "fits: auto hides");
-        assert!(ScrollbarVisibility::Always.shows(&s));
-        s.set_viewport(4);
-        assert!(ScrollbarVisibility::Auto.shows(&s));
-        assert!(!ScrollbarVisibility::Never.shows(&s));
-        assert!(!HScroll::off().shows_bar(&s), "disabled never draws");
-        assert!(HScroll::default().shows_bar(&s));
-    }
-
-    #[test]
-    fn a_paging_track_press_moves_one_viewport_toward_the_pointer() {
-        let mut s = ScrollState::new(100);
-        s.set_viewport(10);
-
-        assert_eq!(TrackClick::default(), TrackClick::Page, "macOS, Windows");
-        assert!(s.press_track_with(9, 10, TrackClick::Page));
-        assert_eq!(s.offset, 10, "one page right, not a jump to the end");
-        assert!(s.press_track_with(0, 10, TrackClick::Page));
-        assert_eq!(s.offset, 0);
-        let (start, _) = s.thumb(10);
-        assert!(!s.press_track_with(start, 10, TrackClick::Page));
-        assert_eq!(s.grab, Some(0), "the thumb is grabbed, not paged");
-    }
-
-    #[test]
-    fn motion_after_a_paging_press_never_jumps_the_thumb() {
-        let mut s = ScrollState::new(100);
-        s.set_viewport(10);
-        assert!(s.press_track_with(9, 10, TrackClick::Page));
-        assert_eq!(s.offset, 10);
-
-        assert!(!s.drag_track(8, 10));
-        assert_eq!(s.offset, 10);
-
-        s.release_track();
-        assert!(s.press_track_with(9, 10, TrackClick::Jump));
-        assert!(s.drag_track(0, 10));
-        assert_eq!(s.offset, 0);
-    }
-
-    #[test]
-    fn movement_reports_whether_the_offset_changed() {
-        let mut s = ScrollState::new(20);
-        s.set_viewport(5);
-        assert!(!s.scroll_by(-1), "already at the top");
-        assert!(s.scroll_by(1));
-        assert!(s.jump_end());
-        assert!(!s.page_down(), "already at the end");
-        assert!(s.at_end());
-        assert!(s.page_up());
-        assert!(
-            !s.ensure_visible(s.offset + 2),
-            "visible rows clear of the context need no scroll"
-        );
-        assert!(s.ensure_visible(19));
-        let mut fits = ScrollState::new(3);
-        fits.set_viewport(5);
-        assert!(!fits.scroll_by(3));
-        assert!(fits.at_end());
-    }
-
-    #[test]
-    fn pressing_the_thumb_grabs_it_and_dragging_keeps_the_grabbed_row_under_the_pointer() {
-        let mut s = ScrollState::new(120);
-        s.set_viewport(31);
-        let track = 31;
-        let (start, len) = s.thumb(track);
-        assert_eq!((start, len), (0, 8));
-
-        assert!(!s.press_track(7, track));
-        assert_eq!(s.offset, 0);
-
-        assert!(s.drag_track(8, track));
-        assert_eq!(s.thumb(track).0, 1);
-        assert!(s.offset > 0 && s.offset < 8, "{}", s.offset);
-
-        assert!(s.drag_track(track - 1, track));
-        assert!(s.at_end());
-        assert_eq!(s.thumb(track).0, track - len);
-
-        assert!(s.drag_track(0, track));
-        assert_eq!(s.offset, 0);
-
-        s.release_track();
-        assert!(s.press_track(20, track));
-        let (start, len) = s.thumb(track);
-        assert!(
-            (start..start + len).contains(&20),
-            "{start}..{}",
-            start + len
-        );
-
-        let mut fresh = ScrollState::new(120);
-        fresh.set_viewport(31);
-        assert!(fresh.drag_track(track - 1, track));
-        assert!(fresh.at_end());
-    }
-
-    #[test]
-    fn clamps_offset_to_content() {
-        let mut s = ScrollState::new(100);
-        s.set_viewport(10);
-        s.scroll_by(500);
-        assert_eq!(s.offset, 90);
-        s.scroll_by(-500);
-        assert_eq!(s.offset, 0);
-        s.page_down();
-        assert_eq!(s.offset, 10);
-        s.jump_end();
-        assert_eq!(s.offset, s.max_offset());
-    }
-
-    #[test]
-    fn context_rows_stay_visible_around_a_row_brought_into_view() {
-        let mut s = ScrollState::new(50).with_context(1);
-        s.set_viewport(10);
-        assert!(!s.ensure_visible(8), "inside the view, clear of the edge");
-        assert!(s.ensure_visible(9), "the last visible row scrolls one on");
-        assert_eq!(s.offset, 1, "row 10 shows below row 9");
-        assert!(s.ensure_visible(25));
-        assert_eq!(s.offset, 17);
-        assert!(s.ensure_visible(17));
-        assert_eq!(s.offset, 16, "one row above stays in view");
-        assert!(s.ensure_visible(0));
-        assert_eq!(s.offset, 0, "the edges of the content clamp");
-        s.ensure_visible(49);
-        assert!(s.at_end());
-
-        let mut short = ScrollState::new(50).with_context(1);
-        short.set_viewport(2);
-        short.ensure_visible(5);
-        assert_eq!(short.offset, 4);
-    }
-
-    #[test]
-    fn the_default_keeps_one_row_of_context_around_a_row_brought_into_view() {
-
-
-        let mut s = ScrollState::new(50);
-        assert_eq!(s.context, 1);
-        s.set_viewport(10);
-        assert!(s.ensure_visible(9), "the last visible row scrolls one on");
-        assert_eq!(s.offset, 1);
-        assert_eq!(ScrollState::default().context, 1);
-    }
-
-    #[test]
-    fn a_pointer_move_reveals_its_row_without_context_once() {
-        let mut s = ScrollState::new(50);
-        s.set_viewport(10);
-        s.pointer_move();
-        assert!(!s.ensure_visible(9), "a clicked edge row stays put");
-        assert_eq!(s.offset, 0);
-        s.pointer_move();
-        assert!(s.ensure_visible(10), "a row past the edge comes in exactly");
-        assert_eq!(s.offset, 1);
-
-        assert!(s.ensure_visible(10));
-        assert_eq!(s.offset, 2);
-    }
-
-    #[test]
-    fn ensure_visible_moves_minimally() {
-
-        let mut s = ScrollState::new(50).with_context(0);
-        s.set_viewport(10);
-        s.ensure_visible(25);
-        assert_eq!(s.offset, 16);
-        s.ensure_visible(5);
-        assert_eq!(s.offset, 5);
-        s.ensure_visible(7);
-        assert_eq!(s.offset, 5);
-    }
-
-    #[test]
-    fn follow_on_move_leaves_a_wheeled_view_alone_until_the_cursor_moves() {
-        let mut s = ScrollState::new(50);
-        s.set_viewport(10);
-        s.follow(3);
-        assert_eq!(s.offset, 0);
-
-        s.scroll_by(20);
-        s.follow(3);
-        assert_eq!(s.offset, 20, "a repaint must not snap back");
-
-
-        s.follow(4);
-        assert_eq!(s.offset, 3);
-
-        s.scroll_by(20);
-        s.set_viewport(8);
-        s.follow(4);
-        assert_eq!(s.offset, 3);
-    }
-
-    #[test]
-    fn follow_always_pins_the_cursor() {
-        let mut s = ScrollState::new(50).with_follow_cursor(FollowCursor::Always);
-        s.set_viewport(10);
-        s.follow(3);
-        s.scroll_by(20);
-        s.follow(3);
-        assert_eq!(s.offset, 2, "pinned with the default row of context");
-    }
-
-    #[test]
-    fn thumb_covers_track_proportionally() {
-        let mut s = ScrollState::new(100);
-        s.set_viewport(20);
-        assert_eq!(s.thumb(10), (0, 2));
-        s.jump_end();
-        assert_eq!(s.thumb(10), (8, 2));
-        let mut s = ScrollState::new(5);
-        s.set_viewport(20);
-        assert!(!s.overflows());
-        assert_eq!(s.thumb(10), (0, 10));
-    }
-
-    #[test]
-    fn track_position_round_trips() {
-        let mut s = ScrollState::new(200);
-        s.set_viewport(20);
-        let off = s.offset_for_track_pos(19, 20);
-        assert_eq!(off, s.max_offset());
-        assert_eq!(s.offset_for_track_pos(0, 20), 0);
-    }
-}

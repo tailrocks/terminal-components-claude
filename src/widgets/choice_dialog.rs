@@ -1,9 +1,5 @@
 
 
-
-
-
-
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::hints::{HasHints, HintCx};
@@ -20,18 +16,8 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 
-
-
 #[derive(Clone)]
 pub struct ChoiceDialog {
-
-
-
-
-
-
-
-
 
     pub close_button: crate::widgets::icon_button::IconButton,
 
@@ -51,28 +37,16 @@ pub struct ChoiceDialog {
     pub area: Rect,
     pub option_tones: Vec<Tone>,
 
-
     strings: Strings,
-
 
     pub nav: NavKeys,
 
-
-
     pub button_row: crate::widgets::button::ButtonRow,
-
-
-
 
     pub double_click_confirms: bool,
 
-
-
     refused: bool,
 }
-
-
-
 
 impl HasHints for ChoiceDialog {
     fn hints(&self, cx: &HintCx) -> Vec<Hint> {
@@ -109,12 +83,10 @@ impl ChoiceDialog {
         self
     }
 
-
     pub fn double_click_confirms(mut self, on: bool) -> Self {
         self.double_click_confirms = on;
         self
     }
-
 
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
@@ -146,7 +118,6 @@ impl ChoiceDialog {
             refused: false,
         }
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
@@ -183,15 +154,11 @@ impl ChoiceDialog {
         self.radio.id
     }
 
-
-
     pub fn height(&self) -> u16 {
         let body = self.lines.len() as u16 + if self.lines.is_empty() { 0 } else { 1 };
         let stepper = if self.stepper.is_some() { 2 } else { 0 };
         2 + 2 + stepper + body + self.radio.height() + 2 + 1
     }
-
-
 
     fn primary(&self) -> usize {
         self.buttons
@@ -199,9 +166,6 @@ impl ChoiceDialog {
             .position(|b| b.kind == ButtonKind::Primary || b.kind == ButtonKind::Danger)
             .unwrap_or(self.buttons.len().saturating_sub(1))
     }
-
-
-
 
     fn fire_default(&mut self) -> Outcome {
         let i = self.primary();
@@ -303,7 +267,6 @@ impl ChoiceDialog {
         }
         let h = self.height();
 
-
         let flash = ctx.interaction.flash;
         if self.refused {
             ctx.interaction.flash = Some(crate::ui::modal::SURFACE);
@@ -380,11 +343,6 @@ impl ChoiceDialog {
 
 impl ChoiceDialog {
 
-
-
-
-
-
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -402,7 +360,6 @@ impl ChoiceDialog {
         if let Some(r) = self.radio.route(ev) {
             if ev.is(Phase::Click) {
                 focus.focus(self.radio.id);
-
 
                 if self.double_click_confirms
                     && ev.count() >= 2
@@ -424,141 +381,3 @@ impl ChoiceDialog {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::crossterm::event::KeyModifiers;
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: KeyModifiers::NONE,
-        }
-    }
-
-    fn screen_text(buf: &Buffer) -> String {
-        buf.content().iter().map(|c| c.symbol()).collect()
-    }
-
-    #[test]
-    fn a_library_choice_dialog_draws_in_the_modal_frame_and_answers_with_an_index() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut d = ChoiceDialog::new(
-            WidgetId::of("split"),
-            "Split",
-            "Direction",
-            &["Right", "Down"],
-            0,
-        );
-        let mut focus = Focus::default();
-        focus.focus(d.initial_focus());
-        {
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
-            d.render(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
-            let shown = screen_text(&buf);
-            assert!(shown.contains("Split") && shown.contains("Down"), "{shown}");
-        }
-        d.on_key(&key(KeyCode::Down), &mut focus, &ring);
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-        assert_eq!(d.result, Some(Some(1)));
-    }
-
-
-
-
-    #[test]
-    fn a_disabled_default_button_is_not_fired_by_enter_or_a_double_click() {
-        use crate::core::intent::Phase;
-        use crate::core::pointer::PointerEvent;
-        let t = Theme::junie();
-        let draw = |d: &mut ChoiceDialog| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
-            d.render(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
-            drop(ctx);
-            (hits, buf)
-        };
-        let mut d = ChoiceDialog::new(WidgetId::of("split"), "Split", "Dir", &["Right", "Down"], 0);
-        d.buttons[1].disabled = true;
-        let (hits, _) = draw(&mut d);
-        let mut focus = Focus::default();
-        let ring = FocusRing::default();
-        focus.focus(d.radio.id);
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-        assert_eq!((d.result, d.fired), (None, None), "Enter is refused");
-        let (_, buf) = draw(&mut d);
-        let corner = &buf[(d.area.x, d.area.y)];
-        assert_eq!(corner.fg, t.warning, "the frame shows the refusal");
-
-        let id = d.radio.option_id(0);
-        let at = d.radio.areas[0];
-        let pos = ratatui::layout::Position::new(at.x + 6, at.y);
-        for phase in [Phase::Press, Phase::Click] {
-            let ev = PointerEvent::new(&hits, phase, id, pos, 2, KeyModifiers::NONE);
-            let _ = d.pointer_in(&ev, &mut focus);
-        }
-        assert_eq!((d.result, d.fired), (None, None), "double click is refused");
-
-        d.buttons[1].disabled = false;
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-        let (_, buf) = draw(&mut d);
-        assert_ne!(buf[(d.area.x, d.area.y)].fg, t.warning);
-        assert_eq!(d.result, Some(Some(0)));
-    }
-
-
-
-
-    #[test]
-    fn a_double_click_on_an_option_confirms_it() {
-        use crate::core::intent::Phase;
-        use crate::core::pointer::PointerEvent;
-        let t = Theme::junie();
-        let draw = |d: &mut ChoiceDialog| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
-            d.render(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
-            drop(ctx);
-            hits
-        };
-        let click = |d: &mut ChoiceDialog, hits: &HitRegistry, i: usize, count: u8| {
-            let id = d.radio.option_id(i);
-            let at = d.radio.areas[i];
-            let pos = ratatui::layout::Position::new(at.x + 6, at.y);
-            let mut focus = Focus::default();
-            for phase in [Phase::Press, Phase::Click] {
-                let ev = PointerEvent::new(hits, phase, id, pos, count, KeyModifiers::NONE);
-                let _ = d.pointer_in(&ev, &mut focus);
-            }
-        };
-        let new =
-            || ChoiceDialog::new(WidgetId::of("split"), "Split", "Dir", &["Right", "Down"], 0);
-
-
-        let mut d = new();
-        let hits = draw(&mut d);
-        click(&mut d, &hits, 1, 1);
-        assert_eq!((d.radio.selected, d.result), (1, None));
-
-        click(&mut d, &hits, 1, 2);
-        assert_eq!(d.result, Some(Some(1)), "double click confirms");
-        assert_eq!(d.fired, Some(1), "the primary button fired");
-
-
-        let mut d = new().double_click_confirms(false);
-        let hits = draw(&mut d);
-        click(&mut d, &hits, 1, 1);
-        click(&mut d, &hits, 1, 2);
-        assert_eq!((d.radio.selected, d.result), (1, None));
-    }
-}

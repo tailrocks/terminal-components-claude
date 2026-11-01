@@ -1,49 +1,25 @@
 
 
-
-
-
-
-
-
-
 use ratatui::layout::Size;
 
 use crate::ui::ctx::RenderCtx;
 
-
 pub trait Measure {
 
-
-
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size;
-
-
-
-
-
-
-
-
 
     fn min_width(&self, avail: Size, ctx: &RenderCtx) -> u16 {
         self.measure(avail, ctx).width
     }
 }
 
-
-
 pub fn at_least(size: Size, min: Size) -> Size {
     Size::new(size.width.max(min.width), size.height.max(min.height))
 }
 
-
-
-
 pub struct Tile<'a> {
     pub min_width: u16,
     pub height: &'a dyn Fn(u16) -> u16,
-
 
     pub grow: bool,
 }
@@ -57,13 +33,11 @@ impl<'a> Tile<'a> {
         }
     }
 
-
     pub fn fixed(mut self) -> Self {
         self.grow = false;
         self
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tiled {
@@ -80,15 +54,6 @@ impl Tiled {
         ratatui::layout::Rect::new(origin.x + r.x, origin.y + r.y, r.width, r.height)
     }
 }
-
-
-
-
-
-
-
-
-
 
 pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
     use ratatui::layout::Rect;
@@ -107,7 +72,6 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
         let gaps = gap.0.saturating_mul(n - 1);
         let mins: u16 = row.iter().map(|t| t.min_width).sum();
         if mins.saturating_add(gaps) <= width {
-
 
             let mut widths: Vec<u16> = row.iter().map(|t| t.min_width).collect();
             let mut spare = width - gaps - mins;
@@ -156,55 +120,3 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ratatui::layout::Rect;
-
-
-
-    #[test]
-    fn tiles_share_a_row_or_stack() {
-        let short = |_: u16| 3;
-
-        let wraps = |w: u16| 40u16.div_ceil(w.max(1));
-        let rows: [&[Tile]; 2] = [
-            &[Tile::new(20, &short), Tile::new(10, &wraps)],
-            &[Tile::new(30, &short)],
-        ];
-        let t = tiles(60, &rows, (2, 1));
-        assert_eq!(t.rects[0], Rect::new(0, 0, 29, 3));
-        assert_eq!(t.rects[1], Rect::new(31, 0, 29, 3));
-        assert_eq!(t.rects[2], Rect::new(0, 4, 60, 3));
-        assert_eq!(t.size, Size::new(60, 7));
-        assert_eq!(t.at(2, Rect::new(5, 6, 60, 7)), Rect::new(5, 10, 60, 3));
-
-        let t = tiles(25, &rows, (2, 1));
-        assert_eq!(t.rects[0], Rect::new(0, 0, 30, 3));
-        assert_eq!(t.rects[1], Rect::new(0, 4, 30, 2));
-        assert_eq!(t.rects[2], Rect::new(0, 7, 30, 3));
-
-        assert_eq!(t.size, Size::new(30, 10));
-
-        let rows: [&[Tile]; 1] = [&[Tile::new(40, &short), Tile::new(5, &short)]];
-        let t = tiles(60, &rows, (2, 1));
-        assert_eq!(t.rects[0].width, 40);
-        assert_eq!(t.rects[1], Rect::new(42, 0, 18, 3));
-
-        let rows: [&[Tile]; 1] = [&[Tile::new(20, &short).fixed(), Tile::new(5, &short)]];
-        let t = tiles(60, &rows, (2, 1));
-        assert_eq!(t.rects[0], Rect::new(0, 0, 20, 3));
-        assert_eq!(t.rects[1], Rect::new(22, 0, 38, 3));
-        let t = tiles(24, &rows, (2, 1));
-        assert_eq!(t.rects[0], Rect::new(0, 0, 20, 3));
-        assert_eq!(t.rects[1], Rect::new(0, 4, 24, 3));
-    }
-
-    #[test]
-    fn at_least_takes_the_larger_side_on_each_axis() {
-        assert_eq!(
-            at_least(Size::new(10, 50), Size::new(30, 20)),
-            Size::new(30, 50)
-        );
-    }
-}

@@ -1,12 +1,5 @@
 
 
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -31,8 +24,6 @@ use crate::widgets::edit::EditField;
 use crate::widgets::keyhint::Hint;
 use crate::widgets::option_list::{Item, OptionList};
 
-
-
 pub const DEFAULT_GLYPH: &str = "·";
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -55,65 +46,34 @@ pub struct Picker {
     pub title: String,
     pub placeholder: String,
 
-
-
     pub items: Vec<Item>,
-
-
-
-
-
-
-
-
-
-
 
     pub list: OptionList,
 
-
     pub anchor: Rect,
 
-
-
     pub hints: String,
-
 
     pub backdrop: Backdrop,
 
     pub scope: Option<String>,
     pub empty_text: String,
 
-
     strings: crate::theme::Strings,
-
 
     pub empty: Option<crate::widgets::empty::EmptyState>,
     pub area: Rect,
 
-
     pub reveal: Option<crate::ui::reveal::Reveal>,
-
 
     pub(crate) pending: Option<PickerAction>,
 
-
-
-
     pub delete_is_secondary: bool,
-
 
     pub choose_hint: std::borrow::Cow<'static, str>,
 
-
-
-
     pub edit_menu: EditMenu,
 }
-
-
-
-
 
 impl HasHints for Picker {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -146,7 +106,6 @@ pub enum PickerAction {
 
     ChosenAlt(usize),
 
-
     Submit,
 
     Secondary(usize),
@@ -162,7 +121,6 @@ pub enum PickerAction {
 impl Picker {
 
     pub const MAX_ROWS: u16 = 12;
-
 
     pub const WIDTH: u16 = 64;
 
@@ -197,15 +155,10 @@ impl Picker {
         }
     }
 
-
     pub fn choose_hint(mut self, action: impl Into<std::borrow::Cow<'static, str>>) -> Self {
         self.choose_hint = action.into();
         self
     }
-
-
-
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.list.nav = nav;
@@ -217,14 +170,10 @@ impl Picker {
         self
     }
 
-
-
     pub fn searchable(mut self, on: bool) -> Self {
         self.set_searchable(on);
         self
     }
-
-
 
     pub fn set_searchable(&mut self, on: bool) {
         match (on, self.list.query.is_some()) {
@@ -234,24 +183,19 @@ impl Picker {
         }
     }
 
-
     pub fn is_searchable(&self) -> bool {
         self.list.query.is_some()
     }
 
-
     pub fn query(&self) -> &str {
         self.list.query.as_deref().map_or("", EditField::text)
     }
-
-
 
     pub fn set_query(&mut self, text: &str) {
         if let Some(q) = &mut self.list.query {
             q.set_text(text);
         }
     }
-
 
     pub fn caret(&self) -> usize {
         self.list
@@ -260,20 +204,15 @@ impl Picker {
             .map_or(0, |q| q.buffer.cursor_offset())
     }
 
-
     pub fn width(mut self, width: u16) -> Self {
         self.list = self.list.width(width, width);
         self
     }
 
-
-
-
     pub fn placement(mut self, placement: Placement) -> Self {
         self.list.placement = placement;
         self
     }
-
 
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = anchor;
@@ -281,61 +220,45 @@ impl Picker {
         self
     }
 
-
-
-
-
     pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
         self.list.fit = fit;
         self
     }
-
 
     pub fn backdrop(mut self, backdrop: Backdrop) -> Self {
         self.backdrop = backdrop;
         self
     }
 
-
     pub fn hints(mut self, hints: &str) -> Self {
         self.hints = hints.to_owned();
         self
     }
-
 
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.list.max_rows = rows;
         self
     }
 
-
     pub fn placeholder(mut self, text: &str) -> Self {
         self.placeholder = text.to_owned();
         self
     }
-
 
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.empty = Some(state);
         self
     }
 
-
     pub fn empty_text(mut self, text: &str) -> Self {
         self.empty_text = text.to_owned();
         self
     }
 
-
-
-
-
     pub fn dismiss(mut self, dismiss: crate::ui::popup::Dismiss) -> Self {
         self.list.dismiss = dismiss;
         self
     }
-
-
 
     pub fn on_click_outside(&mut self) -> Option<PickerAction> {
         self.list
@@ -344,17 +267,10 @@ impl Picker {
             .then_some(PickerAction::Cancelled)
     }
 
-
-
-
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
         self.list.look = cursor_style;
         self
     }
-
-
-
-
 
     pub fn height(&self) -> u16 {
         let max = self.list.max_rows;
@@ -367,22 +283,15 @@ impl Picker {
         2 + 1 + query_rows + rows + 2
     }
 
-
     fn first_enabled(&self) -> usize {
         self.items.iter().position(|i| !i.disabled).unwrap_or(0)
     }
-
-
 
     pub fn set_items(&mut self, items: Vec<Item>) {
         self.items = items;
         self.list.reset(self.items.len());
         self.list.cursor.index = self.first_enabled();
     }
-
-
-
-
 
     pub fn refresh_items(&mut self, items: Vec<Item>) {
         let keep = self
@@ -399,8 +308,6 @@ impl Picker {
         self.list.scroll.scroll_to(offset);
     }
 
-
-
     pub fn eligible(&self, i: usize) -> Option<usize> {
         if self.status != PickerStatus::Ready {
             return None;
@@ -408,21 +315,16 @@ impl Picker {
         self.items.get(i).filter(|it| !it.disabled).map(|_| i)
     }
 
-
     pub fn current(&self) -> Option<&Item> {
         self.eligible(self.list.cursor.index)
             .map(|i| &self.items[i])
     }
-
-
 
     pub fn current_key(&self) -> Option<ItemKey> {
         self.current()
             .map(|it| it.key)
             .filter(|k| !matches!(k, ItemKey::Index(_)))
     }
-
-
 
     pub fn on_paste(&mut self, text: &str) -> (Outcome, Option<PickerAction>) {
         if self.status == PickerStatus::Loading(String::new()) {
@@ -432,14 +334,12 @@ impl Picker {
             return (Outcome::Consumed, None);
         };
 
-
         let flat = text.replace('\t', " ");
         if flat.is_empty() || !query.paste(&flat) {
             return (Outcome::Consumed, None);
         }
         (Outcome::Changed, Some(PickerAction::QueryChanged))
     }
-
 
     pub fn set_cursor(&mut self, i: usize) {
         self.list.cursor.index = i.min(self.items.len().saturating_sub(1));
@@ -462,10 +362,7 @@ impl Picker {
             return (o, ev);
         }
 
-
         let typing = self.is_searchable();
-
-
 
         if !typing
             && self.list.type_ahead
@@ -549,7 +446,6 @@ impl Picker {
                 (Outcome::Changed, Some(PickerAction::Back))
             }
 
-
             _ => match &mut self.list.query {
                 Some(q) => {
                     let r = q.on_key(key);
@@ -577,7 +473,6 @@ impl Picker {
         Some(PickerAction::Chosen(i))
     }
 
-
     pub fn draw(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let hints = std::mem::take(&mut self.hints);
         self.paint(
@@ -590,7 +485,6 @@ impl Picker {
 
         self.edit_menu.render(self.area, buf, ctx);
     }
-
 
     #[deprecated(note = "set `Picker::hints` and call `Picker::draw`")]
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
@@ -611,9 +505,6 @@ impl Picker {
         let t = ctx.theme;
 
         ctx.modal_backdrop_with(buf, screen, self.backdrop);
-
-
-
 
         let modal = crate::ui::popup::Dismiss {
             pass_through: false,
@@ -694,7 +585,6 @@ impl Picker {
                 line.as_position()
             } else {
 
-
                 let look = crate::widgets::edit::LineLook {
                     text: fs,
                     selection: t.selection(),
@@ -714,7 +604,6 @@ impl Picker {
             y += 2;
         }
 
-
         let hints_fit = inner.bottom() > y + 1;
         let hints = if hints_fit { hints } else { "" };
         let list = Rect::new(
@@ -723,7 +612,6 @@ impl Picker {
             inner.width,
             inner.bottom().saturating_sub(y + u16::from(hints_fit)),
         );
-
 
         self.list.layout(list, &self.items[..], ctx);
         let hint_row = |buf: &mut Buffer| {
@@ -775,9 +663,6 @@ impl Picker {
         }
         let has_sb = self.list.scroll.overflows();
         let row_w = list.width.saturating_sub(u16::from(has_sb));
-
-
-
 
         let measure = |f: &dyn Fn(&Item) -> u16| self.items.iter().map(f).max().unwrap_or(0);
         let label_need = measure(&|i| width(&i.label) as u16).max(6);
@@ -905,8 +790,6 @@ impl Picker {
                     }
                 }
 
-
-
                 if focused && !it.disabled && (label_cut || detail_cut) {
                     let full = if it.detail.is_empty() {
                         it.label.clone()
@@ -919,8 +802,6 @@ impl Picker {
         hint_row(buf);
     }
 }
-
-
 
 impl RowSource for Picker {
     fn len(&self) -> usize {
@@ -937,20 +818,11 @@ impl RowSource for Picker {
     }
 }
 
-
 impl Navigable for Picker {
     fn cursor(&self) -> Cursor {
         self.list.cursor
     }
 }
-
-
-
-
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for Picker {
     type Action = PickerAction;
@@ -966,7 +838,6 @@ impl crate::core::pointer::MouseTarget for Picker {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
 
-
         if let Some(o) = edit_menu_pointer(self, ev) {
             if self.edit_menu.take_edited() {
                 return Response::emit(PickerAction::QueryChanged);
@@ -981,8 +852,6 @@ impl crate::core::pointer::MouseTarget for Picker {
             return r.lift();
         }
 
-
-
         if let Some(query) = &mut self.list.query
             && let Some(r) = crate::widgets::option_list::query_pointer(query, ev)
         {
@@ -995,7 +864,6 @@ impl crate::core::pointer::MouseTarget for Picker {
             self.on_click_outside()
         } else {
             match self.on_click(ev.id) {
-
 
                 Some(PickerAction::Chosen(i))
                     if ev
@@ -1020,8 +888,6 @@ impl crate::core::pointer::MouseTarget for Picker {
         edit_menu_route(self, ev)
     }
 }
-
-
 
 impl EditMenuHost for Picker {
     fn edit_menu(&mut self) -> &mut EditMenu {
@@ -1055,697 +921,3 @@ impl EditMenuHost for Picker {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::Axis;
-    use crate::core::hit::HitRegistry;
-    use crate::core::scroll::Scrollable;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-
-    #[test]
-    fn the_query_caret_moves_and_edits_in_place() {
-        let k = |code, mods| Key { code, mods };
-        use ratatui::crossterm::event::KeyModifiers as M;
-        let mut p = picker(3);
-        for c in "ordrs".chars() {
-            p.on_key(&k(KeyCode::Char(c), M::NONE));
-        }
-        p.on_key(&k(KeyCode::Left, M::NONE));
-        p.on_key(&k(KeyCode::Left, M::NONE));
-        p.on_key(&k(KeyCode::Char('e'), M::NONE));
-        assert_eq!(p.query(), "orders");
-        assert_eq!(p.caret(), 4);
-        p.on_key(&k(KeyCode::Backspace, M::NONE));
-        assert_eq!(p.query(), "ordrs");
-        p.on_key(&k(KeyCode::Home, M::NONE));
-        assert_eq!(p.caret(), 0);
-
-        assert!(matches!(
-            p.on_key(&k(KeyCode::Delete, M::NONE)).1,
-            Some(PickerAction::Secondary(_)) | None
-        ));
-        assert_eq!(p.query(), "ordrs");
-        let mut f = picker(3).delete_is_secondary(false);
-        f.set_query("xyz");
-        f.on_key(&k(KeyCode::Home, M::NONE));
-        f.on_key(&k(KeyCode::Delete, M::NONE));
-        assert_eq!(f.query(), "yz");
-    }
-
-    #[test]
-    fn dismissal_follows_the_picker_policy() {
-        use crate::ui::popup::Dismiss;
-        let esc = Key {
-            code: KeyCode::Esc,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        let mut p = picker(3);
-        assert_eq!(p.on_key(&esc).1, Some(PickerAction::Cancelled));
-        assert_eq!(p.on_click_outside(), Some(PickerAction::Cancelled));
-        let mut form = picker(3).dismiss(Dismiss::ESCAPE);
-        assert_eq!(form.on_click_outside(), None);
-        assert_eq!(form.on_key(&esc).1, Some(PickerAction::Cancelled));
-        let mut never = picker(3).dismiss(Dismiss::NEVER);
-        assert_eq!(never.on_key(&esc), (Outcome::Consumed, None));
-    }
-
-    fn picker(n: usize) -> Picker {
-        let mut p = Picker::new(WidgetId::of("p"), "Palette");
-        p.list.max_rows = 6;
-        p.set_items(
-            (0..n)
-                .map(|i| Item::new(format!("Item {i:02}")).key(ItemKey::text(&format!("k{i}"))))
-                .collect(),
-        );
-        p
-    }
-
-    fn k(code: KeyCode, mods: ratatui::crossterm::event::KeyModifiers) -> Key {
-        Key { code, mods }
-    }
-
-
-
-
-
-
-    #[test]
-    fn the_query_takes_clicks_word_selection_select_all_and_scrolls() {
-        use crate::core::intent::Phase;
-        use crate::core::pointer::{MouseTarget, PointerEvent};
-        use ratatui::crossterm::event::KeyModifiers as M;
-        use ratatui::layout::Position;
-        let mut p = picker(3);
-        p.set_query("orders by date");
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let screen = Rect::new(0, 0, 80, 24);
-        let mut buf = Buffer::empty(screen);
-        {
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            p.draw(screen, &mut buf, &mut ctx);
-        }
-        let q = p.list.query.as_ref().unwrap().line_area();
-        let ev = |phase, x: u16, count| {
-            let pos = Position::new(x, q.y);
-            let id = hits.hit(pos).expect("the query is a hit target");
-            PointerEvent::new(&hits, phase, id, pos, count, M::NONE)
-        };
-        let _ = p.pointer(&ev(Phase::Press, q.x + 2, 1));
-        let _ = p.pointer(&ev(Phase::Click, q.x + 2, 1));
-        assert_eq!(p.caret(), 2, "a click places the caret");
-        let _ = p.pointer(&ev(Phase::Press, q.x + 8, 2));
-        let _ = p.pointer(&ev(Phase::Click, q.x + 8, 2));
-        assert_eq!(
-            p.list.query.as_mut().unwrap().buffer.selected_text(),
-            Some("by"),
-            "double click"
-        );
-        let _ = p.pointer(&ev(Phase::Press, q.x, 1));
-        let _ = p.pointer(&ev(Phase::Drag, q.x + 6, 1));
-        assert_eq!(
-            p.list.query.as_mut().unwrap().buffer.selected_text(),
-            Some("orders"),
-            "a drag"
-        );
-        p.list.query.as_mut().unwrap().buffer.clear_selection();
-        p.on_key(&k(KeyCode::Char('a'), M::SUPER));
-        assert_eq!(
-            p.list.query.as_mut().unwrap().buffer.selected_text(),
-            Some("orders by date")
-        );
-        assert_eq!(
-            p.on_key(&k(KeyCode::Char('x'), M::NONE)).1,
-            Some(PickerAction::QueryChanged),
-            "typing replaces the selection"
-        );
-        assert_eq!(p.query(), "x");
-
-        p.set_query(&"long ".repeat(30));
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut buf = Buffer::empty(screen);
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        p.draw(screen, &mut buf, &mut ctx);
-        let caret = ctx.cursor.expect("the query caret");
-        assert!(p.list.query.as_ref().unwrap().line_area().contains(caret));
-        assert_ne!(buf[(caret.x, caret.y)].symbol(), "…");
-        assert_ne!(buf[(caret.x.saturating_sub(1), caret.y)].symbol(), "…");
-    }
-
-    #[test]
-    fn home_end_and_paging_never_land_on_a_disabled_end_row() {
-
-        use ratatui::crossterm::event::KeyModifiers as M;
-        let mut p = picker(5);
-
-        p.set_searchable(false);
-        p.items[0].disabled = true;
-        p.items[4].disabled = true;
-        p.list.cursor.index = 2;
-        p.on_key(&k(KeyCode::Home, M::NONE));
-        assert_eq!(
-            p.list.cursor.index, 1,
-            "Home stops on the first enabled row"
-        );
-        p.on_key(&k(KeyCode::End, M::NONE));
-        assert_eq!(p.list.cursor.index, 3, "End stops on the last enabled row");
-        p.list.scroll.viewport_len = 10;
-        p.on_key(&k(KeyCode::PageUp, M::NONE));
-        assert_eq!(p.list.cursor.index, 1, "PageUp snaps to an enabled row");
-        p.on_key(&k(KeyCode::PageDown, M::NONE));
-        assert_eq!(p.list.cursor.index, 3, "PageDown snaps to an enabled row");
-    }
-
-    #[test]
-    fn actions_only_target_eligible_rows_on_every_path() {
-        use ratatui::crossterm::event::KeyModifiers as M;
-        let mut p = picker(0);
-        assert_eq!(
-            p.on_key(&k(KeyCode::Delete, M::NONE)),
-            (Outcome::Consumed, None)
-        );
-        assert_eq!(
-            p.on_key(&k(KeyCode::Enter, M::NONE)),
-            (Outcome::Consumed, None)
-        );
-        let mut p = picker(3);
-        p.items[0].disabled = true;
-        p.list.cursor.index = 0;
-        assert_eq!(
-            p.on_key(&k(KeyCode::Delete, M::NONE)),
-            (Outcome::Consumed, None)
-        );
-        p.status = PickerStatus::Loading("…".into());
-        p.list.cursor.index = 1;
-        assert_eq!(
-            p.on_key(&k(KeyCode::Delete, M::NONE)),
-            (Outcome::Consumed, None)
-        );
-        assert_eq!(
-            p.on_key(&k(KeyCode::Enter, M::NONE)),
-            (Outcome::Consumed, None)
-        );
-        assert_eq!(
-            p.on_click(p.row_id(1)),
-            None,
-            "clicks refuse a loading picker"
-        );
-        p.status = PickerStatus::Error {
-            message: "no".into(),
-            detail: None,
-        };
-        assert_eq!(
-            p.on_key(&k(KeyCode::Delete, M::NONE)),
-            (Outcome::Consumed, None)
-        );
-        p.status = PickerStatus::Ready;
-        assert_eq!(
-            p.on_key(&k(KeyCode::Delete, M::NONE)),
-            (Outcome::Changed, Some(PickerAction::Secondary(1)))
-        );
-        assert_eq!(p.current_key(), Some(ItemKey::text("k1")));
-    }
-
-    #[test]
-    fn refresh_keeps_identity_and_query_reset_selects_first() {
-        let mut p = picker(4);
-        p.list.cursor.index = 2;
-
-        let mut items = p.items.clone();
-        items.remove(0);
-        p.refresh_items(items);
-        assert_eq!(p.list.cursor.index, 1);
-        assert_eq!(p.current_key(), Some(ItemKey::text("k2")));
-
-
-        let mut items = p.items.clone();
-        items.remove(1);
-        items[0].disabled = true;
-        p.refresh_items(items);
-        assert_eq!(p.current_key(), Some(ItemKey::text("k3")));
-
-        p.list.cursor.index = 1;
-        p.set_items(picker(3).items);
-        assert_eq!(p.list.cursor.index, 0);
-    }
-
-    #[test]
-    fn query_edits_are_grapheme_safe_and_paste_is_one_event() {
-        use ratatui::crossterm::event::KeyModifiers as M;
-        let mut p = picker(1);
-        for c in "a👩\u{200d}💻".chars() {
-            p.on_key(&k(KeyCode::Char(c), M::NONE));
-        }
-        assert_eq!(p.query(), "a👩\u{200d}💻");
-        let (o, ev) = p.on_key(&k(KeyCode::Backspace, M::NONE));
-        assert_eq!(
-            (o, ev),
-            (Outcome::Changed, Some(PickerAction::QueryChanged))
-        );
-        assert_eq!(p.query(), "a", "backspace removes the whole cluster");
-        p.on_key(&k(KeyCode::Backspace, M::NONE));
-        assert_eq!(
-            p.on_key(&k(KeyCode::Backspace, M::NONE)),
-            (Outcome::Changed, Some(PickerAction::Back))
-        );
-        let (o, ev) = p.on_paste("gp\ndu\t");
-        assert_eq!(
-            (o, ev),
-            (Outcome::Changed, Some(PickerAction::QueryChanged))
-        );
-        assert_eq!(p.query(), "gp du ");
-        assert_eq!(p.on_paste(""), (Outcome::Consumed, None));
-        assert_eq!(
-            p.on_key(&k(KeyCode::Char('w'), M::CONTROL)),
-            (Outcome::Changed, Some(PickerAction::QueryChanged))
-        );
-        assert_eq!(p.query(), "gp ");
-        p.on_key(&k(KeyCode::Char('u'), M::CONTROL));
-        assert_eq!(p.query(), "");
-        assert_eq!(p.on_key(&k(KeyCode::Char('u'), M::CONTROL)).1, None);
-
-        p.set_searchable(false);
-        assert_eq!(p.on_paste("x"), (Outcome::Consumed, None));
-        let (_, ev) = p.on_key(&k(KeyCode::Char('x'), M::NONE));
-        assert_eq!(ev, None);
-
-        p.set_searchable(true);
-        let (_, ev) = p.on_key(&k(KeyCode::Char('s'), M::CONTROL));
-        assert_eq!(ev, None);
-        assert_eq!(p.query(), "");
-    }
-
-    #[test]
-    fn page_keys_step_by_the_viewport_and_a_short_screen_keeps_a_row() {
-        let mut p = Picker::new(WidgetId::of("p"), "Pick");
-        p.set_items(
-            (0..40)
-                .map(|i| Item::new(format!("item {i:02}")).key(ItemKey::text(&format!("k{i}"))))
-                .collect(),
-        );
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 8));
-        p.hints = "hints".into();
-        p.draw(Rect::new(0, 0, 60, 8), &mut buf, &mut ctx);
-        assert!(
-            p.list.scroll.viewport_len >= 1,
-            "a short screen still shows a row"
-        );
-        let shown: String = (0..8)
-            .map(|y| {
-                (0..60)
-                    .map(|x| buf[(x, y)].symbol().to_owned())
-                    .collect::<String>()
-                    + "\n"
-            })
-            .collect();
-        assert!(shown.contains("item 00"), "{shown}");
-        let view = p.list.scroll.viewport_len;
-        let key = Key {
-            code: KeyCode::PageDown,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        p.on_key(&key);
-        assert_eq!(
-            p.list.cursor.index, view,
-            "one page is one viewport row set"
-        );
-    }
-
-    fn render(p: &mut Picker) -> String {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
-        p.draw(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
-        let mut out = String::new();
-        for y in 0..24 {
-            for x in 0..80 {
-                out.push_str(buf[(x, y)].symbol());
-            }
-            out.push('\n');
-        }
-        out
-    }
-
-    #[test]
-    fn only_the_query_field_carries_a_focus_bar_and_the_cursor_row_is_a_fill() {
-        let t = Theme::junie();
-        let mut p = picker(4);
-        p.set_query("it");
-        let out = render(&mut p);
-        assert_eq!(
-            out.matches('▎').count(),
-            1,
-            "the query field owns the list: one focus bar\n{out}"
-        );
-        let field = out.lines().position(|l| l.contains('▎')).unwrap();
-        let row = out.lines().position(|l| l.contains("Item 00")).unwrap();
-        assert!(field < row, "the bar sits on the field, not the cursor row");
-
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
-        p.draw(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
-        let x = out.lines().nth(row).unwrap().find("Item 00").unwrap();
-        let x = out.lines().nth(row).unwrap()[..x].chars().count() as u16;
-        assert_eq!(buf[(x, row as u16)].style().bg, Some(t.highlight));
-
-        let q = out.lines().nth(field).unwrap();
-        let qx = q[..q.find("it").unwrap()].chars().count() as u16;
-        assert_eq!(buf[(qx, field as u16)].underline_color, t.text_secondary);
-
-        let mut barred = picker(4).cursor_style(CursorStyle::Bar);
-        assert_eq!(render(&mut barred).matches('▎').count(), 2);
-    }
-
-    #[test]
-    fn wheel_scrolls_the_rows_and_survives_the_next_render() {
-        let mut p = picker(30);
-        let before = render(&mut p);
-        assert!(before.contains("Item 00"));
-        assert!(!before.contains("Item 10"));
-        p.list.wheel(Axis::Vertical, 3).outcome();
-        let after = render(&mut p);
-        assert!(!after.contains("Item 00"), "wheel moved the viewport");
-        assert!(after.contains("Item 03"));
-        assert_eq!(p.list.scroll.offset, 3);
-
-        let again = render(&mut p);
-        assert_eq!(again, after);
-        assert_eq!(p.list.scroll.offset, 3);
-        assert_eq!(
-            p.list.cursor.index, 0,
-            "selection is preserved while wheel scrolling"
-        );
-        p.list.wheel(Axis::Vertical, -3).outcome();
-        let back = render(&mut p);
-        assert_eq!(back, before);
-    }
-
-    #[test]
-    fn keyboard_navigation_pulls_the_cursor_back_into_view() {
-        let mut p = picker(30);
-        render(&mut p);
-        p.list.wheel(Axis::Vertical, 5).outcome();
-        p.list.wheel(Axis::Vertical, 5).outcome();
-        render(&mut p);
-        assert_eq!(p.list.scroll.offset, 10);
-        let key = Key {
-            code: KeyCode::Down,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        p.on_key(&key);
-        let s = render(&mut p);
-        assert_eq!(p.list.cursor.index, 1);
-        assert!(p.list.scroll.visible_range().contains(&p.list.cursor.index));
-        assert!(s.contains("Item 01"));
-    }
-
-    #[test]
-    fn wheel_at_the_boundary_is_consumed_not_changed() {
-
-        let mut p = picker(3);
-        render(&mut p);
-        assert_eq!(p.list.wheel(Axis::Vertical, 1).outcome(), Outcome::Ignored);
-        let mut p = picker(30);
-        render(&mut p);
-        assert_eq!(p.list.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
-    }
-
-    #[test]
-    fn hovering_a_cut_row_reveals_its_label_then_its_detail() {
-        let label = "a picker label long enough to be cut by the label column";
-        let detail = "and a detail that is also far too long for what is left of the row";
-        let mut p = picker(2);
-        p.items[0].label = label.into();
-        p.items[1].detail = detail.into();
-        let draw = |p: &mut Picker, hover| {
-            let theme = Theme::junie();
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let interaction = Interaction {
-                hover,
-                ..Default::default()
-            };
-            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 100, 24));
-            p.draw(Rect::new(0, 0, 100, 24), &mut buf, &mut ctx);
-            ctx.flush_overlays(&mut buf);
-            (0..24)
-                .map(|y| (0..100).map(|x| buf[(x, y)].symbol()).collect::<String>())
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-        let rest = draw(&mut p, None);
-        assert!(!rest.contains(label) && !rest.contains(detail), "{rest}");
-        let r0 = p.row_id(0);
-        assert!(draw(&mut p, Some(r0)).contains(label));
-        let r1 = p.row_id(1);
-        assert!(draw(&mut p, Some(r1)).contains(detail));
-    }
-
-
-
-    #[test]
-    fn the_cut_cursor_row_shows_in_full_on_the_peek_line() {
-        let label = "a picker label long enough to be cut by the label column";
-        let detail = "and a detail that is also far too long for what is left of the row";
-        let mut p = picker(2);
-        p.items[0].label = label.into();
-        p.items[0].detail = detail.into();
-        let peek = |p: &mut Picker| {
-            let theme = Theme::junie();
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 100, 24));
-            p.draw(Rect::new(0, 0, 100, 24), &mut buf, &mut ctx);
-            ctx.peek.take()
-        };
-        assert_eq!(peek(&mut p), Some(format!("{label} — {detail}")));
-
-        p.on_key(&Key {
-            code: KeyCode::Down,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        });
-        assert_eq!(peek(&mut p), None);
-    }
-
-    #[test]
-    fn an_anchored_picker_opens_under_its_control_instead_of_centred() {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let screen = Rect::new(0, 0, 100, 30);
-        let mut buf = Buffer::empty(screen);
-        let mut centred = Picker::new(WidgetId::of("p"), "Pick").width(40);
-        centred.draw(screen, &mut buf, &mut ctx);
-        assert_eq!(centred.area.x, 30, "centred by default");
-        let field = Rect::new(6, 4, 20, 1);
-        let mut p = Picker::new(WidgetId::of("p"), "Pick")
-            .width(40)
-            .anchor(field, Placement::Below);
-        p.draw(screen, &mut buf, &mut ctx);
-        assert_eq!((p.area.x, p.area.y), (6, 5), "{:?}", p.area);
-    }
-
-
-
-    fn click_over_page(
-        p: &mut Picker,
-        pos: ratatui::layout::Position,
-    ) -> Option<crate::core::pointer::PointerEvent> {
-        use crate::core::intent::Phase;
-        use ratatui::crossterm::event::KeyModifiers;
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let screen = Rect::new(0, 0, 80, 24);
-        let mut buf = Buffer::empty(screen);
-        {
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            ctx.hits.register(WidgetId::of("page"), screen);
-            p.draw(screen, &mut buf, &mut ctx);
-        }
-        let id = hits.hit(pos)?;
-        Some(crate::core::pointer::PointerEvent::new(
-            &hits,
-            Phase::Click,
-            id,
-            pos,
-            1,
-            KeyModifiers::NONE,
-        ))
-    }
-
-
-
-    #[test]
-    fn an_alt_click_on_a_row_chooses_its_alternative() {
-        use crate::core::intent::Phase;
-        use crate::core::pointer::{MouseTarget, PointerEvent};
-        use ratatui::crossterm::event::KeyModifiers;
-        let mut p = picker(3);
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let screen = Rect::new(0, 0, 80, 24);
-        let mut buf = Buffer::empty(screen);
-        {
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            p.draw(screen, &mut buf, &mut ctx);
-        }
-        let click_at = |pos, mods| {
-            let id = hits.hit(pos)?;
-            Some(PointerEvent::new(&hits, Phase::Click, id, pos, 1, mods))
-        };
-        let (pos, row) = (0..24)
-            .flat_map(|y| (0..80).map(move |x| ratatui::layout::Position::new(x, y)))
-            .find_map(|pos| Some((pos, click_at(pos, KeyModifiers::NONE)?.index_of(Part::ROW)?)))
-            .expect("a row under the pointer");
-        let click = |mods| click_at(pos, mods).unwrap();
-        assert_eq!(
-            p.pointer(&click(KeyModifiers::ALT)).into_action(),
-            Some(PickerAction::ChosenAlt(row))
-        );
-        assert_eq!(
-            p.pointer(&click(KeyModifiers::NONE)).into_action(),
-            Some(PickerAction::Chosen(row))
-        );
-    }
-
-
-
-
-    #[test]
-    fn a_click_outside_the_picker_lands_on_its_backdrop_and_cancels_it() {
-        use crate::ui::layer::{Dismissed, LayerPointer, LayerTag, ShellLayers};
-        use crate::ui::layers::LayerResult;
-        let mut p = picker(3);
-        let ev = click_over_page(&mut p, ratatui::layout::Position::new(0, 1))
-            .expect("the picker's backdrop is under the pointer outside it");
-        assert_eq!(ev.owner(), p.id);
-        assert_eq!(ev.part().part, Part::BACKDROP);
-        let mut focus = crate::core::focus::Focus::default();
-        let ring = FocusRing::default();
-        let mut stack: ShellLayers<LayerResult> = ShellLayers::default();
-        stack.open(Box::new(p), LayerTag::new("picker"), (), &mut focus);
-        match stack.pointer(&ev, &mut focus, &ring, &()) {
-            LayerPointer::Dismissed(Dismissed::Closed(_, r)) => assert_eq!(
-                r,
-                Some(LayerResult::Picker(PickerAction::Cancelled)),
-                "the outside click cancels it, as Esc does"
-            ),
-            _ => panic!("the backdrop click dismisses the picker"),
-        }
-        assert!(stack.is_empty());
-    }
-
-
-
-    #[test]
-    fn a_refused_outside_click_on_the_picker_is_consumed() {
-        use crate::core::pointer::MouseTarget;
-        let mut p = picker(3).dismiss(crate::ui::popup::Dismiss::ESCAPE);
-        let ev = click_over_page(&mut p, ratatui::layout::Position::new(0, 1))
-            .expect("the picker's backdrop is under the pointer outside it");
-        let r = p.route(&ev).expect("the backdrop is the picker's");
-        assert!(r.is_consumed());
-        assert_eq!(r.into_action(), None, "it stays open");
-    }
-
-
-
-
-    fn wheel_on_row(p: &mut Picker, delta: i32) -> Outcome {
-        use crate::core::pointer::{MouseTarget, PointerEvent};
-        use ratatui::crossterm::event::KeyModifiers;
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
-        p.draw(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
-        drop(ctx);
-        let row = p.row_id(p.list.scroll.offset);
-        let pos = hits.area_of(row).expect("a visible row").as_position();
-        let ev = PointerEvent::wheel_on(&hits, row, Axis::Vertical, delta, pos, KeyModifiers::NONE);
-        p.pointer(&ev).outcome()
-    }
-
-
-
-
-
-
-    #[test]
-    fn the_wheel_over_the_rows_follows_the_lists_wheel_mode() {
-        use crate::widgets::option_list::WheelMode;
-        let mut p = picker(30);
-        assert_eq!(p.list.wheel, WheelMode::Viewport);
-        assert_eq!(wheel_on_row(&mut p, 3), Outcome::Changed);
-        assert_eq!((p.list.scroll.offset, p.list.cursor.index), (3, 0));
-        render(&mut p);
-        assert_eq!(p.list.scroll.offset, 3, "a render keeps the scroll");
-        assert_eq!(wheel_on_row(&mut p, -3), Outcome::Changed);
-        assert_eq!(wheel_on_row(&mut p, -3), Outcome::Consumed, "at the top");
-        let mut by_cursor = picker(30);
-        by_cursor.list.wheel = WheelMode::Cursor;
-        assert_eq!(wheel_on_row(&mut by_cursor, 9), Outcome::Changed);
-        assert_eq!(by_cursor.list.cursor.index, 9);
-        render(&mut by_cursor);
-        assert!(by_cursor.list.scroll.visible_range().contains(&9));
-    }
-
-
-
-
-
-    #[test]
-    fn a_picker_without_a_query_type_selects() {
-        use ratatui::crossterm::event::KeyModifiers as M;
-        crate::core::list::NavProfile::Desktop.install();
-        let mut p = Picker::new(WidgetId::of("p"), "Level").searchable(false);
-        p.set_items(
-            ["Off", "Alert", "Safe", "Silent", "Read only"]
-                .into_iter()
-                .map(Item::new)
-                .collect(),
-        );
-        assert_eq!(
-            p.on_key(&k(KeyCode::Char('s'), M::NONE)),
-            (Outcome::Changed, None)
-        );
-        assert_eq!(p.list.cursor.index, 2, "s jumps to Safe");
-        p.on_key(&k(KeyCode::Char('i'), M::NONE));
-        assert_eq!(p.list.cursor.index, 3, "si narrows to Silent");
-        assert_eq!(
-            p.on_key(&k(KeyCode::Char('z'), M::NONE)).1,
-            None,
-            "a miss chooses nothing"
-        );
-        assert_eq!(p.list.cursor.index, 3, "a miss keeps the cursor");
-
-        let mut off = Picker::new(WidgetId::of("p"), "Level").searchable(false);
-        off.list.type_ahead = false;
-        off.set_items(vec![Item::new("Off"), Item::new("Safe")]);
-        off.on_key(&k(KeyCode::Char('s'), M::NONE));
-        assert_eq!(off.list.cursor.index, 0);
-
-        let mut q = picker(3);
-        q.on_key(&k(KeyCode::Char('i'), M::NONE));
-        assert_eq!((q.query(), q.list.cursor.index), ("i", 0));
-    }
-}

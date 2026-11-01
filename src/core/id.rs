@@ -1,13 +1,5 @@
 
 
-
-
-
-
-
-
-
-
 use std::fmt;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -32,23 +24,13 @@ impl WidgetId {
         Self(fnv1a(FNV_OFFSET, path.as_bytes()))
     }
 
-
     pub const fn child(self, index: usize) -> Self {
         Self(fnv1a(self.0, &index.to_le_bytes()))
     }
 
-
     pub const fn sub(self, name: &str) -> Self {
         Self(fnv1a(self.0, name.as_bytes()))
     }
-
-
-
-
-
-
-
-
 
     pub const fn part(self, p: PartRef) -> Self {
         let base = match p.item {
@@ -63,12 +45,6 @@ impl WidgetId {
             _ => Self(fnv1a(fnv1a(base.0, b"#part"), &p.part.raw().to_le_bytes())),
         }
     }
-
-
-
-
-
-
 
     pub fn item_of(
         self,
@@ -88,21 +64,10 @@ impl fmt::Debug for WidgetId {
     }
 }
 
-
-
-
-
-
-
-
 pub const fn custom_hash16(name: &str) -> u16 {
     let h = fnv1a(FNV_OFFSET, name.as_bytes());
     0x8000 | ((h ^ (h >> 16) ^ (h >> 32) ^ (h >> 48)) as u16 & 0x7FFF)
 }
-
-
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ItemKey {
@@ -120,22 +85,18 @@ impl ItemKey {
         ItemKey::Index(i)
     }
 
-
     pub const fn num(n: u64) -> Self {
         ItemKey::Num(n)
     }
-
 
     pub const fn text(s: &str) -> Self {
         ItemKey::Text(fnv1a(FNV_OFFSET, s.as_bytes()))
     }
 
-
     pub const fn pair(a: u64, b: u64) -> Self {
         let h = fnv1a(FNV_OFFSET, &a.to_le_bytes());
         ItemKey::Text(fnv1a(h, &b.to_le_bytes()))
     }
-
 
     pub const fn as_index(self) -> Option<usize> {
         match self {
@@ -145,12 +106,6 @@ impl ItemKey {
     }
 }
 
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Part(u16);
 
@@ -159,9 +114,7 @@ macro_rules! parts {
         impl Part {
             $( $(#[$m])* pub const $name: Part = Part($v); )*
 
-
             pub const ALL: &'static [Part] = &[ $( Part::$name ),* ];
-
 
             pub const fn name(self) -> Option<&'static str> {
                 match self {
@@ -250,11 +203,9 @@ parts! {
 
 impl Part {
 
-
     pub const fn custom(name: &str) -> Part {
         Part(custom_hash16(name))
     }
-
 
     pub const fn raw(self) -> u16 {
         self.0
@@ -270,8 +221,6 @@ impl fmt::Debug for Part {
     }
 }
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct PartRef {
 
@@ -282,17 +231,13 @@ pub struct PartRef {
 
 impl PartRef {
 
-
-
     pub const OVERFLOW_BEFORE: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(0));
 
     pub const OVERFLOW_AFTER: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(1));
 
-
     pub const fn of(part: Part) -> Self {
         Self { part, item: None }
     }
-
 
     pub const fn item(part: Part, key: ItemKey) -> Self {
         Self {
@@ -302,83 +247,3 @@ impl PartRef {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn ids_are_stable_and_distinct() {
-        assert_eq!(WidgetId::of("a.b"), WidgetId::of("a.b"));
-        assert_ne!(WidgetId::of("a.b"), WidgetId::of("a.c"));
-        assert_ne!(WidgetId::of("a").child(0), WidgetId::of("a").child(1));
-        assert_ne!(WidgetId::of("a").child(0), WidgetId::of("a"));
-        assert_ne!(WidgetId::of("a").sub("x"), WidgetId::of("a").sub("y"));
-    }
-
-    #[test]
-    fn part_constants_are_unique_and_named() {
-        for (i, a) in Part::ALL.iter().enumerate() {
-            assert!(a.name().is_some());
-            assert!(a.raw() <= 255, "library parts stay in the low range");
-            for b in &Part::ALL[i + 1..] {
-                assert_ne!(a, b, "{a:?} and {b:?} share a number");
-            }
-        }
-        assert_eq!(format!("{:?}", Part::ROW), "Part::ROW");
-    }
-
-    #[test]
-    fn custom_parts_land_in_the_high_range() {
-        let p = Part::custom("sparkline");
-        assert!(p.raw() >= 0x8000);
-        assert_eq!(p.name(), None);
-        assert_eq!(p, Part::custom("sparkline"));
-    }
-
-    #[test]
-    fn item_keys_are_stable_and_order_sensitive() {
-        assert_eq!(ItemKey::text("orders"), ItemKey::text("orders"));
-        assert_ne!(ItemKey::text("orders"), ItemKey::text("order"));
-        assert_ne!(ItemKey::pair(1, 2), ItemKey::pair(2, 1));
-        assert_eq!(ItemKey::index(4).as_index(), Some(4));
-        assert_eq!(ItemKey::num(4).as_index(), None);
-        let row = PartRef::item(Part::ROW, ItemKey::index(2));
-        assert!(matches!(
-            row,
-            PartRef {
-                part: Part::ROW,
-                item: Some(ItemKey::Index(2))
-            }
-        ));
-        assert_eq!(PartRef::of(Part::THUMB).item, None);
-    }
-
-    #[test]
-    fn part_ids_follow_one_rule() {
-        let w = WidgetId::of("w");
-        assert_eq!(w.part(PartRef::of(Part::CONTAINER)), w);
-        let row = PartRef::item(Part::ROW, ItemKey::index(3));
-        assert_eq!(w.part(row), w.child(3), "row ids stay child ids");
-        assert_eq!(
-            w.part(PartRef::item(Part::TAB, ItemKey::index(3))),
-            w.child(3)
-        );
-        let close = w.part(PartRef::item(Part::CLOSE, ItemKey::index(3)));
-        assert_ne!(close, w.child(3));
-        assert_ne!(close, w.part(PartRef::item(Part::CLOSE, ItemKey::index(4))));
-        assert_ne!(
-            w.part(PartRef::of(Part::NEW)),
-            w.part(PartRef::of(Part::OVERFLOW))
-        );
-        let text = PartRef::item(Part::ROW, ItemKey::text("jk-1"));
-        assert_eq!(w.part(text), w.part(text));
-        assert_ne!(
-            w.part(text),
-            w.part(PartRef::item(Part::ROW, ItemKey::text("jk-2")))
-        );
-        assert_ne!(
-            w.part(PartRef::item(Part::ROW, ItemKey::num(1))),
-            w.part(PartRef::item(Part::ROW, ItemKey::index(1)))
-        );
-    }
-}

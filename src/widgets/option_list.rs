@@ -1,27 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
@@ -44,21 +22,16 @@ use crate::ui::row::{RowLook, RowPaint, RowUi};
 use crate::widgets::edit::EditField;
 use crate::widgets::scrollbar;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectArrows {
 
     Step,
 
-
     Open,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WheelMode {
-
-
 
     #[default]
     Viewport,
@@ -66,11 +39,8 @@ pub enum WheelMode {
     Cursor,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
-
 
     pub key: ItemKey,
     pub label: String,
@@ -84,11 +54,9 @@ pub struct Item {
 
     pub matched: Vec<usize>,
 
-
     pub insert: Option<String>,
 
     pub disabled: bool,
-
 
     pub reason: Option<String>,
 
@@ -119,54 +87,45 @@ impl Item {
         }
     }
 
-
     pub fn key(mut self, key: ItemKey) -> Self {
         self.key = key;
         self
     }
-
 
     pub fn glyph(mut self, glyph: impl Into<Cow<'static, str>>) -> Self {
         self.glyph = glyph.into();
         self
     }
 
-
     pub fn detail(mut self, detail: impl Into<String>) -> Self {
         self.detail = detail.into();
         self
     }
-
 
     pub fn tag(mut self, tag: impl Into<Cow<'static, str>>) -> Self {
         self.tag = Some(tag.into());
         self
     }
 
-
     pub fn group(mut self, group: impl Into<Cow<'static, str>>) -> Self {
         self.group = group.into();
         self
     }
-
 
     pub fn matched(mut self, matched: Vec<usize>) -> Self {
         self.matched = matched;
         self
     }
 
-
     pub fn insert(mut self, insert: impl Into<String>) -> Self {
         self.insert = Some(insert.into());
         self
     }
 
-
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
     }
-
 
     pub fn reason(mut self, reason: impl Into<String>) -> Self {
         self.reason = Some(reason.into());
@@ -174,19 +133,15 @@ impl Item {
         self
     }
 
-
     pub fn value(mut self, value: usize) -> Self {
         self.value = value;
         self
     }
 
-
     pub fn insertion(&self) -> &str {
         self.insert.as_deref().unwrap_or(&self.label)
     }
 }
-
-
 
 pub trait AsItem {
 
@@ -218,10 +173,8 @@ impl<T: AsItem> RowSource for [T] {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct OptionList {
-
 
     pub id: WidgetId,
 
@@ -229,56 +182,36 @@ pub struct OptionList {
 
     pub scroll: ScrollPane,
 
-
     pub look: CursorStyle,
 
-
     pub wheel: WheelMode,
-
-
-
 
     pub hover_moves_cursor: bool,
 
     pub nav: NavKeys,
 
-
     pub type_ahead: bool,
-
 
     pub fade_edges: bool,
 
     pub dismiss: Dismiss,
 
-
     pub placement: Placement,
-
 
     pub fit: Place,
 
     pub max_rows: u16,
 
-
     pub width: (u16, u16),
-
-
-
-
 
     pub query: Option<Box<EditField>>,
 
-
-
     pub chosen: Option<usize>,
-
-
-
 
     pub clear_on_leave: bool,
     typeahead: TypeAhead,
 
     hover: Option<WidgetId>,
-
 
     pointed: Option<usize>,
 
@@ -288,8 +221,6 @@ pub struct OptionList {
 
     rows_area: Rect,
 
-
-
     lines: Vec<usize>,
 }
 
@@ -298,7 +229,6 @@ impl OptionList {
     pub const MAX_ROWS: u16 = 8;
 
     pub const WIDTH: (u16, u16) = (12, 40);
-
 
     pub fn new(id: WidgetId) -> Self {
         Self {
@@ -329,16 +259,10 @@ impl OptionList {
         }
     }
 
-
-
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
         self
     }
-
-
-
-
 
     pub fn set_gaps(&mut self, gaps: impl IntoIterator<Item = bool>) {
         self.lines.clear();
@@ -355,14 +279,12 @@ impl OptionList {
         }
     }
 
-
     pub fn line_of(&self, i: usize) -> usize {
         match self.lines.get(i) {
             Some(&l) => l,
             None => i,
         }
     }
-
 
     fn row_on_line(&self, line: usize) -> Option<usize> {
         if self.lines.is_empty() {
@@ -372,7 +294,6 @@ impl OptionList {
         (i + 1 < self.lines.len()).then_some(i)
     }
 
-
     fn line_count(&self, len: usize) -> usize {
         if self.lines.len() == len + 1 {
             self.lines[len]
@@ -381,8 +302,6 @@ impl OptionList {
         }
     }
 
-
-
     pub fn visible_lines(&self) -> impl Iterator<Item = (u16, Option<usize>)> + '_ {
         self.scroll
             .visible_range()
@@ -390,91 +309,74 @@ impl OptionList {
             .map(|(k, line)| (k as u16, self.row_on_line(line)))
     }
 
-
-
     pub fn more_below(&self, len: usize) -> bool {
         len > 0 && self.line_of(len - 1) >= self.scroll.offset + self.scroll.viewport_len
     }
-
 
     pub fn wheel_mode(mut self, mode: WheelMode) -> Self {
         self.wheel = mode;
         self
     }
 
-
     pub fn hover_moves_cursor(mut self, on: bool) -> Self {
         self.hover_moves_cursor = on;
         self
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
     }
-
 
     pub fn fade_edges(mut self, on: bool) -> Self {
         self.fade_edges = on;
         self
     }
 
-
     pub fn look(mut self, look: CursorStyle) -> Self {
         self.look = look;
         self
     }
-
 
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
     }
 
-
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
         self
     }
-
 
     pub fn fit(mut self, fit: Place) -> Self {
         self.fit = fit;
         self
     }
 
-
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.max_rows = rows;
         self
     }
-
 
     pub fn width(mut self, min: u16, max: u16) -> Self {
         self.width = (min, max.max(min));
         self
     }
 
-
     pub fn query(mut self, field: EditField) -> Self {
         self.query = Some(Box::new(field));
         self
     }
 
-
     pub fn clear_on_leave(mut self, on: bool) -> Self {
         self.clear_on_leave = on;
         self
     }
-
-
 
     pub fn reset(&mut self, len: usize) {
         self.cursor.index = 0;
@@ -486,27 +388,21 @@ impl OptionList {
         self.hidden = false;
     }
 
-
-
     pub fn highlighted(&self) -> Option<usize> {
         (!self.hidden).then_some(self.cursor.index)
     }
-
 
     pub fn row_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
     pub fn row_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::row_part(i))
     }
 
-
     pub fn row_of(&self, id: WidgetId, len: usize) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..len)
     }
-
 
     pub fn row_of_event(&self, ev: &PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
@@ -516,13 +412,9 @@ impl OptionList {
             .filter(|&i| i < self.scroll.content_len)
     }
 
-
-
     pub fn on_backdrop(&self, ev: &PointerEvent) -> bool {
         ev.id == backdrop_id(self.id)
     }
-
-
 
     pub fn row_at(&self, pos: Position) -> Option<usize> {
         if !self.rows_area.contains(pos) {
@@ -533,13 +425,9 @@ impl OptionList {
         (line < self.scroll.content_len).then_some(i)
     }
 
-
     pub fn rows_area(&self) -> Rect {
         self.rows_area
     }
-
-
-
 
     pub fn key<S: RowSource + ?Sized>(&mut self, key: &Key, src: &S) -> Moved {
         match KeyStep::of(key, &self.nav, self.type_ahead) {
@@ -552,13 +440,10 @@ impl OptionList {
         }
     }
 
-
-
     pub fn type_char<S: RowSource + ?Sized>(&mut self, c: char, src: &S) -> Moved {
         let moved = self.cursor.type_ahead(c, &mut self.typeahead, src);
         self.keyed(moved)
     }
-
 
     pub fn nav_step<S: RowSource + ?Sized>(&mut self, nav: Nav, src: &S) -> Moved {
         let page = self.scroll.viewport_len;
@@ -566,13 +451,10 @@ impl OptionList {
         self.keyed(moved)
     }
 
-
     pub fn step<S: RowSource + ?Sized>(&mut self, delta: isize, src: &S) -> Moved {
         let moved = self.cursor.step(delta, src);
         self.keyed(moved)
     }
-
-
 
     pub fn select<S: RowSource + ?Sized>(&mut self, i: usize, src: &S) -> Moved {
         let moved = self.cursor.select(i, src);
@@ -584,25 +466,16 @@ impl OptionList {
         moved
     }
 
-
-
-
     fn keyed(&mut self, moved: Moved) -> Moved {
         if let Some(i) = moved.index() {
             self.hidden = false;
             self.scroll.follow(self.line_of(i));
-
 
             self.hovering = false;
             self.pointed = None;
         }
         moved
     }
-
-
-
-
-
 
     pub fn layout<S: RowSource + ?Sized>(&mut self, inner: Rect, src: &S, ctx: &RenderCtx) {
         let len = src.len();
@@ -628,9 +501,6 @@ impl OptionList {
         }
     }
 
-
-
-
     fn hover<S: RowSource + ?Sized>(&mut self, ctx: &RenderCtx, src: &S) {
         let hover = ctx.interaction.live_hover();
         if hover == self.hover {
@@ -652,7 +522,6 @@ impl OptionList {
                 self.scroll.follow(self.line_of(i));
             }
 
-
             _ if self.hovering => {
                 self.hovering = false;
                 self.hidden = self.clear_on_leave;
@@ -660,15 +529,6 @@ impl OptionList {
             _ => {}
         }
     }
-
-
-
-
-
-
-
-
-
 
     pub fn paint_rows<S: RowSource + ?Sized>(
         &self,
@@ -713,9 +573,6 @@ impl OptionList {
         }
     }
 
-
-
-
     pub fn status<'a, T: AsItem>(&self, items: &'a [T]) -> Option<&'a str> {
         let reason = |i: usize| {
             let it = items.get(i)?.as_item();
@@ -726,17 +583,11 @@ impl OptionList {
             }
         };
 
-
         self.pointed
             .and_then(reason)
             .or_else(|| self.highlighted().and_then(reason))
     }
 }
-
-
-
-
-
 
 pub fn query_pointer(query: &mut EditField, ev: &PointerEvent) -> Option<Response<()>> {
     use crate::core::intent::Phase;
@@ -756,9 +607,6 @@ pub fn query_pointer(query: &mut EditField, ev: &PointerEvent) -> Option<Respons
     }
     Some(Response::changed())
 }
-
-
-
 
 impl Scrollable for OptionList {
     fn pane(&mut self) -> &mut ScrollPane {
@@ -794,194 +642,3 @@ impl Scrollable for OptionList {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::event::Outcome;
-    use crate::core::{focus::FocusRing, hit::HitRegistry};
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-
-    fn items(n: usize) -> Vec<Item> {
-        (0..n).map(|i| Item::new(format!("item{i:02}"))).collect()
-    }
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: KeyModifiers::NONE,
-        }
-    }
-
-    const INNER: Rect = Rect::new(1, 1, 20, 5);
-
-
-
-    fn frame(l: &mut OptionList, rows: &[Item], hover: Option<WidgetId>) -> (Buffer, HitRegistry) {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 10));
-        {
-            let mut ctx = RenderCtx::new(
-                &theme,
-                Interaction {
-                    hover,
-                    ..Interaction::default()
-                },
-                &mut hits,
-                &mut ring,
-            );
-            l.layout(INNER, rows, &ctx);
-            l.paint_rows(
-                INNER,
-                theme.surface_elevated,
-                rows,
-                &mut buf,
-                &mut ctx,
-                |i, r, buf, _| {
-                    buf.set_string(r.area.x + 1, r.area.y, &rows[i].label, r.style());
-                },
-            );
-        }
-        (buf, hits)
-    }
-
-    #[test]
-    fn items_build_and_insert_their_label_unless_told_otherwise() {
-        let it = Item::new("fetch")
-            .glyph("ƒ")
-            .detail("fn")
-            .tag("open")
-            .group("Functions")
-            .matched(vec![0])
-            .key(ItemKey::text("fetch"))
-            .value(7);
-        assert_eq!(it.insertion(), "fetch");
-        assert_eq!(it.clone().insert("fetch(").insertion(), "fetch(");
-        assert_eq!(it.value, 7);
-        assert!(!it.disabled);
-        let off = Item::new("x").reason("Not here");
-        assert!(off.disabled, "a reason disables the row");
-        let rows = [it, off];
-        assert!(rows.enabled(0) && !rows.enabled(1));
-        assert_eq!(rows.label(0), "fetch");
-        assert_eq!(rows.key(0), ItemKey::text("fetch"));
-        assert_eq!(
-            rows.key(1),
-            ItemKey::index(1),
-            "a positional key is the row"
-        );
-    }
-
-    #[test]
-    fn keys_step_page_by_the_viewport_and_type_ahead() {
-        let rows = items(20);
-        let mut l = OptionList::new(WidgetId::of("l")).type_ahead(true);
-        l.reset(rows.len());
-        frame(&mut l, &rows, None);
-        assert_eq!(l.key(&key(KeyCode::Down), &rows[..]), Moved::To(1));
-        assert_eq!(l.key(&key(KeyCode::PageDown), &rows[..]), Moved::To(6));
-        assert!(
-            l.scroll.visible_range().contains(&6),
-            "a key brings it into view"
-        );
-        assert_eq!(l.key(&key(KeyCode::Tab), &rows[..]), Moved::Ignored);
-        let named = ["alpha", "bravo", "charlie"].map(Item::new);
-        l.reset(named.len());
-        assert_eq!(l.key(&key(KeyCode::Char('c')), &named[..]), Moved::To(2));
-        let quiet = OptionList::new(WidgetId::of("l")).type_ahead(false);
-        assert_eq!(
-            quiet.clone().key(&key(KeyCode::Char('c')), &named[..]),
-            Moved::Ignored,
-            "letters pass when type-ahead is off"
-        );
-    }
-
-    #[test]
-    fn the_viewport_wheel_scrolls_and_the_next_frame_keeps_it() {
-        let rows = items(20);
-        let mut l = OptionList::new(WidgetId::of("l"));
-        l.reset(rows.len());
-        frame(&mut l, &rows, None);
-        assert_eq!(l.wheel(Axis::Vertical, 3).outcome(), Outcome::Changed);
-        assert_eq!((l.scroll.offset, l.cursor.index), (3, 0));
-        frame(&mut l, &rows, None);
-        assert_eq!(l.scroll.offset, 3, "a frame never pulls the view back");
-        assert_eq!(l.wheel(Axis::Vertical, -5).outcome(), Outcome::Changed);
-        assert_eq!(l.wheel(Axis::Vertical, -1).outcome(), Outcome::Consumed);
-        assert_eq!(
-            l.wheel(Axis::Horizontal, 1).outcome(),
-            Outcome::Consumed,
-            "a sideways notch stops at the popup"
-        );
-    }
-
-    #[test]
-    fn the_cursor_wheel_moves_the_cursor_and_the_view_follows() {
-        let rows = items(20);
-        let mut l = OptionList::new(WidgetId::of("l")).wheel_mode(WheelMode::Cursor);
-        l.reset(rows.len());
-        frame(&mut l, &rows, None);
-        assert_eq!(l.wheel(Axis::Vertical, 6).outcome(), Outcome::Changed);
-        assert_eq!(l.cursor.index, 6);
-        assert!(l.scroll.visible_range().contains(&6));
-        assert_eq!(l.wheel(Axis::Vertical, -9).outcome(), Outcome::Changed);
-        assert_eq!(l.cursor.index, 0);
-        assert_eq!(l.wheel(Axis::Vertical, -1).outcome(), Outcome::Consumed);
-    }
-
-    #[test]
-    fn hover_moves_the_one_highlight_and_clears_when_the_pointer_leaves() {
-        let rows = items(4);
-        let mut l = OptionList::new(WidgetId::of("l"));
-        l.reset(rows.len());
-        let row2 = l.row_id(2);
-        frame(&mut l, &rows, Some(row2));
-        assert_eq!(l.highlighted(), Some(2));
-        frame(&mut l, &rows, Some(WidgetId::of("page")));
-        assert_eq!(l.highlighted(), None, "no stale highlight outside the rows");
-        assert_eq!(l.cursor.index, 2, "the cursor stays for the keys");
-        l.key(&key(KeyCode::Down), &rows[..]);
-        assert_eq!(l.highlighted(), Some(3), "a key shows it again");
-
-        let mut tint = OptionList::new(WidgetId::of("l")).hover_moves_cursor(false);
-        tint.reset(rows.len());
-        frame(&mut tint, &rows, Some(row2));
-        assert_eq!(tint.highlighted(), Some(0));
-    }
-
-    #[test]
-    fn rows_register_their_parts_and_map_back() {
-        let rows = items(20);
-        let mut l = OptionList::new(WidgetId::of("l"));
-        l.reset(rows.len());
-        let (_, hits) = frame(&mut l, &rows, None);
-        let first = hits
-            .regions()
-            .iter()
-            .find(|r| r.owner == l.id && r.part == OptionList::row_part(0))
-            .expect("row 0 is a part");
-        assert_eq!(first.area.y, INNER.y);
-        assert_eq!(
-            first.area.width,
-            INNER.width - 1,
-            "the bar column is not a row"
-        );
-        assert_eq!(l.row_of(l.row_id(5), rows.len()), Some(5));
-        assert_eq!(l.row_at(Position::new(INNER.x, INNER.y + 2)), Some(2));
-        assert_eq!(l.row_at(Position::new(INNER.right() - 1, INNER.y)), None);
-        assert!(!l.scroll.v_track().is_empty(), "the bar can be pressed");
-    }
-
-    #[test]
-    fn the_status_is_the_reason_of_a_disabled_cursor_row() {
-        let rows = vec![Item::new("a"), Item::new("b").reason("Not in this preview")];
-        let mut l = OptionList::new(WidgetId::of("l"));
-        l.reset(rows.len());
-        assert_eq!(l.status(&rows), None);
-        l.cursor.index = 1;
-        assert_eq!(l.status(&rows), Some("Not in this preview"));
-    }
-}

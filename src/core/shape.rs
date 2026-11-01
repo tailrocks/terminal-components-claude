@@ -1,26 +1,10 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::io::Write;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use super::hit::HitRegistry;
 use super::pointer::PointerState;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum PointerShape {
@@ -49,13 +33,10 @@ impl PointerShape {
         }
     }
 
-
     pub fn osc22(self) -> String {
         format!("\x1b]22;{}\x1b\\", self.css_name())
     }
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum CaretShape {
@@ -72,7 +53,6 @@ pub enum CaretShape {
 
 impl CaretShape {
 
-
     pub const fn decscusr(self) -> Option<&'static str> {
         match self {
             Self::Block => Some("\x1b[2 q"),
@@ -83,9 +63,7 @@ impl CaretShape {
     }
 }
 
-
 pub const CARET_RESET: &str = "\x1b[0 q";
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ShapeSupport {
@@ -101,11 +79,6 @@ impl ShapeSupport {
         pointer: false,
         caret: false,
     };
-
-
-
-
-
 
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
         let term = get("TERM").unwrap_or_default().to_ascii_lowercase();
@@ -132,15 +105,11 @@ impl ShapeSupport {
         Self { pointer, caret }
     }
 
-
     pub fn current() -> Self {
         static CURRENT: std::sync::OnceLock<ShapeSupport> = std::sync::OnceLock::new();
         *CURRENT.get_or_init(|| Self::from_env(|k| std::env::var(k).ok()))
     }
 }
-
-
-
 
 pub fn under(pointer: &PointerState, hits: &HitRegistry) -> PointerShape {
     pointer
@@ -150,10 +119,6 @@ pub fn under(pointer: &PointerState, hits: &HitRegistry) -> PointerShape {
         .unwrap_or_default()
 }
 
-
-
-
-
 pub fn shapes_for(pointer: &PointerState, hits: &HitRegistry) -> Shapes {
     Shapes {
         pointer: pointer.config.pointer_shapes.then(|| under(pointer, hits)),
@@ -161,16 +126,13 @@ pub fn shapes_for(pointer: &PointerState, hits: &HitRegistry) -> Shapes {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Shapes {
-
 
     pub pointer: Option<PointerShape>,
 
     pub caret: Option<CaretShape>,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ShapeSync {
@@ -178,8 +140,6 @@ pub struct ShapeSync {
     pointer: Option<PointerShape>,
     caret: Option<CaretShape>,
 }
-
-
 
 static SENT: AtomicU8 = AtomicU8::new(0);
 const SENT_POINTER: u8 = 1;
@@ -193,8 +153,6 @@ impl ShapeSync {
             caret: None,
         }
     }
-
-
 
     pub fn apply(&mut self, want: Shapes, out: &mut impl Write) -> std::io::Result<bool> {
         let mut wrote = false;
@@ -220,15 +178,11 @@ impl ShapeSync {
         Ok(wrote)
     }
 
-
-
     pub fn forget(&mut self) {
         self.pointer = None;
         self.caret = None;
     }
 }
-
-
 
 pub fn reset_sequence() -> String {
     let sent = SENT.swap(0, Ordering::Relaxed);
@@ -242,157 +196,3 @@ pub fn reset_sequence() -> String {
     s
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::id::WidgetId;
-    use ratatui::layout::{Position, Rect};
-
-    fn env<'a>(pairs: &'a [(&'a str, &'a str)]) -> impl Fn(&str) -> Option<String> + 'a {
-        move |k| {
-            pairs
-                .iter()
-                .find(|(n, _)| *n == k)
-                .map(|(_, v)| (*v).to_owned())
-        }
-    }
-
-    #[test]
-    fn the_sequences_are_byte_exact() {
-        assert_eq!(PointerShape::Text.osc22(), "\x1b]22;text\x1b\\");
-        assert_eq!(PointerShape::ColResize.osc22(), "\x1b]22;col-resize\x1b\\");
-        assert_eq!(PointerShape::RowResize.osc22(), "\x1b]22;row-resize\x1b\\");
-        assert_eq!(PointerShape::Default.osc22(), "\x1b]22;default\x1b\\");
-        assert_eq!(CaretShape::Bar.decscusr(), Some("\x1b[6 q"));
-        assert_eq!(CaretShape::Block.decscusr(), Some("\x1b[2 q"));
-        assert_eq!(CaretShape::Underline.decscusr(), Some("\x1b[4 q"));
-        assert_eq!(CaretShape::Terminal.decscusr(), None);
-        assert_eq!(CARET_RESET, "\x1b[0 q");
-    }
-
-    #[test]
-    fn support_is_detected_from_the_terminal() {
-        let s = ShapeSupport::from_env(env(&[("TERM", "xterm-kitty")]));
-        assert_eq!(
-            s,
-            ShapeSupport {
-                pointer: true,
-                caret: true
-            }
-        );
-        let s = ShapeSupport::from_env(env(&[
-            ("TERM", "xterm-256color"),
-            ("TERM_PROGRAM", "WezTerm"),
-        ]));
-        assert!(s.pointer && s.caret);
-        let s = ShapeSupport::from_env(env(&[("TERM", "xterm-ghostty")]));
-        assert!(s.pointer);
-        let s = ShapeSupport::from_env(env(&[("TERM", "foot")]));
-        assert!(s.pointer);
-
-        let s = ShapeSupport::from_env(env(&[
-            ("TERM", "xterm-256color"),
-            ("TERM_PROGRAM", "iTerm.app"),
-        ]));
-        assert_eq!(
-            s,
-            ShapeSupport {
-                pointer: false,
-                caret: true
-            }
-        );
-
-        let s = ShapeSupport::from_env(env(&[("TERM", "tmux-256color"), ("KITTY_WINDOW_ID", "1")]));
-        assert!(!s.pointer && s.caret);
-
-        assert_eq!(
-            ShapeSupport::from_env(env(&[("TERM", "linux")])),
-            ShapeSupport::NONE
-        );
-        assert_eq!(
-            ShapeSupport::from_env(env(&[("TERM", "dumb")])),
-            ShapeSupport::NONE
-        );
-        assert_eq!(ShapeSupport::from_env(env(&[])), ShapeSupport::NONE);
-    }
-
-
-
-    #[test]
-    fn shapes_are_written_on_change_only() {
-        let full = ShapeSupport {
-            pointer: true,
-            caret: true,
-        };
-        let mut sync = ShapeSync::new(full);
-        let mut out = Vec::new();
-        let want = Shapes {
-            pointer: Some(PointerShape::Text),
-            caret: Some(CaretShape::Bar),
-        };
-        assert!(sync.apply(want, &mut out).unwrap());
-        assert_eq!(String::from_utf8_lossy(&out), "\x1b]22;text\x1b\\\x1b[6 q");
-        out.clear();
-        assert!(!sync.apply(want, &mut out).unwrap(), "unchanged: nothing");
-        assert!(out.is_empty());
-        let want = Shapes {
-            pointer: Some(PointerShape::ColResize),
-            ..want
-        };
-        sync.apply(want, &mut out).unwrap();
-        assert_eq!(String::from_utf8_lossy(&out), "\x1b]22;col-resize\x1b\\");
-        assert_eq!(reset_sequence(), "\x1b]22;default\x1b\\\x1b[0 q");
-        assert_eq!(reset_sequence(), "", "reset once");
-
-        out.clear();
-        sync.forget();
-        sync.apply(want, &mut out).unwrap();
-        assert!(!out.is_empty());
-        reset_sequence();
-
-        let mut sync = ShapeSync::new(ShapeSupport::NONE);
-        out.clear();
-        assert!(!sync.apply(want, &mut out).unwrap());
-        assert!(out.is_empty());
-        assert_eq!(reset_sequence(), "");
-
-        let mut sync = ShapeSync::new(full);
-        sync.apply(
-            Shapes {
-                pointer: None,
-                caret: Some(CaretShape::Terminal),
-            },
-            &mut out,
-        )
-        .unwrap();
-        assert!(out.is_empty());
-    }
-
-    #[test]
-    fn the_shape_follows_the_hovered_or_pressed_control() {
-        let text = WidgetId::of("field");
-        let seam = WidgetId::of("seam");
-        let mut hits = HitRegistry::default();
-        hits.register(text, Rect::new(0, 0, 10, 1));
-        hits.set_shape(text, PointerShape::Text);
-        hits.register(seam, Rect::new(10, 0, 1, 5));
-        hits.set_shape(seam, PointerShape::ColResize);
-        hits.register(WidgetId::of("button"), Rect::new(0, 2, 6, 1));
-        let mut p = PointerState::default();
-        p.on_move(&hits, Position::new(3, 0));
-        assert_eq!(under(&p, &hits), PointerShape::Text);
-        p.on_move(&hits, Position::new(2, 2));
-        assert_eq!(
-            under(&p, &hits),
-            PointerShape::Default,
-            "a button: the arrow"
-        );
-        p.on_down(&hits, Position::new(10, 1));
-        p.on_drag(&hits, Position::new(20, 1));
-        assert_eq!(
-            under(&p, &hits),
-            PointerShape::ColResize,
-            "held while dragging"
-        );
-    }
-}

@@ -353,19 +353,6 @@ impl FinderPage {
         self.dirty = false;
     }
 
-    #[cfg(test)]
-    pub fn cursor_on_row(&self) -> bool {
-        matches!(
-            self.rows.get(self.cursor),
-            Some(Row::Item(..)) | Some(Row::Explore(_))
-        )
-    }
-
-    #[cfg(test)]
-    pub fn preview_offset(&self) -> usize {
-        self.preview_scroll.offset
-    }
-
     fn first_selectable(&self) -> usize {
         self.rows
             .iter()

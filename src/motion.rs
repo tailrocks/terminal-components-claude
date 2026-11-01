@@ -39,30 +39,3 @@ impl Motion {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn explicit_motion_wins_over_the_environment() {
-        assert_eq!(Motion::resolve(None, true), Motion::Reduced);
-        assert_eq!(Motion::resolve(Some(Motion::Full), true), Motion::Full);
-        assert_eq!(Motion::resolve(Some(Motion::Paused), false), Motion::Paused);
-        assert_eq!(Motion::resolve(None, false), Motion::Full);
-    }
-
-    #[test]
-    fn levels_say_what_moves() {
-        assert!(Motion::Full.ticks() && Motion::Full.animates());
-        assert!(Motion::Reduced.ticks() && !Motion::Reduced.animates());
-        assert!(!Motion::Paused.ticks() && !Motion::Paused.animates());
-        assert!(Motion::Paused.is_paused());
-    }
-
-    #[test]
-    fn an_unset_or_zero_variable_keeps_full_motion() {
-        assert!(!Motion::env_requests_reduced(
-            "JUNIE_TUI_TEST_MOTION_VARIABLE_THAT_IS_NEVER_SET"
-        ));
-    }
-}

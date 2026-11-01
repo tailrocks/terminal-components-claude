@@ -1,8 +1,5 @@
 
 
-
-
-
 pub mod activity;
 pub mod cleanup;
 pub mod disk;
@@ -27,14 +24,9 @@ use ratatui::layout::{Position, Rect};
 use crate::domain::context::Scope;
 use crate::sim::world::{Msg, World};
 
-
-
 pub type Layers = ShellLayers<ModalResult, (), usize>;
 
-
 pub type LayerSlot = LayerEntry<ModalResult, (), usize>;
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModalResult {
@@ -69,8 +61,6 @@ impl From<LayerResult> for ModalResult {
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Go {
@@ -125,7 +115,6 @@ pub enum GateTarget {
     Cleanup(crate::domain::cleanup::DeletePlan),
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Page {
     Finder {
@@ -177,20 +166,15 @@ pub enum Page {
     },
 }
 
-
 pub type Request = junie_tui::shell::Request<ModalResult, (), Go>;
 
-
 pub type Cx<'a> = junie_tui::shell::Cx<'a, ModalResult, (), Go>;
-
-
 
 #[derive(Default)]
 pub struct StatusBits {
     pub center: Option<StatusItem>,
     pub right: Vec<StatusItem>,
 }
-
 
 pub struct Holla;
 
@@ -214,11 +198,7 @@ impl ModalResult {
     }
 }
 
-
-
-
 pub trait Screen: junie_tui::shell::Page<Holla> {
-
 
     fn on_context_key(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
@@ -239,16 +219,7 @@ pub trait Screen: junie_tui::shell::Page<Holla> {
         None
     }
 
-    #[cfg(test)]
-    fn as_activity(&mut self) -> Option<&mut activity::ActivityTab> {
-        None
-    }
-    #[cfg(test)]
-    fn as_disk(&mut self) -> Option<&mut disk::DiskPage> {
-        None
-    }
 }
-
 
 pub fn ticks_label(ticks: u64) -> String {
     junie_tui::ui::text::duration(
@@ -256,7 +227,6 @@ pub fn ticks_label(ticks: u64) -> String {
         junie_tui::ui::text::DurationStyle::Spoken,
     )
 }
-
 
 pub fn risk_tone(risk: crate::domain::action::Risk) -> Tone {
     use crate::domain::action::Risk;
@@ -268,9 +238,6 @@ pub fn risk_tone(risk: crate::domain::action::Risk) -> Tone {
     }
 }
 
-
-
-
 pub(crate) fn scroll_press(area: Rect, pos: Position, scroll: &mut ScrollState) -> Outcome {
     let track = Rect::new(area.right().saturating_sub(1), area.y, 1, area.height);
     if scrollbar::press(track, pos, scroll) {
@@ -279,7 +246,6 @@ pub(crate) fn scroll_press(area: Rect, pos: Position, scroll: &mut ScrollState) 
         Outcome::Consumed
     }
 }
-
 
 pub(crate) fn scroll_drag(area: Rect, pos: Position, scroll: &mut ScrollState) -> Outcome {
     let track = Rect::new(area.right().saturating_sub(1), area.y, 1, area.height);

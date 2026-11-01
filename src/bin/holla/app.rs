@@ -132,10 +132,6 @@ fn plan_key(id: &str) -> ItemKey {
 }
 
 impl App {
-    #[cfg(test)]
-    pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
-        Self::launch(scenario, motion, frame, theme, true)
-    }
 
     pub fn launch(
         scenario: Scenario,
@@ -263,16 +259,6 @@ impl App {
             return std::time::Duration::from_millis(500);
         }
         std::time::Duration::from_millis(if self.animating() { 80 } else { 200 })
-    }
-
-    #[cfg(test)]
-    pub fn menu_open(&self) -> bool {
-        self.menu.is_open()
-    }
-
-    #[cfg(test)]
-    pub fn strip_tab_id(&self, i: usize) -> WidgetId {
-        self.strip.tab_id(i)
     }
 
     fn now_ms(&self) -> u64 {

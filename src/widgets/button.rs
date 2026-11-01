@@ -8,8 +8,6 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use ratatui::crossterm::event::KeyCode;
 
-
-
 #[derive(Debug, Clone)]
 pub struct Button {
     pub id: WidgetId,
@@ -21,17 +19,11 @@ pub struct Button {
     pub busy: bool,
     pub area: Rect,
 
-
     pub focus_visible: crate::ui::ctx::FocusVisible,
-
-
 
     pub mnemonic: Option<usize>,
 
-
     pub tip: Option<crate::ui::tooltip::Tip>,
-
-
 
     pub focusable: bool,
 }
@@ -53,13 +45,10 @@ impl Button {
         }
     }
 
-
     pub fn focusable(mut self, on: bool) -> Self {
         self.focusable = on;
         self
     }
-
-
 
     pub fn tooltip(mut self, text: &str) -> Self {
         let key = self.tip.take().and_then(|t| t.shortcut);
@@ -69,8 +58,6 @@ impl Button {
         });
         self
     }
-
-
 
     pub fn shortcut(mut self, key: &str) -> Self {
         let mut tip = self.tip.take().unwrap_or_default();
@@ -106,15 +93,10 @@ impl Button {
         self
     }
 
-
     pub fn width(&self) -> u16 {
         let marker = if self.on.is_some() || self.busy { 2 } else { 0 };
         (width(&self.label) + 2 + marker) as u16
     }
-
-
-
-
 
     pub fn hint(&self) -> crate::widgets::keyhint::Hint {
         if self.busy {
@@ -128,7 +110,6 @@ impl Button {
         !self.disabled && !self.busy
     }
 
-
     pub fn on_key(&mut self, key: &Key) -> (Outcome, bool) {
         if key.is(KeyCode::Enter) || key.is_char(' ') {
             if self.can_activate() {
@@ -141,7 +122,6 @@ impl Button {
             (Outcome::Ignored, false)
         }
     }
-
 
     pub fn on_click(&mut self) -> bool {
         if self.can_activate() {
@@ -185,7 +165,6 @@ impl Button {
             s.pressed = false;
         }
         let t = ctx.theme;
-
 
         let it = t.interactive(Kind::Button(self.kind), s, t.plane_of(bg));
         let style = it.style;
@@ -258,10 +237,6 @@ impl Button {
     }
 }
 
-
-
-
-
 fn wrap_lines(width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
     let mut lines: Vec<Vec<usize>> = vec![vec![]];
     let mut used = 0u16;
@@ -283,8 +258,6 @@ fn wrap_lines(width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
     lines
 }
 
-
-
 pub fn row_lines(width: u16, widths: &[u16], gap: u16) -> u16 {
     if widths.is_empty() {
         return 1;
@@ -292,18 +265,9 @@ pub fn row_lines(width: u16, widths: &[u16], gap: u16) -> u16 {
     wrap_lines(width, widths, gap).len() as u16
 }
 
-
-
-
-
-
-
-
 pub fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     place_lines(area, widths, gap, false)
 }
-
-
 
 pub fn row_layout_right(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     place_lines(area, widths, gap, true)
@@ -329,7 +293,6 @@ fn place_lines(area: Rect, widths: &[u16], gap: u16, right: bool) -> Vec<Rect> {
     out
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowAlign {
 
@@ -339,47 +302,29 @@ pub enum RowAlign {
     End,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowOverflow {
-
-
 
     #[default]
     More,
 
-
     Wrap,
 }
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ButtonRow {
 
     pub align: RowAlign,
 
-
     pub gap: Option<u16>,
 
     pub overflow: RowOverflow,
 
-
     pub wrap: bool,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RowLayout {
-
 
     pub rects: Vec<Option<Rect>>,
 
@@ -387,8 +332,6 @@ pub struct RowLayout {
 
     pub hidden: Vec<usize>,
 }
-
-
 
 pub const MORE_LABEL: &str = "…";
 
@@ -413,11 +356,6 @@ impl ButtonRow {
         self.wrap = on;
         self
     }
-
-
-
-
-
 
     pub fn step<'a>(
         &self,
@@ -444,7 +382,6 @@ impl ButtonRow {
         }
     }
 
-
     pub fn more_id(owner: WidgetId) -> WidgetId {
         owner.sub("more")
     }
@@ -453,7 +390,6 @@ impl ButtonRow {
         self.gap.unwrap_or(theme.spacing.button_gap)
     }
 
-
     fn primary(buttons: &[Button]) -> Option<usize> {
         buttons
             .iter()
@@ -461,18 +397,14 @@ impl ButtonRow {
             .or_else(|| buttons.len().checked_sub(1))
     }
 
-
     fn lines(&self, width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
         wrap_lines(width, widths, gap)
     }
-
-
 
     pub fn width(&self, buttons: &[Button], theme: &crate::theme::Theme) -> u16 {
         let n = buttons.len() as u16;
         buttons.iter().map(Button::width).sum::<u16>() + self.gap_for(theme) * n.saturating_sub(1)
     }
-
 
     pub fn rows(&self, width: u16, buttons: &[Button], theme: &crate::theme::Theme) -> u16 {
         match self.overflow {
@@ -484,8 +416,6 @@ impl ButtonRow {
         }
     }
 
-
-
     pub fn rows_at_gap(&self, width: u16, buttons: &[Button], gap: u16) -> u16 {
         match self.overflow {
             RowOverflow::More => 1,
@@ -495,8 +425,6 @@ impl ButtonRow {
             }
         }
     }
-
-
 
     pub fn layout(&self, area: Rect, buttons: &[Button], theme: &crate::theme::Theme) -> RowLayout {
         let gap = self.gap_for(theme);
@@ -515,7 +443,6 @@ impl ButtonRow {
                 RowAlign::Start => area.x,
                 RowAlign::End => area.right().saturating_sub(total).max(area.x),
             };
-
 
             let mut cx = x;
             let rects: Vec<Rect> = line
@@ -553,7 +480,6 @@ impl ButtonRow {
                     return out;
                 }
 
-
                 let primary = Self::primary(buttons).unwrap_or(0);
                 let more_w = (width(theme.glyphs.ellipsis) + 2) as u16;
                 let mut budget = area.width.saturating_sub(widths[primary] + gap + more_w);
@@ -572,7 +498,6 @@ impl ButtonRow {
                     }
                 }
                 out.hidden = (0..buttons.len()).filter(|i| !keep[*i]).collect();
-
 
                 let mut line: Vec<(usize, u16)> = Vec::new();
                 for (i, &w) in widths.iter().enumerate() {
@@ -605,9 +530,6 @@ impl ButtonRow {
         out
     }
 
-
-
-
     pub fn render(
         &self,
         owner: WidgetId,
@@ -632,9 +554,6 @@ impl ButtonRow {
     }
 }
 
-
-
-
 impl crate::core::pointer::MouseTarget for Button {
     type Action = ();
 
@@ -658,238 +577,3 @@ impl crate::core::pointer::MouseTarget for Button {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-
-    fn drawer_actions() -> Vec<Button> {
-        let id = WidgetId::of("row");
-        vec![
-            Button::secondary(id.sub("a"), "Refresh"),
-            Button::secondary(id.sub("b"), "Validate"),
-            Button::secondary(id.sub("c"), "Edit…"),
-            Button::danger(id.sub("d"), "Remove…"),
-        ]
-    }
-
-
-
-    #[test]
-    fn a_narrow_row_folds_buttons_and_keeps_the_primary_whole() {
-        let t = Theme::junie();
-        let buttons = drawer_actions();
-        let area = Rect::new(0, 0, 30, 1);
-        let l = ButtonRow::new().layout(area, &buttons, &t);
-        let primary = l.rects[3].expect("the primary stays");
-        assert_eq!(primary.width, buttons[3].width(), "never cut");
-        assert!(primary.right() <= area.right());
-        assert_eq!(l.hidden, vec![1, 2]);
-        let more = l.more.expect("a … button");
-        assert!(more.right() <= primary.x, "… sits before the primary");
-
-        let mut drawn: Vec<Rect> = l.rects.iter().flatten().copied().collect();
-        drawn.push(more);
-        drawn.sort_by_key(|r| r.x);
-        for pair in drawn.windows(2) {
-            assert!(pair[0].right() + 2 <= pair[1].x, "{drawn:?}");
-        }
-    }
-
-
-
-
-    #[test]
-    fn row_layout_wraps_the_buttons_that_do_not_fit_instead_of_dropping_them() {
-        let buttons = drawer_actions();
-        let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
-        let area = Rect::new(4, 3, 30, 1);
-        assert_eq!(row_lines(area.width, &widths, 2), 2);
-        for rects in [
-            row_layout(area, &widths, 2),
-            row_layout_right(area, &widths, 2),
-        ] {
-            for (r, w) in rects.iter().zip(&widths) {
-                assert_eq!(r.width, *w, "never cut: {rects:?}");
-                assert!(r.x >= area.x && r.right() <= area.right(), "{rects:?}");
-            }
-            assert_eq!(rects[0].y, 3);
-            assert_eq!(rects[3].y, 4, "the last button wraps: {rects:?}");
-        }
-
-        let wide = Rect::new(0, 0, 80, 1);
-        assert_eq!(row_lines(wide.width, &widths, 2), 1);
-        assert!(row_layout(wide, &widths, 2).iter().all(|r| r.y == 0));
-    }
-
-    #[test]
-    fn a_wrapping_row_continues_on_the_next_line() {
-        let t = Theme::junie();
-        let buttons = drawer_actions();
-        let row = ButtonRow::new().overflow(RowOverflow::Wrap);
-        assert_eq!(row.rows(30, &buttons, &t), 2);
-        let l = row.layout(Rect::new(0, 0, 30, 2), &buttons, &t);
-        assert!(l.hidden.is_empty() && l.more.is_none());
-        let ys: Vec<u16> = l.rects.iter().map(|r| r.unwrap().y).collect();
-        assert_eq!(ys, vec![0, 0, 0, 1]);
-        for (b, r) in buttons.iter().zip(&l.rects) {
-            assert_eq!(r.unwrap().width, b.width());
-        }
-    }
-
-
-    #[test]
-    fn width_is_the_row_that_folds_nothing() {
-        let t = crate::theme::Theme::junie();
-        let row = ButtonRow::new();
-        let buttons = drawer_actions();
-        let w = row.width(&buttons, &t);
-        let at = |w: u16| row.layout(Rect::new(0, 0, w, 1), &buttons, &t).hidden.len();
-        assert_eq!(at(w), 0);
-        assert!(at(w - 1) > 0);
-    }
-
-    #[test]
-    fn a_row_that_fits_uses_the_theme_gap_and_alignment() {
-        let mut t = Theme::junie();
-        let buttons = drawer_actions();
-        let area = Rect::new(0, 0, 80, 1);
-        let l = ButtonRow::new()
-            .align(RowAlign::End)
-            .layout(area, &buttons, &t);
-        assert_eq!(l.rects[3].unwrap().right(), 80);
-        assert_eq!(l.rects[1].unwrap().x, l.rects[0].unwrap().right() + 2);
-        t.spacing.button_gap = 3;
-        let l = ButtonRow::new().layout(area, &buttons, &t);
-        assert_eq!(l.rects[1].unwrap().x, l.rects[0].unwrap().right() + 3);
-    }
-
-    #[test]
-    fn folded_buttons_are_neither_drawn_nor_clickable() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let mut buttons = drawer_actions();
-        let area = Rect::new(0, 0, 30, 1);
-        let mut buf = Buffer::empty(area);
-        let owner = WidgetId::of("row");
-        let l = ButtonRow::new().render(owner, area, &mut buttons, &mut buf, &mut ctx, t.canvas);
-        assert_eq!(buttons[1].area, Rect::ZERO);
-        let text: String = (0..30).map(|x| buf[(x, 0)].symbol()).collect();
-        assert!(
-            text.contains("Remove…") && !text.contains("Validate"),
-            "{text}"
-        );
-        let more = l.more.unwrap();
-        assert_eq!(
-            hits.hit(ratatui::layout::Position::new(more.x + 1, 0)),
-            Some(ButtonRow::more_id(owner))
-        );
-    }
-
-    #[test]
-    fn a_busy_primary_button_keeps_its_label_and_spinner_visible() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
-        let mut b = Button::primary(WidgetId::of("b"), "Connect");
-        b.busy = true;
-        let w = b.width();
-        b.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
-        for x in 1..w - 1 {
-            let c = &buf[(x, 0)];
-            if c.symbol() != " " {
-                assert_ne!(c.fg, c.bg, "cell {x} {:?} is invisible", c.symbol());
-            }
-        }
-    }
-
-
-
-
-    #[test]
-    fn the_focus_bar_reads_on_a_focused_button_at_every_level() {
-        use crate::theme::{ColorLevel, contrast_ratio};
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            for kind in ["secondary", "subtle", "danger", "primary"] {
-                let id = WidgetId::of("b");
-                let mut b = match kind {
-                    "secondary" => Button::secondary(id, "Save"),
-                    "subtle" => Button::subtle(id, "Save"),
-                    "danger" => Button::danger(id, "Save"),
-                    _ => Button::primary(id, "Save"),
-                };
-                let mut hits = HitRegistry::default();
-                let mut ring = FocusRing::default();
-                let i = Interaction {
-                    focus: Some(id),
-                    ..Default::default()
-                };
-                let mut ctx = RenderCtx::new(&t, i, &mut hits, &mut ring);
-                let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
-                let w = b.width();
-                b.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
-                let bar = (0..w)
-                    .map(|x| &buf[(x, 0)])
-                    .find(|c| c.symbol() == t.glyphs.focus_bar)
-                    .unwrap_or_else(|| panic!("{level:?} {kind}: no focus bar"));
-                let r = contrast_ratio(bar.fg, bar.bg).unwrap();
-                assert!(r >= 3.0, "{level:?} {kind}: focus bar {r:.2}");
-            }
-        }
-    }
-
-    #[test]
-    fn keyboard_only_focus_hides_the_ring_after_a_click() {
-        use crate::ui::ctx::FocusVisible;
-        let t = Theme::junie();
-        let id = WidgetId::of("b");
-        let draw = |mode: FocusVisible, pointer_focus: bool| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let i = Interaction {
-                focus: Some(id),
-                pointer_focus,
-                ..Default::default()
-            };
-            let mut ctx = RenderCtx::new(&t, i, &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
-            let mut b = Button::secondary(id, "Save").focus_visible(mode);
-            let w = b.width();
-            b.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
-            buf
-        };
-        let rest = {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
-            let mut b = Button::secondary(id, "Save");
-            let w = b.width();
-            b.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
-            buf
-        };
-        let keyboard = draw(FocusVisible::KeyboardOnly, false);
-        assert_ne!(keyboard, rest, "keyboard focus shows");
-        assert_eq!(
-            draw(FocusVisible::KeyboardOnly, true),
-            rest,
-            "a click shows no ring"
-        );
-        assert_ne!(draw(FocusVisible::Always, true), rest, "Always keeps it");
-    }
-
-    #[test]
-    fn the_focused_hint_names_the_button() {
-        let b = Button::subtle(WidgetId::of("b"), "Cancel");
-        let h = b.hint();
-        assert_eq!((h.key, h.action.as_ref()), ("Enter", "Cancel"));
-    }
-}

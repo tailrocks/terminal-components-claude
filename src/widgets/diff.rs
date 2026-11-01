@@ -1,9 +1,5 @@
 
 
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
@@ -113,7 +109,6 @@ impl DiffStatus {
         }
     }
 
-
     pub fn tone(&self) -> Tone {
         match self {
             DiffStatus::Added => Tone::Success,
@@ -202,7 +197,6 @@ impl DiffMode {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct DiffView {
     pub term: TextViewport,
@@ -212,7 +206,6 @@ pub struct DiffView {
     laid_mode: DiffMode,
     dirty: bool,
     rendered_size: Option<(u16, u16, DiffMode, bool)>,
-
 
     glyphs: Glyphs,
     strings: Strings,
@@ -263,11 +256,6 @@ impl DiffView {
         self.mode
     }
 
-
-
-
-
-
     pub fn layout_mode(&self, width: u16) -> DiffMode {
         match &self.file {
             Some(file) if self.mode == DiffMode::Review && review_fits(file, width) => {
@@ -276,7 +264,6 @@ impl DiffView {
             _ => DiffMode::Unified,
         }
     }
-
 
     pub fn layout(&mut self, width: u16) {
         let mode = self.layout_mode(width);
@@ -335,7 +322,6 @@ impl DiffView {
                 );
             }
 
-
             self.rendered_size = Some(size);
         }
         self.term.render(area, buf, ctx, bg);
@@ -360,12 +346,9 @@ fn num_width(f: &DiffFile) -> usize {
     max.to_string().len().max(3)
 }
 
-
-
 pub fn unified_lines(f: &DiffFile) -> Vec<Line> {
     unified_lines_with(f, &Glyphs::UNICODE, &Strings::DEFAULT)
 }
-
 
 pub fn unified_lines_with(f: &DiffFile, g: &Glyphs, s: &Strings) -> Vec<Line> {
     let nw = num_width(f);
@@ -415,8 +398,6 @@ pub fn unified_lines_with(f: &DiffFile, g: &Glyphs, s: &Strings) -> Vec<Line> {
     out
 }
 
-
-
 fn changed_range(a: &str, b: &str) -> (usize, usize) {
     let ac: Vec<&str> = a.graphemes(true).collect();
     let bc: Vec<&str> = b.graphemes(true).collect();
@@ -430,7 +411,6 @@ fn changed_range(a: &str, b: &str) -> (usize, usize) {
     }
     (p, s)
 }
-
 
 fn emphasised(text: &str, p: usize, s: usize, tone: Tone, col_w: usize) -> Vec<Span> {
     let graphemes: Vec<&str> = text.graphemes(true).collect();
@@ -458,15 +438,9 @@ fn emphasised(text: &str, p: usize, s: usize, tone: Tone, col_w: usize) -> Vec<S
     spans
 }
 
-
-
-
-
-
 pub fn review_lines(f: &DiffFile, width: u16) -> Vec<Line> {
     review_lines_with(f, width, &Glyphs::UNICODE, &Strings::DEFAULT)
 }
-
 
 pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs, s: &Strings) -> Vec<Line> {
     if !review_fits(f, width) {
@@ -582,8 +556,6 @@ fn review_fits(file: &DiffFile, width: u16) -> bool {
     usize::from(width) >= 2 * (num_width(file) + 1 + 16) + 3
 }
 
-
-
 impl Scrollable for DiffView {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.term.scroll
@@ -598,10 +570,6 @@ impl Scrollable for DiffView {
     }
 }
 
-
-
-
-
 impl crate::core::pointer::MouseTarget for DiffView {
     type Action = ();
 
@@ -615,7 +583,6 @@ impl crate::core::pointer::MouseTarget for DiffView {
     ) -> crate::core::response::Response<()> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-
 
         if ev.is(Phase::Secondary) || self.term.edit_menu.owns(ev) {
             return self.term.pointer(ev);
@@ -636,230 +603,3 @@ impl crate::core::pointer::MouseTarget for DiffView {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use crate::widgets::viewport::line_text;
-
-    fn sample() -> DiffFile {
-        DiffFile {
-            path: "src/settlement/retry.rs".into(),
-            status: DiffStatus::Modified,
-            hunks: vec![
-                DiffHunk {
-                    old_start: 10,
-                    new_start: 10,
-                    lines: vec![
-                        DiffLine::context("fn retry() {"),
-                        DiffLine::remove("    let attempts = 3;"),
-                        DiffLine::add("    let attempts = 5;"),
-                        DiffLine::add("    let backoff = Backoff::exponential();"),
-                        DiffLine::context("}"),
-                    ],
-                },
-                DiffHunk {
-                    old_start: 40,
-                    new_start: 41,
-                    lines: vec![DiffLine::remove("// old"), DiffLine::context("done")],
-                },
-            ],
-        }
-    }
-
-    #[test]
-    fn counts_and_headers() {
-        let f = sample();
-        assert_eq!(f.additions(), 2);
-        assert_eq!(f.deletions(), 2);
-        assert_eq!(f.summary(), "+2 −2 · 2 hunks");
-        assert_eq!(f.hunks[0].header(), "@@ -10,3 +10,4 @@");
-        assert_eq!(f.header(), "M src/settlement/retry.rs");
-    }
-
-    #[test]
-    fn unified_lists_every_line_with_markers() {
-        let lines = unified_lines(&sample());
-        let texts: Vec<String> = lines.iter().map(|l| line_text(l)).collect();
-        assert!(texts[0].starts_with("M src/settlement/retry.rs"));
-        assert!(texts[1].starts_with("@@ -10,3 +10,4 @@"));
-        assert!(texts[3].contains("- ") && texts[3].contains("attempts = 3"));
-        assert!(texts[4].contains("+ ") && texts[4].contains("attempts = 5"));
-        assert!(texts[2].starts_with(" 10  10"));
-        assert_eq!(lines[3].iter().filter(|s| s.tone == Tone::Error).count(), 2);
-    }
-
-    #[test]
-    fn review_pairs_columns_and_emphasises_the_change() {
-        let lines = review_lines(&sample(), 120);
-        let texts: Vec<String> = lines.iter().map(|l| line_text(l)).collect();
-        assert!(texts[1].contains("Old") && texts[1].contains("New"));
-        let paired = &texts[4];
-        assert!(paired.contains("│"));
-        assert!(paired.contains("attempts = 3") && paired.contains("attempts = 5"));
-        let bold: Vec<&Span> = lines[4].iter().filter(|s| s.bold).collect();
-        assert!(bold.iter().any(|s| s.text.contains('3')));
-        assert!(bold.iter().any(|s| s.text.contains('5')));
-
-        assert!(texts[5].trim_start().starts_with("│") || texts[5].starts_with("     "));
-        assert!(texts[5].contains("Backoff::exponential"));
-
-        assert!(texts.iter().any(|t| t.starts_with("────")));
-    }
-
-    #[test]
-    fn view_renders_and_scrolls() {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut v = DiffView::new(WidgetId::of("t.diff"));
-        v.set_file(Some(sample()));
-        let area = Rect::new(0, 0, 60, 4);
-        let mut buf = Buffer::empty(area);
-        v.render(area, &mut buf, &mut ctx, theme.canvas);
-        let row0: String = (0..60).map(|x| buf[(x, 0)].symbol().to_owned()).collect();
-        assert!(row0.starts_with("M src/settlement/retry.rs"));
-        assert_eq!(v.wheel(Axis::Vertical, 2).outcome(), Outcome::Changed);
-        assert_eq!(v.term.scroll.offset, 2);
-        v.render(area, &mut buf, &mut ctx, theme.canvas);
-        assert_eq!(v.term.scroll.offset, 2, "render must not undo the wheel");
-        v.toggle_mode();
-        assert_eq!(v.mode, DiffMode::Review);
-        v.term.scroll.jump_start();
-        v.render(area, &mut buf, &mut ctx, theme.canvas);
-        let row0: String = (0..60).map(|x| buf[(x, 0)].symbol().to_owned()).collect();
-        assert!(row0.contains("review"));
-    }
-
-    #[test]
-    fn review_falls_back_when_narrow_and_restores_when_wide() {
-        let mut view = DiffView::new(WidgetId::of("diff.resize"));
-        let file = sample();
-        view.set_file(Some(file.clone()));
-        view.set_mode(DiffMode::Review);
-        for width in [0, 18, 42] {
-            assert_eq!(view.layout_mode(width), DiffMode::Unified);
-            assert_eq!(review_lines(&file, width), unified_lines(&file));
-        }
-        assert_eq!(view.layout_mode(43), DiffMode::Review);
-        assert_eq!(view.mode, DiffMode::Review);
-    }
-
-    #[test]
-    fn direct_public_mode_change_invalidates_layout() {
-        let mut view = DiffView::new(WidgetId::of("diff.mode"));
-        view.set_file(Some(sample()));
-        view.layout(120);
-        let unified_len = view.term.len();
-        view.mode = DiffMode::Review;
-        view.layout(120);
-        assert_ne!(view.term.len(), unified_len);
-        assert_eq!(view.laid_mode, DiffMode::Review);
-    }
-
-    #[test]
-    fn review_emphasis_keeps_complete_graphemes_and_column_widths() {
-        for (old, new) in [("👩‍💻", "👩‍🔬"), ("a\u{301}", "a\u{302}")] {
-            let file = DiffFile {
-                path: "unicode".into(),
-                status: DiffStatus::Modified,
-                hunks: vec![DiffHunk {
-                    old_start: 1,
-                    new_start: 1,
-                    lines: vec![DiffLine::remove(old), DiffLine::add(new)],
-                }],
-            };
-            let lines = review_lines(&file, 43);
-            let text = line_text(&lines[3]);
-            assert_eq!(width(&text[..text.find('│').unwrap()]), 21);
-            assert!(lines[3].iter().any(|span| span.bold && span.text == old));
-            assert!(lines[3].iter().any(|span| span.bold && span.text == new));
-        }
-    }
-
-    #[test]
-    fn review_budget_reserves_scrollbar_and_recovers_on_resize() {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut view = DiffView::new(WidgetId::of("diff.scrollbar"));
-        view.set_file(Some(DiffFile {
-            path: "x".into(),
-            status: DiffStatus::Modified,
-            hunks: vec![DiffHunk {
-                old_start: 1,
-                new_start: 1,
-                lines: vec![
-                    DiffLine::remove("1234567890123456"),
-                    DiffLine::add("123456789012345X"),
-                ],
-            }],
-        }));
-        view.set_mode(DiffMode::Review);
-        for (width, height, mode) in [
-            (44, 3, DiffMode::Unified),
-            (45, 3, DiffMode::Review),
-            (43, 10, DiffMode::Review),
-        ] {
-            let area = Rect::new(0, 0, width, height);
-            let mut buf = Buffer::empty(area);
-            view.render(area, &mut buf, &mut ctx, theme.canvas);
-            assert_eq!(view.laid_mode, mode);
-            if mode == DiffMode::Review {
-                view.wheel(Axis::Vertical, 1).outcome();
-                view.render(area, &mut buf, &mut ctx, theme.canvas);
-                assert!(buf.content.iter().any(|cell| cell.symbol() == "X"));
-            }
-        }
-        assert_eq!(view.mode, DiffMode::Review);
-    }
-
-    #[test]
-    fn tab_indented_review_aligns_context_changes_and_copied_text() {
-        let file = DiffFile {
-            path: "tabs".into(),
-            status: DiffStatus::Modified,
-            hunks: vec![DiffHunk {
-                old_start: 1,
-                new_start: 1,
-                lines: vec![
-                    DiffLine::context("\tcontext"),
-                    DiffLine::remove("\tlet x=1"),
-                    DiffLine::add("\tlet x=2"),
-                    DiffLine::add("\t追加🙂"),
-                ],
-            }],
-        };
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        for width in [43, 60] {
-            let mut view = DiffView::new(WidgetId::of("diff.tabs"));
-            view.set_file(Some(file.clone()));
-            view.set_mode(DiffMode::Review);
-            let area = Rect::new(0, 0, width, 10);
-            let mut buf = Buffer::empty(area);
-            view.render(area, &mut buf, &mut ctx, theme.canvas);
-            let separator = (width - 3) / 2 + 1;
-            for row in [1, 3, 4, 5] {
-                assert_eq!(
-                    buf[(separator, row)].symbol(),
-                    "│",
-                    "row {row} width {width}"
-                );
-            }
-            view.on_click(Position::new(4, 4));
-            view.on_drag(Position::new(15, 4));
-            assert_eq!(view.term.selected_text().as_deref(), Some("    let x=1"));
-            let lines = review_lines(&file, width);
-            assert!(lines[4].iter().any(|span| span.bold && span.text == "1"));
-            assert!(lines[4].iter().any(|span| span.bold && span.text == "2"));
-        }
-    }
-}

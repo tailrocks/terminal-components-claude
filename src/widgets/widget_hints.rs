@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 use crate::core::hints::{
     Binding, Bindings, HasHints, HintCx, actions_bindings, nav_bindings, nav_hints,
 };
@@ -22,15 +17,9 @@ use crate::widgets::tabs::Tabs;
 use crate::widgets::textarea::TextArea;
 use crate::widgets::tree::TreeView;
 
-
-
-
 pub const EDIT: Hint = hint(EDIT_PAIR.0, EDIT_PAIR.1);
 
-
 pub const EDIT_PAIR: (&str, &str) = ("Enter", "Edit");
-
-
 
 impl HasHints for ListBox {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -48,7 +37,6 @@ impl HasHints for ListBox {
     }
 }
 
-
 impl HasHints for TreeView {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         let mut v = nav_hints(&self.nav, self.type_ahead, false);
@@ -56,8 +44,6 @@ impl HasHints for TreeView {
         v
     }
 }
-
-
 
 impl HasHints for Select {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -73,9 +59,6 @@ impl HasHints for Select {
     }
 }
 
-
-
-
 impl HasHints for Completion {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         if !self.is_open() {
@@ -88,14 +71,11 @@ impl HasHints for Completion {
     }
 }
 
-
 impl HasHints for Tabs {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         vec![hint("←→", "Switch tab")]
     }
 }
-
-
 
 impl HasHints for DataTable {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -109,8 +89,6 @@ impl HasHints for DataTable {
         v
     }
 }
-
-
 
 impl HasHints for DataGrid {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -146,7 +124,6 @@ impl HasHints for CodeEditor {
     }
 }
 
-
 impl HasHints for Button {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         if self.disabled {
@@ -155,9 +132,6 @@ impl HasHints for Button {
         vec![self.hint()]
     }
 }
-
-
-
 
 impl Bindings for ListBox {
     fn bindings(&self) -> Vec<Binding> {
@@ -171,7 +145,6 @@ impl Bindings for ListBox {
     }
 }
 
-
 impl Bindings for TreeView {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = nav_bindings(&self.nav, self.type_ahead);
@@ -182,7 +155,6 @@ impl Bindings for TreeView {
     }
 }
 
-
 impl Bindings for Tabs {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = vec![Binding::group("←→", "Switch tab")];
@@ -190,7 +162,6 @@ impl Bindings for Tabs {
         v
     }
 }
-
 
 impl Bindings for DataTable {
     fn bindings(&self) -> Vec<Binding> {
@@ -200,7 +171,6 @@ impl Bindings for DataTable {
         v
     }
 }
-
 
 impl Bindings for DataGrid {
     fn bindings(&self) -> Vec<Binding> {
@@ -213,7 +183,6 @@ impl Bindings for DataGrid {
     }
 }
 
-
 impl Bindings for Select {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = vec![Binding::group("Enter Space", "Open")];
@@ -223,6 +192,3 @@ impl Bindings for Select {
     }
 }
 
-#[cfg(test)]
-#[path = "widget_hints_tests.rs"]
-mod tests;

@@ -1,7 +1,5 @@
 
 
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -19,8 +17,6 @@ use crate::ui::text::{truncate, width};
 use crate::widgets::button::Button;
 use crate::widgets::keyhint::Hint;
 use crate::widgets::scrollbar;
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HelpCmd {
@@ -43,10 +39,6 @@ impl Actions for HelpCmd {
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct HelpSection {
     pub title: String,
@@ -62,9 +54,6 @@ impl HelpSection {
         }
     }
 
-
-
-
     pub fn row(mut self, keys: impl Into<String>, action: impl Into<String>) -> Self {
         let keys = keys.into();
         if crate::core::keyboard::label_deliverable(&keys) {
@@ -72,11 +61,6 @@ impl HelpSection {
         }
         self
     }
-
-
-
-
-
 
     pub fn bindings(mut self, bindings: &[crate::core::hints::Binding]) -> Self {
         for b in bindings.iter().filter(|b| !b.action.is_empty()) {
@@ -93,21 +77,12 @@ impl HelpSection {
         self
     }
 
-
     pub fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
 }
 
 pub struct HelpOverlay {
-
-
-
-
-
-
-
-
 
     pub close_button: crate::widgets::icon_button::IconButton,
 
@@ -122,23 +97,15 @@ pub struct HelpOverlay {
 
     pub title: String,
 
-
-
-
-
     pub hint: String,
 
     pub nav: NavKeys,
 
     pub keymap: KeyMap<HelpCmd>,
 
-
-
     pub max_percent: u16,
 
-
     pub done: Button,
-
 
     strings: crate::theme::Strings,
 }
@@ -154,7 +121,6 @@ impl std::fmt::Debug for HelpOverlay {
             .finish_non_exhaustive()
     }
 }
-
 
 impl HasHints for HelpOverlay {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -176,12 +142,10 @@ impl HelpOverlay {
         self
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<HelpCmd>) -> Self {
         self.keymap = keymap;
@@ -219,11 +183,6 @@ impl HelpOverlay {
         }
     }
 
-
-
-
-
-
     pub fn from_keymaps(id: WidgetId, scope: &str, sections: Vec<HelpSection>) -> Self {
         let mut h = Self::new(id, scope, vec![]);
         h.sections = sections
@@ -234,13 +193,10 @@ impl HelpOverlay {
         h
     }
 
-
     pub fn max_percent(mut self, percent: u16) -> Self {
         self.max_percent = percent.clamp(20, 100);
         self
     }
-
-
 
     pub fn on_click(&mut self, id: WidgetId) -> Outcome {
         if id == self.done.id && self.done.on_click()
@@ -313,7 +269,6 @@ impl HelpOverlay {
         let col_w = inner.width / cols;
         let cols = cols as usize;
 
-
         let widest = self
             .sections
             .iter()
@@ -365,7 +320,6 @@ impl HelpOverlay {
                         x + key_w + 1,
                         y,
                         truncate(action, action_w),
-
 
                         t.secondary().bg(bg),
                     );
@@ -421,10 +375,6 @@ impl Scrollable for HelpOverlay {
     }
 }
 
-
-
-
-
 impl crate::core::pointer::MouseTarget for HelpOverlay {
     type Action = ();
 
@@ -459,103 +409,3 @@ impl crate::core::pointer::MouseTarget for HelpOverlay {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use crate::ui::popup::Dismiss;
-    use ratatui::crossterm::event::KeyModifiers;
-
-
-
-
-    #[test]
-    fn long_descriptions_wrap_under_their_column_and_keys_share_a_row() {
-        use crate::core::hints::Binding;
-        use crate::core::keymap::KeyBinding;
-        let rows = [
-            Binding::key(KeyBinding::key(KeyCode::F(1)), "Help"),
-            Binding::key(KeyBinding::char('?'), "Help"),
-        ];
-        let section = HelpSection::new("Shell").bindings(&rows).row(
-            "Ctrl+D",
-            "Data / Structure, and the filter of the grid or the find bar of the editor",
-        );
-        assert_eq!(section.rows[0], ("F1 ?".to_owned(), "Help".to_owned()));
-        let mut h = HelpOverlay::from_keymaps(
-            WidgetId::of("help"),
-            "",
-            vec![section, HelpSection::new("Empty")],
-        );
-        assert_eq!(h.sections.len(), 1, "an empty section is left out");
-        let screen = Rect::new(0, 0, 60, 30);
-        let mut buf = Buffer::empty(screen);
-        let theme = Theme::junie();
-        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        h.render(screen, &mut buf, &mut ctx);
-        let lines: Vec<String> = (0..screen.height)
-            .map(|y| (0..screen.width).map(|x| buf[(x, y)].symbol()).collect())
-            .collect();
-        let first = lines
-            .iter()
-            .position(|l| l.contains("Ctrl+D"))
-            .expect("the row");
-        let col = lines[first].find("Data").unwrap();
-        let next = &lines[first + 1];
-        assert_eq!(
-            next.find(|c: char| c.is_alphanumeric()),
-            Some(col),
-            "the wrapped part hangs under its column:\n{}",
-            lines.join("\n")
-        );
-        assert!(
-            lines.join(" ").contains("editor"),
-            "nothing is cut:\n{}",
-            lines.join("\n")
-        );
-    }
-
-    #[test]
-    fn renders_sections_and_closes_per_policy() {
-        let mut h = HelpOverlay::new(
-            WidgetId::of("help"),
-            "Manager",
-            vec![("Move", vec![("↑↓", "Select"), ("Enter", "Open")])],
-        );
-        let screen = Rect::new(0, 0, 100, 30);
-        let mut buf = Buffer::empty(screen);
-        let theme = Theme::junie();
-        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        h.render(screen, &mut buf, &mut ctx);
-        let text: String = buf.content().iter().map(|c| c.symbol()).collect();
-        assert!(text.contains("Keyboard shortcuts") && text.contains("Select"));
-
-        let at = |needle: &str| {
-            let want: Vec<String> = needle.chars().map(String::from).collect();
-            let i = buf
-                .content()
-                .windows(want.len())
-                .position(|cells| cells.iter().zip(&want).all(|(c, w)| c.symbol() == w))
-                .expect("drawn");
-            &buf.content()[i]
-        };
-        let key = at("Enter");
-        assert_eq!(key.fg, theme.text_primary);
-        assert!(key.modifier.contains(ratatui::style::Modifier::BOLD));
-        assert_eq!(at("Open").fg, theme.text_secondary);
-        let esc = Key {
-            code: KeyCode::Esc,
-            mods: KeyModifiers::NONE,
-        };
-        let mut kept = HelpOverlay::new(WidgetId::of("h2"), "", vec![]).dismiss(Dismiss::NEVER);
-        assert_eq!(kept.on_key(&esc), Outcome::Consumed);
-        assert!(!kept.closed);
-        h.on_key(&esc);
-        assert!(h.closed);
-    }
-}

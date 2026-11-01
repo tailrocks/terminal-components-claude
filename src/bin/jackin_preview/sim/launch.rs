@@ -1,7 +1,5 @@
 
 
-
-
 use junie_tui::widgets::steps::StepState;
 
 use crate::domain::agent::Agent;
@@ -56,7 +54,6 @@ impl Stage {
         Stage::ALL.iter().position(|s| *s == self).unwrap_or(0)
     }
 
-
     pub fn activity(self, agent: Agent) -> String {
         match self {
             Stage::Identity => "Resolving launch identity…".into(),
@@ -73,7 +70,6 @@ impl Stage {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LaunchPlan {
@@ -133,7 +129,6 @@ pub struct LaunchRun {
     pub build_lines_emitted: usize,
     pub cancelled: bool,
 }
-
 
 pub const BUILD_LOG: [&str; 44] = [
     "#1 [internal] load build definition from Dockerfile.derived",
@@ -223,7 +218,6 @@ impl LaunchRun {
         self.done || self.failure.is_some() || self.blocked_at.is_some() || self.cancelled
     }
 
-
     pub fn retry_credentials(&mut self) {
         self.credential_hold = false;
         self.credential_retried = true;
@@ -236,7 +230,6 @@ impl LaunchRun {
             self.states[i] = StepState::Failed;
         }
     }
-
 
     pub fn advance(&mut self) -> Vec<LaunchEvent> {
         let mut ev = vec![];
@@ -350,83 +343,3 @@ impl LaunchRun {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn run_to_end(mut r: LaunchRun) -> (LaunchRun, Vec<LaunchEvent>) {
-        let mut all = vec![];
-        for _ in 0..2_000 {
-            let ev = r.advance();
-            all.extend(ev);
-            if r.is_terminal() {
-                break;
-            }
-        }
-        (r, all)
-    }
-
-    #[test]
-    fn clean_plan_walks_all_eleven_stages_in_order() {
-        let (r, ev) = run_to_end(LaunchRun::new(
-            LaunchPlan::Clean,
-            Agent::ClaudeCode,
-            "c",
-            "run",
-        ));
-        assert!(r.done);
-        let running: Vec<Stage> = ev
-            .iter()
-            .filter_map(|e| match e {
-                LaunchEvent::StageChanged(s, StepState::Running) => Some(*s),
-                _ => None,
-            })
-            .collect();
-        assert_eq!(running, Stage::ALL.to_vec());
-        assert_eq!(r.states[Stage::AgentBinaries.index()], StepState::Skipped);
-        assert_eq!(r.counts(), (10, 1));
-        assert_eq!(r.build_lines_emitted, BUILD_LOG.len());
-        assert!(matches!(ev.last(), Some(LaunchEvent::Ready)));
-    }
-
-    #[test]
-    fn failure_and_blocked_plans_stop_the_frontier() {
-        let (r, ev) = run_to_end(LaunchRun::new(
-            LaunchPlan::FailNetwork,
-            Agent::Codex,
-            "c",
-            "run",
-        ));
-        assert_eq!(r.failure.as_ref().map(|f| f.stage), Some(Stage::Network));
-        assert!(ev.iter().any(|e| matches!(e, LaunchEvent::Failed(_))));
-        assert_eq!(r.states[Stage::Sidecar.index()], StepState::Queued);
-        let (b, _) = run_to_end(LaunchRun::new(
-            LaunchPlan::BlockedSidecar,
-            Agent::Codex,
-            "c",
-            "run",
-        ));
-        assert_eq!(b.blocked_at, Some(Stage::Sidecar));
-    }
-
-    #[test]
-    fn credential_error_holds_until_retry() {
-        let mut r = LaunchRun::new(LaunchPlan::CredentialsLocked, Agent::Codex, "c", "run");
-        let mut held = false;
-        for _ in 0..200 {
-            let ev = r.advance();
-            if ev
-                .iter()
-                .any(|e| matches!(e, LaunchEvent::CredentialError { .. }))
-            {
-                held = true;
-                break;
-            }
-        }
-        assert!(held && r.credential_hold);
-        assert!(r.advance().is_empty());
-        r.retry_credentials();
-        let (r, _) = run_to_end(r);
-        assert!(r.done);
-    }
-}

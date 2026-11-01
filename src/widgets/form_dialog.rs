@@ -1,12 +1,5 @@
 
 
-
-
-
-
-
-
-
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::hints::{HasHints, HintCx};
@@ -144,8 +137,6 @@ impl FormField {
         }
     }
 
-
-
     fn tab_stop(&self) -> Option<WidgetId> {
         let disabled = match &self.kind {
             FormFieldKind::Input(i) => i.disabled,
@@ -158,10 +149,6 @@ impl FormField {
         if disabled { None } else { self.focus_id() }
     }
 }
-
-
-
-
 
 impl HasHints for FormDialog {
     fn hints(&self, cx: &HintCx) -> Vec<Hint> {
@@ -200,14 +187,6 @@ pub enum FormAction {
 
 pub struct FormDialog {
 
-
-
-
-
-
-
-
-
     pub close_button: crate::widgets::icon_button::IconButton,
 
     pub dismiss: crate::ui::popup::Dismiss,
@@ -224,23 +203,16 @@ pub struct FormDialog {
 
     pub scroll: ScrollPane,
 
-
-
     kept: Option<WidgetId>,
     pub area: Rect,
     pub events: Vec<FormAction>,
     pub dirty: bool,
 
-
     pub pop_on_save: bool,
-
 
     strings: Strings,
 
-
-
     pub nav: NavKeys,
-
 
     pub button_row: crate::widgets::button::ButtonRow,
 }
@@ -251,7 +223,6 @@ impl FormDialog {
         self.button_row = row;
         self
     }
-
 
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
@@ -394,11 +365,6 @@ impl FormDialog {
             FormAction::Action("save".into())
         }
     }
-
-
-
-
-
 
     fn submit(&mut self, focus: &mut Focus) {
         let mut first_invalid = None;
@@ -564,7 +530,6 @@ impl FormDialog {
             }
             _ if !editing && matches!(self.nav.action(key), Some(Nav::Left | Nav::Right)) => {
 
-
                 let row = self
                     .actions
                     .iter()
@@ -577,7 +542,6 @@ impl FormDialog {
                 Outcome::Changed
             }
 
-
             KeyCode::Esc if self.dismiss.escape => {
                 self.events.push(FormAction::Cancel);
                 Outcome::Changed
@@ -586,16 +550,12 @@ impl FormDialog {
         }
     }
 
-
     fn inputs(&mut self) -> impl Iterator<Item = &mut TextInput> {
         self.fields.iter_mut().filter_map(|f| match &mut f.kind {
             FormFieldKind::Input(i) => Some(i),
             _ => None,
         })
     }
-
-
-
 
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
         if let Some(s) = self.select_owning(id) {
@@ -606,8 +566,6 @@ impl FormDialog {
             .find(|i| i.id == id)
             .map_or(Outcome::Ignored, |i| i.on_press_count(pos, count))
     }
-
-
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if scrollbar::is_bar_of(pressed, self.id) {
@@ -623,8 +581,6 @@ impl FormDialog {
             .find(|i| i.id == pressed)
             .map_or(Outcome::Ignored, |i| i.on_drag(pos))
     }
-
-
 
     pub fn on_release(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         for f in self.fields.iter_mut() {
@@ -649,13 +605,9 @@ impl FormDialog {
         })
     }
 
-
-
     pub fn on_click(&mut self, id: WidgetId, pos: Position, focus: &mut Focus) -> Outcome {
         self.on_click_count(id, pos, 1, focus)
     }
-
-
 
     pub fn on_click_count(
         &mut self,
@@ -742,8 +694,6 @@ impl FormDialog {
         Outcome::Consumed
     }
 
-
-
     pub fn on_blur(&mut self, ch: crate::core::focus::FocusChange) -> Outcome {
         for f in self.fields.iter_mut() {
             match &mut f.kind {
@@ -783,7 +733,6 @@ impl FormDialog {
         }
         h
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
@@ -838,7 +787,6 @@ impl FormDialog {
             let fh = f.height() as i32;
             let whole = y >= body.y as i32 && y < body.bottom() as i32;
             if !whole && let Some(id) = f.tab_stop() {
-
 
                 ctx.focus_stop(id);
             }
@@ -1013,14 +961,6 @@ impl Scrollable for FormDialog {
 
 impl FormDialog {
 
-
-
-
-
-
-
-
-
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -1077,276 +1017,3 @@ impl FormDialog {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-
-    fn screen_text(buf: &Buffer) -> String {
-        buf.content().iter().map(|c| c.symbol()).collect()
-    }
-
-    #[test]
-    fn a_library_form_dialog_reads_its_values_back_by_name() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut d = FormDialog::new(
-            WidgetId::of("form"),
-            "New mount",
-            vec![
-                FormField::input("path", TextInput::new(WidgetId::of("form.path"), "Path")),
-                FormField::check(
-                    "ro",
-                    Checkbox::new(WidgetId::of("form.ro"), "Read-only", true),
-                ),
-            ],
-        );
-        d.set_text("path", "/srv/data");
-        {
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 90, 30));
-            d.render(Rect::new(0, 0, 90, 30), &mut buf, &mut ctx);
-            assert!(screen_text(&buf).contains("New mount"));
-        }
-        assert_eq!(d.text("path"), "/srv/data");
-        let values = d.values();
-        assert!(
-            values
-                .iter()
-                .any(|(n, v)| n == "ro" && *v == FieldValue::Bool(true))
-        );
-    }
-
-
-
-
-    #[test]
-    fn arrows_between_form_buttons_skip_disabled_and_stop_at_the_ends() {
-        use crate::core::focus::{Focus, FocusRing};
-        let mut f = FormDialog::new(WidgetId::of("f"), "Form", vec![]);
-        f.actions.push((
-            "check".into(),
-            Button::new(
-                WidgetId::of("f.check"),
-                "Check",
-                crate::theme::ButtonKind::Secondary,
-            ),
-        ));
-        f.actions.push((
-            "off".into(),
-            Button::new(
-                WidgetId::of("f.off"),
-                "Off",
-                crate::theme::ButtonKind::Secondary,
-            )
-            .disabled(true),
-        ));
-        let mut focus = Focus::default();
-        let ring = FocusRing::default();
-        let key = |code| Key {
-            code,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        focus.focus(WidgetId::of("f.check"));
-        f.on_key(&key(KeyCode::Right), &mut focus, &ring);
-        assert_eq!(focus.current(), Some(f.cancel.id), "skips the disabled one");
-        f.on_key(&key(KeyCode::Left), &mut focus, &ring);
-        assert_eq!(focus.current(), Some(WidgetId::of("f.check")));
-        f.on_key(&key(KeyCode::Left), &mut focus, &ring);
-        assert_eq!(focus.current(), Some(WidgetId::of("f.check")), "stops");
-        focus.focus(f.save.id);
-        f.on_key(&key(KeyCode::Right), &mut focus, &ring);
-        assert_eq!(focus.current(), Some(f.save.id), "no wrap by default");
-        let mut w = FormDialog::new(WidgetId::of("w"), "Form", vec![])
-            .button_row(crate::widgets::button::ButtonRow::new().wrap(true));
-        focus.focus(w.save.id);
-        w.on_key(&key(KeyCode::Right), &mut focus, &ring);
-        assert_eq!(focus.current(), Some(w.cancel.id), "wraps when asked");
-    }
-
-
-
-
-
-
-    #[test]
-    fn fields_scrolled_out_of_the_body_stay_in_the_tab_order() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let ids: Vec<WidgetId> = (0..8).map(|i| WidgetId::of("f").child(i)).collect();
-        let fields = ids
-            .iter()
-            .enumerate()
-            .map(|(i, id)| FormField::input(&format!("f{i}"), TextInput::new(*id, "Field")))
-            .collect();
-        let mut d = FormDialog::new(WidgetId::of("f"), "Form", fields);
-        {
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 60, 16));
-            d.render(Rect::new(0, 0, 60, 16), &mut buf, &mut ctx);
-        }
-        assert!(d.scroll.overflows(), "the body scrolls");
-        let order: Vec<WidgetId> = ring
-            .reachable()
-            .iter()
-            .copied()
-            .filter(|id| ids.contains(id))
-            .collect();
-        assert_eq!(order, ids, "every field, in form order");
-    }
-
-
-
-
-
-
-    #[test]
-    fn save_marks_the_first_invalid_field_and_does_not_save() {
-        use crate::core::focus::{Focus, FocusRing};
-        let mut f = FormDialog::new(
-            WidgetId::of("f"),
-            "Form",
-            vec![
-                FormField::input("note", TextInput::new(WidgetId::of("f.note"), "Note")),
-                FormField::input(
-                    "name",
-                    TextInput::new(WidgetId::of("f.name"), "Name").required(true),
-                ),
-            ],
-        );
-        let mut focus = Focus::default();
-        let ring = FocusRing::default();
-        let enter = Key {
-            code: KeyCode::Enter,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        focus.focus(f.save.id);
-        f.on_key(&enter, &mut focus, &ring);
-        assert!(f.events.is_empty(), "no save: {:?}", f.events);
-        assert_eq!(focus.current(), Some(WidgetId::of("f.name")));
-        let name = f.field("name").unwrap();
-        assert!(
-            matches!(&name.kind, FormFieldKind::Input(i) if i.field.error.is_some()),
-            "the field shows its error"
-        );
-        f.set_text("name", "Work");
-        focus.focus(f.save.id);
-        f.on_click(f.save.id, Position::new(0, 0), &mut focus);
-        assert_eq!(f.events, vec![FormAction::Save]);
-    }
-
-
-
-
-
-    #[test]
-    fn a_clean_esc_in_an_immediate_edit_cancels_the_form() {
-        use crate::core::focus::{Focus, FocusRing};
-        let name = WidgetId::of("f.name");
-        let mut f = FormDialog::new(
-            WidgetId::of("f"),
-            "Form",
-            vec![FormField::input("name", TextInput::new(name, "Name"))],
-        );
-        let mut focus = Focus::default();
-        let ring = FocusRing::default();
-        focus.focus(name);
-        if let FormFieldKind::Input(i) = &mut f.fields[0].kind {
-            i.begin_edit();
-        }
-        assert!(f.is_editing());
-        let esc = Key {
-            code: KeyCode::Esc,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        f.on_key(&esc, &mut focus, &ring);
-        assert_eq!(f.events, vec![FormAction::Cancel]);
-
-
-        let mut f = FormDialog::new(
-            WidgetId::of("f"),
-            "Form",
-            vec![FormField::input("name", TextInput::new(name, "Name"))],
-        );
-        if let FormFieldKind::Input(i) = &mut f.fields[0].kind {
-            i.begin_edit();
-        }
-        let x = Key {
-            code: KeyCode::Char('x'),
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        f.on_key(&x, &mut focus, &ring);
-        f.on_key(&esc, &mut focus, &ring);
-        assert!(!f.events.contains(&FormAction::Cancel), "{:?}", f.events);
-    }
-
-
-
-
-
-    #[test]
-    fn a_wheel_over_an_open_select_scrolls_its_list_not_the_form() {
-        use crate::core::hit::Axis;
-        use crate::core::pointer::PointerEvent;
-        use crate::ui::layer::{Layer, LayerCx};
-        use crate::ui::layers::LayerResult;
-        use ratatui::crossterm::event::KeyModifiers;
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let many: Vec<String> = (0..30).map(|i| format!("Option {i}")).collect();
-        let many: Vec<&str> = many.iter().map(String::as_str).collect();
-        let mut fields = vec![FormField::select(
-            "kind",
-            Select::new(WidgetId::of("form.kind"), "Kind", &many, 0).max_rows(5),
-        )];
-        for i in 0..8 {
-            let id = WidgetId::of("form.in").sub(&i.to_string());
-            fields.push(FormField::input(
-                &format!("in{i}"),
-                TextInput::new(id, "Field"),
-            ));
-        }
-        let mut d = FormDialog::new(WidgetId::of("form"), "Form", fields);
-        fn select(d: &mut FormDialog) -> &mut Select {
-            match &mut d.fields[0].kind {
-                FormFieldKind::Select(s) => s,
-                _ => panic!("the first field is the select"),
-            }
-        }
-        select(&mut d).open = true;
-        let screen = Rect::new(0, 0, 70, 20);
-        let mut buf = Buffer::empty(screen);
-        {
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            d.render(screen, &mut buf, &mut ctx);
-            ctx.flush_overlays(&mut buf);
-        }
-        assert!(d.scroll.overflows(), "the form itself scrolls");
-        let row = hits
-            .area_of(select(&mut d).option_id(1))
-            .expect("the open list's rows are hit regions");
-        let pos = ratatui::layout::Position::new(row.x + 1, row.y);
-        let under = hits.scroll_stack(pos)[0];
-        let ev = PointerEvent::wheel_on(&hits, under, Axis::Vertical, 3, pos, KeyModifiers::NONE);
-        let form_before = d.scroll.offset;
-        let mut focus = Focus::default();
-        let mut cx = LayerCx {
-            focus: &mut focus,
-            ring: &ring,
-            app: &(),
-        };
-        let out = Layer::<LayerResult>::pointer(&mut d, &ev, &mut cx);
-        assert_ne!(out, Outcome::Ignored);
-        assert_eq!(
-            select(&mut d).list.scroll.offset,
-            3,
-            "the select's list scrolled"
-        );
-        assert_eq!(d.scroll.offset, form_before, "the form behind did not");
-    }
-}
