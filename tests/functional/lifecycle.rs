@@ -1,4 +1,4 @@
-use super::support::{App, SHOWCASE, find, text};
+use super::support::{App, Point, SHOWCASE, find, text};
 
 #[test]
 fn showcase_help_survives_shrink_and_growth_and_returns_focus() {
@@ -52,10 +52,11 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
         "truecolor",
     );
     app.wait_text("Open popover ▾");
-    app.click(super::support::Point {
+    let trigger = Point {
         x: find(&app.screen(), "Open popover ▾").x + 2,
         y: find(&app.screen(), "Open popover ▾").y,
-    });
+    };
+    app.click(trigger);
     let open = app.wait_screen("popover opens", |s| {
         text(s).contains("Esc on") || text(s).contains("Dismiss")
     });
@@ -65,19 +66,14 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
         s.cols() == 80 && s.rows() == 24 && text(s).contains("Open popover")
     });
     assert_eq!((narrow.cols(), narrow.rows()), (80, 24));
+    // Freeze with the popover still open: the page beneath a popup shows
+    // no focus or hover, so this frame has no timing-sensitive state.
+    // (Freezing after dismissal raced the trigger's hover background,
+    // which depends on when the terminal delivers the parked motion.)
+    app.visual("functional/showcase_popover_resize");
     app.key("escape");
     app.wait_screen("escape dismisses the popover after resize", |s| {
-        text(s).contains("Open popover ▾")
+        !text(s).contains("report.pdf") && text(s).contains("Open popover ▾")
     });
-    // Park the pointer on an inert corner so the trigger's hover state at
-    // freeze time is intentional, not wherever the click happened to rest.
-    app.move_to(super::support::Point { x: 79, y: 0 });
-    // The terminal cursor follows focus back to the trigger on a later
-    // frame than the popover's disappearance; freeze only once it lands.
-    let trigger = find(&app.screen(), "Open popover \u{25be}");
-    app.wait_screen("cursor returns to the trigger", |s| {
-        s.cursor().row() == u32::from(trigger.y)
-    });
-    app.visual("functional/showcase_popover_resize");
     app.finish();
 }

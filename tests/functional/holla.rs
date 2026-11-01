@@ -103,7 +103,13 @@ fn holla_browser_pointer_selection_loads_preview_and_hidden_toggle() {
     app.key("ctrl+h");
     let hidden = app.wait_text("16 entries · 2 hidden hidden");
     assert!(!text(&hidden).contains(".env"));
+    // End on the go-to-path field: its text caret pins the terminal cursor
+    // to a content-derived position, unlike the file list where the cursor
+    // rests wherever the last frame happened to leave it.
+    app.key("g");
+    app.wait_text("Go to path");
     app.visual("functional/holla_browser_pointer");
+    app.key("escape");
     app.finish();
 }
 

@@ -142,18 +142,25 @@ impl App {
             bytes
         };
         let deadline = Instant::now() + Duration::from_millis(1500);
-        let mut previous = fingerprint(&self.screen());
+        let mut screen = self.screen();
+        let mut previous = fingerprint(&screen);
         loop {
             std::thread::sleep(Duration::from_millis(100));
-            let current = fingerprint(&self.screen());
-            if current == previous || Instant::now() >= deadline {
+            let candidate = self.screen();
+            let current = fingerprint(&candidate);
+            let stable = current == previous;
+            screen = candidate;
+            previous = current;
+            if stable || Instant::now() >= deadline {
                 break;
             }
-            previous = current;
         }
+        // Freeze the very snapshot that proved stable, not a fresh capture:
+        // a frame rendered between the check and a new capture could move
+        // the cursor or a hover background and reintroduce the race.
         let sample = tuiscotti_latest::sample::Sample::state(
             test_id,
-            self.screen(),
+            screen,
             tuiscotti_latest::sample::Observation::empty(),
         )
         .expect("build Tuiscotti state sample");
@@ -171,6 +178,39 @@ impl App {
             "visual mismatch for {test_id}: {outcome:?}"
         );
         self.log(format!("visual {test_id} pass"));
+    }
+
+    /// Non-panicking `wait_sustained`: true when the predicate held
+    /// continuously for `hold` within a bounded window, false otherwise.
+    /// Lets a test cycle an input (e.g. Shift+Tab) until the settled
+    /// state is actually reached and stays.
+    pub fn try_sustained(
+        &self,
+        hold: Duration,
+        predicate: impl Fn(&TerminalSnapshot) -> bool,
+    ) -> bool {
+        // The caller only asks to verify a state it has just observed, so
+        // an absent state is an immediate false, not a wait.
+        if !predicate(&self.screen()) {
+            return false;
+        }
+        let deadline = Instant::now() + hold * 4 + Duration::from_secs(2);
+        let mut since: Option<Instant> = None;
+        loop {
+            let screen = self.screen();
+            if predicate(&screen) {
+                let start = *since.get_or_insert_with(Instant::now);
+                if start.elapsed() >= hold {
+                    return true;
+                }
+            } else {
+                since = None;
+            }
+            if Instant::now() >= deadline {
+                return false;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
     }
 
     pub fn wait_text(&self, needle: &str) -> TerminalSnapshot {
@@ -427,6 +467,13 @@ pub fn find(screen: &TerminalSnapshot, needle: &str) -> Point {
         text(screen)
     );
     matches[0]
+}
+
+pub fn cell_bg(screen: &TerminalSnapshot, point: Point) -> tui_test::SnapshotColor {
+    screen
+        .cell_at(u32::from(point.x), u32::from(point.y))
+        .expect("cell within terminal")
+        .bg()
 }
 
 pub fn crop(screen: &TerminalSnapshot, point: Point, width: u16, height: u16) -> Vec<SnapshotCell> {

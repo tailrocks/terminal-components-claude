@@ -1,6 +1,6 @@
 use tui_test::{SnapshotColor, TerminalSnapshot};
 
-use super::support::{App, Point, SHOWCASE, crop, find, find_all, row_text, text};
+use super::support::{App, Point, SHOWCASE, cell_bg, crop, find, find_all, row_text, text};
 
 fn inside(point: Point) -> Point {
     Point {
@@ -633,6 +633,44 @@ fn showcase_tree_expand_and_file_selection() {
     app.wait_screen("expanding src restores its files", |s| {
         text(s).contains("▾ src") && text(s).contains("1.9 KB")
     });
+    // Park the pointer inert, then round-trip focus with Tab/Shift+Tab:
+    // the arrival frame proves the parked motion was consumed (hover off)
+    // and renders the focus cursor.
+    let label = find_all(&app.screen(), "src")
+        .into_iter()
+        .find(|pt| pt.x > 28 && pt.y < 12)
+        .expect("src folder label");
+    let gutter = Point {
+        x: label.x - 3,
+        y: label.y,
+    };
+    let gutter_text = |s: &TerminalSnapshot| {
+        s.cell_at(u32::from(gutter.x), u32::from(gutter.y))
+            .map(|c| c.text().to_string())
+    };
+    let settled = |s: &TerminalSnapshot| {
+        gutter_text(s).as_deref() == Some("▎")
+            && cell_bg(s, label) != tui_test::SnapshotColor::Rgb(56, 56, 62)
+    };
+    app.move_to(Point { x: 0, y: 0 });
+    app.key("tab");
+    app.wait_screen("focus leaves the tree", |s| {
+        gutter_text(s).as_deref() != Some("▎")
+    });
+    app.key("shift+tab");
+    let mut arrived = false;
+    for _ in 0..64 {
+        if app.try_sustained(std::time::Duration::from_millis(600), |s| settled(s)) {
+            arrived = true;
+            break;
+        }
+        let before = find_all(&app.screen(), "▎");
+        app.key("shift+tab");
+        app.wait_screen("focus moves or settles on the tree", |s| {
+            settled(s) || find_all(s, "▎") != before
+        });
+    }
+    assert!(arrived, "focus must settle on the tree row");
     app.visual("functional/showcase_trees");
     app.finish();
 }
@@ -693,6 +731,57 @@ fn showcase_dialog_opens_traps_and_escape_cancels() {
         text(s).contains("Nothing yet") || text(s).contains("Cancelled")
     });
     assert!(text(&cancelled).contains("Open a dialog"));
+    // Park the pointer inert, then cycle Shift+Tab until focus is back on
+    // the confirm row with its hover consumed. Input is FIFO, so reaching
+    // that state proves the parked motion was processed; the focus-arrival
+    // frame also renders the terminal cursor deterministically.
+    let label = find(&app.screen(), "Confirm run");
+    let gutter = Point {
+        x: label.x - 1,
+        y: label.y,
+    };
+    let settled = |s: &TerminalSnapshot| {
+        s.cell_at(u32::from(gutter.x), u32::from(gutter.y))
+            .map(|c| c.text())
+            == Some("\u{258e}")
+            && cell_bg(s, label) != tui_test::SnapshotColor::Rgb(72, 224, 84)
+    };
+    app.move_to(Point { x: 0, y: 0 });
+    let mut arrived = false;
+    for _ in 0..64 {
+        if app.try_sustained(std::time::Duration::from_millis(600), |s| settled(s)) {
+            arrived = true;
+            break;
+        }
+        let before = find_all(&app.screen(), "\u{258e}");
+        app.key("shift+tab");
+        app.wait_screen("focus moves or settles on confirm", |s| {
+            settled(s) || find_all(s, "\u{258e}") != before
+        });
+    }
+    assert!(arrived, "focus must settle on the confirm row");
+    // Freeze in the hover state, not against it: the pointer's stored
+    // position is what the app re-renders from, so rest-state freezes
+    // raced late motion delivery. Point at the row and sustain its
+    // hover-bright background instead.
+    let hovered = |s: &TerminalSnapshot| {
+        s.cell_at(u32::from(gutter.x), u32::from(gutter.y))
+            .map(|c| c.text())
+            == Some("\u{258e}")
+            && cell_bg(s, label) == tui_test::SnapshotColor::Rgb(58, 179, 67)
+    };
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+    loop {
+        app.move_to(label);
+        if app.try_sustained(std::time::Duration::from_millis(600), |s| hovered(s)) {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "confirm row must hold its hover state"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
     app.visual("functional/showcase_dialogs");
     app.finish();
 }
