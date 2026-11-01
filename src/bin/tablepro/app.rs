@@ -1492,7 +1492,8 @@ impl App {
                         .layers
                         .top_as::<Picker>()
                         .map_or(i, |p| tab_index(p, i));
-
+                    // Pop the picker first so the close guard restores the
+                    // workbench's focus when cancelled or confirmed.
                     self.layers.pop(&mut self.shell.focus);
                     self.request_close_tab(idx);
                     if self.layers.is_empty() {

@@ -13,10 +13,11 @@ const NO_MOTION_ENV: &str = "SHOWCASE_NO_MOTION";
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum NavArg {
+    /// Only the current page's group (default).
     Current,
-
+    /// Only the current page's group, after every navigation too.
     Accordion,
-
+    /// Every group.
     All,
 }
 
@@ -39,13 +40,15 @@ impl From<NavArg> for NavExpand {
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
-
+    /// The page to open
     #[arg(short = 'p', long, value_parser = parse_page, value_name = "NAME")]
     page: Option<PageId>,
-
+    /// Which sidebar groups are open.
     #[arg(long, value_enum, value_name = "POLICY")]
     nav: Option<NavArg>,
-
+    /// Set a live option at launch, as the Inspector's Options tab would
+    /// (repeatable): shell.KEY=VALUE or PAGE.KEY=VALUE. An
+    /// unknown key or value lists the valid ones.
     #[arg(long = "opt", value_parser = options::parse_opt, value_name = "KEY=VALUE")]
     opt: Vec<options::OptSet>,
 }

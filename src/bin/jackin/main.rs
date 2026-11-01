@@ -25,7 +25,7 @@ const NO_MOTION_ENV: &str = "JACKIN_NO_MOTION";
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
-
+    /// The fixture scenario to open
     #[arg(short = 's', long, value_parser = parse_scenario, default_value = "first-use")]
     scenario: Scenario,
 }

@@ -668,6 +668,9 @@ impl Activity {
             let rest = self.script.lines.split_off(self.cursor);
             self.script.lines.append(&mut spliced);
             if let Some((ticks, exit)) = b.end {
+                // the program exits along this branch: the lines after the
+                // prompt are never reached, so none of them is flushed as
+                // final output
                 self.script.ends_at = Some(elapsed + ticks);
                 self.script.exit = exit;
             } else {
@@ -676,6 +679,12 @@ impl Activity {
         }
     }
 
+    /// Run time on the script clock: the time a prompt waited for the
+    /// operator is not counted. The fixture clock advances with runtime
+    /// ticks, which arrive on wall time, so a wait on the operator lasts as
+    /// long as the operator (or a capture harness) takes to answer; counting
+    /// it would make the same scenario and keys show a different duration
+    /// from run to run.
     pub fn duration_ticks(&self, now: u64) -> u64 {
         match self.ended_tick {
             Some(end) => end
