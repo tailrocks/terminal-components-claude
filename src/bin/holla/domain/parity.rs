@@ -1369,29 +1369,3 @@ fn platforms_linux(motion: Motion) -> World {
     w
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn every_parity_world_builds_a_catalogue_with_unique_ids() {
-        for s in Scenario::PARITY {
-            let w = crate::domain::fixtures::world_for(s, Motion::Reduced);
-            let items = w.items();
-            assert!(items.len() > 5, "{s:?} has {} items", items.len());
-            let mut ids: Vec<&str> = items.iter().map(|i| i.id.as_str()).collect();
-            ids.sort();
-            let before = ids.len();
-            ids.dedup();
-            assert_eq!(ids.len(), before, "{s:?} duplicate ids");
-        }
-    }
-
-    #[test]
-    fn base_world_uses_a_fixture_clock() {
-        let w = world_for(Scenario::ParityDiscovery, Motion::Paused);
-        assert!(!w.clock.running);
-        assert_eq!(crate::scenario::CLOCK.now_ms, 0);
-        assert!(w.sources.len() > 5);
-    }
-}

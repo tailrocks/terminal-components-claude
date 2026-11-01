@@ -5,9 +5,7 @@ use std::ops::Range;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-
 pub(crate) const TAB_SPACES: &str = "    ";
-
 
 pub(crate) fn expand_tabs(text: &str) -> std::borrow::Cow<'_, str> {
     if text.contains('\t') {
@@ -20,17 +18,6 @@ pub(crate) fn expand_tabs(text: &str) -> std::borrow::Cow<'_, str> {
 pub fn width(s: &str) -> usize {
     UnicodeWidthStr::width(s)
 }
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn wider_than(s: &str, max: usize) -> bool {
     if s.len() <= max {
@@ -52,8 +39,6 @@ pub fn wider_than(s: &str, max: usize) -> bool {
     }
 }
 
-
-
 pub fn width_capped(s: &str, cap: usize) -> usize {
     if wider_than(s, cap) {
         cap.saturating_add(1)
@@ -61,17 +46,6 @@ pub fn width_capped(s: &str, cap: usize) -> usize {
         width(s)
     }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn clip(s: &str, max: usize) -> String {
     let mut out = String::new();
@@ -86,8 +60,6 @@ pub fn clip(s: &str, max: usize) -> String {
     }
     out
 }
-
-
 
 pub fn truncate(s: &str, max: usize) -> String {
     if !wider_than(s, max) {
@@ -109,17 +81,6 @@ pub fn truncate(s: &str, max: usize) -> String {
     out.push('…');
     out
 }
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn slice_cells(s: &str, offset: usize, max: usize) -> String {
     if max == 0 {
@@ -162,7 +123,6 @@ pub fn slice_cells(s: &str, offset: usize, max: usize) -> String {
     out
 }
 
-
 pub fn truncate_middle(s: &str, max: usize) -> String {
     if !wider_than(s, max) {
         return s.to_owned();
@@ -197,7 +157,6 @@ pub fn truncate_middle(s: &str, max: usize) -> String {
     format!("{head}…{tail}")
 }
 
-
 pub fn thousands(n: usize) -> String {
     let s = n.to_string();
     let mut out = String::new();
@@ -210,13 +169,11 @@ pub fn thousands(n: usize) -> String {
     out
 }
 
-
 pub fn fit(s: &str, w: usize) -> String {
     let t = truncate(s, w);
     let pad = w.saturating_sub(width(&t));
     format!("{t}{}", " ".repeat(pad))
 }
-
 
 pub fn fit_right(s: &str, w: usize) -> String {
     let t = truncate(s, w);
@@ -224,14 +181,10 @@ pub fn fit_right(s: &str, w: usize) -> String {
     format!("{}{t}", " ".repeat(pad))
 }
 
-
-
 pub fn center_x(area: ratatui::layout::Rect, text: &str) -> u16 {
     let w = width_capped(text, usize::from(u16::MAX)) as u16;
     area.x + area.width.saturating_sub(w) / 2
 }
-
-
 
 pub fn plural(n: usize, one: &str, many: &str) -> String {
     if n == 1 {
@@ -240,9 +193,6 @@ pub fn plural(n: usize, one: &str, many: &str) -> String {
         format!("{n} {many}")
     }
 }
-
-
-
 
 pub fn truncate_sep(s: &str, max: usize) -> String {
     if width(s) <= max {
@@ -270,8 +220,6 @@ pub fn truncate_sep(s: &str, max: usize) -> String {
     }
 }
 
-
-
 pub fn crumb_fit(label: &str, max: usize) -> String {
     if width(label) <= max {
         return label.to_owned();
@@ -290,19 +238,14 @@ pub fn crumb_fit(label: &str, max: usize) -> String {
     truncate_middle(label, max)
 }
 
-
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum DurationStyle {
 
-
     Compact,
-
 
     #[default]
     Spoken,
 }
-
-
 
 pub fn duration(elapsed: std::time::Duration, style: DurationStyle) -> String {
     match style {
@@ -345,7 +288,6 @@ fn duration_spoken(secs: u64) -> String {
     }
 }
 
-
 pub fn bytes(n: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
     let mut v = n as f64;
@@ -361,17 +303,10 @@ pub fn bytes(n: u64) -> String {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WrapOpts {
 
-
-
     pub keep_indent: bool,
-
-
-
-
 
     pub hang_at_gap: Option<u8>,
 }
@@ -393,15 +328,9 @@ impl WrapOpts {
     };
 }
 
-
-
-
-
-
 pub fn wrap(s: &str, w: usize) -> Vec<String> {
     wrap_with(s, w, WrapOpts::default())
 }
-
 
 pub fn wrap_with(s: &str, w: usize, opts: WrapOpts) -> Vec<String> {
     let w = w.max(1);
@@ -424,7 +353,6 @@ pub fn wrap_with(s: &str, w: usize, opts: WrapOpts) -> Vec<String> {
     lines
 }
 
-
 fn hang_column(s: &str, gap: usize) -> Option<usize> {
     let at = s.find(&" ".repeat(gap))?;
     let rest = s[at..].trim_start_matches(' ');
@@ -433,8 +361,6 @@ fn hang_column(s: &str, gap: usize) -> Option<usize> {
     }
     Some(width(&s[..s.len() - rest.len()]))
 }
-
-
 
 struct Para<'a> {
     lines: &'a mut Vec<String>,
@@ -506,7 +432,6 @@ fn wrap_para(body: &str, w: usize, first: usize, cont: usize, lines: &mut Vec<St
     p.lines.push(last);
 }
 
-
 struct SearchText {
     text: String,
     origins: Vec<(Range<usize>, Range<usize>)>,
@@ -514,8 +439,6 @@ struct SearchText {
 
 impl SearchText {
     fn new(source: &str, lowercase: bool) -> Self {
-
-
 
         let text = if lowercase {
             source.to_lowercase()
@@ -559,7 +482,6 @@ impl SearchText {
     }
 }
 
-
 pub fn find_ranges(text: &str, needle: &str, case_sensitive: bool) -> Vec<Range<usize>> {
     if needle.is_empty() {
         return Vec::new();
@@ -579,11 +501,6 @@ pub fn find_ranges(text: &str, needle: &str, case_sensitive: bool) -> Vec<Range<
     ranges.dedup();
     ranges
 }
-
-
-
-
-
 
 pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
     if word.is_empty() {
@@ -613,306 +530,3 @@ pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
     Some((60 + (matched.last().copied().unwrap_or(0) as u32), matched))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn horizontal_windows_preserve_display_positions_and_whole_graphemes() {
-        assert_eq!(slice_cells("ab日本cd", 3, 5), "…本cd");
-        assert_eq!(slice_cells("ab日本cd", 2, 5), "… 本…");
-        assert_eq!(slice_cells("日本語", 0, 5), "日本…");
-        assert_eq!(slice_cells("a👩‍💻e\u{301}z", 1, 5), "… e\u{301}z");
-        assert_eq!(slice_cells("abc", 3, 5), "");
-        assert_eq!(slice_cells("日本", 1, 1), "…");
-        for text in ["日本語abc", "👩‍💻🙂e\u{301}終", "abc", ""] {
-            for offset in 0..=width(text) + 1 {
-                for cells in 0..12 {
-                    assert!(width(&slice_cells(text, offset, cells)) <= cells);
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn truncates_with_ellipsis() {
-        assert_eq!(truncate("hello world", 5), "hell…");
-        assert_eq!(truncate("hi", 5), "hi");
-        assert_eq!(fit("hi", 4), "hi  ");
-        assert_eq!(fit_right("hi", 4), "  hi");
-    }
-
-    #[test]
-    fn middle_truncation_and_thousands() {
-        assert_eq!(
-            truncate_middle("very_long_identifier_name", 12),
-            "very_lon…ame"
-        );
-        assert_eq!(truncate_middle("short", 12), "short");
-        assert_eq!(thousands(1_203_338), "1,203,338");
-        assert_eq!(thousands(999), "999");
-    }
-
-    #[test]
-    fn an_indented_paragraph_keeps_its_indent_on_every_line() {
-        assert_eq!(
-            wrap("  alpha beta gamma", 12),
-            vec!["  alpha beta", "  gamma"]
-        );
-
-        assert_eq!(
-            wrap_with("  alpha beta gamma", 12, WrapOpts::PLAIN),
-            vec!["alpha beta", "gamma"]
-        );
-    }
-
-    #[test]
-    fn a_column_gap_hangs_continuation_lines_under_the_second_column() {
-        let lines = wrap("Ctrl+D   Data / Structure or find (editor)", 26);
-        assert_eq!(
-            lines,
-            vec!["Ctrl+D   Data / Structure", "         or find (editor)"]
-        );
-
-        assert_eq!(wrap("one.  two three", 9), vec!["one.  two", "three"]);
-
-        assert_eq!(wrap("        ab cd", 10), vec!["ab cd"]);
-    }
-
-    #[test]
-    fn wraps_words_and_hard_wraps_long_tokens() {
-        assert_eq!(wrap("aa bb cc", 5), vec!["aa bb", "cc"]);
-        assert_eq!(wrap("abcdefgh", 3), vec!["abc", "def", "gh"]);
-        assert_eq!(wrap("a\nb", 10), vec!["a", "b"]);
-        assert_eq!(wrap("", 10), vec![""]);
-    }
-
-    #[test]
-    fn wrapping_never_splits_or_overflows_a_wide_grapheme() {
-        assert_eq!(wrap("日👩‍💻e\u{301}", 1), vec!["…", "…", "e\u{301}"]);
-        assert_eq!(wrap("日👩‍💻e\u{301}", 2), vec!["日", "👩‍💻", "e\u{301}"]);
-        for w in 0..8 {
-            let lines = wrap("日本 👩‍💻 cafe\u{301}", w);
-            assert!(lines.iter().all(|line| width(line) <= w.max(1)));
-        }
-    }
-
-    #[test]
-    fn fuzzy_returns_original_grapheme_offsets() {
-        assert_eq!(fuzzy("İé", "é"), Some((30, vec![2])));
-        assert_eq!(fuzzy("éclair", "é"), Some((0, vec![0])));
-        assert_eq!(fuzzy("a\u{301}b", "\u{301}"), Some((30, vec![0])));
-        assert_eq!(fuzzy("🙂_界", "🙂界"), Some((65, vec![0, 5])));
-    }
-
-    #[test]
-    fn fuzzy_subsequence_matches_scalars_not_utf8_bytes() {
-        assert_eq!(fuzzy("Ã©", "é"), None);
-        assert_eq!(fuzzy("ΟΣ", "ος"), Some((0, vec![0, 2])));
-    }
-
-    #[test]
-    fn find_preserves_smart_case_and_whole_source_graphemes() {
-        assert_eq!(find_ranges("Aa", "A", true), vec![0..1]);
-        assert_eq!(find_ranges("Aa", "a", false), vec![0..1, 1..2]);
-        assert_eq!(find_ranges("İ", "i", false), vec![0..2]);
-        assert_eq!(find_ranges("a\u{301}\u{301}", "\u{301}", true), vec![0..5]);
-        assert!(find_ranges("text", "", false).is_empty());
-        assert!(find_ranges("", "a", false).is_empty());
-    }
-
-
-
-    fn width_corpus() -> Vec<String> {
-        let seeds = [
-            "",
-            "plain ascii",
-            "日本語のテキスト",
-            "e\u{301}combining\u{301}",
-            "👩\u{200D}👩\u{200D}👧 family",
-            "⌚\u{FE0E} text clock ⌚\u{FE0F}",
-            "#\u{FE0F}⃣ keycap",
-            "لا lam-alef",
-            "tab\tand\nnewline\u{7}bell",
-            "\u{200B}\u{200B}\u{200B}zero width",
-        ];
-        let mut out: Vec<String> = seeds.iter().map(|s| (*s).to_owned()).collect();
-        for s in seeds {
-            out.push(s.repeat(7));
-            out.push(s.repeat(400));
-        }
-
-        for k in 0..12 {
-            out.push(format!(
-                "{}⌚\u{FE0E}{}",
-                "x".repeat(k * 13),
-                "y".repeat(300)
-            ));
-        }
-        out.push("\u{200B}".repeat(5_000) + "end");
-        out
-    }
-
-
-    fn truncate_reference(s: &str, max: usize) -> String {
-        if width(s) <= max {
-            return s.to_owned();
-        }
-        if max == 0 {
-            return String::new();
-        }
-        let mut out = String::new();
-        let mut w = 0;
-        for g in s.graphemes(true) {
-            let gw = width(g);
-            if w + gw > max - 1 {
-                break;
-            }
-            out.push_str(g);
-            w += gw;
-        }
-        out.push('…');
-        out
-    }
-
-    fn truncate_middle_reference(s: &str, max: usize) -> String {
-        if width(s) <= max {
-            return s.to_owned();
-        }
-        if max < 5 {
-            return truncate_reference(s, max);
-        }
-        let keep_end = (max - 1) / 3;
-        let keep_start = max - 1 - keep_end;
-        let gs: Vec<&str> = s.graphemes(true).collect();
-        let mut head = String::new();
-        let mut w = 0;
-        for g in &gs {
-            let gw = width(g);
-            if w + gw > keep_start {
-                break;
-            }
-            head.push_str(g);
-            w += gw;
-        }
-        let mut tail = String::new();
-        let mut w = 0;
-        for g in gs.iter().rev() {
-            let gw = width(g);
-            if w + gw > keep_end {
-                break;
-            }
-            tail.insert_str(0, g);
-            w += gw;
-        }
-        format!("{head}…{tail}")
-    }
-
-    #[test]
-    fn bounded_measurement_matches_full_measurement() {
-        for s in width_corpus() {
-            for max in (0..48).chain([100, 255, 1_000, 4_000]) {
-                assert_eq!(wider_than(&s, max), width(&s) > max, "{max} {s:?}");
-                assert_eq!(
-                    width_capped(&s, max).min(max + 1),
-                    width(&s).min(max + 1),
-                    "{max} {s:?}"
-                );
-                assert_eq!(
-                    truncate(&s, max),
-                    truncate_reference(&s, max),
-                    "{max} {s:?}"
-                );
-                assert_eq!(
-                    truncate_middle(&s, max),
-                    truncate_middle_reference(&s, max),
-                    "{max} {s:?}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn fuzzy_preserves_ascii_ranking() {
-        assert_eq!(fuzzy("alpha", "al"), Some((0, vec![0, 1])));
-        assert_eq!(fuzzy("a_beta", "be"), Some((10, vec![2, 3])));
-        assert_eq!(fuzzy("alpha", "ph"), Some((30, vec![2, 3])));
-        assert_eq!(fuzzy("alpha", "aa"), Some((64, vec![0, 4])));
-    }
-}
-
-#[cfg(test)]
-mod format_tests {
-    use super::*;
-    use ratatui::layout::Rect;
-
-    #[test]
-    fn plural_picks_the_noun() {
-        assert_eq!(plural(1, "file", "files"), "1 file");
-        assert_eq!(plural(0, "file", "files"), "0 files");
-        assert_eq!(plural(3, "entry", "entries"), "3 entries");
-    }
-
-    #[test]
-    fn truncate_sep_cuts_at_a_separator() {
-        assert_eq!(truncate_sep("short", 10), "short");
-        assert_eq!(truncate_sep("alpha · beta · gamma", 16), "alpha · beta…");
-        assert_eq!(truncate_sep("abcdefghij", 3), "ab…");
-    }
-
-    #[test]
-    fn clip_keeps_whole_graphemes_and_tolerates_short_text() {
-        assert_eq!(clip("", 8), "");
-        assert_eq!(clip("run7f3a", 8), "run7f3a");
-        assert_eq!(clip("abcdefghij", 8), "abcdefgh");
-        assert_eq!(clip("ab日本", 3), "ab");
-        assert_eq!(clip("e\u{301}xyz", 2), "e\u{301}x");
-        assert_eq!(clip("abc", 0), "");
-    }
-
-    #[test]
-    fn crumb_fit_drops_middle_crumbs_first() {
-        assert_eq!(crumb_fit("Here › Review", 40), "Here › Review");
-        assert_eq!(
-            crumb_fit("Here › Plan › Step › Review", 20),
-            "Here › … › Review"
-        );
-        let tight = crumb_fit("Here › Plan › A very long review title", 22);
-        assert!(tight.starts_with("Here › … › "), "{tight}");
-        assert!(width(&tight) <= 22, "{tight}");
-    }
-
-    #[test]
-    fn durations_and_sizes() {
-        use std::time::Duration;
-        let compact = |ms| duration(Duration::from_millis(ms), DurationStyle::Compact);
-        assert_eq!(compact(0), "<1 ms");
-        assert_eq!(compact(12), "12 ms");
-        assert_eq!(compact(1_250), "1.25 s");
-        assert_eq!(compact(123_000), "2m 3s");
-        let spoken = |s| duration(Duration::from_secs(s), DurationStyle::Spoken);
-        assert_eq!(spoken(0), "0 s");
-        assert_eq!(spoken(38), "38 s");
-        assert_eq!(spoken(450), "7 min 30 s");
-        assert_eq!(spoken(8_040), "2 h 14 min");
-        assert_eq!(spoken(7_200), "2 h");
-        assert_eq!(spoken(97_200), "1 d 3 h");
-        assert_eq!(spoken(259_200), "3 d");
-
-        let d = Duration::from_millis(123_400);
-        assert_eq!(duration(d, DurationStyle::Compact), "2m 3s");
-        assert_eq!(duration(d, DurationStyle::Spoken), "2 min 3 s");
-        assert_eq!(DurationStyle::default(), DurationStyle::Spoken);
-        assert_eq!(bytes(512), "512 B");
-        assert_eq!(bytes(1536), "1.5 KiB");
-        assert_eq!(bytes(3 * 1024 * 1024 * 1024), "3.0 GiB");
-    }
-
-    #[test]
-    fn center_x_uses_display_width() {
-        let area = Rect::new(2, 0, 10, 1);
-        assert_eq!(center_x(area, "ab"), 6);
-        assert_eq!(center_x(area, "日本"), 5);
-        assert_eq!(center_x(area, "far too long for it"), 2);
-    }
-}

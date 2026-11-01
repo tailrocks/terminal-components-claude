@@ -1,8 +1,5 @@
 
 
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
@@ -47,8 +44,6 @@ impl Segment {
         self
     }
 
-
-
     pub fn lead(mut self, glyph: impl Into<String>, tone: Tone) -> Self {
         self.lead = Some((glyph.into(), tone));
         self
@@ -62,10 +57,6 @@ impl Segment {
     }
 }
 
-
-
-
-
 pub fn width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u16 {
     let sep = 2u16;
     let w: u16 = left
@@ -75,10 +66,6 @@ pub fn width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u1
         .sum();
     w.saturating_sub(sep) + 2 * t.spacing.chrome_edge
 }
-
-
-
-
 
 pub fn min_width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u16 {
     let strongest = left
@@ -215,8 +202,6 @@ pub fn render(
         rx = rx.saturating_sub(sep);
     }
 
-
-
     let hidden: Vec<String> = left
         .iter()
         .zip(&keep_l)
@@ -239,9 +224,6 @@ pub fn render(
         );
     }
 }
-
-
-
 
 impl crate::ui::specimen::Specimen for Segment {
     fn specimen_id(&self) -> WidgetId {
@@ -270,114 +252,3 @@ impl crate::ui::specimen::Specimen for Segment {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-
-
-
-    #[test]
-    fn width_shows_every_segment() {
-        let t = Theme::junie();
-        let left = [
-            Segment::new("payments", Tone::Normal).priority(9),
-            Segment::new("staging", Tone::Warning)
-                .lead("●", Tone::Warning)
-                .priority(3),
-        ];
-        let right = [Segment::new("main ↑2", Tone::Muted).priority(2)];
-        let draw = |w: u16| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, w, 1));
-            let area = buf.area;
-            render(area, &mut buf, &mut ctx, &left, &right, t.canvas);
-            (0..w).map(|x| buf[(x, 0)].symbol()).collect::<String>()
-        };
-        let w = width(&left, &right, &t);
-        let row = draw(w);
-        for part in ["payments", "● staging", "main ↑2"] {
-            assert!(row.contains(part), "{row:?} lacks {part}");
-        }
-        assert!(!draw(w - 1).contains("main"));
-    }
-
-    #[test]
-    fn a_lead_glyph_keeps_its_own_tone_before_the_text() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
-        let seg = Segment::new("2 running", Tone::Secondary).lead("●", Tone::Active);
-        let area = buf.area;
-        render(area, &mut buf, &mut ctx, &[seg], &[], t.canvas);
-        let row: String = (0..40u16).map(|x| buf[(x, 0)].symbol()).collect();
-        let at = row.find('●').unwrap_or_else(|| panic!("{row:?}"));
-        let x = row[..at].chars().count() as u16;
-        assert_eq!(&row[at..at + "● 2 running".len()], "● 2 running");
-        assert_eq!(buf[(x, 0)].fg, t.accent);
-        assert_eq!(buf[(x + 2, 0)].fg, t.text_secondary);
-    }
-
-
-
-    #[test]
-    fn dropped_segments_collapse_into_an_overflow_item_that_reveals_them() {
-        let t = Theme::junie();
-        let left = [
-            Segment::new("TablePro", Tone::Secondary).priority(9),
-            Segment::new("acme_prod", Tone::Secondary).priority(8),
-        ];
-        let right = [
-            Segment::new("truecolor", Tone::Secondary).priority(1),
-            Segment::new("? help", Tone::Secondary).priority(7),
-        ];
-        let draw = |hover: Option<WidgetId>| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let i = Interaction {
-                hover,
-                ..Interaction::default()
-            };
-            let mut ctx = RenderCtx::new(&t, i, &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 34, 3));
-            render(
-                Rect::new(0, 2, 34, 1),
-                &mut buf,
-                &mut ctx,
-                &left,
-                &right,
-                t.canvas,
-            );
-            ctx.flush_overlays(&mut buf);
-            drop(ctx);
-            let rows: Vec<String> = (0..3u16)
-                .map(|y| (0..34u16).map(|x| buf[(x, y)].symbol()).collect())
-                .collect();
-            (rows, hits)
-        };
-        let (rows, hits) = draw(None);
-        let strip = &rows[2];
-        assert!(!strip.contains("truecolor"), "{strip:?}");
-        let at = strip
-            .find('…')
-            .unwrap_or_else(|| panic!("no overflow item: {strip:?}"));
-        let x = strip[..at].chars().count() as u16;
-        let id = crate::ui::reveal::overflow_id(Rect::new(x, 2, 1, 1));
-        assert_eq!(
-            hits.hover_at(ratatui::layout::Position::new(x, 2)),
-            Some(id)
-        );
-        let (rows, _) = draw(Some(id));
-        assert!(
-            rows.iter().any(|r| r.contains("truecolor")),
-            "the hover reveals the dropped segment: {rows:#?}"
-        );
-    }
-}

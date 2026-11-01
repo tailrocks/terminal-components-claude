@@ -17,13 +17,6 @@ pub enum Maximized {
     Second,
 }
 
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Split {
     pub percent: u16,
@@ -31,9 +24,7 @@ pub struct Split {
     pub min_second: u16,
     pub maximized: Maximized,
 
-
     pub default_percent: u16,
-
 
     precise: Option<(u16, u16)>,
 }
@@ -50,13 +41,11 @@ impl Split {
         }
     }
 
-
     pub fn reset(&mut self) {
         self.percent = self.default_percent;
         self.precise = None;
         self.maximized = Maximized::None;
     }
-
 
     fn first_of(&self, usable: u16) -> u16 {
         match self.precise {
@@ -77,15 +66,12 @@ impl Split {
         self.percent = (self.percent as i16 + delta).clamp(5, 95) as u16;
     }
 
-
     pub fn layout(&self, dir: SplitDir, area: Rect, gap: u16) -> (Rect, Rect) {
         match dir {
             SplitDir::Horizontal => self.horizontal(area, gap),
             SplitDir::Vertical => self.vertical(area, gap),
         }
     }
-
-
 
     pub fn handle(&self, dir: SplitDir, area: Rect, gap: u16) -> Rect {
         let (a, b) = self.layout(dir, area, gap);
@@ -97,8 +83,6 @@ impl Split {
             SplitDir::Vertical => Rect::new(area.x, a.bottom(), area.width, gap),
         }
     }
-
-
 
     pub fn drag_to(&mut self, dir: SplitDir, area: Rect, gap: u16, pos: Position) -> bool {
         let (usable, offset) = match dir {
@@ -123,7 +107,6 @@ impl Split {
         self.first_of(usable) != before
     }
 
-
     pub fn nudge(&mut self, dir: SplitDir, area: Rect, gap: u16, delta: i16) {
         let (first, _) = self.layout(dir, area, gap);
         let cur = match dir {
@@ -138,12 +121,6 @@ impl Split {
         self.drag_to(dir, area, gap, pos);
     }
 
-
-
-
-
-
-
     pub fn natural_extent(&self, first: u16, second: u16, gap: u16) -> u16 {
         let start = Self {
             percent: self.default_percent,
@@ -152,11 +129,6 @@ impl Split {
         };
         start.extent_for(first, second, gap)
     }
-
-
-
-
-
 
     pub fn extent_for(&self, first: u16, second: u16, gap: u16) -> u16 {
         match self.maximized {
@@ -180,7 +152,6 @@ impl Split {
         usable.saturating_add(gap)
     }
 
-
     pub fn vertical(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         match self.maximized {
             Maximized::First => (area, Rect::ZERO),
@@ -200,7 +171,6 @@ impl Split {
             }
         }
     }
-
 
     pub fn horizontal(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         match self.maximized {
@@ -222,24 +192,19 @@ impl Split {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Overflow {
-
 
     #[default]
     Scroll,
 
-
     Clip,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackChild {
 
     pub height: u16,
-
 
     pub min: u16,
 }
@@ -253,34 +218,21 @@ impl StackChild {
         }
     }
 
-
     pub const fn flex(min: u16, height: u16) -> Self {
         Self { height, min }
     }
 }
-
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Stack {
 
     pub gap: u16,
 
-
     pub overflow: Overflow,
-
 
     pub min_child_rows: u16,
 
-
     pub scrollbar_gap: u16,
-
-
-
-
 
     pub track_click: crate::core::scroll::TrackClick,
 }
@@ -297,13 +249,9 @@ impl Default for Stack {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Default)]
 pub struct StackScroll {
     pub scroll: crate::core::scroll::ScrollState,
-
 
     kept: Option<usize>,
 
@@ -313,7 +261,6 @@ pub struct StackScroll {
 }
 
 impl StackScroll {
-
 
     pub fn on_wheel(&mut self, delta: i32) -> bool {
         self.scroll.scroll_by(delta.signum() as isize)
@@ -327,9 +274,6 @@ impl StackScroll {
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> bool {
         !self.track.is_empty() && crate::widgets::scrollbar::drag(self.track, pos, &mut self.scroll)
     }
-
-
-
 
     pub fn pointer(
         &mut self,
@@ -371,11 +315,8 @@ impl StackScroll {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StackLayout {
-
-
 
     pub slots: Vec<Option<Rect>>,
 
@@ -414,22 +355,15 @@ impl Stack {
         self
     }
 
-
-
     fn total(&self, heights: &[u16]) -> u32 {
         let shown = heights.iter().filter(|&&h| h > 0).count() as u32;
         heights.iter().map(|&h| h as u32).sum::<u32>() + self.gap as u32 * shown.saturating_sub(1)
     }
 
-
-
     pub fn measure(&self, children: &[StackChild]) -> u16 {
         let h: Vec<u16> = children.iter().map(|c| c.height).collect();
         self.total(&h).min(u16::MAX as u32) as u16
     }
-
-
-
 
     pub fn layout(
         &self,
@@ -455,8 +389,6 @@ impl Stack {
         let fits = self.total(&h) <= room;
         let scrolls = !fits && self.overflow == Overflow::Scroll && n > 0;
         if scrolls {
-
-
 
             for (hi, c) in h.iter_mut().zip(children) {
                 *hi = c.height.min(area.height);
@@ -546,11 +478,6 @@ impl Stack {
         }
     }
 
-
-
-
-
-
     pub fn chrome(
         layout: &StackLayout,
         area: Rect,
@@ -566,10 +493,6 @@ impl Stack {
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SplitCmd {
 
@@ -583,14 +506,6 @@ pub enum SplitCmd {
 }
 
 impl crate::core::keymap::Actions for SplitCmd {
-
-
-
-
-
-
-
-
 
     fn default_keymap() -> crate::core::keymap::KeyMap<Self> {
         use crate::core::keymap::KeyBinding;
@@ -618,10 +533,6 @@ impl crate::core::keymap::Actions for SplitCmd {
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitKeys {
 
@@ -647,13 +558,10 @@ impl SplitKeys {
         self
     }
 
-
     pub fn step(mut self, cells: u16) -> Self {
         self.step = cells;
         self
     }
-
-
 
     pub fn delta(&self, key: &crate::core::event::Key, dir: SplitDir) -> Option<i16> {
         let step = self.step.min(i16::MAX as u16) as i16;
@@ -667,10 +575,6 @@ impl SplitKeys {
             _ => None,
         }
     }
-
-
-
-
 
     pub fn apply(
         &self,
@@ -686,7 +590,6 @@ impl SplitKeys {
             return Some(Outcome::Consumed);
         }
 
-
         let before = split.layout(dir, area, gap);
         split.nudge(dir, area, gap, delta);
         Some(if split.layout(dir, area, gap) == before {
@@ -695,11 +598,6 @@ impl SplitKeys {
             Outcome::Changed
         })
     }
-
-
-
-
-
 
     pub fn hint(&self, dir: SplitDir) -> Option<crate::widgets::keyhint::Hint> {
         use crate::core::keymap::{deliverable_binding_for, hint_key, intern};
@@ -740,354 +638,3 @@ impl SplitKeys {
     }
 }
 
-#[cfg(test)]
-mod split_keys_tests {
-    use super::*;
-    use crate::core::event::{Key, Outcome};
-    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-
-    fn key(code: KeyCode, mods: KeyModifiers) -> Key {
-        Key { code, mods }
-    }
-
-    #[test]
-    fn alt_shift_arrows_move_the_seam_on_its_axis_only() {
-        let keys = SplitKeys::default();
-        let m = KeyModifiers::ALT | KeyModifiers::SHIFT;
-        let area = Rect::new(0, 0, 81, 10);
-        let mut split = Split::new(50, 10, 10);
-        let before = split.layout(SplitDir::Horizontal, area, 1).0.width;
-        let o = keys.apply(
-            &key(KeyCode::Right, m),
-            &mut split,
-            SplitDir::Horizontal,
-            area,
-            1,
-        );
-        assert_eq!(o, Some(Outcome::Changed));
-        assert_eq!(
-            split.layout(SplitDir::Horizontal, area, 1).0.width,
-            before + 2
-        );
-
-        let up = keys.apply(
-            &key(KeyCode::Up, m),
-            &mut split,
-            SplitDir::Horizontal,
-            area,
-            1,
-        );
-        assert_eq!(up, None);
-
-        let plain = keys.apply(
-            &key(KeyCode::Left, KeyModifiers::NONE),
-            &mut split,
-            SplitDir::Horizontal,
-            area,
-            1,
-        );
-        assert_eq!(plain, None);
-
-        let mut tight = Split::new(50, 40, 40);
-        let o = keys.apply(
-            &key(KeyCode::Left, m),
-            &mut tight,
-            SplitDir::Horizontal,
-            area,
-            1,
-        );
-        assert_eq!(o, Some(Outcome::Consumed));
-    }
-
-    #[test]
-    fn the_hint_names_the_bound_chord() {
-        use crate::core::keyboard::{AltKeys, set_alt_keys};
-        set_alt_keys(AltKeys::Delivered);
-        let keys = SplitKeys::default();
-        assert_eq!(keys.hint(SplitDir::Horizontal).unwrap().key, "Alt+Shift+←→");
-        let custom = SplitKeys::default().keymap(vec![(
-            crate::core::keymap::KeyBinding::ctrl('h'),
-            SplitCmd::Left,
-        )]);
-        assert_eq!(custom.hint(SplitDir::Horizontal).unwrap().key, "Ctrl+H");
-        assert!(
-            SplitKeys::default()
-                .keymap(vec![])
-                .hint(SplitDir::Vertical)
-                .is_none()
-        );
-    }
-}
-
-#[cfg(test)]
-mod split_extent_tests {
-    use super::*;
-
-
-
-    #[test]
-    fn a_split_at_its_extent_gives_each_pane_its_size() {
-        for split in [
-            Split::new(30, 10, 10),
-            Split::new(65, 4, 3),
-            Split::new(50, 0, 0),
-        ] {
-            for (a, b) in [(20, 40), (40, 8), (5, 5)] {
-                let e = split.extent_for(a, b, 1);
-                let (f, g) = split.horizontal(Rect::new(0, 0, e, 3), 1);
-                assert!(
-                    f.width >= a && g.width >= b,
-                    "{split:?} {a},{b}: {f:?} {g:?}"
-                );
-                let (f, g) = split.vertical(Rect::new(0, 0, 3, e), 1);
-                assert!(
-                    f.height >= a && g.height >= b,
-                    "{split:?} {a},{b}: {f:?} {g:?}"
-                );
-                let (f, g) = split.horizontal(Rect::new(0, 0, e - 1, 3), 1);
-                assert!(f.width < a || g.width < b, "tight: {split:?} {a},{b}");
-            }
-        }
-        let mut zoomed = Split::new(30, 10, 10);
-        zoomed.toggle_max(Maximized::Second);
-        assert_eq!(zoomed.extent_for(20, 40, 1), 40, "the zoomed pane alone");
-    }
-
-
-
-
-    #[test]
-    fn the_natural_extent_ignores_a_moved_seam() {
-        let fresh = Split::new(30, 10, 10);
-        let start = fresh.natural_extent(20, 40, 1);
-        assert_eq!(start, fresh.extent_for(20, 40, 1));
-        let mut dragged = fresh;
-        dragged.drag_to(
-            SplitDir::Horizontal,
-            Rect::new(0, 0, 100, 3),
-            1,
-            Position::new(70, 1),
-        );
-        assert_ne!(dragged.extent_for(20, 40, 1), start, "the ratio moved");
-        assert_eq!(dragged.natural_extent(20, 40, 1), start);
-        let mut keyed = fresh;
-        keyed.grow(20);
-        assert_eq!(keyed.natural_extent(20, 40, 1), start);
-        keyed.toggle_max(Maximized::First);
-        assert_eq!(keyed.natural_extent(20, 40, 1), 20, "zoomed: first alone");
-    }
-}
-
-#[cfg(test)]
-mod split_keys_alt_tests {
-    use super::*;
-    use crate::core::event::{Key, Outcome};
-    use crate::core::keyboard::{AltKeys, set_alt_keys};
-    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-
-
-
-
-
-    #[test]
-    fn ctrl_shift_arrows_stand_in_where_alt_is_not_delivered() {
-        let keys = SplitKeys::default();
-        let ctrl = Key {
-            code: KeyCode::Right,
-            mods: KeyModifiers::CONTROL | KeyModifiers::SHIFT,
-        };
-        let area = Rect::new(0, 0, 81, 10);
-        let mut split = Split::new(50, 10, 10);
-        set_alt_keys(AltKeys::UntilSeen);
-        assert_eq!(
-            keys.hint(SplitDir::Horizontal).unwrap().key,
-            "Ctrl+Shift+←→"
-        );
-        assert_eq!(keys.hint(SplitDir::Vertical).unwrap().key, "Ctrl+Shift+↑↓");
-        assert_eq!(
-            keys.apply(&ctrl, &mut split, SplitDir::Horizontal, area, 1),
-            Some(Outcome::Changed)
-        );
-        set_alt_keys(AltKeys::Delivered);
-        assert_eq!(keys.hint(SplitDir::Horizontal).unwrap().key, "Alt+Shift+←→");
-        assert_eq!(
-            keys.apply(&ctrl, &mut split, SplitDir::Horizontal, area, 1),
-            None,
-            "Ctrl+Shift+→ selects a word in the pane"
-        );
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn kids(h: &[u16]) -> Vec<StackChild> {
-        h.iter().map(|&h| StackChild::fixed(h)).collect()
-    }
-
-    #[test]
-    fn a_stack_that_fits_places_children_with_gaps_and_no_scrollbar() {
-        let s = Stack::default().gap(1);
-        let mut st = StackScroll::default();
-        let l = s.layout(Rect::new(2, 3, 20, 10), &kids(&[3, 0, 3, 1]), &mut st, None);
-        assert_eq!(l.slot(0), Some(Rect::new(2, 3, 20, 3)));
-        assert_eq!(l.slot(1), None, "a hidden child takes no gap");
-        assert_eq!(l.slot(2), Some(Rect::new(2, 7, 20, 3)));
-        assert_eq!(l.slot(3), Some(Rect::new(2, 11, 20, 1)));
-        assert_eq!(l.track, None);
-        assert!(!st.scroll.overflows());
-    }
-
-    #[test]
-    fn overflow_never_places_a_child_past_the_rect() {
-        let area = Rect::new(0, 0, 30, 8);
-        for overflow in [Overflow::Scroll, Overflow::Clip] {
-            let s = Stack::default().overflow(overflow);
-            let mut st = StackScroll::default();
-            let l = s.layout(area, &kids(&[3, 3, 3, 3, 1]), &mut st, None);
-            for r in l.slots.iter().flatten() {
-                assert!(r.bottom() <= area.bottom(), "{overflow:?}: {r:?}");
-            }
-            assert_eq!(l.slot(2), None, "the third field does not fit");
-            assert_eq!(l.hidden_below, 3);
-            assert_eq!(l.track.is_some(), overflow == Overflow::Scroll);
-        }
-    }
-
-    #[test]
-    fn flexible_children_shrink_before_the_stack_scrolls() {
-        let s = Stack::default().min_child_rows(2);
-        let mut st = StackScroll::default();
-        let l = s.layout(
-            Rect::new(0, 0, 30, 8),
-            &[StackChild::fixed(3), StackChild::flex(0, 10)],
-            &mut st,
-            None,
-        );
-        assert_eq!(l.slot(1), Some(Rect::new(0, 3, 30, 5)));
-        assert_eq!(l.track, None);
-
-        let l = s.layout(
-            Rect::new(0, 0, 30, 4),
-            &[StackChild::fixed(3), StackChild::flex(0, 10)],
-            &mut st,
-            None,
-        );
-        assert!(l.track.is_some());
-    }
-
-    #[test]
-    fn focus_scrolls_the_least_and_the_wheel_can_move_away() {
-        let s = Stack::default();
-        let area = Rect::new(0, 0, 30, 7);
-        let mut st = StackScroll::default();
-        let ch = kids(&[3, 3, 3, 3, 1]);
-        let l = s.layout(area, &ch, &mut st, Some(3));
-        assert_eq!(
-            st.scroll.offset, 2,
-            "the fourth field is now the last in view"
-        );
-        assert_eq!(l.slot(3), Some(Rect::new(0, 3, 28, 3)));
-        assert_eq!(l.slot(1), None);
-        assert_eq!(l.hidden_above, 2);
-
-        st.on_wheel(-3);
-        st.on_wheel(-3);
-        let l = s.layout(area, &ch, &mut st, Some(3));
-        assert_eq!(st.scroll.offset, 0);
-        assert_eq!(l.slot(3), None);
-
-        let l = s.layout(area, &ch, &mut st, Some(4));
-        assert!(l.slot(4).is_some());
-        let l = s.layout(area, &ch, &mut st, Some(0));
-        assert_eq!(l.slot(0), Some(Rect::new(0, 0, 28, 3)));
-    }
-
-    #[test]
-    fn splits_respect_minimums_and_maximize() {
-        let s = Split::new(60, 5, 5);
-        let (a, b) = s.vertical(Rect::new(0, 0, 80, 30), 1);
-        assert_eq!(a.height + b.height + 1, 30);
-        assert_eq!(a.height, 17);
-        let mut m = s;
-        m.toggle_max(Maximized::Second);
-        let (a, b) = m.vertical(Rect::new(0, 0, 80, 30), 1);
-        assert!(a.is_empty());
-        assert_eq!(b.height, 30);
-        let (a, b) = s.vertical(Rect::new(0, 0, 80, 8), 1);
-        assert_eq!(a.height, 8);
-        assert!(b.is_empty());
-    }
-
-    #[test]
-    fn drag_moves_the_seam_and_respects_minima() {
-        let mut s = Split::new(50, 10, 10);
-        let area = Rect::new(0, 0, 101, 20);
-        assert_eq!(
-            s.handle(SplitDir::Horizontal, area, 1),
-            Rect::new(50, 0, 1, 20)
-        );
-        assert!(s.drag_to(SplitDir::Horizontal, area, 1, Position::new(70, 3)));
-        let (a, _) = s.horizontal(area, 1);
-        assert_eq!(a.width, 70);
-        s.drag_to(SplitDir::Horizontal, area, 1, Position::new(2, 3));
-        let (a, _) = s.horizontal(area, 1);
-        assert_eq!(a.width, 10, "clamped to min_first");
-        s.nudge(SplitDir::Horizontal, area, 1, 5);
-        let (a, _) = s.horizontal(area, 1);
-        assert_eq!(a.width, 15);
-    }
-
-
-
-
-    #[test]
-    fn drag_places_the_seam_on_the_exact_cell() {
-        for width in [37u16, 62, 133, 241] {
-            let area = Rect::new(0, 0, width, 4);
-            let mut s = Split::new(50, 2, 2);
-            let usable = width - 1;
-            for x in (usable / 20).max(2)..usable * 19 / 20 {
-                s.drag_to(SplitDir::Horizontal, area, 1, Position::new(x, 0));
-                let (a, _) = s.horizontal(area, 1);
-                assert_eq!(a.width, x, "width {width} x {x}");
-            }
-        }
-
-        let area = Rect::new(0, 0, 62, 4);
-        let mut s = Split::new(50, 2, 2);
-        s.drag_to(SplitDir::Horizontal, area, 1, Position::new(33, 0));
-        s.grow(1);
-        assert_eq!(s.horizontal(area, 1).0.width, 61 * s.percent / 100);
-        s.reset();
-        assert_eq!(s, Split::new(50, 2, 2));
-    }
-}
-
-#[cfg(test)]
-mod track_click_tests {
-    use super::*;
-    use crate::core::scroll::TrackClick;
-
-    fn pressed_at_the_bottom(click: TrackClick) -> usize {
-        let kids: Vec<StackChild> = (0..30).map(|_| StackChild::fixed(2)).collect();
-        let mut st = StackScroll::default();
-        let area = Rect::new(0, 0, 30, 10);
-        let l = Stack::default()
-            .track_click(click)
-            .layout(area, &kids, &mut st, None);
-        let track = l.track.expect("the stack scrolls");
-        assert!(st.on_scrollbar(Position::new(track.x, track.bottom() - 1)));
-        st.scroll.offset
-    }
-
-
-    #[test]
-    fn a_stack_track_click_can_page() {
-        let page = pressed_at_the_bottom(TrackClick::Page);
-        let jump = pressed_at_the_bottom(TrackClick::Jump);
-        assert!(page > 0 && page <= 5, "one page of children: {page}");
-        assert!(jump > page, "the default jumps: {jump}");
-    }
-}

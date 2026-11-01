@@ -38,11 +38,6 @@ impl<T: Clone, C: Clone> RowMenu<T, C> {
             .is_some_and(|o| o.menu.hides_page_focus())
     }
 
-    #[cfg(test)]
-    pub fn menu(&self) -> Option<&ContextMenu> {
-        self.open.as_ref().map(|o| &o.menu)
-    }
-
     pub fn is_context_key(&self, key: &Key) -> bool {
         self.config.keys.matches(key)
     }

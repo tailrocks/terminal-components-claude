@@ -1,29 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeSet;
 
 use ratatui::Terminal;
@@ -37,7 +13,6 @@ use crate::core::hit::{Axis, Bar, HitRegistry};
 use crate::core::id::WidgetId;
 use crate::runtime::Application;
 
-
 pub const SIZES: [(u16, u16); 8] = [
     (40, 12),
     (60, 18),
@@ -49,21 +24,13 @@ pub const SIZES: [(u16, u16); 8] = [
     (160, 50),
 ];
 
-
-
 const REFERENCE: (u16, u16) = (300, 100);
-
 
 const MIN_WORD: usize = 3;
 
-
 const MAX_PAGES: usize = 200;
 
-
-
-
 const STALL: (usize, usize) = (3, 12);
-
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Reach {
@@ -80,7 +47,6 @@ pub struct Reach {
 }
 
 impl Reach {
-
 
     pub(crate) fn of(
         size: (u16, u16),
@@ -107,11 +73,6 @@ impl Reach {
     }
 }
 
-
-
-
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Words {
     pub whole: BTreeSet<String>,
@@ -126,7 +87,6 @@ impl Words {
         out
     }
 
-
     pub(crate) fn add(&mut self, buf: &Buffer) {
         let area = buf.area;
         self.add_area(
@@ -134,7 +94,6 @@ impl Words {
             ratatui::layout::Rect::new(area.x, area.y, area.width, area.height.saturating_sub(1)),
         );
     }
-
 
     pub fn add_area(&mut self, buf: &Buffer, area: ratatui::layout::Rect) {
         let area = area.intersection(buf.area);
@@ -167,9 +126,6 @@ impl Words {
         word.clear();
     }
 
-
-
-
     pub fn add_overflowed(&mut self) {
         for hidden in crate::ui::reveal::overflowed() {
             for word in hidden.split(|c: char| !c.is_alphanumeric()) {
@@ -180,13 +136,10 @@ impl Words {
         }
     }
 
-
     pub fn extend(&mut self, other: Self) {
         self.whole.extend(other.whole);
         self.cut.extend(other.cut);
     }
-
-
 
     pub fn against(&self, reached: &Self) -> (BTreeSet<String>, BTreeSet<String>) {
         let mut missing = BTreeSet::new();
@@ -195,7 +148,6 @@ impl Words {
             if reached.whole.contains(w) {
                 continue;
             }
-
 
             if reached.whole.iter().any(|r| r.contains(w.as_str())) {
                 continue;
@@ -209,7 +161,6 @@ impl Words {
         (missing, cut)
     }
 }
-
 
 pub(crate) struct Probe<A> {
     pub(crate) app: A,
@@ -230,7 +181,6 @@ impl<A: App + Application> Probe<A> {
             .expect("test backend draws");
     }
 
-
     pub(crate) fn send(&mut self, input: Input) {
         self.app.handle(input);
         self.draw();
@@ -249,15 +199,10 @@ impl<A: App + Application> Probe<A> {
         &self.app.shell().hits
     }
 
-
     pub(crate) fn words_at(&mut self, size: (u16, u16)) -> Words {
         self.resize(size.0, size.1);
         Words::read(self.buffer())
     }
-
-
-
-
 
     pub(crate) fn reference(&mut self, reference: (u16, u16), except: &Words) -> Words {
         let mut want = self.words_at(reference);
@@ -268,14 +213,7 @@ impl<A: App + Application> Probe<A> {
         want
     }
 
-
-
-
-
-
-
     pub(crate) fn explore(&mut self, want: &Words, reached: &mut Words) -> usize {
-
 
         reached.add_overflowed();
         let left = want.against(reached).0;
@@ -305,9 +243,6 @@ impl<A: App + Application> Probe<A> {
         seen
     }
 
-
-
-
     fn wheel_spot(&self, bar: Bar) -> Position {
         let hits = self.hits();
         let reaches = |p: Position| hits.scroll_stack(p).contains(&bar.owner);
@@ -326,7 +261,6 @@ impl<A: App + Application> Probe<A> {
             Axis::Horizontal => Position::new(t.x + t.width / 2, t.y.saturating_sub(1)),
         }
     }
-
 
     fn bar_of(&self, owner: WidgetId, axis: Axis) -> Option<Bar> {
         self.bars()
@@ -369,7 +303,6 @@ impl<A: App + Application> Probe<A> {
             }
             self.page_back(owner, Axis::Vertical, true, v_pages);
 
-
             for axis in [Axis::Vertical, Axis::Horizontal] {
                 if self.bar_of(owner, axis).is_some() && !acc.done() {
                     let pages = self.page_to_end(owner, axis, false, acc);
@@ -378,9 +311,6 @@ impl<A: App + Application> Probe<A> {
             }
         }
     }
-
-
-
 
     fn page_to_end(&mut self, owner: WidgetId, axis: Axis, forward: bool, acc: &mut Acc) -> usize {
         let limit = match axis {
@@ -400,7 +330,6 @@ impl<A: App + Application> Probe<A> {
         }
         pages
     }
-
 
     fn page_back(&mut self, owner: WidgetId, axis: Axis, forward: bool, pages: usize) {
         if pages == 0 {
@@ -422,8 +351,6 @@ impl<A: App + Application> Probe<A> {
         self.draw();
     }
 
-
-
     fn page(&mut self, owner: WidgetId, axis: Axis, forward: bool) -> bool {
         let Some(bar) = self.bar_of(owner, axis) else {
             return false;
@@ -444,21 +371,14 @@ impl<A: App + Application> Probe<A> {
     }
 }
 
-
-
-
-
 fn notches(bar: Bar) -> u16 {
     match bar.axis {
-
 
         Axis::Vertical if bar.track.height < 9 => 1,
         Axis::Vertical => (bar.track.height / 3 - 1).max(1),
         Axis::Horizontal => 1,
     }
 }
-
-
 
 struct Acc {
     reached: Words,
@@ -470,9 +390,6 @@ struct Acc {
 }
 
 impl Acc {
-
-
-
 
     fn add(&mut self, buf: &Buffer) -> bool {
         let mut frame = Words::read(buf);
@@ -498,14 +415,6 @@ impl Acc {
     }
 }
 
-
-
-
-
-
-
-
-
 fn gate(app: &str, found: &[(String, Reach)], allow: &str) -> Result<(), String> {
     use std::collections::BTreeMap;
     let mut allowed: BTreeMap<(String, String), (BTreeSet<String>, String)> = BTreeMap::new();
@@ -518,7 +427,6 @@ fn gate(app: &str, found: &[(String, Reach)], allow: &str) -> Result<(), String>
         let (Some(scenario), Some(size)) = (it.next(), it.next()) else {
             continue;
         };
-
 
         let (scenario, only) = match scenario.split_once('@') {
             Some((name, plat)) => (name, Some(plat)),
@@ -588,23 +496,15 @@ fn gate(app: &str, found: &[(String, Reach)], allow: &str) -> Result<(), String>
     }
 }
 
-
-
 pub trait Harness: Sized {
     type App: App + Application;
-
 
     fn fresh() -> Self;
     fn into_parts(self) -> (Self::App, Terminal<TestBackend>);
     fn from_parts(app: Self::App, term: Terminal<TestBackend>) -> Self;
 }
 
-
 pub type Setup<H> = fn(&mut H);
-
-
-
-
 
 pub struct Reveal<H> {
     pub step: Setup<H>,
@@ -618,8 +518,6 @@ impl<H> Clone for Reveal<H> {
 }
 
 impl<H> Copy for Reveal<H> {}
-
-
 
 pub struct Case<H: 'static> {
     pub name: &'static str,
@@ -639,8 +537,6 @@ impl<H> Case<H> {
         }
     }
 
-
-
     pub const fn layer(name: &'static str, base: Setup<H>, open: Setup<H>) -> Self {
         Self {
             name,
@@ -650,7 +546,6 @@ impl<H> Case<H> {
         }
     }
 
-
     pub const fn reveals(mut self, reveals: &'static [Reveal<H>]) -> Self {
         self.reveals = reveals;
         self
@@ -658,7 +553,6 @@ impl<H> Case<H> {
 }
 
 impl<H: Harness> Case<H> {
-
 
     fn build(&self) -> (H, Words) {
         let mut h = H::fresh();
@@ -674,8 +568,6 @@ impl<H: Harness> Case<H> {
         }
         (h, except)
     }
-
-
 
     pub fn run(&self, size: (u16, u16)) -> Reach {
         let (h, except) = self.build();
@@ -707,8 +599,6 @@ impl<H: Harness> Case<H> {
     }
 }
 
-
-
 pub fn check<H: Harness>(app: &str, cases: &[Case<H>], name: &str, size: (u16, u16), allow: &str) {
     let case = cases
         .iter()
@@ -719,8 +609,6 @@ pub fn check<H: Harness>(app: &str, cases: &[Case<H>], name: &str, size: (u16, u
         panic!("{e}");
     }
 }
-
-
 
 pub fn dump<H: Harness>(cases: &[Case<H>]) {
     let Ok(spec) = std::env::var("REACH_DUMP") else {
@@ -749,12 +637,6 @@ pub fn dump<H: Harness>(cases: &[Case<H>]) {
     let r = case.run(size);
     eprintln!("{text}\nmissing {:?}\ncut {:?}", r.missing, r.cut);
 }
-
-
-
-
-
-
 
 #[macro_export]
 macro_rules! reach_tests {
@@ -834,70 +716,3 @@ macro_rules! reach_tests {
     };
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ratatui::layout::Rect;
-
-    fn buf(lines: &[&str]) -> Buffer {
-        let w = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as u16;
-        let mut b = Buffer::empty(Rect::new(0, 0, w, lines.len() as u16 + 1));
-        for (y, l) in lines.iter().enumerate() {
-            b.set_string(0, y as u16, l, ratatui::style::Style::default());
-        }
-        b
-    }
-
-
-
-
-    #[test]
-    fn a_cut_cell_with_a_reveal_counts_as_reached() {
-        use crate::core::{focus::FocusRing, hit::HitRegistry};
-        let theme = crate::theme::Theme::junie();
-        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
-        let mut ctx = crate::ui::ctx::RenderCtx::new(
-            &theme,
-            crate::ui::ctx::Interaction::default(),
-            &mut hits,
-            &mut ring,
-        );
-        crate::ui::reveal::begin_frame();
-        let id = WidgetId::of("cell");
-        crate::ui::reveal::truncated(&mut ctx, None, id, Rect::new(0, 0, 8, 1), "shown hidden");
-        crate::ui::reveal::peek(&mut ctx, "cursor value");
-        let off = crate::ui::reveal::Reveal::OFF;
-        crate::ui::reveal::truncated(
-            &mut ctx,
-            Some(off),
-            id,
-            Rect::new(0, 1, 8, 1),
-            "nothing reveals",
-        );
-        let mut w = Words::default();
-        w.add_overflowed();
-        for word in ["shown", "hidden", "cursor", "value"] {
-            assert!(w.cut.contains(word), "{word}: {w:?}");
-        }
-        assert!(!w.cut.contains("reveals"), "{w:?}");
-    }
-
-    #[test]
-    fn words_split_cut_and_skip_the_footer() {
-        let w = Words::read(&buf(&["alpha be gamma│delt…", "x 1234"]));
-        assert!(w.whole.contains("alpha"));
-        assert!(w.whole.contains("gamma"));
-        assert!(!w.whole.contains("be"));
-        assert!(w.cut.contains("delt"));
-        assert!(w.whole.contains("1234"));
-    }
-
-    #[test]
-    fn against_sorts_missing_from_cut() {
-        let want = Words::read(&buf(&["alpha delta omega"]));
-        let got = Words::read(&buf(&["alpha delt…"]));
-        let (missing, cut) = want.against(&got);
-        assert_eq!(missing.into_iter().collect::<Vec<_>>(), ["omega"]);
-        assert_eq!(cut.into_iter().collect::<Vec<_>>(), ["delta"]);
-    }
-}

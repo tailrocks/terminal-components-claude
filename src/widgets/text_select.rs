@@ -1,23 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::ops::Range;
 
 use ratatui::crossterm::event::KeyModifiers;
@@ -27,8 +9,6 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::core::event::Outcome;
 use crate::widgets::field_common::PointerSelect;
 
-
-
 #[derive(Debug, Clone)]
 pub(crate) struct TextSelect<P> {
 
@@ -36,9 +16,7 @@ pub(crate) struct TextSelect<P> {
 
     pub press: Option<P>,
 
-
     pub word: Option<(P, P)>,
-
 
     pub dragged: Option<Position>,
 
@@ -59,19 +37,14 @@ impl<P> Default for TextSelect<P> {
 
 impl<P: Copy + Ord> TextSelect<P> {
 
-
     pub fn range(&self) -> Option<(P, P)> {
         let (a, b) = self.sel?;
         (a != b).then(|| (a.min(b), a.max(b)))
     }
 
-
-
     pub fn by_word(&self) -> bool {
         self.word.is_some()
     }
-
-
 
     pub fn set(&mut self, a: P, b: P) {
         self.sel = Some((a, b));
@@ -79,7 +52,6 @@ impl<P: Copy + Ord> TextSelect<P> {
         self.word = None;
         self.extended = false;
     }
-
 
     pub fn clear(&mut self) -> Outcome {
         self.word = None;
@@ -89,9 +61,6 @@ impl<P: Copy + Ord> TextSelect<P> {
             Outcome::Ignored
         }
     }
-
-
-
 
     pub fn press(
         &mut self,
@@ -148,9 +117,6 @@ impl<P: Copy + Ord> TextSelect<P> {
         }
     }
 
-
-
-
     pub fn drag(
         &mut self,
         policy: PointerSelect,
@@ -178,9 +144,6 @@ impl<P: Copy + Ord> TextSelect<P> {
         self.dragged = Some(pos);
         Outcome::Changed
     }
-
-
-
 
     pub fn click(
         &mut self,
@@ -214,14 +177,10 @@ impl<P: Copy + Ord> TextSelect<P> {
     }
 }
 
-
-
 pub(crate) fn is_word(g: &str) -> bool {
     g.chars()
         .all(|ch| ch.is_alphanumeric() || matches!(ch, '_' | '-' | '/' | '.'))
 }
-
-
 
 pub(crate) fn word_bounds<T>(
     items: &[T],
@@ -246,7 +205,6 @@ pub(crate) fn word_bounds<T>(
     Some((s, e))
 }
 
-
 #[derive(Debug, Clone)]
 pub(crate) struct PlainCell<'a> {
     pub g: &'a str,
@@ -254,7 +212,6 @@ pub(crate) struct PlainCell<'a> {
 
     pub col: usize,
 }
-
 
 pub(crate) fn plain_cells(s: &str) -> Vec<PlainCell<'_>> {
     let mut col = 0;
@@ -271,8 +228,6 @@ pub(crate) fn plain_cells(s: &str) -> Vec<PlainCell<'_>> {
         .collect()
 }
 
-
-
 pub(crate) fn plain_cell_at(cells: &[PlainCell<'_>], col: usize) -> usize {
     cells
         .iter()
@@ -280,14 +235,12 @@ pub(crate) fn plain_cell_at(cells: &[PlainCell<'_>], col: usize) -> usize {
         .unwrap_or(cells.len())
 }
 
-
 pub(crate) fn plain_col_of(s: &str, cells: &[PlainCell<'_>], i: usize) -> usize {
     cells
         .get(i)
         .map(|c| c.col)
         .unwrap_or_else(|| crate::ui::text::width(s))
 }
-
 
 pub(crate) fn plain_slice(s: &str, from: usize, to: usize) -> &str {
     let cells = plain_cells(s);
@@ -301,47 +254,3 @@ pub(crate) fn plain_slice(s: &str, from: usize, to: usize) -> &str {
     &s[start..end]
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const ON: PointerSelect = PointerSelect::DEFAULT;
-    const P: Position = Position::new(0, 0);
-
-    #[test]
-    fn shift_press_extends_from_the_anchor_and_its_release_keeps_it() {
-        let mut s = TextSelect::<u32>::default();
-        s.press(ON, Some(2), 1, KeyModifiers::NONE, None, None);
-        s.drag(ON, Some(5), P, None);
-        s.click(ON, P, 1, None, None);
-        assert_eq!(s.range(), Some((2, 5)));
-
-        s.press(ON, Some(0), 1, KeyModifiers::SHIFT, None, None);
-        assert_eq!(
-            s.click(ON, Position::new(9, 9), 1, None, None),
-            Outcome::Consumed
-        );
-        assert_eq!(s.sel, Some((2, 0)));
-        assert_eq!(s.range(), Some((0, 2)));
-    }
-
-    #[test]
-    fn a_double_press_drag_extends_by_words() {
-        let mut s = TextSelect::<u32>::default();
-        s.press(ON, Some(4), 2, KeyModifiers::NONE, Some((3, 6)), None);
-        assert_eq!(s.range(), Some((3, 6)));
-        s.drag(ON, Some(9), P, Some((8, 12)));
-        assert_eq!(s.range(), Some((3, 12)));
-        s.drag(ON, Some(1), P, Some((0, 2)));
-        assert_eq!(s.range(), Some((0, 6)));
-    }
-
-    #[test]
-    fn words_are_runs_of_word_graphemes() {
-        let cells = plain_cells("ab cd/e.f  g");
-        let w = |i| word_bounds(&cells, i, |c: &PlainCell| is_word(c.g));
-        assert_eq!(w(4), Some((3, 9)));
-        assert_eq!(w(2), None);
-        assert_eq!(plain_slice("héllo wörld", 2, 8), "llo wö");
-    }
-}

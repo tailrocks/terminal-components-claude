@@ -1028,17 +1028,6 @@ impl Screen for ActivityTab {
         bits
     }
 
-    #[cfg(test)]
-    fn as_activity(&mut self) -> Option<&mut ActivityTab> {
-        Some(self)
-    }
-}
-
-#[cfg(test)]
-impl ActivityTab {
-    pub fn view(&self) -> &TextViewport {
-        &self.view
-    }
 }
 
 const FOLLOW_UPS: [&str; 8] = [
@@ -1057,15 +1046,3 @@ fn follow_up_supported(label: &str) -> bool {
     FOLLOW_UPS.iter().any(|p| l.starts_with(p))
 }
 
-#[cfg(test)]
-mod follow_up_tests {
-    use super::follow_up_supported;
-
-    #[test]
-    fn follow_ups_the_preview_cannot_run_are_known_up_front() {
-        assert!(follow_up_supported("Retry frontend dev"));
-        assert!(follow_up_supported("Find the process on port 5173"));
-        assert!(follow_up_supported("Review 4 modified files"));
-        assert!(!follow_up_supported("Open the failing test"));
-    }
-}

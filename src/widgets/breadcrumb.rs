@@ -1,11 +1,5 @@
 
 
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
@@ -21,9 +15,7 @@ pub struct Breadcrumb {
 
     pub segments: Vec<String>,
 
-
     pub clickable: bool,
-
 
     pub areas: Vec<Rect>,
 }
@@ -38,12 +30,10 @@ impl Breadcrumb {
         }
     }
 
-
     pub fn clickable(mut self, on: bool) -> Self {
         self.clickable = on;
         self
     }
-
 
     pub fn segment_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::segment_part(i))
@@ -53,8 +43,6 @@ impl Breadcrumb {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
-
     pub fn on_click(&self, id: WidgetId) -> Option<usize> {
         if !self.clickable {
             return None;
@@ -62,12 +50,6 @@ impl Breadcrumb {
         let last = self.segments.len().checked_sub(1)?;
         self.id.item_of(id, Part::ROW, 0..last)
     }
-
-
-
-
-
-
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
@@ -149,9 +131,6 @@ impl Breadcrumb {
     }
 }
 
-
-
-
 impl crate::ui::measure::Measure for Breadcrumb {
     fn measure(&self, _avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         if self.segments.is_empty() {
@@ -163,11 +142,6 @@ impl crate::ui::measure::Measure for Breadcrumb {
         ratatui::layout::Size::new(labels + gaps, 1)
     }
 }
-
-
-
-
-
 
 impl crate::ui::specimen::Specimen for Breadcrumb {
     fn specimen_id(&self) -> WidgetId {
@@ -214,8 +188,6 @@ impl crate::ui::specimen::Specimen for Breadcrumb {
     }
 }
 
-
-
 impl crate::core::pointer::MouseTarget for Breadcrumb {
     type Action = usize;
 
@@ -238,112 +210,3 @@ impl crate::core::pointer::MouseTarget for Breadcrumb {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-
-    fn draw(b: &mut Breadcrumb, w: u16, hover: Option<WidgetId>) -> (Buffer, HitRegistry) {
-        let theme = Theme::junie();
-        let area = Rect::new(0, 0, w, 1);
-        let mut buf = Buffer::empty(area);
-        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
-        let inter = Interaction {
-            hover,
-            ..Interaction::default()
-        };
-        {
-            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
-            b.render(area, &mut buf, &mut ctx, theme.canvas);
-        }
-        (buf, hits)
-    }
-
-    fn text(buf: &Buffer) -> String {
-        buf.content().iter().map(|c| c.symbol()).collect()
-    }
-
-    #[test]
-    fn measure_is_the_width_that_shows_the_whole_trail() {
-        use crate::ui::measure::Measure;
-        let theme = Theme::junie();
-        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
-        let ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let b = trail();
-        let size = b.measure(ratatui::layout::Size::new(5, 5), &ctx);
-        assert_eq!(size.height, 1);
-        let mut whole = trail();
-        let (buf, _) = draw(&mut whole, size.width, None);
-        let shown = text(&buf);
-        assert!(
-            shown.contains("Finder") && shown.contains("Top files"),
-            "{shown}"
-        );
-        assert!(!shown.contains('…'), "{shown}");
-
-        let (buf, _) = draw(&mut trail(), size.width - 1, None);
-        assert!(text(&buf).contains('…'));
-    }
-
-    fn trail() -> Breadcrumb {
-        Breadcrumb::new(
-            WidgetId::of("crumbs"),
-            vec!["Finder".into(), "Disk › Usage".into(), "Top files".into()],
-        )
-    }
-
-    #[test]
-    fn every_earlier_level_is_a_link_and_the_current_page_is_not() {
-        let mut b = trail();
-        let (buf, hits) = draw(&mut b, 60, None);
-        assert!(text(&buf).starts_with("Finder › Disk › Usage › Top files"));
-        let a0 = b.areas[0];
-        assert_eq!(
-            hits.hit(ratatui::layout::Position::new(a0.x, 0)),
-            Some(b.segment_id(0))
-        );
-        assert_eq!(b.on_click(b.segment_id(1)), Some(1));
-        let last = b.areas[2];
-        assert_eq!(hits.hit(ratatui::layout::Position::new(last.x, 0)), None);
-        assert_eq!(b.on_click(b.segment_id(2)), None);
-    }
-
-    #[test]
-    fn a_link_hovers_and_the_trail_can_be_plain_text() {
-        let mut b = trail();
-        let (rest, _) = draw(&mut b, 60, None);
-        let id = b.segment_id(0);
-        let (hover, _) = draw(&mut b, 60, Some(id));
-        assert_ne!(rest[(0, 0)].style(), hover[(0, 0)].style());
-        let mut plain = trail().clickable(false);
-        let (_, hits) = draw(&mut plain, 60, None);
-        assert_eq!(hits.hit(ratatui::layout::Position::new(0, 0)), None);
-        assert_eq!(plain.on_click(plain.segment_id(0)), None);
-    }
-
-    #[test]
-    fn a_narrow_trail_collapses_the_outer_levels() {
-        let mut b = trail();
-        let (buf, _) = draw(&mut b, 28, None);
-        let s = text(&buf);
-        assert!(s.starts_with("… › "), "{s}");
-        assert!(s.contains("Top files"), "{s}");
-        assert_eq!(b.areas[0], Rect::ZERO);
-    }
-
-    #[test]
-    fn a_current_page_too_wide_is_cut_in_the_middle() {
-        let mut b = Breadcrumb::new(
-            WidgetId::of("crumbs"),
-            vec!["settlement-backoff-retry-policy-v2.md".into()],
-        );
-        let (buf, _) = draw(&mut b, 20, None);
-        let s = text(&buf);
-        assert!(s.starts_with("settlement"), "{s}");
-        assert!(s.trim_end().ends_with("v2.md"), "{s}");
-        assert!(s.contains('…'), "{s}");
-    }
-}

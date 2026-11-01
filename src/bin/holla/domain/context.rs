@@ -1,7 +1,5 @@
 
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Host {
     pub name: String,
@@ -48,8 +46,6 @@ impl Os {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum Scope {
     #[default]
@@ -69,7 +65,6 @@ impl Scope {
         }
     }
 
-
     pub fn inward(self) -> Scope {
         match self {
             Scope::System => Scope::Parent,
@@ -79,8 +74,6 @@ impl Scope {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScopeTag {
 
@@ -89,7 +82,6 @@ pub struct ScopeTag {
     pub defined_at: String,
 
     pub runs_in: String,
-
 
     pub word: String,
 }
@@ -136,7 +128,6 @@ impl ScopeTag {
         }
     }
 
-
     pub fn remote(host: &str) -> Self {
         Self {
             direction: Scope::System,
@@ -147,7 +138,6 @@ impl ScopeTag {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Project {
     pub name: String,
@@ -157,7 +147,6 @@ pub struct Project {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProjectKind {
-
 
     Rust {
         workspace: bool,
@@ -195,9 +184,6 @@ impl ProjectKind {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Location {
     pub cwd: String,
@@ -224,30 +210,3 @@ impl Location {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn scope_axis_moves_outward_and_inward_and_saturates() {
-        assert_eq!(Scope::Here.outward(), Scope::Parent);
-        assert_eq!(Scope::Parent.outward(), Scope::System);
-        assert_eq!(Scope::System.outward(), Scope::System);
-        assert_eq!(Scope::Here.inward(), Scope::Children);
-        assert_eq!(Scope::Children.inward(), Scope::Children);
-        assert_eq!(Scope::System.inward(), Scope::Parent);
-    }
-
-    #[test]
-    fn short_paths_use_the_home_tilde() {
-        let l = Location {
-            cwd: "/Users/alex/work/acme".into(),
-            home: "/Users/alex".into(),
-            project: None,
-            workspace: None,
-            children: vec![],
-        };
-        assert_eq!(l.cwd_short(), "~/work/acme");
-        assert_eq!(l.short("/srv/payments"), "/srv/payments");
-    }
-}

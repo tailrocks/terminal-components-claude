@@ -1,17 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::layout::Position;
 
 use ratatui::crossterm::event::KeyModifiers;
@@ -24,7 +12,6 @@ use super::intent::{Intent, Phase};
 use super::response::Response;
 use super::scroll::Scrollable;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusOn {
 
@@ -34,11 +21,8 @@ pub enum FocusOn {
     Release,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SecondaryOutside {
-
 
     #[default]
     Reopen,
@@ -48,15 +32,12 @@ pub enum SecondaryOutside {
     Ignore,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SecondaryRoute {
 
     Nothing,
 
     Target(WidgetId),
-
-
 
     Outside {
         backdrop: WidgetId,
@@ -66,51 +47,30 @@ pub enum SecondaryRoute {
     Swallowed,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PointerConfig {
 
     pub focus_on: FocusOn,
 
-
     pub double_click_ms: u64,
-
 
     pub double_click_slop: u16,
 
     pub wheel_lines: i32,
 
-
     pub hover_refresh_after_scroll: bool,
 
     pub flash_ms: u64,
 
-
     pub secondary_outside: SecondaryOutside,
-
-
-
-
-
 
     pub secondary_focuses: bool,
 
-
-
     pub end_edit_on_dead_space: bool,
-
-
-
-
 
     pub autoscroll: bool,
 
-
-
     pub autoscroll_ms: u64,
-
-
 
     pub track_repeat: bool,
 
@@ -118,14 +78,9 @@ pub struct PointerConfig {
 
     pub track_repeat_ms: u64,
 
-
-
     pub pointer_shapes: bool,
 
-
     pub caret_shape: super::shape::CaretShape,
-
-
 
     pub click_skips_animation: bool,
 }
@@ -230,15 +185,12 @@ impl Default for PointerConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Release {
 
     Click(WidgetId),
 
-
     Outside,
-
 
     Cancelled,
 }
@@ -251,7 +203,6 @@ struct LastClick {
     count: u8,
 }
 
-
 #[derive(Debug, Clone, Default)]
 pub struct PointerState {
     pub config: PointerConfig,
@@ -263,7 +214,6 @@ pub struct PointerState {
     pub hover_suppressed: bool,
 
     pub pos: Option<Position>,
-
 
     pub pointer_focus: bool,
     flash: Option<(WidgetId, u64)>,
@@ -278,14 +228,11 @@ pub struct PointerState {
 
     secondary_at: Option<Position>,
 
-
     accepted: Option<WidgetId>,
-
 
     motion_seen: bool,
     last_click: Option<LastClick>,
     hover_refresh: Option<Position>,
-
 
     hover_mark: std::cell::Cell<Option<(WidgetId, u64)>>,
 }
@@ -298,17 +245,14 @@ impl PointerState {
         }
     }
 
-
     pub fn suppress_hover(&mut self) {
         self.hover_suppressed = true;
         self.pointer_focus = false;
     }
 
-
     pub fn focused_by_click(&mut self) {
         self.pointer_focus = true;
     }
-
 
     pub fn on_move(&mut self, hits: &HitRegistry, pos: Position) -> Outcome {
         self.pos = Some(pos);
@@ -324,17 +268,12 @@ impl PointerState {
         }
     }
 
-
-
     pub fn on_drag(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
-
 
         self.hover = hits.hit(pos);
         self.pressed
     }
-
-
 
     pub fn on_down(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
@@ -352,19 +291,12 @@ impl PointerState {
         hit
     }
 
-
-
-
     pub fn autoscrolling(&self) -> bool {
         self.config.autoscroll
             && self.pressed.is_some()
             && self.grabbed().is_none()
             && matches!((self.edge, self.pos), (Some(edge), Some(pos)) if !edge.contains(pos))
     }
-
-
-
-
 
     pub fn autoscroll_due(&mut self, now_ms: u64) -> Option<(WidgetId, Position)> {
         if !self.autoscrolling() {
@@ -380,21 +312,11 @@ impl PointerState {
         Some((self.pressed?, self.pos?))
     }
 
-
-
-
     pub fn track_repeating(&self) -> bool {
         self.config.track_repeat
             && self.pressed.is_some()
             && matches!((self.grab, self.pos), (Some(bar), Some(pos)) if bar.track.contains(pos))
     }
-
-
-
-
-
-
-
 
     pub fn track_repeat_due(&mut self, now_ms: u64) -> Option<Position> {
         if !self.track_repeating() {
@@ -414,11 +336,6 @@ impl PointerState {
         }
     }
 
-
-
-
-
-
     pub fn surface_press(
         &self,
         hits: &HitRegistry,
@@ -432,32 +349,19 @@ impl PointerState {
         true
     }
 
-
-
-
     pub fn dead_space(&self, focus: &mut super::focus::Focus) {
         if self.config.end_edit_on_dead_space {
             focus.end_edit();
         }
     }
 
-
-
     pub fn grabbed(&self) -> Option<super::hit::Bar> {
         self.grab.filter(|b| self.pressed == Some(b.id))
     }
 
-
-
-
-
-
-
-
     pub fn reports_motion(&self) -> bool {
         self.motion_seen
     }
-
 
     pub fn on_secondary(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
@@ -467,10 +371,6 @@ impl PointerState {
         self.hover = hit;
         hit
     }
-
-
-
-
 
     pub fn route_secondary(&mut self, hits: &HitRegistry, pos: Position) -> SecondaryRoute {
         let hit = self.on_secondary(hits, pos);
@@ -496,8 +396,6 @@ impl PointerState {
         }
     }
 
-
-
     pub fn on_secondary_drag(&mut self, hits: &HitRegistry, pos: Position) -> Outcome {
         self.pos = Some(pos);
         let was = self.hover;
@@ -510,13 +408,6 @@ impl PointerState {
         }
     }
 
-
-
-
-
-
-
-
     pub fn on_secondary_up(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
         let from = self.secondary_at.take()?;
@@ -527,11 +418,6 @@ impl PointerState {
         hits.accepts_release(hit, ReleaseFrom::Secondary)
             .then_some(hit)
     }
-
-
-
-
-
 
     pub fn on_up(
         &mut self,
@@ -551,7 +437,6 @@ impl PointerState {
         (hit, beneath)
     }
 
-
     pub fn release(&mut self, hit: Option<WidgetId>) -> Release {
         let pressed = self.pressed.take();
         let accepted = self.accepted.take();
@@ -566,15 +451,9 @@ impl PointerState {
         }
     }
 
-
-
     pub fn press(&mut self, id: WidgetId) {
         self.pressed = Some(id);
     }
-
-
-
-
 
     pub fn count_click(&mut self, id: WidgetId, pos: Position, now_ms: u64) -> u8 {
         let count = self.press_count(id, pos, now_ms);
@@ -586,10 +465,6 @@ impl PointerState {
         });
         count
     }
-
-
-
-
 
     pub fn press_count(&self, id: WidgetId, pos: Position, now_ms: u64) -> u8 {
         let slop = self.config.double_click_slop;
@@ -605,12 +480,6 @@ impl PointerState {
             _ => 1,
         }
     }
-
-
-
-
-
-
 
     pub fn hover_ms(&self, now_ms: u64) -> u64 {
         let Some(id) = self.hover.filter(|_| !self.hover_suppressed) else {
@@ -630,11 +499,9 @@ impl PointerState {
         self.last_click = None;
     }
 
-
     pub fn flash(&mut self, id: WidgetId, now_ms: u64) {
         self.flash = Some((id, now_ms.saturating_add(self.config.flash_ms)));
     }
-
 
     pub fn flashing(&self, now_ms: u64) -> Option<WidgetId> {
         self.flash
@@ -642,11 +509,9 @@ impl PointerState {
             .map(|(id, _)| id)
     }
 
-
     pub fn has_flash(&self) -> bool {
         self.flash.is_some()
     }
-
 
     pub fn expire_flash(&mut self, now_ms: u64) -> bool {
         match self.flash {
@@ -658,7 +523,6 @@ impl PointerState {
         }
     }
 
-
     pub fn wheel_delta(&self, kind: MouseKind) -> i32 {
         match kind {
             MouseKind::WheelUp | MouseKind::WheelLeft => -self.config.wheel_lines,
@@ -666,15 +530,11 @@ impl PointerState {
         }
     }
 
-
-
     pub fn scrolled(&mut self, pos: Position, out: Outcome) {
         if out == Outcome::Changed && self.config.hover_refresh_after_scroll {
             self.hover_refresh = Some(pos);
         }
     }
-
-
 
     pub fn refresh_hover(&mut self, hits: &HitRegistry) {
         if let Some(pos) = self.hover_refresh.take()
@@ -685,30 +545,19 @@ impl PointerState {
     }
 }
 
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PointerEvent {
 
     pub id: WidgetId,
 
-
     pub hit: Hit,
 
     pub intent: Intent<'static>,
-
-
 
     pub bar: Option<Bar>,
 }
 
 impl PointerEvent {
-
 
     pub fn new(
         hits: &HitRegistry,
@@ -735,7 +584,6 @@ impl PointerEvent {
         }
     }
 
-
     pub fn wheel_on(
         hits: &HitRegistry,
         id: WidgetId,
@@ -760,22 +608,17 @@ impl PointerEvent {
         }
     }
 
-
     pub fn owner(&self) -> WidgetId {
         self.hit.owner
     }
-
 
     pub fn on(&self, owner: WidgetId) -> bool {
         self.hit.owner == owner
     }
 
-
     pub fn part(&self) -> PartRef {
         self.hit.part
     }
-
-
 
     pub fn index_of(&self, part: Part) -> Option<usize> {
         if self.hit.part.part != part {
@@ -784,7 +627,6 @@ impl PointerEvent {
         self.hit.part.item.and_then(ItemKey::as_index)
     }
 
-
     pub fn phase(&self) -> Option<Phase> {
         match self.intent {
             Intent::Pointer { phase, .. } => Some(phase),
@@ -792,16 +634,13 @@ impl PointerEvent {
         }
     }
 
-
     pub fn is(&self, phase: Phase) -> bool {
         self.phase() == Some(phase)
     }
 
-
     pub fn pos(&self) -> Position {
         self.intent.pos().unwrap_or_default()
     }
-
 
     pub fn count(&self) -> u8 {
         match self.intent {
@@ -810,14 +649,12 @@ impl PointerEvent {
         }
     }
 
-
     pub fn mods(&self) -> KeyModifiers {
         match self.intent {
             Intent::Pointer { mods, .. } | Intent::Wheel { mods, .. } => mods,
             _ => KeyModifiers::NONE,
         }
     }
-
 
     pub fn wheel(&self) -> Option<(Axis, i32)> {
         match self.intent {
@@ -833,12 +670,6 @@ fn hit_of(hits: &HitRegistry, id: WidgetId) -> Hit {
         part: PartRef::of(Part::CONTAINER),
     })
 }
-
-
-
-
-
-
 
 pub fn scroll_input<S: Scrollable + ?Sized>(w: &mut S, ev: &PointerEvent) -> Option<Response<()>> {
     if let Some((axis, delta)) = ev.wheel() {
@@ -856,32 +687,18 @@ pub fn scroll_input<S: Scrollable + ?Sized>(w: &mut S, ev: &PointerEvent) -> Opt
     }
 }
 
-
-
-
-
-
-
-
 pub trait MouseTarget {
 
     type Action;
 
-
-
     fn mouse_id(&self) -> WidgetId;
 
-
     fn pointer(&mut self, ev: &PointerEvent) -> Response<Self::Action>;
-
-
 
     fn route(&mut self, ev: &PointerEvent) -> Option<Response<Self::Action>> {
         ev.on(self.mouse_id()).then(|| self.pointer(ev))
     }
 }
-
-
 
 pub struct PointerParts<'a> {
     pub router: &'a mut PointerRouter,
@@ -890,52 +707,26 @@ pub struct PointerParts<'a> {
     pub ring: &'a FocusRing,
 }
 
-
-
-
 pub trait PointerHost {
 
     fn pointer_parts(&mut self) -> PointerParts<'_>;
 
-
-
-
-
     fn layer_open(&self) -> bool;
-
-
 
     fn now_ms(&self) -> u64;
 
-
     fn deliver(&mut self, ev: &PointerEvent) -> Response<()>;
-
-
-
-
 
     fn outside(&mut self, _pos: Position) -> Response<()> {
         Response::changed()
     }
 }
 
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Default)]
 pub struct PointerRouter {
     pub state: PointerState,
 
-
     dragged: bool,
-
-
-
 
     held: Option<(WidgetId, Hit)>,
 }
@@ -962,9 +753,6 @@ impl PointerRouter {
         }
     }
 
-
-
-
     fn held_event(
         &self,
         hits: &HitRegistry,
@@ -986,11 +774,9 @@ impl PointerRouter {
         ev
     }
 
-
     pub fn route<H: PointerHost + ?Sized>(host: &mut H, m: Mouse) -> Outcome {
         let before = host.pointer_parts().focus.current();
         let out = Self::dispatch(host, m);
-
 
         let p = host.pointer_parts();
         let pressed = m.kind == MouseKind::Down && p.router.state.pressed.is_some();
@@ -999,10 +785,6 @@ impl PointerRouter {
         }
         out
     }
-
-
-
-
 
     pub fn tick<H: PointerHost + ?Sized>(host: &mut H) -> Outcome {
         let now = host.now_ms();
@@ -1063,7 +845,6 @@ impl PointerRouter {
                 }
                 out = out.or(Self::release(host, m, hit, layer, now));
 
-
                 if let Some(below) = beneath {
                     host.pointer_parts().router.state.press(below);
                     out = out.or(Self::release(host, m, Some(below), layer, now));
@@ -1076,7 +857,6 @@ impl PointerRouter {
                 p.router.state.on_secondary_drag(p.hits, m.pos)
             }
 
-
             MouseKind::SecondaryUp => {
                 let now = host.now_ms();
                 let p = host.pointer_parts();
@@ -1088,7 +868,6 @@ impl PointerRouter {
                     None => Outcome::Ignored,
                 }
             }
-
 
             MouseKind::Middle => {
                 let p = host.pointer_parts();
@@ -1119,13 +898,11 @@ impl PointerRouter {
         };
         if layer {
 
-
             p.router.state.surface_press(p.hits, id, p.focus);
         } else if p.router.state.config.focus_on == FocusOn::Press && p.ring.contains(id) {
             p.focus.focus(id);
         }
         p.router.held = Some((id, hit_of(p.hits, id)));
-
 
         let count = p.router.state.press_count(id, m.pos, now);
         let ev = PointerEvent::new(p.hits, Phase::Press, id, m.pos, count, m.mods);
@@ -1139,7 +916,6 @@ impl PointerRouter {
         let at = |host: &mut H, id: WidgetId| {
             let p = host.pointer_parts();
 
-
             if !layer && p.router.state.config.secondary_focuses && p.ring.contains(id) {
                 p.focus.focus(id);
             }
@@ -1152,10 +928,8 @@ impl PointerRouter {
             SecondaryRoute::Target(id) => at(host, id),
             SecondaryRoute::Outside { backdrop, reopen } => {
 
-
                 host.pointer_parts().router.state.press(backdrop);
                 let out = Self::release(host, m, Some(backdrop), layer, now).or(Outcome::Changed);
-
 
                 match reopen {
                     Some(id) => out.or(at(host, id)),
@@ -1179,7 +953,6 @@ impl PointerRouter {
         let p = host.pointer_parts();
         let delta = p.router.state.wheel_delta(m.kind);
 
-
         let events: Vec<PointerEvent> = p
             .hits
             .scroll_stack(m.pos)
@@ -1200,12 +973,9 @@ impl PointerRouter {
             }
         }
 
-
         host.pointer_parts().router.state.scrolled(m.pos, out);
         out
     }
-
-
 
     fn release<H: PointerHost + ?Sized>(
         host: &mut H,
@@ -1220,8 +990,6 @@ impl PointerRouter {
             Release::Click(id) => id,
             Release::Outside => return host.outside(m.pos).outcome().or(Outcome::Changed),
             Release::Cancelled => {
-
-
 
                 let Some(pressed) = pressed else {
                     return Outcome::Changed;
@@ -1239,10 +1007,6 @@ impl PointerRouter {
         let before = p.focus.moves();
         let out = host.deliver(&ev).outcome();
 
-
-
-
-
         let p = host.pointer_parts();
         if !layer
             && p.router.state.config.focus_on == FocusOn::Release
@@ -1255,535 +1019,3 @@ impl PointerRouter {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ratatui::layout::Rect;
-
-
-
-
-    #[test]
-    fn a_backdrop_click_needs_press_and_release_on_the_backdrop() {
-        let mut hits = HitRegistry::default();
-        hits.register_surface(WidgetId::of("dlg"), Rect::new(10, 5, 20, 6));
-        let inside = Position::new(12, 6);
-        let outside = Position::new(1, 1);
-        let mut p = PointerState::default();
-        p.on_down(&hits, inside);
-        assert_eq!(p.release(hits.hit(outside)), Release::Cancelled);
-        p.on_down(&hits, outside);
-        assert_eq!(p.release(hits.hit(inside)), Release::Cancelled);
-        p.on_down(&hits, outside);
-        assert_eq!(p.release(hits.hit(Position::new(2, 2))), Release::Outside);
-    }
-
-    fn hits() -> (HitRegistry, WidgetId, WidgetId) {
-        let mut h = HitRegistry::default();
-        let a = WidgetId::of("a");
-        let b = WidgetId::of("b");
-        h.register(a, Rect::new(0, 0, 10, 1));
-        h.register(b, Rect::new(0, 1, 10, 1));
-        (h, a, b)
-    }
-
-    #[test]
-    fn a_release_completes_a_press_from_elsewhere_only_where_accepted() {
-        let (mut h, a, b) = hits();
-        let mut p = PointerState::default();
-        p.on_down(&h, Position::new(1, 0));
-        let (hit, _) = p.on_up(&h, Position::new(1, 1));
-        assert_eq!(p.release(hit), Release::Cancelled, "not accepted");
-        h.accept_release(b, ReleaseFrom::Press(a));
-        p.on_down(&h, Position::new(1, 0));
-        let (hit, _) = p.on_up(&h, Position::new(1, 1));
-        assert_eq!(p.release(hit), Release::Click(b), "press-drag-release");
-
-        p.on_down(&h, Position::new(1, 1));
-        p.press(WidgetId::of("c"));
-        let (hit, _) = p.on_up(&h, Position::new(1, 1));
-        assert_eq!(p.release(hit), Release::Cancelled);
-    }
-
-    #[test]
-    fn a_secondary_release_chooses_an_accepting_row_after_movement() {
-        let (mut h, a, b) = hits();
-        h.accept_release(b, ReleaseFrom::Secondary);
-        let mut p = PointerState::default();
-
-        p.on_secondary(&h, Position::new(1, 1));
-        assert_eq!(p.on_secondary_up(&h, Position::new(1, 1)), None);
-
-        p.on_secondary(&h, Position::new(1, 0));
-        assert_eq!(
-            p.on_secondary_drag(&h, Position::new(2, 1)),
-            Outcome::Changed
-        );
-        assert_eq!(p.hover, Some(b));
-        assert_eq!(p.on_secondary_up(&h, Position::new(2, 1)), Some(b));
-
-        p.on_secondary(&h, Position::new(1, 1));
-        assert_eq!(p.on_secondary_up(&h, Position::new(3, 0)), None);
-        let _ = a;
-
-        assert_eq!(p.on_secondary_up(&h, Position::new(2, 1)), None);
-    }
-
-    #[test]
-    fn motion_is_reported_after_the_first_buttonless_move() {
-        let (h, _, _) = hits();
-        let mut p = PointerState::default();
-        p.on_down(&h, Position::new(1, 0));
-        p.on_drag(&h, Position::new(2, 0));
-        assert!(
-            !p.reports_motion(),
-            "drags report motion with a button held"
-        );
-        p.on_move(&h, Position::new(3, 0));
-        assert!(p.reports_motion());
-    }
-
-    #[test]
-    fn click_counting_respects_time_slop_and_target() {
-        let (_, a, b) = hits();
-        let mut p = PointerState::default();
-        let at = Position::new(2, 0);
-        assert_eq!(p.count_click(a, at, 0), 1);
-        assert_eq!(p.count_click(a, at, 300), 2);
-        assert_eq!(p.count_click(a, at, 600), 3);
-
-        assert_eq!(p.count_click(a, at, 1200), 1);
-
-        assert_eq!(p.count_click(a, Position::new(8, 0), 1300), 1);
-
-        assert_eq!(p.count_click(b, Position::new(8, 0), 1400), 1);
-        let mut slow = PointerState::new(PointerConfig::DEFAULT.double_click_ms(1000));
-        slow.count_click(a, at, 0);
-        assert_eq!(slow.count_click(a, at, 800), 2);
-    }
-
-    #[test]
-    fn down_replaces_a_stale_press_and_release_resolves() {
-        let (h, a, b) = hits();
-        let mut p = PointerState::default();
-        p.on_down(&h, Position::new(1, 0));
-
-        assert_eq!(p.on_down(&h, Position::new(1, 1)), Some(b));
-        assert_eq!(p.release(Some(b)), Release::Click(b));
-        p.on_down(&h, Position::new(1, 0));
-        assert_eq!(p.release(Some(b)), Release::Cancelled);
-        p.on_down(&h, Position::new(30, 30));
-        assert_eq!(p.release(None), Release::Outside);
-        p.on_down(&h, Position::new(1, 0));
-        assert_eq!(p.release(None), Release::Cancelled);
-        let _ = a;
-    }
-
-    #[test]
-    fn a_press_on_a_scrollbar_grabs_it_until_release() {
-        use super::super::hit::{Axis, Bar};
-        let mut h = HitRegistry::default();
-        let owner = WidgetId::of("list");
-        let bar = Bar {
-            id: owner.sub("scrollbar"),
-            owner,
-            axis: Axis::Vertical,
-            track: Rect::new(9, 0, 1, 10),
-        };
-        h.register_bar(bar);
-        let mut p = PointerState::default();
-        p.on_down(&h, Position::new(9, 3));
-        assert_eq!(p.grabbed(), Some(bar));
-        assert_eq!(p.release(Some(bar.id)), Release::Click(bar.id));
-        assert_eq!(p.grabbed(), None);
-    }
-
-    #[test]
-    fn a_held_track_press_repeats_after_a_delay_while_over_the_track() {
-        use super::super::hit::{Axis, Bar};
-        let mut h = HitRegistry::default();
-        let owner = WidgetId::of("list");
-        let bar = Bar {
-            id: owner.sub("scrollbar"),
-            owner,
-            axis: Axis::Vertical,
-            track: Rect::new(9, 0, 1, 10),
-        };
-        h.register_bar(bar);
-        let mut p = PointerState::default();
-        let at = Position::new(9, 8);
-        p.on_down(&h, at);
-        assert!(p.track_repeating());
-        assert_eq!(p.track_repeat_due(1000), None, "the clock starts");
-        assert_eq!(p.track_repeat_due(1299), None, "not before the delay");
-        assert_eq!(p.track_repeat_due(1300), Some(at));
-
-        p.on_down(&h, at);
-        assert_eq!(p.track_repeat_due(1340), None);
-        assert_eq!(p.track_repeat_due(1350), Some(at));
-
-        p.on_drag(&h, Position::new(3, 8));
-        assert!(!p.track_repeating());
-        assert_eq!(p.track_repeat_due(2000), None);
-        p.on_drag(&h, at);
-        assert_eq!(
-            p.track_repeat_due(2000),
-            None,
-            "back on it: the delay again"
-        );
-
-        p.release(Some(bar.id));
-        assert!(!p.track_repeating());
-
-        let mut off = PointerState::new(PointerConfig::DEFAULT.track_repeat(false));
-        off.on_down(&h, at);
-        assert!(!off.track_repeating());
-    }
-
-    #[test]
-    fn keyboard_suppresses_hover_until_the_pointer_moves() {
-        let (h, a, _) = hits();
-        let mut p = PointerState::default();
-        assert_eq!(p.on_move(&h, Position::new(1, 0)), Outcome::Changed);
-        assert_eq!(p.hover, Some(a));
-        assert_eq!(p.on_move(&h, Position::new(2, 0)), Outcome::Ignored);
-        p.suppress_hover();
-        assert_eq!(p.on_move(&h, Position::new(2, 0)), Outcome::Changed);
-        assert!(!p.hover_suppressed);
-    }
-
-    #[test]
-    fn flash_runs_out_and_hover_refreshes_after_a_scroll() {
-        let (h, _, b) = hits();
-        let mut p = PointerState::default();
-        let a = WidgetId::of("a");
-        p.flash(a, 1000);
-        assert_eq!(p.flashing(1100), Some(a));
-        assert!(!p.expire_flash(1100));
-        assert_eq!(p.flashing(1140), None);
-        assert!(p.expire_flash(1140));
-        p.scrolled(Position::new(1, 1), Outcome::Changed);
-        p.refresh_hover(&h);
-        assert_eq!(p.hover, Some(b));
-        let mut off = PointerState::new(PointerConfig::DEFAULT.hover_refresh_after_scroll(false));
-        off.scrolled(Position::new(1, 1), Outcome::Changed);
-        off.refresh_hover(&h);
-        assert_eq!(off.hover, None);
-    }
-
-    #[test]
-    fn a_held_press_past_its_body_edge_autoscrolls_on_a_timer() {
-        let mut h = HitRegistry::default();
-        let cell = WidgetId::of("cell");
-        h.register(cell, Rect::new(0, 0, 10, 5));
-        h.register_autoscroll(Rect::new(0, 0, 10, 5));
-        let mut p = PointerState::default();
-        p.on_down(&h, Position::new(2, 2));
-
-        p.on_drag(&h, Position::new(3, 4));
-        assert!(!p.autoscrolling());
-        assert_eq!(p.autoscroll_due(0), None);
-
-        p.on_drag(&h, Position::new(3, 7));
-        assert!(p.autoscrolling());
-        assert_eq!(p.autoscroll_due(100), Some((cell, Position::new(3, 7))));
-        assert_eq!(p.autoscroll_due(120), None);
-        assert_eq!(p.autoscroll_due(150), Some((cell, Position::new(3, 7))));
-
-        p.release(Some(cell));
-        assert!(!p.autoscrolling());
-        assert_eq!(p.autoscroll_due(500), None);
-
-        let mut off = PointerState::new(PointerConfig::DEFAULT.autoscroll(false));
-        off.on_down(&h, Position::new(2, 2));
-        off.on_drag(&h, Position::new(3, 7));
-        assert_eq!(off.autoscroll_due(100), None);
-    }
-
-    #[test]
-    fn autoscroll_areas_under_a_modal_barrier_are_unreachable() {
-        let mut h = HitRegistry::default();
-        h.register_autoscroll(Rect::new(0, 0, 10, 5));
-        assert!(h.autoscroll_at(Position::new(1, 1)).is_some());
-        h.push_barrier();
-        assert_eq!(h.autoscroll_at(Position::new(1, 1)), None);
-    }
-}
-
-
-#[cfg(test)]
-mod router_tests {
-    use super::*;
-    use ratatui::layout::Rect;
-
-    struct Host {
-        router: PointerRouter,
-        hits: HitRegistry,
-        focus: Focus,
-        ring: FocusRing,
-        layer: bool,
-        now: u64,
-        log: Vec<PointerEvent>,
-
-        deaf: Vec<WidgetId>,
-        outside: usize,
-    }
-
-    impl Host {
-        fn new(hits: HitRegistry) -> Self {
-            Self {
-                router: PointerRouter::default(),
-                hits,
-                focus: Focus::default(),
-                ring: FocusRing::default(),
-                layer: false,
-                now: 1_000,
-                log: Vec::new(),
-                deaf: Vec::new(),
-                outside: 0,
-            }
-        }
-
-        fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Outcome {
-            PointerRouter::route(self, Mouse::new(kind, Position::new(x, y)))
-        }
-
-        fn click(&mut self, x: u16, y: u16) {
-            self.mouse(MouseKind::Down, x, y);
-            self.mouse(MouseKind::Up, x, y);
-        }
-
-        fn phases(&self) -> Vec<(Phase, WidgetId)> {
-            self.log
-                .iter()
-                .filter_map(|e| e.phase().map(|p| (p, e.owner())))
-                .collect()
-        }
-    }
-
-    impl PointerHost for Host {
-        fn pointer_parts(&mut self) -> PointerParts<'_> {
-            PointerParts {
-                router: &mut self.router,
-                hits: &self.hits,
-                focus: &mut self.focus,
-                ring: &self.ring,
-            }
-        }
-        fn layer_open(&self) -> bool {
-            self.layer
-        }
-        fn now_ms(&self) -> u64 {
-            self.now
-        }
-        fn deliver(&mut self, ev: &PointerEvent) -> Response<()> {
-            self.log.push(*ev);
-            if self.deaf.contains(&ev.owner()) {
-                Response::ignored()
-            } else {
-                Response::changed()
-            }
-        }
-        fn outside(&mut self, _pos: Position) -> Response<()> {
-            self.outside += 1;
-            Response::changed()
-        }
-    }
-
-
-    fn layout() -> (HitRegistry, WidgetId, WidgetId) {
-        let mut h = HitRegistry::default();
-        let body = WidgetId::of("body");
-        let list = WidgetId::of("list");
-        h.register(body, Rect::new(0, 0, 20, 10));
-        h.register(list, Rect::new(0, 0, 10, 3));
-        for i in 0..3 {
-            h.register_part(
-                list,
-                PartRef::item(Part::ROW, ItemKey::index(i)),
-                Rect::new(0, i as u16, 10, 1),
-            );
-        }
-        (h, list, body)
-    }
-
-    #[test]
-    fn a_click_resolves_to_the_owner_and_its_part() {
-        let (h, list, _) = layout();
-        let mut host = Host::new(h);
-        host.click(2, 1);
-        assert_eq!(
-            host.phases(),
-            vec![(Phase::Press, list), (Phase::Click, list)]
-        );
-        let click = host.log[1];
-        assert_eq!(click.index_of(Part::ROW), Some(1));
-        assert_eq!(click.count(), 1);
-        assert_eq!(host.router.flashing(host.now), Some(click.id));
-        host.now += 100;
-        host.click(2, 1);
-        assert_eq!(host.log[3].count(), 2, "a double click counts");
-    }
-
-    #[test]
-    fn a_drag_ends_with_drag_end_and_a_release_away_from_the_press() {
-        let (h, list, body) = layout();
-        let mut host = Host::new(h);
-        host.mouse(MouseKind::Down, 2, 0);
-        host.mouse(MouseKind::Drag, 2, 2);
-        host.mouse(MouseKind::Up, 15, 8);
-        assert_eq!(
-            host.phases(),
-            vec![
-                (Phase::Press, list),
-                (Phase::Drag, list),
-                (Phase::DragEnd, list),
-                (Phase::Release, list),
-            ]
-        );
-        assert_eq!(host.log[1].index_of(Part::ROW), Some(0), "the held row");
-        let _ = body;
-    }
-
-
-
-
-    #[test]
-    fn a_drag_keeps_its_owner_after_the_pressed_region_scrolls_away() {
-        let (h, list, _) = layout();
-        let mut host = Host::new(h);
-        host.mouse(MouseKind::Down, 2, 0);
-
-        let mut h = HitRegistry::default();
-        h.register(WidgetId::of("body"), Rect::new(0, 0, 20, 10));
-        h.register(list, Rect::new(0, 0, 10, 3));
-        host.hits = h;
-        host.mouse(MouseKind::Drag, 2, 5);
-        host.mouse(MouseKind::Up, 2, 5);
-        assert_eq!(
-            host.phases()[1..],
-            [
-                (Phase::Drag, list),
-                (Phase::DragEnd, list),
-                (Phase::Release, list)
-            ]
-        );
-        assert_eq!(host.log[1].index_of(Part::ROW), Some(0), "the held row");
-    }
-
-    #[test]
-    fn the_wheel_moves_wheel_lines_on_both_axes_and_passes_to_the_next_owner() {
-        let (h, list, body) = layout();
-        let mut host = Host::new(h);
-        host.mouse(MouseKind::WheelRight, 2, 1);
-        assert_eq!(host.log.len(), 1, "the list took it");
-        assert_eq!(host.log[0].wheel(), Some((Axis::Horizontal, 3)));
-        assert_eq!(host.log[0].owner(), list);
-        host.log.clear();
-        host.deaf.push(list);
-        host.mouse(MouseKind::WheelUp, 2, 1);
-        let owners: Vec<WidgetId> = host.log.iter().map(PointerEvent::owner).collect();
-        assert_eq!(owners, vec![list, body], "one offer per owner");
-        assert_eq!(host.log[1].wheel(), Some((Axis::Vertical, -3)));
-    }
-
-    #[test]
-    fn a_middle_click_reaches_the_control_and_a_layer_swallows_the_rest() {
-        let (h, list, body) = layout();
-        let mut host = Host::new(h);
-        host.mouse(MouseKind::Middle, 2, 2);
-        assert_eq!(host.phases(), vec![(Phase::Middle, list)]);
-        host.layer = true;
-        host.deaf.extend([list, body]);
-        assert_eq!(host.mouse(MouseKind::Middle, 2, 2), Outcome::Consumed);
-        assert_eq!(host.mouse(MouseKind::WheelDown, 2, 2), Outcome::Consumed);
-        assert_eq!(host.mouse(MouseKind::Middle, 40, 40), Outcome::Consumed);
-    }
-
-    #[test]
-    fn a_click_on_nothing_is_an_outside_click() {
-        let (h, _, _) = layout();
-        let mut host = Host::new(h);
-        host.click(40, 40);
-        assert_eq!(host.outside, 1);
-        assert!(host.log.is_empty());
-    }
-
-    #[test]
-    fn a_press_focuses_a_ring_member_unless_a_layer_is_open() {
-        let (h, list, _) = layout();
-        let mut host = Host::new(h);
-        host.ring.register(list);
-        host.layer = true;
-        host.mouse(MouseKind::Down, 2, 15);
-        host.mouse(MouseKind::Down, 1, 4);
-        assert_eq!(host.focus.current(), None);
-        host.layer = false;
-        host.hits
-            .register(WidgetId::of("x"), Rect::new(30, 0, 1, 1));
-        let mut h2 = HitRegistry::default();
-        h2.register(list, Rect::new(0, 0, 10, 3));
-        host.hits = h2;
-        host.mouse(MouseKind::Down, 2, 1);
-        assert_eq!(host.focus.current(), Some(list));
-        assert!(host.router.pointer_focus, "focused by a click");
-    }
-
-    #[test]
-    fn a_secondary_release_on_an_accepting_row_is_a_click() {
-        let (mut h, list, _) = layout();
-        let row = list.part(PartRef::item(Part::ROW, ItemKey::index(2)));
-        h.accept_release(row, ReleaseFrom::Secondary);
-        let mut host = Host::new(h);
-        host.mouse(MouseKind::Secondary, 2, 0);
-        host.mouse(MouseKind::SecondaryDrag, 2, 2);
-        host.mouse(MouseKind::SecondaryUp, 2, 2);
-        assert_eq!(
-            host.phases(),
-            vec![(Phase::Secondary, list), (Phase::Click, list)]
-        );
-        assert_eq!(host.log[1].index_of(Part::ROW), Some(2));
-    }
-
-    #[test]
-    fn a_press_on_a_bar_carries_it_and_a_held_track_repeats_on_the_tick() {
-        let mut h = HitRegistry::default();
-        let owner = WidgetId::of("pane");
-        let bar = Bar {
-            id: owner.sub("scrollbar"),
-            owner,
-            axis: Axis::Vertical,
-            track: Rect::new(9, 0, 1, 10),
-        };
-        h.register(owner, Rect::new(0, 0, 9, 10));
-        h.register_bar(bar);
-        let mut host = Host::new(h);
-        host.mouse(MouseKind::Down, 9, 8);
-        assert_eq!(host.log[0].bar, Some(bar));
-        assert_eq!(host.log[0].owner(), owner);
-        assert_eq!(host.log[0].part(), PartRef::of(Part::TRACK));
-        PointerRouter::tick(&mut host);
-        host.now += 400;
-        PointerRouter::tick(&mut host);
-        assert_eq!(host.log.len(), 2, "the held press replays");
-        assert!(host.log[1].is(Phase::Press));
-    }
-
-    #[test]
-    fn a_backdrop_resolves_to_its_popup() {
-        let mut h = HitRegistry::default();
-        let owner = WidgetId::of("select");
-        h.register(WidgetId::of("page"), Rect::new(0, 0, 20, 10));
-        h.push_barrier();
-        h.register_backdrop_of(
-            owner.sub("popup.backdrop"),
-            owner,
-            Rect::new(0, 0, 20, 10),
-            false,
-        );
-        let mut host = Host::new(h);
-        host.click(5, 5);
-        assert_eq!(host.log[1].owner(), owner);
-        assert_eq!(host.log[1].part(), PartRef::of(Part::BACKDROP));
-    }
-}

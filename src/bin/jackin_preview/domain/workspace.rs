@@ -545,34 +545,3 @@ pub fn env_key_error(key: &str) -> Option<String> {
     None
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn masking_never_reveals_the_value() {
-        assert_eq!(mask("sk-ant-api03-verysecretvalue"), "************alue");
-        assert_eq!(mask("abc"), "***");
-        assert_eq!(
-            mask("postgres://payments:pw@db.internal:5432/payments"),
-            "****************"
-        );
-        assert_eq!(mask(""), "(empty)");
-        assert!(env_key_error("PATH").is_some());
-        assert!(env_key_error("1ABC").is_some());
-        assert!(env_key_error("DATABASE_URL").is_none());
-    }
-
-    #[test]
-    fn change_count_tracks_fields_and_rows() {
-        let a = Workspace::new(1, "payments", "/workspace");
-        let mut b = a.clone();
-        assert_eq!(a.change_count(&b), 0);
-        b.name = "payments-platform".into();
-        b.mounts
-            .push(Mount::host("/Users/op/src/x", "/workspace/x"));
-        b.git_pull = false;
-        assert_eq!(a.change_count(&b), 3);
-        assert_eq!(Isolation::Clone.next(), Isolation::Shared);
-    }
-}

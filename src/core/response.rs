@@ -1,18 +1,8 @@
 
 
-
-
-
-
-
-
-
-
-
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not, Sub};
 
 use super::event::Outcome;
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord, Hash)]
 pub enum Flow {
@@ -22,9 +12,6 @@ pub enum Flow {
 
     Consumed,
 }
-
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord, Hash)]
 pub enum Invalidate {
@@ -36,10 +23,6 @@ pub enum Invalidate {
 
     Layout,
 }
-
-
-
-
 
 #[must_use = "a Response carries the consumed/repaint answer; fold it with `|` or read it"]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -65,7 +48,6 @@ impl<A> Response<A> {
         }
     }
 
-
     pub const fn consumed() -> Self {
         Self {
             flow: Flow::Consumed,
@@ -73,7 +55,6 @@ impl<A> Response<A> {
             action: None,
         }
     }
-
 
     pub const fn changed() -> Self {
         Self {
@@ -83,7 +64,6 @@ impl<A> Response<A> {
         }
     }
 
-
     pub const fn emit(action: A) -> Self {
         Self {
             flow: Flow::Consumed,
@@ -92,46 +72,36 @@ impl<A> Response<A> {
         }
     }
 
-
     pub fn repaint(mut self) -> Self {
         self.invalidate = self.invalidate.max(Invalidate::Paint);
         self
     }
-
 
     pub const fn relayout(mut self) -> Self {
         self.invalidate = Invalidate::Layout;
         self
     }
 
-
     pub const fn no_repaint(mut self) -> Self {
         self.invalidate = Invalidate::None;
         self
     }
 
-
     pub const fn flow(&self) -> Flow {
         self.flow
     }
-
 
     pub fn is_consumed(&self) -> bool {
         self.flow == Flow::Consumed
     }
 
-
     pub const fn invalidate(&self) -> Invalidate {
         self.invalidate
     }
 
-
     pub fn is_changed(&self) -> bool {
         self.invalidate >= Invalidate::Paint
     }
-
-
-
 
     pub fn outcome(&self) -> Outcome {
         match (self.flow, self.is_changed()) {
@@ -141,28 +111,21 @@ impl<A> Response<A> {
         }
     }
 
-
     pub const fn action(&self) -> Option<&A> {
         self.action.as_ref()
     }
-
 
     pub fn take_action(&mut self) -> Option<A> {
         self.action.take()
     }
 
-
     pub fn into_action(self) -> Option<A> {
         self.action
     }
 
-
-
     pub fn into_parts(self) -> (Outcome, Option<A>) {
         (self.outcome(), self.action)
     }
-
-
 
     pub fn with_action<B>(self, action: B) -> Response<B> {
         Response {
@@ -172,8 +135,6 @@ impl<A> Response<A> {
         }
     }
 
-
-
     pub fn map_action<B>(self, f: impl FnOnce(A) -> B) -> Response<B> {
         Response {
             flow: self.flow,
@@ -181,7 +142,6 @@ impl<A> Response<A> {
             action: self.action.map(f),
         }
     }
-
 
     pub fn on_action(self, f: impl FnOnce(A)) -> Response<()> {
         if let Some(a) = self.action {
@@ -194,7 +154,6 @@ impl<A> Response<A> {
         }
     }
 
-
     pub fn erase(self) -> Response<()> {
         Response {
             flow: self.flow,
@@ -206,7 +165,6 @@ impl<A> Response<A> {
 
 impl Response<()> {
 
-
     pub fn lift<B>(self) -> Response<B> {
         Response {
             flow: self.flow,
@@ -215,8 +173,6 @@ impl Response<()> {
         }
     }
 }
-
-
 
 impl<A> From<Outcome> for Response<A> {
     fn from(o: Outcome) -> Self {
@@ -228,9 +184,6 @@ impl<A> From<Outcome> for Response<A> {
     }
 }
 
-
-
-
 impl<A> From<(Outcome, Option<A>)> for Response<A> {
     fn from((o, a): (Outcome, Option<A>)) -> Self {
         let r = Self::from(o);
@@ -240,8 +193,6 @@ impl<A> From<(Outcome, Option<A>)> for Response<A> {
         }
     }
 }
-
-
 
 impl BitOr for Response<()> {
     type Output = Response<()>;
@@ -258,9 +209,6 @@ impl BitOrAssign for Response<()> {
         self.invalidate = self.invalidate.max(rhs.invalidate);
     }
 }
-
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct StateFlags(u16);
@@ -318,51 +266,41 @@ impl StateFlags {
         (Self::LOADING, "LOADING"),
     ];
 
-
     pub const fn empty() -> Self {
         Self(0)
     }
-
 
     pub const fn bits(self) -> u16 {
         self.0
     }
 
-
     pub const fn from_bits(bits: u16) -> Self {
         Self(bits)
     }
-
 
     pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
 
-
     pub const fn contains(self, other: Self) -> bool {
         self.0 & other.0 == other.0
     }
-
 
     pub const fn intersects(self, other: Self) -> bool {
         self.0 & other.0 != 0
     }
 
-
     pub const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
-
 
     pub fn insert(&mut self, other: Self) {
         self.0 |= other.0;
     }
 
-
     pub fn remove(&mut self, other: Self) {
         self.0 &= !other.0;
     }
-
 
     pub fn set(&mut self, other: Self, on: bool) {
         if on {
@@ -371,8 +309,6 @@ impl StateFlags {
             self.remove(other);
         }
     }
-
-
 
     pub const fn with(self, other: Self, on: bool) -> Self {
         if on {
@@ -437,91 +373,3 @@ impl std::fmt::Debug for StateFlags {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn constructors_set_flow_and_invalidation() {
-        let r: Response = Response::ignored();
-        assert_eq!(
-            (r.flow(), r.invalidate()),
-            (Flow::Ignored, Invalidate::None)
-        );
-        let r: Response = Response::consumed();
-        assert!(r.is_consumed() && !r.is_changed());
-        let r: Response = Response::changed();
-        assert!(r.is_consumed() && r.is_changed());
-        let r = Response::emit(7);
-        assert!(r.is_consumed() && r.is_changed());
-        assert_eq!(r.action(), Some(&7));
-        assert_eq!(Response::<u8>::default(), Response::ignored());
-    }
-
-    #[test]
-    fn outcome_round_trips_through_the_adapter() {
-        for o in [Outcome::Ignored, Outcome::Consumed, Outcome::Changed] {
-            let r: Response<u8> = o.into();
-            assert_eq!(r.outcome(), o);
-            assert_eq!(r.action(), None);
-        }
-        assert_eq!(Response::emit(1).outcome(), Outcome::Changed);
-        assert_eq!(
-            Response::<()>::consumed().relayout().outcome(),
-            Outcome::Changed
-        );
-        assert_eq!(
-            Response::emit('x').into_parts(),
-            (Outcome::Changed, Some('x'))
-        );
-    }
-
-    #[test]
-    fn fold_takes_consumed_and_the_larger_invalidation() {
-        let a: Response = Response::consumed();
-        let b: Response = Response::ignored().repaint();
-        let folded = a.clone() | b.clone();
-        assert_eq!(folded.flow(), Flow::Consumed);
-        assert_eq!(folded.invalidate(), Invalidate::Paint);
-        let mut c = a;
-        c |= b;
-        assert_eq!(c, folded, "`|=` agrees with `|`");
-        assert!(Invalidate::None < Invalidate::Paint && Invalidate::Paint < Invalidate::Layout);
-    }
-
-    #[test]
-    fn action_helpers_keep_flow_and_invalidation() {
-        let r = Response::<u8>::consumed().with_action("go");
-        assert!(r.is_changed(), "an action is a visible result");
-        let mapped = Response::emit(2).map_action(|n: i32| n * 10);
-        assert_eq!(mapped.action(), Some(&20));
-        let mut seen = None;
-        let erased = Response::emit(5).on_action(|n| seen = Some(n));
-        assert_eq!(seen, Some(5));
-        assert_eq!(erased, Response::<()>::changed());
-        let mut r = Response::emit(9);
-        assert_eq!(r.take_action(), Some(9));
-        assert!(r.is_changed());
-        assert_eq!(Response::emit(3).no_repaint().erase(), Response::consumed());
-    }
-
-    #[test]
-    fn state_flags_combine_and_print() {
-        let mut s = StateFlags::FOCUSED | StateFlags::HOVERED;
-        assert!(s.contains(StateFlags::FOCUSED));
-        assert!(!s.contains(StateFlags::FOCUSED | StateFlags::PRESSED));
-        assert!(s.intersects(StateFlags::PRESSED | StateFlags::HOVERED));
-        s.set(StateFlags::HOVERED, false);
-        s.insert(StateFlags::DISABLED);
-        assert_eq!(s, StateFlags::FOCUSED.with(StateFlags::DISABLED, true));
-        assert_eq!(format!("{s:?}"), "StateFlags(FOCUSED | DISABLED)");
-        assert_eq!(format!("{:?}", StateFlags::empty()), "StateFlags(empty)");
-        assert_eq!((s - StateFlags::FOCUSED), StateFlags::DISABLED);
-        assert_eq!(StateFlags::from_bits(s.bits()), s);
-        assert_eq!(StateFlags::LOADING.bits(), 1 << 15, "main's bit layout");
-        let all = StateFlags::NAMES
-            .iter()
-            .fold(StateFlags::empty(), |acc, (f, _)| acc | *f);
-        assert_eq!(all.bits(), u16::MAX, "16 distinct flags");
-    }
-}

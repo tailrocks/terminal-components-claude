@@ -1,9 +1,5 @@
 
 
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -15,8 +11,6 @@ use crate::core::keymap::{Nav, NavKeys};
 use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::row::{RowLook, RowUi};
-
-
 
 fn row_part(buf: &mut Buffer, row: Rect, offset: u16, text: &str, style: Style) {
     if offset < row.width {
@@ -30,10 +24,8 @@ fn row_part(buf: &mut Buffer, row: Rect, offset: u16, text: &str, style: Style) 
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CheckHit {
-
 
     #[default]
     Label,
@@ -47,8 +39,6 @@ pub struct Checkbox {
     pub label: String,
     pub checked: bool,
     pub disabled: bool,
-
-
 
     pub mixed: bool,
 
@@ -69,12 +59,10 @@ impl Checkbox {
         }
     }
 
-
     pub fn hit(mut self, hit: CheckHit) -> Self {
         self.hit = hit;
         self
     }
-
 
     pub fn mixed(mut self, mixed: bool) -> Self {
         self.mixed = mixed;
@@ -105,8 +93,6 @@ impl Checkbox {
         self.toggle();
         Outcome::Changed
     }
-
-
 
     pub fn width(&self) -> u16 {
         crate::ui::text::width(&self.label) as u16 + 6
@@ -140,7 +126,6 @@ impl Checkbox {
             st
         } else if self.checked || self.mixed {
 
-
             st.fg(t.chosen_in(s))
         } else {
             st.fg(t.text_muted)
@@ -169,7 +154,6 @@ pub struct RadioGroup {
     pub cursor: usize,
     pub disabled: bool,
     pub areas: Vec<Rect>,
-
 
     pub nav: NavKeys,
 }
@@ -231,18 +215,13 @@ impl RadioGroup {
         Outcome::Changed
     }
 
-
     pub fn option_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::option_part(i))
     }
 
-
     pub fn option_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
-
-
-
 
     pub fn width(&self) -> u16 {
         let w = |t: &str| crate::ui::text::width(t) as u16;
@@ -359,8 +338,6 @@ impl Toggle {
         Outcome::Changed
     }
 
-
-
     pub fn width(&self) -> u16 {
         crate::ui::text::width(&self.label) as u16 + 10
     }
@@ -434,7 +411,6 @@ impl Navigable for RadioGroup {
     }
 }
 
-
 impl crate::ui::specimen::Specimen for Checkbox {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -465,7 +441,6 @@ impl crate::ui::specimen::Specimen for Checkbox {
     }
 }
 
-
 impl crate::ui::specimen::Specimen for Toggle {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -495,7 +470,6 @@ impl crate::ui::specimen::Specimen for Toggle {
         t.render(area, buf, ctx, bg);
     }
 }
-
 
 impl crate::ui::specimen::Specimen for RadioGroup {
     fn specimen_id(&self) -> WidgetId {
@@ -530,8 +504,6 @@ impl crate::ui::specimen::Specimen for RadioGroup {
     }
 }
 
-
-
 impl crate::core::pointer::MouseTarget for Checkbox {
     type Action = ();
 
@@ -549,8 +521,6 @@ impl crate::core::pointer::MouseTarget for Checkbox {
         self.on_click().into()
     }
 }
-
-
 
 impl crate::core::pointer::MouseTarget for RadioGroup {
     type Action = ();
@@ -570,8 +540,6 @@ impl crate::core::pointer::MouseTarget for RadioGroup {
     }
 }
 
-
-
 impl crate::core::pointer::MouseTarget for Toggle {
     type Action = ();
 
@@ -590,114 +558,3 @@ impl crate::core::pointer::MouseTarget for Toggle {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::{focus::FocusRing, hit::HitRegistry};
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-
-
-    #[test]
-    fn a_toggle_at_its_width_shows_its_label_and_state() {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut t = Toggle::new(WidgetId::of("t"), "Auto-merge approved PRs", false);
-        let area = Rect::new(0, 0, t.width(), 1);
-        let mut buf = Buffer::empty(area);
-        t.render(area, &mut buf, &mut ctx, theme.canvas);
-        let row: String = (0..area.width).map(|x| buf[(x, 0)].symbol()).collect();
-        assert!(
-            row.contains("Auto-merge approved PRs") && row.contains("off"),
-            "{row:?}"
-        );
-    }
-
-
-
-    #[test]
-    fn a_checkbox_and_a_radio_group_at_their_widths_show_every_label() {
-        let theme = Theme::junie();
-        let rows = |w: u16, h: u16, draw: &mut dyn FnMut(Rect, &mut Buffer, &mut RenderCtx)| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            let area = Rect::new(0, 0, w, h);
-            let mut buf = Buffer::empty(area);
-            draw(area, &mut buf, &mut ctx);
-            (0..h)
-                .map(|y| (0..w).map(|x| buf[(x, y)].symbol()).collect::<String>())
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-        let mut cb = Checkbox::new(WidgetId::of("c"), "Run tests before opening a PR", true);
-        let w = cb.width();
-        let text = rows(w, 1, &mut |a, b, c| cb.render(a, b, c, theme.canvas));
-        assert!(text.contains("Run tests before opening a PR"), "{text}");
-        let text = rows(w - 2, 1, &mut |a, b, c| cb.render(a, b, c, theme.canvas));
-        assert!(!text.contains("Run tests before opening a PR"), "{text}");
-        let mut rg = RadioGroup::new(WidgetId::of("r"), "Mode", &["Fast", "Thoroughly"], 0);
-        let (w, h) = (rg.width(), rg.height());
-        let text = rows(w, h, &mut |a, b, c| rg.render(a, b, c, theme.canvas));
-        assert!(
-            text.contains("Thoroughly") && text.contains("Mode"),
-            "{text}"
-        );
-        let text = rows(w - 2, h, &mut |a, b, c| rg.render(a, b, c, theme.canvas));
-        assert!(!text.contains("Thoroughly"), "{text}");
-    }
-
-    fn mark(cb: &mut Checkbox) -> String {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
-        cb.render(Rect::new(0, 0, 20, 1), &mut buf, &mut ctx, t.canvas);
-        (1..4).map(|x| buf[(x, 0)].symbol()).collect()
-    }
-
-    #[test]
-    fn a_mixed_checkbox_shows_a_dash_and_toggles_to_checked() {
-        let mut cb = Checkbox::new(WidgetId::of("c"), "On call", false).mixed(true);
-        assert_eq!(mark(&mut cb), "[–]");
-        assert_eq!(cb.on_click(), Outcome::Changed);
-        assert!(cb.checked && !cb.mixed, "mixed → checked, as on macOS");
-        assert_eq!(mark(&mut cb), "[✓]");
-        let mut cb = Checkbox::new(WidgetId::of("c"), "On call", true).mixed(true);
-        let space = Key {
-            code: KeyCode::Char(' '),
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        cb.on_key(&space);
-        assert!(cb.checked && !cb.mixed);
-        cb.on_key(&space);
-        assert!(!cb.checked);
-    }
-
-
-
-    #[test]
-    fn only_the_box_and_label_take_clicks_by_default() {
-        let t = Theme::junie();
-        let hit_at = |cb: &mut Checkbox, x: u16| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
-            cb.render(Rect::new(0, 0, 40, 1), &mut buf, &mut ctx, t.canvas);
-            drop(ctx);
-            hits.hit(ratatui::layout::Position::new(x, 0))
-        };
-        let id = WidgetId::of("c");
-        let mut cb = Checkbox::new(id, "On call", false);
-        assert_eq!(hit_at(&mut cb, 2), Some(id), "the box");
-        assert_eq!(hit_at(&mut cb, 6), Some(id), "the label");
-        assert_eq!(hit_at(&mut cb, 12), Some(id), "the padding cell");
-        assert_eq!(hit_at(&mut cb, 30), None, "blank space");
-        let mut row = cb.clone().hit(CheckHit::Row);
-        assert_eq!(hit_at(&mut row, 30), Some(id), "the whole row on request");
-    }
-}

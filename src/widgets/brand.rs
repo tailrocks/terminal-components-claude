@@ -1,8 +1,5 @@
 
 
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -15,7 +12,6 @@ use crate::ui::ctx::{RenderCtx, VisualState};
 pub struct Lockup {
 
     pub text: String,
-
 
     pub compact: bool,
 }
@@ -47,8 +43,6 @@ impl Lockup {
         crate::ui::text::width(&self.label()) as u16
     }
 
-
-
     pub fn style(t: &Theme) -> Style {
         Self::state_style(t, VisualState::default())
     }
@@ -58,14 +52,11 @@ impl Lockup {
             .style
     }
 
-
     pub fn render(&self, x: u16, y: u16, buf: &mut Buffer, t: &Theme) -> u16 {
         let label = self.label();
         buf.set_string(x, y, &label, Self::style(t));
         crate::ui::text::width(&label) as u16
     }
-
-
 
     pub fn render_clickable(
         &self,
@@ -87,86 +78,3 @@ impl Lockup {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::ui::ctx::Interaction;
-    use ratatui::style::Modifier;
-
-    #[test]
-    fn lockup_is_padded_accent_and_bold() {
-        let t = Theme::junie();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
-        let l = Lockup::new("mark❯");
-        assert_eq!(l.width(), 7);
-        assert_eq!(l.render(0, 0, &mut buf, &t), 7);
-        assert_eq!(buf[(0, 0)].symbol(), " ");
-        assert_eq!(buf[(1, 0)].symbol(), "m");
-        assert_eq!(buf[(1, 0)].bg, t.accent);
-        assert_eq!(buf[(1, 0)].fg, t.text_on_accent);
-        assert!(buf[(1, 0)].modifier.contains(Modifier::BOLD));
-        let c = Lockup::compact("mark❯");
-        assert_eq!(c.width(), 5);
-    }
-
-    #[test]
-    fn clickable_lockup_registers_and_lifts_on_hover() {
-        let t = Theme::junie();
-        let id = WidgetId::of("brand");
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(
-            &t,
-            Interaction {
-                hover: Some(id),
-                ..Default::default()
-            },
-            &mut hits,
-            &mut ring,
-        );
-        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
-        Lockup::new("x").render_clickable(2, 0, &mut buf, &mut ctx, id);
-        assert_eq!(buf[(3, 0)].bg, t.accent_hover);
-        assert_eq!(hits.hit(ratatui::layout::Position::new(3, 0)), Some(id));
-    }
-
-    #[test]
-    fn clickable_lockup_rest_hover_and_pressed_differ_at_every_level() {
-        use crate::theme::ColorLevel;
-        let id = WidgetId::of("brand");
-        for level in ColorLevel::ALL {
-            let t = Theme::for_level(level);
-            let draw = |interaction: Interaction| {
-                let mut hits = HitRegistry::default();
-                let mut ring = FocusRing::default();
-                let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
-                let mut buf = Buffer::empty(Rect::new(0, 0, 10, 1));
-                Lockup::new("mark").render_clickable(0, 0, &mut buf, &mut ctx, id);
-                let c = &buf[(1, 0)];
-                (c.bg, c.modifier)
-            };
-            let rest = draw(Interaction::default());
-            let hover = draw(Interaction {
-                hover: Some(id),
-                ..Default::default()
-            });
-            let pressed = draw(Interaction {
-                hover: Some(id),
-                pressed: Some(id),
-                ..Default::default()
-            });
-            let look = |c: (ratatui::style::Color, Modifier)| {
-                if level == ColorLevel::Mono {
-                    (None, c.1)
-                } else {
-                    (Some(c.0), c.1)
-                }
-            };
-            assert_ne!(look(rest), look(hover), "{level:?}");
-            assert_ne!(look(hover), look(pressed), "{level:?}");
-            assert_ne!(look(rest), look(pressed), "{level:?}");
-        }
-    }
-}

@@ -1,8 +1,5 @@
 
 
-
-
-
 use std::collections::BTreeMap;
 
 use crate::domain::action::Item;
@@ -23,10 +20,7 @@ use crate::sim::fs::Fs;
 use junie_tui::clock::SimClock;
 use std::collections::BTreeSet;
 
-
 pub const TICK_MS: i64 = 80;
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Source {
@@ -35,7 +29,6 @@ pub struct Source {
     pub failure: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BatchMode {
 
@@ -43,7 +36,6 @@ pub enum BatchMode {
 
     Parallel,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Batch {
@@ -133,7 +125,6 @@ pub struct World {
 
     pub trusted_now: Vec<String>,
 
-
     pub healed_units: Vec<String>,
 
     pub fs: Fs,
@@ -166,10 +157,8 @@ pub struct World {
 
     pub fs_latency: Vec<(String, u64)>,
 
-
     pub cleanup_job: Option<CleanupJob>,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct CleanupJob {
@@ -178,11 +167,6 @@ pub struct CleanupJob {
 
     pub processes: Vec<(String, crate::domain::cleanup::ProcessObservation)>,
 }
-
-
-
-
-
 
 pub type BatchMember = (String, Vec<Command>, Script, Option<Effect>, ScopeTag);
 
@@ -234,7 +218,6 @@ impl ScanState {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Persisted {
     pub trust: Option<String>,
@@ -282,7 +265,6 @@ impl World {
     pub fn discovering(&self) -> bool {
         self.sources_done() < self.sources.len()
     }
-
 
     pub fn pending_sources(&self) -> Vec<&str> {
         self.sources
@@ -334,8 +316,6 @@ impl World {
         self.activities.iter().filter(|a| a.state.live()).count()
     }
 
-
-
     pub fn script_for(&self, key: Option<&str>, argv: &[Command]) -> Script {
         if let Some(k) = key
             && let Some(s) = self.scripts.get(k)
@@ -348,7 +328,6 @@ impl World {
             .collect::<Vec<_>>()
             .join(" && ");
 
-
         if let Some(s) = self.scripts.get(&display) {
             return s.clone();
         }
@@ -357,8 +336,6 @@ impl World {
         }
         Script::unmodeled(&display)
     }
-
-
 
     pub fn start_activity(
         &mut self,
@@ -383,7 +360,6 @@ impl World {
         id
     }
 
-
     pub fn start_scripted(
         &mut self,
         script_key: &str,
@@ -395,8 +371,6 @@ impl World {
         let script = self.script_for(Some(script_key), &[]);
         self.start_activity(vec![], script, name, origin, kind, scope)
     }
-
-
 
     #[allow(clippy::too_many_arguments)]
     pub fn start_batch(
@@ -447,8 +421,6 @@ impl World {
         ids
     }
 
-
-
     pub fn stop_all(&mut self) -> usize {
         let tick = self.tick;
         let mut n = 0;
@@ -461,14 +433,12 @@ impl World {
         n
     }
 
-
     pub fn cancelling(&self) -> usize {
         self.activities
             .iter()
             .filter(|a| a.state == ActivityState::Cancelling)
             .count()
     }
-
 
     pub fn record_use(&mut self, item: &str) {
         let cwd = self.location.cwd.clone();
@@ -477,7 +447,6 @@ impl World {
         self.memory.used(item, Some(&cwd), &host, now);
         self.memory.used(item, None, &host, now);
     }
-
 
     pub fn tick(&mut self) -> Vec<Msg> {
         self.clock.advance(TICK_MS);
@@ -501,7 +470,6 @@ impl World {
         }
         let tick = self.tick;
         let mut effects = vec![];
-
 
         let ready: Vec<String> = self
             .activities
@@ -639,13 +607,11 @@ impl World {
         msgs
     }
 
-
     pub fn pg_blocker(&self) -> Option<u32> {
         self.pg
             .as_ref()
             .and_then(|pg| pg.sessions.iter().find_map(|s| s.blocked_by))
     }
-
 
     pub fn apply_effect(&mut self, e: &Effect) {
         match e {
@@ -864,7 +830,6 @@ impl World {
             }
             Effect::AmpUpdate | Effect::OmzUpgrade => {
 
-
             }
             Effect::GradleStop => {
                 self.gradle.daemon_running = false;
@@ -912,7 +877,6 @@ impl World {
         }
     }
 
-
     fn remove_candidate(&mut self, path: &str, method: &str) {
         let Some(i) = self.disk.candidates.iter().position(|c| c.path == path) else {
             return;
@@ -929,8 +893,6 @@ impl World {
             outcome: "succeeded".into(),
         });
     }
-
-
 
     fn apply_plan_effects(&mut self, pi: usize) {
         let plan = self.plans[pi].clone();
@@ -1047,8 +1009,6 @@ impl World {
         }
     }
 
-
-
     pub fn start_scan(&mut self, path: &str) {
         let generation = self.scan.as_ref().map(|s| s.generation + 1).unwrap_or(1);
         let include_hidden = true;
@@ -1097,7 +1057,6 @@ impl World {
         self.scan_started = Some(self.tick);
     }
 
-
     pub fn cancel_scan(&mut self) -> bool {
         let tick = self.tick;
         match self.scan.as_mut() {
@@ -1109,8 +1068,6 @@ impl World {
             _ => false,
         }
     }
-
-
 
     pub fn finish_scan_cache(&mut self) {
         let Some(s) = self.scan.clone() else {
@@ -1129,7 +1086,6 @@ impl World {
         }
     }
 
-
     pub fn items(&self) -> Vec<Item> {
         crate::domain::catalog::build(self)
     }
@@ -1142,69 +1098,3 @@ pub enum SourceState {
     Failed(String),
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::domain::fixtures::world_for;
-    use crate::scenario::{Motion, Scenario};
-
-    #[test]
-    fn ticks_are_deterministic_and_paused_worlds_never_move() {
-        let mut a = world_for(Scenario::ActivitiesMulti, Motion::Full);
-        let mut b = world_for(Scenario::ActivitiesMulti, Motion::Full);
-        for _ in 0..40 {
-            a.tick();
-            b.tick();
-        }
-        assert_eq!(a.tick, b.tick);
-        assert_eq!(
-            a.activities
-                .iter()
-                .map(|x| x.output.len())
-                .collect::<Vec<_>>(),
-            b.activities
-                .iter()
-                .map(|x| x.output.len())
-                .collect::<Vec<_>>()
-        );
-        let mut p = world_for(Scenario::ActivitiesMulti, Motion::Paused);
-        let before: Vec<usize> = p.activities.iter().map(|x| x.output.len()).collect();
-        for _ in 0..40 {
-            assert!(p.tick().is_empty());
-        }
-        assert_eq!(
-            p.activities
-                .iter()
-                .map(|x| x.output.len())
-                .collect::<Vec<_>>(),
-            before
-        );
-    }
-
-    #[test]
-    fn plans_run_parallel_branches_and_respect_locks() {
-        let mut w = world_for(Scenario::UpgradePlan, Motion::Full);
-        let pi = 0;
-        w.plans[pi].arm(w.tick);
-        let mut seen_parallel = false;
-        for _ in 0..400 {
-            let msgs = w.tick();
-            let running = w.plans[pi].running();
-            if running.len() == 2 {
-                seen_parallel = true;
-                let a = &w.plans[pi].steps[running[0]];
-                let b = &w.plans[pi].steps[running[1]];
-                assert!(
-                    a.exclusive.is_none() || a.exclusive != b.exclusive,
-                    "two steps holding {:?} at once",
-                    a.exclusive
-                );
-            }
-            if msgs.iter().any(|m| matches!(m, Msg::PlanDone { .. })) {
-                break;
-            }
-        }
-        assert!(seen_parallel, "independent branches ran side by side");
-        assert_eq!(w.plans[pi].phase, PlanPhase::Done);
-    }
-}

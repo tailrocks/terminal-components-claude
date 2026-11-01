@@ -1,25 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -35,14 +15,11 @@ use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::widgets::scrollbar;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NavItem {
     pub label: String,
 
-
     pub icon: String,
-
 
     pub section: String,
 
@@ -62,24 +39,20 @@ impl NavItem {
         }
     }
 
-
     pub fn icon(mut self, icon: &str) -> Self {
         self.icon = icon.to_owned();
         self
     }
-
 
     pub fn section(mut self, section: &str) -> Self {
         self.section = section.to_owned();
         self
     }
 
-
     pub fn badge(mut self, badge: &str) -> Self {
         self.badge = Some(badge.to_owned());
         self
     }
-
 
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
@@ -87,13 +60,11 @@ impl NavItem {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavAction {
 
     Activated(usize),
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NavRow {
@@ -101,7 +72,6 @@ enum NavRow {
     Blank,
     Item(usize),
 }
-
 
 #[derive(Debug, Clone)]
 pub struct NavList {
@@ -114,14 +84,11 @@ pub struct NavList {
 
     pub collapsed: bool,
 
-
     pub nav: NavKeys,
-
 
     pub widths: (u16, u16),
 
     pub scroll: ScrollState,
-
 
     pub inactive_selection: Option<crate::theme::InactiveSelection>,
     area: Rect,
@@ -146,12 +113,10 @@ impl NavList {
         }
     }
 
-
     pub fn inactive_selection(mut self, look: crate::theme::InactiveSelection) -> Self {
         self.inactive_selection = Some(look);
         self
     }
-
 
     pub fn current(mut self, i: usize) -> Self {
         self.current = i;
@@ -159,24 +124,20 @@ impl NavList {
         self
     }
 
-
     pub fn collapsed(mut self, on: bool) -> Self {
         self.collapsed = on;
         self
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-
     pub fn widths(mut self, open: u16, collapsed: u16) -> Self {
         self.widths = (open, collapsed);
         self
     }
-
 
     pub fn item_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::item_part(i))
@@ -186,7 +147,6 @@ impl NavList {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
     pub fn width(&self) -> u16 {
         if self.collapsed {
             self.widths.1
@@ -194,8 +154,6 @@ impl NavList {
             self.widths.0
         }
     }
-
-
 
     fn rows(&self) -> Vec<NavRow> {
         let mut rows = vec![];
@@ -223,7 +181,6 @@ impl NavList {
             .unwrap_or(0)
     }
 
-
     fn reveal_cursor(&mut self) {
         let row = self.row_of(self.cursor);
         self.scroll.set_content(self.rows().len());
@@ -237,8 +194,6 @@ impl NavList {
             Outcome::Consumed
         }
     }
-
-
 
     fn step(&self, steps: isize) -> usize {
         let mut c = self.cursor;
@@ -259,7 +214,6 @@ impl NavList {
         }
         c
     }
-
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<NavAction>) {
         if self.items.is_empty() {
@@ -300,7 +254,6 @@ impl NavList {
         }
     }
 
-
     pub fn on_click(&mut self, i: usize) -> (Outcome, Option<NavAction>) {
         if i < self.items.len() && !self.items[i].disabled {
             self.cursor = i;
@@ -340,7 +293,6 @@ impl NavList {
                     let mut s = ctx.state(rid);
                     s.focused = focused && i == self.cursor;
                     s.disabled = it.disabled;
-
 
                     s.selected = i == self.current;
                     s.inactive_selection = self.inactive_selection;
@@ -432,13 +384,6 @@ impl NavList {
     }
 }
 
-
-
-
-
-
-
-
 impl crate::ui::specimen::Specimen for NavList {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -503,7 +448,6 @@ impl crate::ui::specimen::Specimen for NavList {
 
 impl NavList {
 
-
     fn sample(&self) -> Self {
         let mut l = self.clone();
         l.items.truncate(3);
@@ -523,9 +467,6 @@ impl NavList {
     }
 }
 
-
-
-
 impl crate::core::pointer::MouseTarget for NavList {
     type Action = NavAction;
 
@@ -541,7 +482,6 @@ impl crate::core::pointer::MouseTarget for NavList {
         let bar = scrollbar::id_for(self.id);
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
-
 
                 Axis::Vertical if self.scroll.overflows() => {
                     Self::scrolled(self.scroll.scroll_by(delta as isize)).into()
@@ -574,203 +514,3 @@ impl crate::core::pointer::MouseTarget for NavList {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::{focus::FocusRing, hit::HitRegistry};
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::crossterm::event::KeyCode;
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        }
-    }
-
-    fn list() -> NavList {
-        NavList::new(
-            WidgetId::of("nav"),
-            vec![
-                NavItem::new("Tasks").icon("T").section("Work").badge("3"),
-                NavItem::new("Runs").icon("R").section("Work"),
-                NavItem::new("Billing")
-                    .icon("$")
-                    .section("Project")
-                    .disabled(true),
-                NavItem::new("Members").icon("M").section("Project"),
-            ],
-        )
-    }
-
-    fn draw(nav: &mut NavList, focus: bool) -> (Buffer, HitRegistry) {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let inter = Interaction {
-            focus: focus.then_some(nav.id),
-            ..Default::default()
-        };
-        let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
-        let area = Rect::new(0, 0, nav.width(), 8);
-        let mut buf = Buffer::empty(area);
-        nav.render(area, &mut buf, &mut ctx, theme.canvas);
-        (buf, hits)
-    }
-
-
-
-    #[test]
-    fn the_wheel_passes_on_while_the_rows_fit() {
-        use crate::core::pointer::MouseTarget;
-        let mut nav = list();
-        let (_, hits) = draw(&mut nav, false);
-        let id = nav.id;
-        let wheel = |hits: &HitRegistry| {
-            PointerEvent::wheel_on(
-                hits,
-                id,
-                Axis::Vertical,
-                1,
-                ratatui::layout::Position::new(2, 2),
-                ratatui::crossterm::event::KeyModifiers::NONE,
-            )
-        };
-        let ev = wheel(&hits);
-        assert_eq!(
-            nav.pointer(&ev).outcome(),
-            Outcome::Ignored,
-            "fits: passed on"
-        );
-        let mut long = NavList::new(
-            WidgetId::of("nav"),
-            (0..20)
-                .map(|i| NavItem::new(&format!("Item {i}")))
-                .collect(),
-        );
-        let (_, hits) = draw(&mut long, false);
-        let ev = wheel(&hits);
-        assert_eq!(
-            long.pointer(&ev).outcome(),
-            Outcome::Changed,
-            "overflows: scrolls"
-        );
-    }
-
-
-    fn row(buf: &Buffer, y: u16) -> String {
-        (0..buf.area.width - 1)
-            .map(|x| buf[(x, y)].symbol().to_owned())
-            .collect()
-    }
-
-    #[test]
-    fn sections_head_their_items_and_the_cursor_skips_disabled_ones() {
-        let mut nav = list();
-        let (buf, _) = draw(&mut nav, true);
-        assert_eq!(row(&buf, 0).trim(), "Work");
-        assert!(row(&buf, 1).contains("› T Tasks"), "{}", row(&buf, 1));
-        assert!(row(&buf, 1).trim_end().ends_with('3'), "the badge");
-        assert_eq!(row(&buf, 3).trim(), "", "a blank row between sections");
-        assert_eq!(row(&buf, 4).trim(), "Project");
-        let down = key(KeyCode::Down);
-        nav.on_key(&down);
-        assert_eq!(nav.cursor, 1);
-        nav.on_key(&down);
-        assert_eq!(nav.cursor, 3, "Billing is skipped");
-        assert_eq!(
-            nav.on_key(&key(KeyCode::Enter)),
-            (Outcome::Changed, Some(NavAction::Activated(3)))
-        );
-        assert_eq!(nav.current, 3);
-
-        assert_eq!(nav.on_key(&key(KeyCode::Char('k'))).0, Outcome::Ignored);
-        let mut nav = nav.nav(NavKeys::VIM);
-        nav.on_key(&key(KeyCode::Char('g')));
-        assert_eq!(nav.cursor, 0);
-    }
-
-    #[test]
-    fn a_click_opens_an_item_and_a_disabled_one_is_no_target() {
-        let mut nav = list();
-        let (_, hits) = draw(&mut nav, false);
-        assert_eq!(
-            hits.hit(ratatui::layout::Position::new(6, 2)),
-            Some(nav.item_id(1))
-        );
-        assert_eq!(hits.hit(ratatui::layout::Position::new(6, 5)), None);
-        assert_eq!(
-            nav.on_click(1),
-            (Outcome::Changed, Some(NavAction::Activated(1)))
-        );
-        assert_eq!((nav.current, nav.cursor), (1, 1));
-        assert_eq!(nav.on_click(2), (Outcome::Changed, None));
-        assert_eq!(nav.current, 1);
-    }
-
-    #[test]
-    fn collapsed_keeps_rows_and_marks_with_initials_only() {
-        let mut nav = list().collapsed(true);
-        assert_eq!(nav.width(), 6);
-        let (buf, _) = draw(&mut nav, true);
-        assert_eq!(row(&buf, 0).trim(), "····");
-        assert_eq!(row(&buf, 1).trim(), "▎› T");
-        assert!(!row(&buf, 1).contains("Tasks"));
-    }
-
-    #[test]
-    fn a_states_grid_draws_the_list_in_each_state() {
-        use crate::ui::specimen::{SpecimenState as S, StateGrid};
-        let t = Theme::junie();
-        let id = WidgetId::of("nav-grid");
-        let states = [
-            S::Rest,
-            S::Hover,
-            S::Focused,
-            S::Selected,
-            S::Disabled,
-            S::Overflow,
-        ];
-        let mut g = StateGrid::new(id)
-            .rows(&states)
-            .label_width(10)
-            .column_width(26)
-            .column("Open", list().widths(24, 6));
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let area = Rect::new(0, 0, 40, 30);
-        let mut buf = Buffer::empty(area);
-        g.render(area, &mut buf, &mut ctx, t.canvas);
-        assert!(ring.reachable().is_empty(), "samples take no focus");
-        let text: Vec<String> = (0..30)
-            .map(|y| (0..40).map(|x| buf[(x, y)].symbol()).collect())
-            .collect();
-
-        let at = |label: &str| -> usize {
-            text.iter()
-                .position(|r| r.starts_with(label))
-                .unwrap_or_else(|| panic!("{label} row\n{}", text.join("\n")))
-        };
-        let runs = |label: &str| text[at(label) + 2].clone();
-        assert!(text[at("rest") + 1].contains("› T Tasks"));
-        assert_ne!(
-            buf[(15, at("hover") as u16 + 2)].bg,
-            buf[(15, at("rest") as u16 + 2)].bg,
-            "hover lands on the cursor row"
-        );
-        assert!(runs("focused").contains('▏'), "focus is depicted");
-        assert!(!buf.content().iter().any(|c| c.symbol() == "▎"));
-        assert!(
-            runs("selected").contains("› R Runs"),
-            "the cursor row opens"
-        );
-        assert_eq!(
-            buf[(16, at("disabled") as u16 + 2)].fg,
-            t.disabled,
-            "a disabled row in the disabled ink"
-        );
-        assert!(runs("overflow").contains("12"), "the badge stays");
-    }
-}

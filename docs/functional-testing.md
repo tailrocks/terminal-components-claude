@@ -51,60 +51,40 @@ split larger existing gates as necessary.
 
 ## Which harness to use
 
-The similar names describe different layers and versions:
-
-| Tool | Verified identity | Appropriate role |
+| Tool | Verified identity | Role |
 | --- | --- | --- |
-| Existing tuiscotti dependency | Git revision `a1ea27f757d75d07b05499276cd932e9f8e067ad` | Preserve the existing PTY visual harness and frozen oracle while its old APIs are still in use. |
-| Current tuiscotti | `0.4.0`, main `d8d54155947f6303a41dfd6079b53c0abc16f29a` at review | Offline samples, explicit baseline approval, comparison, reports, and rendering. It does not launch a process or open a PTY. |
-| Tailrocks live fork | Registry `tuiscotti-tui-test = "=0.2.1"`; release branch commit `7abeac8478aa9c05ec7bef93afb10209cc348bec` | Recommended live driver for the new suite: checked mouse input, native launch options, raw byte input, owned terminal snapshots, and bounded waits. |
-| Microsoft released tui-test | Rust `tui-test-rs 0.1.1` / JS `@microsoft/tui-test 0.1.1` | Real PTY interaction is supported, but this release lacks the fork's checked-input and owned-snapshot additions. It is not a drop-in replacement for this suite. |
-
-The dependency alias is intentional:
+| Live driver | Registry `tuiscotti-tui-test = "=0.2.1"` (crate `tui_test`) | The only live driver: checked mouse/keyboard input, native PTY launch, owned terminal snapshots, bounded waits. |
+| Visual gate | Latest Tuiscotti main `d8d54155947f6303a41dfd6079b53c0abc16f29a` (renamed dev-dependency `tuiscotti-latest`, 0.4.0) | Offline frozen check: every functional test ends with `App::visual("<id>")`, a `FrozenStore` check that asserts `is_pass()`. A missing or changed baseline fails. |
+| Tuiscotti CLI (latest, built from the pinned rev) | `tuiscotti accept --candidate <sample> --candidate-sha256 <sha> --expect-baseline missing --baselines tests/functional/baselines` | The only way a baseline is approved. Tests never approve baselines. |
 
 ```toml
 [dev-dependencies]
 tui-test = { package = "tuiscotti-tui-test", version = "=0.2.1" }
+tuiscotti-latest = { package = "tuiscotti", git = "https://github.com/tailrocks/tuiscotti", rev = "d8d54155947f6303a41dfd6079b53c0abc16f29a" }
 ```
 
-The Rust import remains `tui_test`. Pin the published package and commit
-`Cargo.lock`. The fork's default branch is not its release branch. Do not
-replace the exact package with an unreviewed Git `main` dependency.
-
-Current tuiscotti explicitly delegates live application testing to
-`tui_test::Session`. See its [README at the reviewed revision][tuiscotti-readme]
-and the fork's [package][fork-package], [Session API][fork-session], and
-[checked-input validation][fork-checked]. The branch's older rule about
-"latest tuiscotti for PTY" predates this architectural change. This addition
-uses the requested fork for live functional tests and retains the old frozen
-harness deliberately; [dependency compatibility notes](dependencies.md)
-record the migration blocker.
+The legacy Tuiscotti 0.2 live API (git rev `a1ea27f`), `libtest-mimic` and
+the old `sha2` oracle pin are removed: nothing in the repository references
+them. No test constructs widgets or application state in-process, and no
+test calls event handlers directly. The immutable `visual-baseline` git
+tag and its release are untouched; they remain a historical visual oracle,
+not a test gate.
 
 No raster feature is needed to assert terminal cells. A terminal-cell snapshot
 records graphemes, foreground/background, attributes, underline, hyperlinks,
 dimensions, and cursor state. Pixel images are useful review evidence, but a
 plain text screenshot cannot establish hover or pressed styling.
 
-## Why the existing visual suite is insufficient by itself
+## The old visual suite is retired
 
-The existing visual harness remains valuable. However,
-[main.rs](../tests/visual_baseline/main.rs) registers its generated scenarios
-as ignored. Its [capture guard](../tests/visual_baseline/support.rs) can also
-return without launching the application when a scenario is pending and
-`VISUAL_FULL` is absent. A normal green test run therefore does not mean those
-mouse states or journeys were exercised.
-
-Many scenarios drive several inputs and compare one final frame. That can
-miss a button firing on press instead of release, a canceled operation that
-still changed data, or a wheel event routed into the wrong pane. A screen
-revision changing only establishes that output occurred. A hover change,
-spinner, or footer update can produce that revision without the intended
-action working.
-
-The new target complements frozen visual comparison with assertions between
-steps. Keep both kinds of evidence. Do not replace the frozen oracle with a
-candidate's own screenshots, and do not count in-process application or
-component tests as executable PTY coverage.
+The former `tests/visual_baseline` harness (ignored libtest-mimic trials
+over 702 frozen scenarios in `snapshots/`) is deleted, together with its
+oracle, scenario tables and the `baselines/oracle` pin. Its contract —
+"this screen looks like the approved frame" — is now carried per journey
+by the `App::visual` frozen check at the end of every functional test,
+with one approved `.tui.json` baseline per test in
+`tests/functional/baselines/`. The frozen `visual-baseline` tag is not
+moved, deleted or retargeted.
 
 ## The test boundary
 
@@ -278,16 +258,16 @@ the application provides a controlled clock or stable observable barrier.
 
 ## Coverage to retain and extend
 
-The checked-in target provides executable examples for the following
-contracts. It is a starting acceptance suite, not an exhaustive census of
-every component and option.
+The suite covers every application journey and every shared component
+family. The inventory below is the coverage contract; a new capability
+adds its journey here and in the showcase in the same change.
 
 | Application | Reference journeys |
 | --- | --- |
-| Showcase | Button rest/hover/held/release/cancel/disabled/toggle behavior in truecolor, 256 colors, 16 colors, monochrome, and `NO_COLOR`; wheel routing between adjacent panes and keyboard navigation after click; open help surviving shrink/grow and returning to page navigation. |
-| TablePro | Authentication failure, retry, and recovery by choosing another connection; write-confirmation outside-click policy, cancel/retry, wrong token, disabled Execute, correct token, held Execute, and completed operation. |
-| Holla | Child-directory task search, trust cancel/confirm, arguments and simulated task output; hidden-file toggling, long-preview wheel movement, bad-path recovery and reopening. |
-| Jackin | Exact workspace mount changes, unsaved-change cancel, Save hover/held/release, controlled completion, and reopened values; required account fields, masked credentials, save, canceled removal, confirmed removal and filtered-list absence. |
+| Showcase | Button rest/hover/held/release/cancel/disabled/toggle in truecolor, 256, 16, monochrome and `NO_COLOR`, plus literal held colours and one focus gutter; wheel routing (adjacent panes, grid with unchanged sidebar); checks/radios (mixed, disabled group, exclusivity), tabs selection-vs-focus, select/menu light-dismiss and Escape dismissal, lists (selection, keyboard, multi-select toggle), trees (expand/collapse, file selection), inputs (edit/apply/Escape-revert), dialogs (open/Escape-cancel), table header sort, forms required validation, scrollbar thumb drag, splitter seam drag, keyboard activation, popover/help resize with focus return. |
+| TablePro | Authentication failure, retry, and recovery by choosing another connection; write-confirmation outside-click policy, cancel/retry, wrong token, disabled Execute, correct token, held Execute, completed operation; dirty-tab close guard via Ctrl+W and the tab picker (cancel preserves SQL, confirm closes only the requested tab), filtered picker, clean-tab immediate close. The backend is simulated: assertions check the next in-app consequence, never a real PostgreSQL effect. |
+| Holla | Child-directory task search, trust cancel/confirm, arguments and simulated task output; finder search → run → history; second-gate cancellation with an empty-activity acknowledgement; hidden-file toggling, preview wheel movement with unchanged file list, bad-path recovery and reopening. The backend is simulated. |
+| Jackin | Workspace mount save with pointer states and reopened values; editor cancel/discard/reopen; account required-field, masked save, canceled/confirmed removal with filtered-list absence; launch → detach → reconnect; help ownership and focus restoration. The backend is simulated. |
 
 Add shared component contracts through Showcase and at least one real
 consumer when a change affects that consumer. Use this matrix to choose
@@ -321,20 +301,21 @@ sizes and colors does not replace distinct domain journeys.
 
 ## CI and failure evidence
 
-The source configuration is [.velnor/config.toml](../.velnor/config.toml).
-The dedicated functional suite runs on PRs and branch pushes, and can be
-selected manually with `tier=functional`. Its generated command is:
+The source configuration is [.velnor/config.toml](../.velnor/config.toml)
+(`compile_driver = "mbx"`: CI builds run through mr-boxington, matching
+the local mise setup). The dedicated functional suite runs on PRs and
+branch pushes and can be selected manually with `tier=functional`. Its
+generated command is:
 
 ```sh
 cargo nextest run --workspace --no-tests fail --profile functional
 ```
 
-The profile selects only the non-ignored functional target. Failures retain
+The profile selects only the non-ignored functional target, so a missing
+target fails (`--no-tests fail`) instead of passing empty. Failures retain
 `target/functional` and `target/nextest/functional` for fourteen days. The
 harness writes an ordered action trace, text and full-cell JSON checkpoints,
-and final screen evidence. Action traces are persisted during the test so
-a hard timeout does not erase all progress. Argument or key payload lengths
-are logged for typed/pasted content; tests use synthetic credentials.
+and final screen evidence.
 
 `finish()` asserts a live child before Ctrl+Q, exit code zero without a
 termination signal, and restored terminal modes. `Drop` still closes the
@@ -342,12 +323,9 @@ session and removes the child home after assertion failure. A cleanup kill
 does not count as a successful application exit.
 
 Velnor generates the workflows; change its configuration and run
-`velnor-actions generate`, never hand-edit generated YAML. The generated
-aggregate `required` job does not explicitly depend on `suite-functional`.
-The existing Rust crate job also runs the unignored target, but administrators
-should require the dedicated functional check if they want that particular
-unconditional suite and its evidence to be a separate merge gate. This change
-does not alter branch protection.
+`velnor-actions generate`, never hand-edit generated YAML. Require the
+dedicated `suite-functional` check in branch protection so the functional
+gate is a separate merge gate, not only part of the aggregate job.
 
 On a failure, read the action trace and the last frame first. Classify the
 failure as an incorrect locator/precondition, input-mode/routing failure,
@@ -355,33 +333,48 @@ product regression, stale visual reference, or infrastructure timeout. Fix
 the specific cause. Preserve first-failure evidence, do not silently retry
 until green, and do not update expected snapshots from a failed candidate.
 
-For important regression tests, demonstrate sensitivity: run a controlled
-mutation in a disposable checkout, such as suppressing pointer motion or
-redirecting wheel coordinates, and confirm the targeted test fails for the
-intended reason. Restore the original source and rerun the same test. Keep
-mutation controls out of the application and out of normal acceptance runs.
+## Migration mapping (deleted estate → replacement or dropped reason)
 
-## Migrating the old visual harness later
+Every pre-migration test is accounted for below. A deleted test was only
+removed after its named functional replacement passed; contracts with no
+functional replacement are listed as dropped with the reason. This is
+100% of the former estate: `tests/` integration files, the
+`visual_baseline` harness, all in-module `#[cfg(test)]` tests and all
+per-app `app_tests*` suites.
 
-Updating only the old tuiscotti Git revision will break its removed live
-runtime and grouped-store APIs. Migrate deliberately:
+| Former estate | Count | Disposition |
+| --- | --- | --- |
+| tests/ascii_glyphs.rs | 10 | Dropped: in-process Buffer glyph/width assertions. Colour/glyph behaviour is asserted on real screens by the button colour matrix and frozen baselines. |
+| tests/choice_containment.rs | 7 | Superseded in behaviour by `showcase_checks_radio_exclusivity_mixed_and_disabled` (mixed/disabled/exclusivity on a real screen); cell-containment geometry dropped as an in-process contract. |
+| tests/cli.rs | 5 | Dropped: `--help`/exit-code surface is not a terminal journey and cannot end in a frozen screen check. |
+| tests/esc_vocabulary.rs, tests/naming_conventions.rs | 4 | Dropped: static source scans (lint), not executable behaviour. |
+| tests/focus_gutter.rs | 4 | Superseded by `showcase_primary_button_exact_rest_hover_held_colours` (exactly one `▎`) and `showcase_tab_selection_survives_focus_move_and_single_gutter`. |
+| tests/hit_parts.rs | 3 | Dropped: HitRegistry part resolution is in-process; routing is proven by real clicks/wheel in every journey. |
+| tests/holla_pty.rs | 3 | Palette classes superseded by the colour matrix; input-flood and NO_COLOR backend rules dropped as emulator-level contracts (clean-exit/mode restoration is asserted by `finish()` in all 39 tests). |
+| tests/keymap_leftovers.rs | 6 | Dropped: direct `on_key` routing. Keyboard contracts are proven through real keys in lists/trees/inputs/dialogs/help journeys. |
+| tests/mouse_targets.rs | 4 | Superseded by coordinate wheel/button/menu/select journeys across Showcase and all three consumer apps. |
+| tests/navigable.rs | 2 | Dropped: cross-widget trait parity in-process; navigation proven per widget on real screens. |
+| tests/scroll_panes.rs | 13 | Superseded by `showcase_scrollbar_thumb_drag_moves_list`, `showcase_wheel_targets_the_pointed_pane_then_keys_follow_clicked_focus` and the datagrid wheel test; page/notch unit geometry dropped. |
+| tests/strings.rs | 6 | Dropped: theme Strings rendering in-process; copy is asserted as visible text in journeys. |
+| tests/table_perf.rs | 4 | Dropped: timing/O(rows) scaling gate; not reproducible as a PTY journey. |
+| tests/terminal_suspend.rs | 1+helper | Dropped: SIGTSTP job control is outside the harness; exit/restoration asserted by `finish()`. |
+| tests/visual_baseline/** (harness, oracle, scenarios, determinism/isolation/modes/startup_* trials; 702 scenarios; snapshots/, baselines/oracle) | ~12,600 files | Retired: frozen-census contract replaced per journey by `App::visual` FrozenStore baselines. `visual-baseline` tag untouched. Startup/resize/mode contracts partially superseded by lifecycle resize tests and `finish()` mode assertions. |
+| In-module lib tests: src/core | 172 | Dropped: pure-logic units (keymap, scroll offsets, edit, selection, typeahead). Behavioural slices superseded by the journeys above. |
+| In-module lib tests: src/ui | 157 | Dropped: in-process render/layout units; superseded in behaviour by Showcase family journeys. |
+| In-module lib tests: src/widgets | 619 | Dropped: in-process widget variant/state units; superseded in behaviour by Showcase family journeys (deep) plus one consumer journey per app. |
+| In-module tests: src/shell, src/*.rs, xtask | ~440 | Dropped: app-state/router units and xtask tool tests; shell behaviour proven by real-app journeys. xtask visual tooling itself is retained as a task runner (not a test). |
+| src/bin/showcase/app_tests* (incl. catalog/coverage gate) | 546 + macro suites | Superseded by Showcase functional journeys; the catalog/coverage source-scan gate is dropped with the estate (its files `catalog_scan.rs` deleted; production-compiled `coverage.rs`/`src/catalog.rs` registry retained as production source, not tests). |
+| src/bin/tablepro/app_tests*, motion_tests, perf_tests | 151 | Superseded by TablePro functional journeys; perf tests dropped as timing gates. |
+| src/bin/holla/app_tests* | 162 | Superseded by Holla functional journeys. |
+| src/bin/jackin_preview/app_tests* (incl. reach_tests! suites) | 147 + generated | Superseded by Jackin functional journeys. The `reach_tests!` macro in `src/shell/reach.rs` is retained as library support code with no remaining invocations. |
+| tools/frozen* (frozen baseline CLI parity tooling) | 6 files + crate | Deleted: dead helpers for the retired frozen harness. |
 
-1. Keep the frozen `visual-baseline` tag and its artifacts unchanged.
-2. Move live sessions to the released fork's `tui_test::Session` API.
-3. Feed captured `TerminalSnapshot` values into current tuiscotti samples;
-   do not replace executable journeys with `capture_view(TestBackend)`.
-4. Adopt `FrozenStore` checks and explicit candidate/digest approval.
-5. Verify semantic frame/cursor preservation and review any renderer/schema
-   differences before approving new reference data.
-6. Switch to upstream `tui-test-rs` only after a released version contains
-   the required APIs and this application suite passes on it.
-
-The published fork has useful checked-input child-process tests, but its
-release commit had no reported CI runs at review and its inherited workflow
-still referenced the old package name. Do not infer portability from those
-workflow files. Pin the fork and test the actual application on each supported
-OS. The current upstream main also has later fixes absent from this release;
-future dependency changes need explicit qualification.
+Kept and why: `src/catalog.rs` and `src/bin/showcase/coverage.rs`
+(production-compiled capability registry/declarations referenced by the
+library API), `src/shell/reach.rs` (catalog-registered reach support),
+the `visual-baseline` git tag/release (immutable historical oracle), and
+all production source behaviour and contract comments (unchanged except
+test-module removal).
 
 ## Primary references
 
@@ -420,25 +413,20 @@ exceptions and no legacy-API tests:
    Tuiscotti state sample and compared with `FrozenStore` from latest
    Tuiscotti (`tuiscotti-latest`, main `d8d5415`). The test asserts
    `outcome.is_pass()`; a missing or changed baseline fails. Baselines for
-   all 25 tests live in `tests/functional/baselines/` and were approved
+   all 39 tests live in `tests/functional/baselines/` and were approved
    once with the Tuiscotti CLI `accept` command — tests never approve.
    Checkpoints sit on deterministic screens (after `settle()`, not on
    cycling status words or mid-flash frames).
 
-The legacy Tuiscotti 0.2 dependency remains only for the separate
-pre-existing `visual_baseline` harness; nothing in `tests/functional`
-uses it.
+The legacy Tuiscotti 0.2 dependency is removed entirely; nothing in the
+repository uses it.
 
-## Union suite (best of both reviews)
+## Suite composition
 
-The suite combines both reviewed deliveries: the `tuiscotti-tui-test` journeys
-(color matrix, nested scrolling, resize/help, TablePro connection/write gates,
-Holla trust/browser, Jackin workspace/account) plus journeys ported from the
-companion review in `tests/functional/ported.rs` (literal Showcase colours
-`#48e054`/`#3ab343`/`#2e9a38` and one focus gutter, datagrid wheel with an
-unchanged sidebar, TablePro dirty-tab close guard, Holla finder/second-gate,
-Jackin launch/editor/help) and a strict visual check in
-`tests/functional/visual.rs`.
+Tests live one module per application — `showcase.rs`, `tablepro.rs`,
+`holla.rs`, `jackin.rs` — plus cross-cutting `lifecycle.rs` (resize and
+overlay ownership) and `visual.rs` (strict frozen check), all on the
+single shared harness in `support.rs`.
 
 `visual.rs` uses latest Tuiscotti main `d8d5415` (0.4.0, renamed dev-dependency
 `tuiscotti-latest`): a live `tui_test` snapshot is checked with
@@ -449,8 +437,8 @@ CLI `accept` command, never by the test itself.
 
 TablePro fix: the tab picker's Delete route now shares the Ctrl+W dirty-tab
 guard (`request_close_tab` in `src/bin/tablepro/app.rs`). The regression test
-`ported::tablepro_dirty_picker_close_matches_ctrl_w_and_cancel_preserves_sql`
+`tablepro::tablepro_dirty_picker_close_matches_ctrl_w_and_cancel_preserves_sql`
 fails on the original source and passes with the fix.
 
 Verified on macOS (in addition to the Linux evidence in the audit):
-`cargo nextest run --locked --test functional --profile functional` — 25 passed.
+`cargo nextest run --locked --test functional --profile functional` — 39 passed.

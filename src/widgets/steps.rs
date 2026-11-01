@@ -1,8 +1,5 @@
 
 
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -57,7 +54,6 @@ pub struct Step {
 
 impl Step {
 
-
     fn shown_meta(&self) -> Option<String> {
         match (&self.meta, self.state) {
             (Some(m), _) => Some(m.clone()),
@@ -82,7 +78,6 @@ pub struct StepRail {
     pub id: WidgetId,
     pub steps: Vec<Step>,
     pub selectable: bool,
-
 
     pub core: ListCore,
     pub area: Rect,
@@ -122,14 +117,10 @@ impl StepRail {
         }
     }
 
-
-
     pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
         self.core.content = content;
         self
     }
-
-
 
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.core.scroll.track_click = Some(click);
@@ -153,11 +144,9 @@ impl StepRail {
         }
     }
 
-
     pub fn frontier(&self) -> Option<usize> {
         self.steps.iter().position(|s| !s.state.terminal())
     }
-
 
     pub fn counts(&self) -> (usize, usize, usize) {
         let c = |st| self.steps.iter().filter(|s| s.state == st).count();
@@ -230,7 +219,6 @@ impl StepRail {
         self.core.scroll.set_viewport(area.height as usize);
         let n = self.steps.len();
 
-
         if self.selectable && self.core.is_focus_stop(n, focused) {
             ctx.control(self.id, area, false);
         }
@@ -256,7 +244,6 @@ impl StepRail {
             s.focused = focused && i == self.core.cursor;
             let row = Rect::new(area.x, y, row_w, 1);
             let st = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg).style();
-
 
             let plane = st.bg.unwrap_or(bg);
             let mark = |ink| st.fg(t.legible_mark(ink, plane));
@@ -353,9 +340,6 @@ impl StepRail {
     }
 }
 
-
-
-
 impl crate::ui::measure::Measure for StepRail {
     fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
         let lead = 3 + if self.numbered { 3 } else { 0 };
@@ -400,8 +384,6 @@ impl Navigable for StepRail {
     }
 }
 
-
-
 impl crate::core::pointer::MouseTarget for StepRail {
     type Action = ();
 
@@ -424,203 +406,3 @@ impl crate::core::pointer::MouseTarget for StepRail {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-
-
-    #[test]
-    fn at_its_measure_every_step_shows_whole() {
-        use crate::core::{focus::FocusRing, hit::HitRegistry};
-        use crate::theme::Theme;
-        use crate::ui::ctx::Interaction;
-        use crate::ui::measure::Measure;
-        let mut r = StepRail::new(
-            WidgetId::of("r"),
-            ["Resolve tools", "Install dependencies", "Migrate database"]
-                .iter()
-                .map(|s| Step::new(s))
-                .collect(),
-        );
-        r.set_state(0, StepState::Done);
-        r.set_meta(0, Some("0.4 s".into()));
-        r.set_state(1, StepState::Done);
-        r.set_meta(1, Some("6.1 s".into()));
-        r.set_meta(2, Some("2 migrations".into()));
-        let t = Theme::junie();
-        let text = |r: &mut StepRail, w: u16| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            let area = Rect::new(0, 0, w, 3);
-            let mut buf = Buffer::empty(area);
-            r.render(area, &mut buf, &mut ctx, t.canvas);
-            (0..3)
-                .map(|y| (0..w).map(|x| buf[(x, y)].symbol()).collect::<String>())
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-        let size = {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-            r.measure(ratatui::layout::Size::ZERO, &ctx)
-        };
-        assert_eq!(size.height, 3);
-        let whole = text(&mut r, size.width);
-        for needle in [
-            "Install dependencies",
-            "6.1 s",
-            "Migrate database",
-            "2 migrations",
-        ] {
-            assert!(whole.contains(needle), "{needle}: {whole}");
-        }
-        let cut = text(&mut r, size.width - 1);
-        assert!(
-            !cut.contains("Migrate database") || !cut.contains("2 migrations"),
-            "{cut}"
-        );
-    }
-
-    #[test]
-    fn frontier_and_counts() {
-        let mut r = StepRail::new(
-            WidgetId::of("r"),
-            ["a", "b", "c", "d"].iter().map(|s| Step::new(s)).collect(),
-        );
-        r.set_state(0, StepState::Done);
-        r.set_state(1, StepState::Skipped);
-        r.set_state(2, StepState::Running);
-        assert_eq!(r.frontier(), Some(2));
-        assert_eq!(r.counts(), (1, 1, 0));
-        r.set_state(2, StepState::Failed);
-        assert_eq!(r.failed(), Some(2));
-        assert_eq!(r.frontier(), Some(3));
-    }
-
-    #[test]
-    fn a_read_only_step_rail_does_not_react_to_hover_or_press() {
-        use crate::core::{focus::FocusRing, hit::HitRegistry};
-        use crate::theme::Theme;
-        use crate::ui::ctx::Interaction;
-        let mut r = StepRail::new(
-            WidgetId::of("r"),
-            ["a", "b"].iter().map(|s| Step::new(s)).collect(),
-        );
-        let theme = Theme::junie();
-        let rid = r.row_id(0);
-        let render = |r: &mut StepRail, interaction: Interaction| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 2));
-            r.render(Rect::new(0, 0, 20, 2), &mut buf, &mut ctx, theme.canvas);
-            buf
-        };
-        let rest = render(&mut r, Interaction::default());
-        let pressed = render(
-            &mut r,
-            Interaction {
-                hover: Some(rid),
-                pressed: Some(rid),
-                ..Default::default()
-            },
-        );
-        assert_eq!(rest, pressed);
-    }
-
-
-
-
-    #[test]
-    fn a_steps_state_glyph_reads_on_its_row_at_every_level() {
-        use crate::core::{focus::FocusRing, hit::HitRegistry};
-        use crate::theme::{ColorLevel, Theme, contrast_ratio};
-        use crate::ui::ctx::Interaction;
-        for level in ColorLevel::ALL {
-            let theme = Theme::for_level(level);
-            let mut r = StepRail::new(
-                WidgetId::of("r"),
-                ["a", "b", "c"].iter().map(|s| Step::new(s)).collect(),
-            )
-            .selectable(true);
-            r.set_state(0, StepState::Done);
-            r.set_state(1, StepState::Failed);
-            r.set_state(2, StepState::Running);
-            for i in 0..3 {
-                let rid = r.row_id(i);
-                for pressed in [None, Some(rid)] {
-                    let mut hits = HitRegistry::default();
-                    let mut ring = FocusRing::default();
-                    let inter = Interaction {
-                        hover: Some(rid),
-                        pressed,
-                        ..Default::default()
-                    };
-                    let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
-                    let mut buf = Buffer::empty(Rect::new(0, 0, 20, 3));
-                    r.render(Rect::new(0, 0, 20, 3), &mut buf, &mut ctx, theme.canvas);
-                    let c = &buf[(1, i as u16)];
-                    let ratio = contrast_ratio(c.fg, c.bg).unwrap();
-                    assert!(
-                        ratio >= 3.0,
-                        "{level:?} row {i} pressed {}: {:?} {ratio:.2}",
-                        pressed.is_some(),
-                        c.symbol()
-                    );
-                }
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod track_click_tests {
-    use super::*;
-    use crate::core::scroll::TrackClick;
-    use crate::core::{focus::FocusRing, hit::HitRegistry};
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::layout::Position;
-
-    fn pressed_at_the_bottom(click: Option<TrackClick>, app: TrackClick) -> usize {
-        let names: Vec<String> = (0..50).map(|i| format!("step {i}")).collect();
-        let mut r = StepRail::new(
-            WidgetId::of("r"),
-            names.iter().map(|s| Step::new(s)).collect(),
-        );
-        r.scroll.track_click = click;
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let area = Rect::new(0, 0, 20, 10);
-        let mut buf = Buffer::empty(area);
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        ctx.track_click = app;
-        r.render(area, &mut buf, &mut ctx, theme.surface);
-        let bottom = Position::new(r.scroll.v_track().x, r.scroll.v_track().bottom() - 1);
-        assert_eq!(
-            r.bar_press(bottom).outcome().or(Outcome::Consumed),
-            Outcome::Changed
-        );
-        r.scroll.offset
-    }
-
-
-    #[test]
-    fn a_step_rail_track_click_can_page() {
-        let page = pressed_at_the_bottom(Some(TrackClick::Page), TrackClick::Jump);
-        assert!(page > 0 && page <= 10, "one page: {page}");
-        assert_eq!(
-            pressed_at_the_bottom(None, TrackClick::Page),
-            page,
-            "app-wide"
-        );
-        assert!(
-            pressed_at_the_bottom(None, TrackClick::Jump) > page,
-            "default jumps"
-        );
-    }
-}

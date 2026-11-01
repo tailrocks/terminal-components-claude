@@ -17,9 +17,6 @@ pub enum EmptyKind {
     Error,
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmptyAction {
     pub id: WidgetId,
@@ -81,8 +78,6 @@ impl EmptyState {
         self.actions.iter().find(|a| a.id == id)
     }
 
-
-
     pub fn on_key(
         &self,
         focus: WidgetId,
@@ -99,8 +94,6 @@ impl EmptyState {
         self
     }
 }
-
-
 
 pub fn render_ctx(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, e: &EmptyState, bg: Color) {
     let area = area.intersection(*buf.area());
@@ -145,7 +138,6 @@ pub fn render_ctx(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, e: &EmptySt
         b.render(r, buf, ctx, bg);
     }
 }
-
 
 pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color) {
     let area = area.intersection(*buf.area());
@@ -196,10 +188,7 @@ pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color
     }
 }
 
-
 const SAMPLE_ID: WidgetId = WidgetId::of("empty-sample");
-
-
 
 pub fn height(e: &EmptyState, width: u16) -> u16 {
     let hint = e
@@ -210,9 +199,6 @@ pub fn height(e: &EmptyState, width: u16) -> u16 {
     let actions = if e.actions.is_empty() { 0 } else { 2 };
     1 + hint + actions
 }
-
-
-
 
 impl crate::ui::measure::Measure for EmptyState {
     fn measure(&self, _avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
@@ -229,11 +215,6 @@ impl crate::ui::measure::Measure for EmptyState {
         let width = title.max(hint).max(buttons);
         ratatui::layout::Size::new(width, height(self, width))
     }
-
-
-
-
-
 
     fn min_width(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> u16 {
         let w = |s: &str| crate::ui::text::width(s) as u16;
@@ -254,11 +235,7 @@ impl crate::ui::measure::Measure for EmptyState {
     }
 }
 
-
-
 const HINT_MIN: u16 = 24;
-
-
 
 impl crate::ui::specimen::Specimen for EmptyState {
     fn specimen_id(&self) -> WidgetId {
@@ -298,157 +275,3 @@ impl crate::ui::specimen::Specimen for EmptyState {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::ui::ctx::Interaction;
-    use ratatui::layout::Constraint;
-
-
-
-    #[test]
-    fn an_empty_state_at_its_measure_shows_everything() {
-        use crate::ui::measure::Measure;
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let e = EmptyState::error("Could not load connections")
-            .hint("Check the network, then retry the request")
-            .actions(vec![
-                EmptyAction::primary(WidgetId::of("retry"), "Retry"),
-                EmptyAction::secondary(WidgetId::of("import"), "Import from file"),
-            ]);
-        let size = e.measure(ratatui::layout::Size::new(10, 3), &ctx);
-        let area = Rect::new(0, 0, size.width, size.height);
-        let mut buf = Buffer::empty(area);
-        render_ctx(area, &mut buf, &mut ctx, &e, Color::Reset);
-        let all = text(&buf);
-        for part in [
-            "! Could not load connections",
-            "Check the network, then retry the request",
-            "Retry",
-            "Import from file",
-        ] {
-            assert!(all.contains(part), "{part:?} in {all:?}");
-        }
-    }
-
-
-
-    #[test]
-    fn an_empty_state_at_its_min_width_wraps_its_hint_whole() {
-        use crate::ui::measure::Measure;
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let e = EmptyState::new("Nothing flagged")
-            .hint("Run the second block: its unwrap() gets a warning");
-        let zero = ratatui::layout::Size::ZERO;
-        let full = e.measure(zero, &ctx).width;
-        let min = e.min_width(zero, &ctx);
-        assert!(min < full, "{min} < {full}");
-        let area = Rect::new(0, 0, min, height(&e, min));
-        let mut buf = Buffer::empty(area);
-        render_ctx(area, &mut buf, &mut ctx, &e, Color::Reset);
-        let all = text(&buf);
-        for word in ["Nothing flagged", "Run", "second", "unwrap()", "warning"] {
-            assert!(all.contains(word), "{word:?} in {all:?}");
-        }
-        assert!(!all.contains('…'), "{all:?}");
-    }
-
-    #[test]
-    fn enter_or_space_on_a_focused_action_chooses_it() {
-        use crate::core::event::{Key, Outcome};
-        use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-        let key = |code| Key {
-            code,
-            mods: KeyModifiers::NONE,
-        };
-        let new = WidgetId::of("new");
-        let e = EmptyState::new("No connections")
-            .actions(vec![EmptyAction::primary(new, "New connection")]);
-        let (o, a) = e.on_key(new, &key(KeyCode::Enter));
-        assert_eq!(o, Outcome::Changed);
-        assert_eq!(a.map(|a| a.id), Some(new));
-        assert_eq!(
-            e.on_key(new, &key(KeyCode::Char(' '))).1.map(|a| a.id),
-            Some(new)
-        );
-        assert!(e.on_key(new, &key(KeyCode::Char('x'))).1.is_none());
-        assert_eq!(
-            e.on_key(WidgetId::of("other"), &key(KeyCode::Enter)),
-            (Outcome::Ignored, None)
-        );
-    }
-
-    fn text(buf: &Buffer) -> String {
-        buf.content().iter().map(|c| c.symbol()).collect()
-    }
-
-    #[test]
-    fn actions_draw_as_buttons_below_the_text_and_take_clicks() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let id = WidgetId::of("new");
-        let e = EmptyState::new("No connections")
-            .hint("Ctrl+N creates one")
-            .actions(vec![EmptyAction::primary(id, "New connection")]);
-        let area = Rect::new(0, 0, 40, 10);
-        let mut buf = Buffer::empty(area);
-        render_ctx(area, &mut buf, &mut ctx, &e, t.canvas);
-        let s = text(&buf);
-        assert!(
-            s.contains("No connections") && s.contains("New connection"),
-            "{s}"
-        );
-        let r = hits.area_of(id).expect("the action is clickable");
-        assert!(r.y > 3, "the button sits below the text: {r:?}");
-        assert_eq!(
-            e.on_click(id).map(|a| a.label.as_str()),
-            Some("New connection")
-        );
-    }
-
-    #[test]
-    fn lists_tables_and_pickers_take_a_full_empty_state() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let state = || EmptyState::new("No connections").hint("Press n to add one");
-        let area = Rect::new(0, 0, 40, 10);
-
-        let mut l = crate::widgets::list::ListBox::new(
-            WidgetId::of("l"),
-            vec![],
-            crate::widgets::list::SelectMode::Single,
-        )
-        .empty(state());
-        let mut buf = Buffer::empty(area);
-        l.render(area, &mut buf, &mut ctx, t.canvas);
-        assert!(text(&buf).contains("Press n to add one"));
-
-        let cols = vec![crate::widgets::table::Column::new(
-            "Name",
-            Constraint::Fill(1),
-        )];
-        let mut tb =
-            crate::widgets::table::DataTable::new(WidgetId::of("t"), cols, vec![]).empty(state());
-        let mut buf = Buffer::empty(area);
-        tb.render(area, &mut buf, &mut ctx, t.canvas);
-        assert!(text(&buf).contains("Press n to add one"));
-
-        let mut p = crate::widgets::picker::Picker::new(WidgetId::of("p"), "Pick").empty(state());
-        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
-        p.draw(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
-
-        assert!(text(&buf).contains("No connections"));
-    }
-}

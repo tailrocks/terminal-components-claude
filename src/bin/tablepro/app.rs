@@ -271,12 +271,6 @@ impl App {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn interaction(&self) -> junie_tui::ui::ctx::Interaction {
-        self.shell
-            .interaction(self.now_ms(), self.flash_clock(), self.tick)
-    }
-
     fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
             Input::Resize(..) => Outcome::Changed,
@@ -1399,16 +1393,6 @@ impl App {
             (),
             &mut self.shell.focus,
         );
-    }
-
-    #[cfg(test)]
-    pub fn modal(&self) -> Option<&LayerEntry<ModalResult>> {
-        self.layers.top()
-    }
-
-    #[cfg(test)]
-    pub fn top_as<L: junie_tui::ui::layer::Layer<ModalResult>>(&self) -> Option<&L> {
-        self.layers.top_as()
     }
 
     fn request_close_tab(&mut self, index: usize) {

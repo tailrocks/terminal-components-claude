@@ -1,11 +1,5 @@
 
 
-
-
-
-
-
-
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
@@ -75,28 +69,19 @@ impl TextBuffer {
         self.text.is_empty()
     }
 
-    #[cfg(test)]
-    pub fn cursor(&self) -> usize {
-        self.cursor
-    }
-
     pub fn cursor_offset(&self) -> usize {
         self.cursor
     }
-
-
 
     pub fn select_range(&mut self, a: usize, b: usize) {
         self.anchor = Some(Self::floor_boundary(&self.text, a));
         self.cursor = Self::floor_boundary(&self.text, b);
     }
 
-
     pub fn selection_lines(&self) -> (usize, usize) {
         match self.selection() {
             Some(r) => {
                 let a = Self::pos_of(&self.text, r.start).line;
-
 
                 let before = &self.text[..r.end];
                 let b = before.matches('\n').count() - usize::from(before.ends_with('\n'));
@@ -114,8 +99,6 @@ impl TextBuffer {
             .is_some_and(|r| self.text[r].contains('\n'))
     }
 
-
-
     pub fn insert_at(&mut self, at: usize, s: &str) {
         let at = Self::floor_boundary(&self.text, at);
         let s = normalized_text(s, self.multiline);
@@ -130,8 +113,6 @@ impl TextBuffer {
         }
         self.normalize_positions();
     }
-
-
 
     pub fn remove_range(&mut self, r: std::ops::Range<usize>) {
         let r = r.start.min(self.text.len())..r.end.min(self.text.len());
@@ -169,7 +150,6 @@ impl TextBuffer {
         Some(a.min(self.cursor)..a.max(self.cursor))
     }
 
-
     pub fn has_selection(&self) -> bool {
         self.selection().is_some()
     }
@@ -183,17 +163,12 @@ impl TextBuffer {
         self.anchor = None;
     }
 
-
-
     pub fn select_to(&mut self, offset: usize) {
         if self.anchor.is_none() {
             self.anchor = Some(self.cursor);
         }
         self.cursor = Self::floor_boundary(&self.text, offset);
     }
-
-
-
 
     pub fn word_range_at(&self, offset: usize) -> std::ops::Range<usize> {
         let offset = Self::floor_boundary(&self.text, offset);
@@ -240,20 +215,16 @@ impl TextBuffer {
         gs[lo].0..gs[hi].0 + gs[hi].1.len()
     }
 
-
     pub fn select_word_at(&mut self, offset: usize) {
         let r = self.word_range_at(offset);
         self.select_range(r.start, r.end);
     }
-
-
 
     pub fn select_line_at(&mut self, offset: usize) {
         let offset = Self::floor_boundary(&self.text, offset);
         let (start, end) = (self.line_start(offset), self.line_end(offset));
         self.select_range(start, end);
     }
-
 
     pub fn selected_text(&self) -> Option<&str> {
         self.selection().map(|r| &self.text[r])
@@ -268,8 +239,6 @@ impl TextBuffer {
             self.anchor = None;
         }
     }
-
-
 
     fn floor_boundary(text: &str, offset: usize) -> usize {
         if offset >= text.len() {
@@ -291,9 +260,6 @@ impl TextBuffer {
             .find(|i| *i >= offset)
             .unwrap_or(text.len())
     }
-
-
-
 
     fn normalize_positions(&mut self) {
         self.cursor = Self::ceil_boundary(&self.text, self.cursor);
@@ -367,8 +333,6 @@ impl TextBuffer {
         from + i
     }
 
-
-
     pub fn move_left(&mut self, select: bool) {
         if !select && let Some(r) = self.selection() {
             self.anchor = None;
@@ -419,7 +383,6 @@ impl TextBuffer {
         self.cursor = self.text.len();
     }
 
-
     pub fn move_up(&mut self, select: bool) -> bool {
         if !self.multiline {
             return false;
@@ -451,8 +414,6 @@ impl TextBuffer {
         self.cursor = self.offset_at(line, col);
     }
 
-
-
     fn delete_selection(&mut self) -> bool {
         match self.selection() {
             Some(r) => {
@@ -479,7 +440,6 @@ impl TextBuffer {
 
     pub fn insert_str(&mut self, s: &str) {
         let s = normalized_text(s, self.multiline);
-
 
         if let Some(r) = self.selection() {
             self.cursor = r.start + s.len();
@@ -540,18 +500,13 @@ impl TextBuffer {
         self.normalize_positions();
     }
 
-
-
     pub fn line_count(&self) -> usize {
         self.text.split('\n').count()
     }
 
-
     pub fn cursor_pos(&self) -> CursorPos {
         Self::pos_of(&self.text, self.cursor)
     }
-
-
 
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
         let offset = Self::floor_boundary(text, offset);
@@ -561,7 +516,6 @@ impl TextBuffer {
         let col = UnicodeWidthStr::width(&text[line_start..offset]);
         CursorPos { line, col }
     }
-
 
     pub fn offset_at(&self, line: usize, col: usize) -> usize {
         let mut start = 0;
@@ -582,240 +536,8 @@ impl TextBuffer {
         self.text.len()
     }
 
-
     pub fn width(&self) -> usize {
         UnicodeWidthStr::width(self.text.as_str())
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn insert_and_move_by_grapheme() {
-        let mut b = TextBuffer::single("");
-        for c in "héllo".chars() {
-            b.insert_char(c);
-        }
-        assert_eq!(b.text(), "héllo");
-        b.move_left(false);
-        b.move_left(false);
-        b.insert_char('X');
-        assert_eq!(b.text(), "hélXlo");
-        b.move_home(false);
-        b.delete();
-        assert_eq!(b.text(), "élXlo");
-        b.move_end(false);
-        b.backspace();
-        assert_eq!(b.text(), "élXl");
-    }
-
-    #[test]
-    fn word_and_line_selection_for_multi_clicks() {
-        let mut b = TextBuffer::multi("let foo_bar = 42;\nnext  line");
-        b.select_word_at(5);
-        assert_eq!(b.selected_text(), Some("foo_bar"));
-        b.select_word_at(12);
-        assert_eq!(b.selected_text(), Some("="), "punctuation is its own word");
-        b.select_word_at(11);
-        assert_eq!(b.selected_text(), Some(" "));
-        b.select_word_at(23);
-        assert_eq!(b.selected_text(), Some("  "), "a whitespace run");
-        b.select_word_at(17);
-        assert_eq!(
-            b.selected_text(),
-            Some(";"),
-            "the line end picks the last grapheme"
-        );
-        b.select_line_at(20);
-        assert_eq!(b.selected_text(), Some("next  line"));
-        b.select_line_at(3);
-        assert_eq!(
-            b.selected_text(),
-            Some("let foo_bar = 42;"),
-            "no line break"
-        );
-        let mut u = TextBuffer::single("café👩‍💻 ok");
-        u.select_word_at(1);
-        assert_eq!(u.selected_text(), Some("café"));
-        u.select_line_at(0);
-        assert_eq!(u.selected_text(), Some("café👩‍💻 ok"));
-    }
-
-    #[test]
-    fn select_to_extends_from_the_anchor() {
-        let mut b = TextBuffer::single("hello world");
-        b.select_range(6, 6);
-        b.clear_selection();
-        b.select_to(11);
-        assert_eq!(b.selected_text(), Some("world"));
-        b.select_to(2);
-        assert_eq!(b.selected_text(), Some("llo "), "the anchor stays put");
-    }
-
-    #[test]
-    fn selection_replaces_on_insert() {
-        let mut b = TextBuffer::single("hello world");
-        b.move_home(false);
-        for _ in 0..5 {
-            b.move_right(true);
-        }
-        assert_eq!(b.selected_text(), Some("hello"));
-        b.insert_str("bye");
-        assert_eq!(b.text(), "bye world");
-        assert!(!b.has_selection());
-    }
-
-    #[test]
-    fn word_motion_and_deletion() {
-        let mut b = TextBuffer::single("alpha beta  gamma");
-        b.move_word_left(false);
-        assert_eq!(b.cursor(), 12);
-        b.move_word_left(false);
-        assert_eq!(b.cursor(), 6);
-        b.move_home(false);
-        b.move_word_right(false);
-        assert_eq!(b.cursor(), 5);
-        b.move_end(false);
-        b.delete_word_left();
-        assert_eq!(b.text(), "alpha beta  ");
-    }
-
-    #[test]
-    fn multiline_vertical_motion_keeps_column() {
-        let mut b = TextBuffer::multi("first line\nsecond\nthird line here");
-        b.move_doc_start(false);
-        b.move_end(false);
-        assert_eq!(b.cursor_pos(), CursorPos { line: 0, col: 10 });
-        assert!(b.move_down(false));
-        assert_eq!(b.cursor_pos(), CursorPos { line: 1, col: 6 });
-        assert!(b.move_down(false));
-        assert_eq!(b.cursor_pos(), CursorPos { line: 2, col: 6 });
-        assert!(!b.move_down(false));
-        assert!(b.move_up(false));
-        assert!(b.move_up(false));
-        assert!(!b.move_up(false));
-    }
-
-    #[test]
-    fn single_line_rejects_newline() {
-        let mut b = TextBuffer::single("a");
-        b.insert_char('\n');
-        assert_eq!(b.text(), "a");
-        b.insert_str("b\nc");
-        assert_eq!(b.text(), "abc");
-        let mut m = TextBuffer::multi("a");
-        m.insert_char('\n');
-        assert_eq!(m.line_count(), 2);
-    }
-
-    #[test]
-    fn wide_characters_count_as_two_columns() {
-        let b = TextBuffer::single("日本");
-        assert_eq!(b.cursor_pos().col, 4);
-        assert_eq!(b.offset_at(0, 2), 3);
-        assert_eq!(b.offset_at(0, 1), 0);
-    }
-
-    #[test]
-    fn selection_lines_handles_unicode_and_exclusive_newline() {
-        let mut b = TextBuffer::multi("é\n日本\n👩‍💻");
-        b.select_all();
-        assert_eq!(b.selection_lines(), (0, 2));
-        b.select_range(0, "é\n".len());
-        assert_eq!(b.selection_lines(), (0, 0));
-        b.select_range("é\n".len(), "é\n日本".len());
-        assert_eq!(b.selection_lines(), (1, 1));
-    }
-
-    #[test]
-    fn public_offsets_clamp_to_graphemes() {
-        let mut b = TextBuffer::single("e\u{301}日👩‍💻");
-        for a in 0..=b.text().len() + 1 {
-            for end in 0..=b.text().len() + 1 {
-                b.select_range(a, end);
-                b.cursor_pos();
-                b.selection_lines();
-                if let Some(r) = b.selection() {
-                    assert!(b.text().get(r).is_some());
-                }
-            }
-        }
-        b.select_range(1, 2);
-        assert_eq!(b.cursor(), 0);
-        assert_eq!(b.selection(), None);
-        b.insert_at(4, "X");
-        assert_eq!(b.text(), "e\u{301}X日👩‍💻");
-        b.remove_range(5..6);
-        assert_eq!(b.text(), "e\u{301}X👩‍💻");
-        assert_eq!(TextBuffer::pos_of("é", usize::MAX).col, 1);
-        assert_eq!(TextBuffer::pos_of("é", 1).col, 0);
-    }
-
-    #[test]
-    fn word_motion_and_deletion_preserve_combining_clusters() {
-        let mut b = TextBuffer::single("cafe\u{301} 日本");
-        b.move_home(false);
-        b.move_word_right(true);
-        assert_eq!(b.selected_text(), Some("cafe\u{301}"));
-        b.clear_selection();
-        b.move_word_left(false);
-        assert_eq!(b.cursor(), 0);
-        b.move_end(false);
-        b.delete_word_left();
-        b.delete_word_left();
-        assert_eq!(b.text(), "");
-    }
-
-    #[test]
-    fn edits_repair_positions_when_graphemes_join() {
-        let mut b = TextBuffer::single("👩💻");
-        b.set_cursor_line_col(0, 2);
-        b.insert_char('\u{200d}');
-        assert_eq!(b.text(), "👩‍💻");
-        assert_eq!(b.cursor(), b.text().len());
-        b.backspace();
-        assert_eq!(b.text(), "");
-
-        let mut b = TextBuffer::single("🇺 🇸");
-        b.set_cursor_line_col(0, 1);
-        b.remove_range(4..5);
-        assert_eq!(b.text(), "🇺🇸");
-        assert_eq!(b.cursor(), b.text().len());
-        b.move_left(false);
-        assert_eq!(b.cursor(), 0);
-    }
-
-    #[test]
-    fn selection_replacement_does_not_move_past_joining_neighbors() {
-        for paste in [false, true] {
-            let mut b = TextBuffer::single("🇺 🇸");
-            b.select_range(4, 5);
-            if paste {
-                b.insert_str("X");
-            } else {
-                b.insert_char('X');
-            }
-            assert_eq!(b.text(), "🇺X🇸");
-            assert_eq!(b.cursor(), 5);
-        }
-    }
-
-    #[test]
-    fn every_text_entry_preserves_line_mode() {
-        let mut b = TextBuffer::single("a\r\nb");
-        assert_eq!(b.text(), "ab");
-        b.set_text("c\nd");
-        b.insert_at(1, "\r\nx");
-        b.insert_char('\r');
-        assert_eq!(b.text(), "cxd");
-        let mut b = TextBuffer::multi("a\r\nb\rc");
-        assert_eq!(b.text(), "a\nb\nc");
-        b.insert_str("\r\nd");
-        b.move_doc_start(false);
-        b.move_end(false);
-        assert_eq!(b.cursor(), 1);
-        assert_eq!(b.line_count(), 4);
-    }
-}

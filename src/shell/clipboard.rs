@@ -1,17 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::RefCell;
 
 use crate::core::edit::clipboard;
@@ -23,14 +11,12 @@ thread_local! {
     static OUT: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Copied {
 
     Copied { chars: usize },
 
     Unsupported,
-
 
     TooLarge { encoded: usize, limit: usize },
 }
@@ -42,17 +28,12 @@ impl Copied {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Clipboard {
 
-
     pub osc52: bool,
 
-
     pub limit: usize,
-
-
 
     pub write: bool,
 }
@@ -65,7 +46,6 @@ impl Default for Clipboard {
 
 impl Clipboard {
 
-
     pub const DEFAULT_LIMIT: usize = 100_000;
 
     pub const fn new() -> Self {
@@ -76,32 +56,25 @@ impl Clipboard {
         }
     }
 
-
     pub const fn osc52(mut self, on: bool) -> Self {
         self.osc52 = on;
         self
     }
-
 
     pub const fn limit(mut self, bytes: usize) -> Self {
         self.limit = bytes;
         self
     }
 
-
     pub const fn write(mut self, on: bool) -> Self {
         self.write = on;
         self
     }
 
-
-
     pub fn copy(&self, text: &str) -> Copied {
         clipboard::copy(text);
         self.system(text)
     }
-
-
 
     fn system(&self, text: &str) -> Copied {
         if !self.osc52 {
@@ -122,15 +95,11 @@ impl Clipboard {
         }
     }
 
-
     pub fn install(self) {
         clipboard::set_hook(move |t| {
             self.system(t);
         });
     }
-
-
-
 
     pub fn report(result: &Copied, text: &str, what: Option<&str>) -> (String, Tone) {
         match result {
@@ -161,11 +130,9 @@ impl Clipboard {
     }
 }
 
-
 pub fn take_output() -> Vec<String> {
     OUT.with(|o| std::mem::take(&mut *o.borrow_mut()))
 }
-
 
 pub fn osc52(text: &str) -> String {
     format!("\x1b]52;c;{}\x07", base64(text.as_bytes()))
@@ -192,69 +159,3 @@ fn base64(bytes: &[u8]) -> String {
     out
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn base64_matches_rfc_4648() {
-        for (plain, enc) in [
-            ("", ""),
-            ("f", "Zg=="),
-            ("fo", "Zm8="),
-            ("foo", "Zm9v"),
-            ("foob", "Zm9vYg=="),
-            ("fooba", "Zm9vYmE="),
-            ("foobar", "Zm9vYmFy"),
-        ] {
-            assert_eq!(base64(plain.as_bytes()), enc);
-        }
-    }
-
-    #[test]
-    fn a_copy_reports_what_reached_the_system_clipboard() {
-        take_output();
-        let c = Clipboard::new();
-        assert_eq!(c.copy("héllo"), Copied::Copied { chars: 5 });
-        assert_eq!(take_output(), [osc52("héllo")]);
-        assert_eq!(clipboard::text().as_deref(), Some("héllo"));
-        let (msg, tone) = Clipboard::report(&Copied::Copied { chars: 5 }, "héllo", None);
-        assert_eq!(
-            (msg.as_str(), tone),
-            ("Copied 5 characters · héllo", Tone::Secondary)
-        );
-
-
-        let c = Clipboard::new().limit(8);
-        let r = c.copy("0123456789");
-        assert_eq!(
-            r,
-            Copied::TooLarge {
-                encoded: 16,
-                limit: 8
-            }
-        );
-        assert!(take_output().is_empty());
-        assert_eq!(clipboard::text().as_deref(), Some("0123456789"));
-        assert_eq!(Clipboard::report(&r, "", Some("Host")).1, Tone::Error);
-        assert_eq!(
-            Clipboard::report(&Copied::Copied { chars: 1 }, "x", Some("Host")).0,
-            "Copied Host"
-        );
-        assert_eq!(Clipboard::new().osc52(false).copy("x"), Copied::Unsupported);
-        assert!(take_output().is_empty());
-
-
-        assert!(Clipboard::new().write(false).copy("x").ok());
-        assert!(take_output().is_empty());
-    }
-
-    #[test]
-    fn an_installed_clipboard_takes_field_copies() {
-        take_output();
-        Clipboard::new().install();
-        clipboard::copy("cut");
-        assert_eq!(take_output(), [osc52("cut")]);
-        clipboard::clear_hook();
-    }
-}

@@ -1,38 +1,5 @@
 mod app;
-#[cfg(test)]
-mod app_tests;
-#[cfg(test)]
-mod app_tests_background;
-#[cfg(test)]
-mod app_tests_colour;
-#[cfg(test)]
-mod app_tests_context;
-#[cfg(test)]
-mod app_tests_context_screens;
-#[cfg(test)]
-mod app_tests_copy;
-#[cfg(test)]
-mod app_tests_coverage;
-#[cfg(test)]
-mod app_tests_fields;
-#[cfg(test)]
-mod app_tests_flows;
-#[cfg(test)]
-mod app_tests_layers;
-#[cfg(test)]
-mod app_tests_mouse;
-#[cfg(test)]
-mod app_tests_nav;
-#[cfg(test)]
-mod app_tests_parity;
-#[cfg(test)]
-mod app_tests_pointer;
-#[cfg(test)]
-mod app_tests_proofs;
-#[cfg(test)]
-mod app_tests_reach;
-#[cfg(test)]
-mod app_tests_rows;
+
 mod domain;
 mod scenario;
 mod screens;

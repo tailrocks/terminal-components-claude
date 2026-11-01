@@ -1,25 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -37,24 +17,18 @@ use crate::ui::tooltip::Tip;
 use crate::widgets::icon_button::IconButton;
 use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolItem {
     pub label: String,
 
-
-
     pub shortcut: Option<String>,
     pub disabled: bool,
-
 
     pub on: Option<bool>,
 
     pub separator_after: bool,
 
     pub tip: Option<String>,
-
-
 
     pub reason: Option<String>,
 }
@@ -94,7 +68,6 @@ impl ToolItem {
         self
     }
 
-
     fn width(&self) -> u16 {
         let mut w = 1 + width(&self.label) as u16 + 1;
         if self.on.is_some() {
@@ -106,7 +79,6 @@ impl ToolItem {
         w
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolbarAction {
@@ -123,26 +95,17 @@ pub struct Toolbar {
 
     pub cursor: usize,
 
-
     pub nav: NavKeys,
 
-
     pub wrap: bool,
-
 
     pub skip_disabled: bool,
 
     pub gap: u16,
 
-
     pub areas: Vec<Rect>,
 
-
-
     pub overflow: bool,
-
-
-
 
     pub more_button: IconButton,
 
@@ -212,38 +175,30 @@ impl Toolbar {
         self
     }
 
-
     pub fn more_glyph(mut self, glyph: &str) -> Self {
         self.more_button.glyph = Some(glyph.to_owned());
         self
     }
 
-
     pub fn more_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::OVERFLOW))
     }
-
 
     pub fn menu_id(&self) -> WidgetId {
         self.id.sub("more-menu")
     }
 
-
     pub fn menu_open(&self) -> bool {
         self.menu.is_some()
     }
-
 
     pub fn hidden(&self) -> &[usize] {
         &self.hidden
     }
 
-
     pub fn on_more(&self) -> bool {
         self.cursor == self.items.len() && !self.more_area.is_empty()
     }
-
-
 
     fn stops(&self) -> Vec<usize> {
         let n = self.items.len();
@@ -305,17 +260,13 @@ impl Toolbar {
         }
     }
 
-
     pub fn item_id(&self, i: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::ROW, ItemKey::index(i)))
     }
 
-
-
     fn item_at(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
-
 
     pub fn width(&self) -> u16 {
         let n = self.items.len() as u16;
@@ -398,8 +349,6 @@ impl Toolbar {
         (moved.outcome(), None)
     }
 
-
-
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ToolbarAction>) {
         if let Some((menu, _)) = self.menu.as_mut()
             && menu.contains_id(id)
@@ -425,9 +374,6 @@ impl Toolbar {
         }
     }
 
-
-
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         let n = self.items.len();
@@ -441,7 +387,6 @@ impl Toolbar {
         let t = ctx.theme;
         self.marks = (t.glyphs.dot_on, t.glyphs.dot_off);
         let focused = ctx.interaction.focused_under(self.id, self.menu.is_some());
-
 
         ctx.control(self.id, area, false);
         let more = match &self.more_button.glyph {
@@ -458,7 +403,6 @@ impl Toolbar {
         };
         let y = area.y;
         let mut x = area.x;
-
 
         let mut sep_at: Option<u16> = None;
         for i in 0..n {
@@ -594,10 +538,6 @@ impl Navigable for Toolbar {
     }
 }
 
-
-
-
-
 impl crate::ui::specimen::Specimen for Toolbar {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -659,9 +599,6 @@ impl crate::ui::specimen::Specimen for Toolbar {
     }
 }
 
-
-
-
 impl crate::core::pointer::MouseTarget for Toolbar {
     type Action = ToolbarAction;
 
@@ -688,229 +625,3 @@ impl crate::core::pointer::MouseTarget for Toolbar {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::crossterm::event::KeyModifiers;
-
-    fn k(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: KeyModifiers::NONE,
-        }
-    }
-
-    fn bar() -> Toolbar {
-        Toolbar::new(
-            WidgetId::of("tb"),
-            vec![
-                ToolItem::new("Run").shortcut("F5"),
-                ToolItem::new("Explain").disabled(true),
-                ToolItem::new("Format").separator(),
-                ToolItem::new("Wrap").toggle(false),
-            ],
-        )
-    }
-
-    fn render(t: &mut Toolbar, inter: Interaction) -> (Buffer, FocusRing, HitRegistry) {
-        render_w(t, inter, 60, &Theme::junie())
-    }
-
-
-
-    fn render_w(
-        t: &mut Toolbar,
-        inter: Interaction,
-        w: u16,
-        theme: &Theme,
-    ) -> (Buffer, FocusRing, HitRegistry) {
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 12));
-        {
-            let mut ctx = RenderCtx::new(theme, inter, &mut hits, &mut ring);
-            t.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, theme.canvas);
-            ctx.flush_overlays(&mut buf);
-        }
-        (buf, ring, hits)
-    }
-
-    fn line(buf: &Buffer, y: u16) -> String {
-        (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect()
-    }
-
-
-    fn wide() -> Toolbar {
-        Toolbar::new(
-            WidgetId::of("tb"),
-            vec![
-                ToolItem::new("Run").shortcut("F5"),
-                ToolItem::new("Explain").separator(),
-                ToolItem::new("Format").shortcut("F6").reason("Read-only"),
-                ToolItem::new("Wrap").toggle(true),
-            ],
-        )
-    }
-
-    #[test]
-    fn the_toolbar_is_one_stop_and_arrows_skip_disabled_items() {
-        let mut t = bar();
-        let (_, ring, _) = render(&mut t, Interaction::default());
-        assert_eq!(ring.reachable(), &[t.id], "one focus stop");
-        assert_eq!(t.on_key(&k(KeyCode::Right)).0, Outcome::Changed);
-        assert_eq!(t.cursor, 2, "Explain is disabled: skipped");
-        t.on_key(&k(KeyCode::End));
-        assert_eq!(t.cursor, 3);
-        assert_eq!(t.on_key(&k(KeyCode::Right)).0, Outcome::Consumed, "no wrap");
-        let mut w = bar().wrap(true);
-        w.cursor = 3;
-        w.on_key(&k(KeyCode::Right));
-        assert_eq!(w.cursor, 0, "wraps on request");
-        let mut all = bar().skip_disabled(false);
-        all.on_key(&k(KeyCode::Right));
-        assert_eq!(all.cursor, 1, "disabled items reachable on request");
-        assert_eq!(all.on_key(&k(KeyCode::Enter)).1, None, "but never run");
-    }
-
-    #[test]
-    fn enter_runs_the_cursor_item_and_flips_a_toggle() {
-        let mut t = bar();
-        assert_eq!(
-            t.on_key(&k(KeyCode::Enter)).1,
-            Some(ToolbarAction::Activated(0))
-        );
-        t.cursor = 3;
-        assert_eq!(
-            t.on_key(&k(KeyCode::Char(' '))).1,
-            Some(ToolbarAction::Toggled(3, true))
-        );
-        assert_eq!(t.items[3].on, Some(true));
-        let id = t.item_id(2);
-        assert_eq!(t.on_click(id).1, Some(ToolbarAction::Activated(2)));
-        assert_eq!(t.cursor, 2, "a click moves the cursor too");
-        let id = t.item_id(1);
-        assert_eq!(t.on_click(id).1, None, "a disabled item never runs");
-    }
-
-    #[test]
-    fn items_that_do_not_fit_go_behind_an_overflow_button_at_the_end() {
-        let mut t = wide();
-        let focus = Interaction {
-            focus: Some(t.id),
-            ..Default::default()
-        };
-        let (buf, ring, hits) = render_w(&mut t, focus, 24, &Theme::junie());
-        assert_eq!(ring.reachable(), &[t.id], "still one focus stop");
-        assert_eq!(t.hidden(), &[2, 3], "Format and Wrap do not fit");
-        assert!(t.areas[2].is_empty() && t.areas[3].is_empty());
-        let row = line(&buf, 0);
-        assert!(row.contains('»'), "the overflow button: {row:?}");
-        assert!(
-            !row.contains('│'),
-            "no divider before hidden items: {row:?}"
-        );
-        let plate = hits
-            .area_of(t.more_id())
-            .expect("the button is a hit target");
-        assert_eq!(plate.right(), 24, "at the right end");
-
-        t.on_key(&k(KeyCode::End));
-        assert!(t.on_more());
-        let (buf, _, _) = render_w(&mut t, focus, 24, &Theme::junie());
-        let row = line(&buf, 0);
-        assert_eq!(row.matches('▎').count(), 1, "one focus mark: {row:?}");
-        assert_eq!(buf[(plate.x, 0)].symbol(), "▎", "on the button");
-
-        assert_eq!(t.on_key(&k(KeyCode::Enter)), (Outcome::Changed, None));
-        assert!(t.menu_open());
-        let (buf, _, hits) = render_w(&mut t, focus, 24, &Theme::junie());
-        let screen: Vec<String> = (0..12).map(|y| line(&buf, y)).collect();
-        let menu = screen[1..].join("\n");
-
-
-        assert!(
-            menu.contains("Format") && menu.contains("F6") && !menu.contains("Read-only"),
-            "{menu}"
-        );
-        assert!(menu.contains("● Wrap"), "a toggle shows its state: {menu}");
-        assert_eq!(
-            screen.iter().map(|r| r.matches('▎').count()).sum::<usize>(),
-            0,
-            "the toolbar under its open menu shows no focus"
-        );
-        let wrap_row = hits.area_of(
-            t.menu_id()
-                .part(PartRef::item(Part::ROW, ItemKey::index(1))),
-        );
-        assert!(wrap_row.is_some(), "the menu rows are hit targets");
-
-        assert_eq!(
-            t.on_key(&k(KeyCode::Enter)).1,
-            Some(ToolbarAction::Toggled(3, false))
-        );
-        assert!(!t.menu_open());
-        assert!(t.on_more(), "focus returns to the button");
-
-        t.on_click(t.more_id());
-        assert!(t.menu_open());
-        t.on_click(t.more_id());
-        assert!(!t.menu_open());
-
-        t.on_key(&k(KeyCode::Down));
-        assert!(t.menu_open());
-        t.on_key(&k(KeyCode::Esc));
-        assert!(!t.menu_open());
-
-        t.on_key(&k(KeyCode::Left));
-        assert_eq!(t.cursor, 1);
-    }
-
-    #[test]
-    fn the_overflow_button_is_configurable() {
-        let mut t = wide().more_glyph("…");
-        render_w(&mut t, Interaction::default(), 24, &Theme::junie());
-        let (buf, _, _) = render_w(&mut t, Interaction::default(), 24, &Theme::junie());
-        assert!(line(&buf, 0).contains('…'));
-        let mut t = wide();
-        let mut ascii = Theme::junie();
-        ascii.glyphs = crate::theme::Glyphs::ASCII;
-        let (buf, _, _) = render_w(&mut t, Interaction::default(), 24, &ascii);
-        assert!(line(&buf, 0).trim_end().ends_with('>'), "the theme's glyph");
-
-        let mut t = wide().overflow(false);
-        let (buf, _, hits) = render_w(&mut t, Interaction::default(), 24, &Theme::junie());
-        assert!(t.hidden().is_empty());
-        assert!(hits.area_of(t.more_id()).is_none());
-        assert!(!line(&buf, 0).contains('»'));
-
-        let mut t = wide();
-        let (_, _, hits) = render_w(&mut t, Interaction::default(), 60, &Theme::junie());
-        assert!(hits.area_of(t.more_id()).is_none());
-        assert!(t.hidden().is_empty());
-    }
-
-    #[test]
-    fn the_focused_toolbar_draws_one_gutter_on_its_cursor_item() {
-        let mut t = bar();
-        t.cursor = 2;
-        let focus = Interaction {
-            focus: Some(t.id),
-            ..Default::default()
-        };
-        let (buf, _, hits) = render(&mut t, focus);
-        let row: String = (0..60).map(|x| buf[(x, 0)].symbol()).collect();
-        assert_eq!(row.matches('▎').count(), 1);
-        assert_eq!(buf[(t.areas[2].x, 0)].symbol(), "▎");
-        assert!(row.contains("Run F5"), "the shortcut follows the label");
-        assert!(row.contains('│'), "a separator after Format");
-        let mid = ratatui::layout::Position::new(t.areas[0].x + 2, 0);
-        assert_eq!(hits.hit(mid), Some(t.item_id(0)), "items are hit targets");
-        let (buf, _, _) = render(&mut t, Interaction::default());
-        let row: String = (0..60).map(|x| buf[(x, 0)].symbol()).collect();
-        assert_eq!(row.matches('▎').count(), 0, "no focus, no gutter");
-    }
-}

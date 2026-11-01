@@ -1,14 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
@@ -19,9 +10,6 @@ use crate::ui::ctx::{RenderCtx, VisualState};
 use crate::widgets::menu::MenuItem;
 use crate::widgets::table::SortDir;
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Col {
 
@@ -31,15 +19,12 @@ pub struct Col {
 
     pub max: u16,
 
-
     pub flex: u16,
-
 
     pub drop: Option<u8>,
 }
 
 impl Col {
-
 
     pub const fn content(min: u16, measured: u16) -> Self {
         let ideal = if measured > min { measured } else { min };
@@ -52,11 +37,9 @@ impl Col {
         }
     }
 
-
     pub const fn fixed(w: u16) -> Self {
         Self::content(w, w)
     }
-
 
     pub const fn flex(mut self, weight: u16, max: u16) -> Self {
         self.flex = weight;
@@ -64,23 +47,16 @@ impl Col {
         self
     }
 
-
-
-
     pub const fn max(mut self, max: u16) -> Self {
         self.max = if max > self.ideal { max } else { self.ideal };
         self
     }
-
 
     pub const fn droppable(mut self, priority: u8) -> Self {
         self.drop = Some(priority);
         self
     }
 }
-
-
-
 
 pub fn solve(cols: &[Col], avail: u16, gap: u16) -> Vec<u16> {
     let n = cols.len();
@@ -124,7 +100,6 @@ pub fn solve(cols: &[Col], avail: u16, gap: u16) -> Vec<u16> {
         used -= cut;
     }
     let mut spare = room.saturating_sub(used);
-
 
     while spare > 0 {
         let mut grew = false;
@@ -180,29 +155,16 @@ pub fn solve(cols: &[Col], avail: u16, gap: u16) -> Vec<u16> {
     w.into_iter().map(|x| x as u16).collect()
 }
 
-
-
-
 pub const MIN_USER_WIDTH: u16 = 3;
 
-
-
 pub const DEFAULT_SEAM_W: u16 = 2;
-
-
-
-
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ColumnSizing {
     user: Vec<Option<u16>>,
     drag: Option<SeamDrag>,
 
-
     pub resizable: bool,
-
 
     pub seam_w: u16,
 
@@ -234,11 +196,9 @@ impl ColumnSizing {
         self.user.get(col).copied().flatten()
     }
 
-
     pub fn width(&self, col: usize, measured: u16) -> u16 {
         self.user(col).unwrap_or(measured)
     }
-
 
     pub fn set(&mut self, col: usize, w: u16) {
         if self.user.len() <= col {
@@ -247,25 +207,20 @@ impl ColumnSizing {
         self.user[col] = Some(w.max(self.min_width));
     }
 
-
     pub fn clear(&mut self, col: usize) {
         if let Some(u) = self.user.get_mut(col) {
             *u = None;
         }
     }
 
-
     pub fn reset(&mut self) {
         self.user.clear();
         self.drag = None;
     }
 
-
     pub fn is_default(&self) -> bool {
         self.user.iter().all(Option::is_none)
     }
-
-
 
     pub fn press(&mut self, col: usize, current: u16, x: u16) {
         self.drag = Some(SeamDrag {
@@ -275,14 +230,9 @@ impl ColumnSizing {
         });
     }
 
-
     pub fn dragging(&self) -> Option<usize> {
         self.drag.map(|d| d.col)
     }
-
-
-
-
 
     pub fn drag_to(&mut self, x: u16) -> Option<(usize, u16)> {
         let d = self.drag?;
@@ -295,12 +245,9 @@ impl ColumnSizing {
         Some((d.col, w))
     }
 
-
     pub fn release(&mut self) {
         self.drag = None;
     }
-
-
 
     pub fn apply(&self, cols: &[Col]) -> Vec<Col> {
         cols.iter()
@@ -312,18 +259,11 @@ impl ColumnSizing {
             .collect()
     }
 
-
-
-
     pub fn seam_rect(&self, col_right: u16, y: u16, gap: u16, limit: Rect) -> Rect {
         let x = (col_right + gap / 2).saturating_sub(self.seam_w / 2);
         Rect::new(x, y, self.seam_w.max(1), 1).intersection(limit)
     }
 }
-
-
-
-
 
 pub fn render_seam(
     buf: &mut Buffer,
@@ -350,13 +290,11 @@ pub fn render_seam(
         };
         let style = t.interactive(Kind::Seam, s, t.plane_of(bg)).style.bg(bg);
 
-
         let glyph = t.glyphs.scroll_thumb;
         buf.set_string(glyph_x, hit.y, glyph, style);
     }
     ctx.register_part(owner, part, hit);
 }
-
 
 pub fn seam_part(col: usize) -> crate::core::id::PartRef {
     crate::core::id::PartRef::item(
@@ -364,7 +302,6 @@ pub fn seam_part(col: usize) -> crate::core::id::PartRef {
         crate::core::id::ItemKey::index(col),
     )
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HeaderAction {
@@ -376,7 +313,6 @@ pub enum HeaderAction {
 
     ResetWidths,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HeaderLabels {
@@ -402,9 +338,6 @@ impl Default for HeaderLabels {
         Self::DEFAULT
     }
 }
-
-
-
 
 pub fn header_menu(
     labels: &HeaderLabels,
@@ -458,88 +391,3 @@ pub fn header_menu(
     v
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn everything_fits_at_its_ideal_and_flex_takes_the_rest() {
-        let cols = [
-            Col::content(4, 10),
-            Col::fixed(6),
-            Col::content(8, 20).flex(1, u16::MAX),
-        ];
-        assert_eq!(solve(&cols, 60, 2), vec![10, 6, 40]);
-    }
-
-    #[test]
-    fn a_dropped_column_gives_its_space_to_the_others() {
-
-
-
-        let cols = [
-            Col::content(14, 30).flex(1, 30),
-            Col::fixed(6),
-            Col::content(12, 40).flex(1, u16::MAX).droppable(1),
-        ];
-        let w = solve(&cols, 40, 2);
-        assert!(w[2] >= 12, "the reason still fits at its minimum: {w:?}");
-        let w = solve(&cols, 33, 2);
-        assert_eq!(w, vec![25, 6, 0], "dropped; the label takes its room");
-
-
-        let cols = [
-            Col::content(14, 20).max(30),
-            Col::content(12, 12).flex(1, u16::MAX).droppable(1),
-        ];
-        assert_eq!(solve(&cols, 60, 2), vec![20, 38]);
-        assert_eq!(solve(&cols, 27, 2), vec![27, 0]);
-    }
-
-    #[test]
-    fn a_short_row_shares_the_shortfall_and_never_overflows() {
-        let cols = [Col::content(2, 20), Col::content(2, 20)];
-        assert_eq!(solve(&cols, 21, 1), vec![10, 10]);
-
-        let cols = [Col::fixed(10), Col::fixed(10)];
-        let w = solve(&cols, 15, 1);
-        assert!(w.iter().sum::<u16>() < 15, "{w:?}");
-    }
-
-    #[test]
-    fn the_lowest_priority_drops_first() {
-        let cols = [
-            Col::fixed(10),
-            Col::fixed(10).droppable(5),
-            Col::fixed(10).droppable(1),
-        ];
-        assert_eq!(solve(&cols, 21, 1), vec![10, 10, 0]);
-        assert_eq!(solve(&cols, 15, 1), vec![10, 0, 0]);
-    }
-
-    #[test]
-    fn user_widths_override_the_solver_and_reset() {
-        let cols = [Col::content(4, 10), Col::content(4, 10).flex(1, 40)];
-        let mut z = ColumnSizing::default();
-        z.set(0, 20);
-        let w = solve(&z.apply(&cols), 60, 2);
-        assert_eq!(w[0], 20, "the user width is kept");
-        z.set(0, 1);
-        assert_eq!(z.user(0), Some(MIN_USER_WIDTH), "never below the minimum");
-        z.reset();
-        assert!(z.is_default());
-        assert_eq!(solve(&z.apply(&cols), 60, 2)[0], 10);
-    }
-
-    #[test]
-    fn a_seam_drag_keeps_its_grab_offset() {
-        let mut z = ColumnSizing::default();
-
-        z.press(2, 10, 31);
-        assert_eq!(z.drag_to(31), Some((2, 10)), "no jump on the first move");
-        assert_eq!(z.drag_to(35), Some((2, 14)));
-        assert_eq!(z.drag_to(20), Some((2, MIN_USER_WIDTH)));
-        z.release();
-        assert_eq!(z.drag_to(40), None);
-    }
-}

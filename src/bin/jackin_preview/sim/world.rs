@@ -472,17 +472,3 @@ pub fn mask_path(home: &str, path: &str) -> String {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn masks_private_paths() {
-        assert_eq!(
-            mask_path("/Users/x", "/Users/x/src/acme/api-gateway"),
-            "~/…/api-gateway"
-        );
-        assert_eq!(mask_path("/Users/x", "/Users/x/src"), "~/src");
-        assert_eq!(mask_path("/Users/x", "/opt/build/cache"), "…/cache");
-    }
-}

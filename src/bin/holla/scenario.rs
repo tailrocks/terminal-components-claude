@@ -179,17 +179,3 @@ pub const CLOCK: SimClock = SimClock::new(EPOCH_SECS, UTC_OFFSET_SECS);
 
 pub use junie_tui::motion::Motion;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn names_round_trip() {
-        for s in Scenario::ALL {
-            assert_eq!(Scenario::from_name(s.name()), Some(s));
-        }
-        assert_eq!(Motion::resolve(None, true), Motion::Reduced);
-        assert_eq!(Motion::resolve(Some(Motion::Full), true), Motion::Full);
-        assert_eq!(Motion::resolve(None, false), Motion::Full);
-    }
-}

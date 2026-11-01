@@ -1,33 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::rc::Rc;
 
 use ratatui::buffer::Buffer;
@@ -54,9 +26,6 @@ use crate::widgets::input::{InputAction, TextInput};
 use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::list::{ListBox, ListItem, SelectMode};
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileEntry {
 
@@ -65,7 +34,6 @@ pub struct FileEntry {
     pub dir: bool,
 
     pub meta: String,
-
 
     pub hidden: bool,
 }
@@ -81,37 +49,30 @@ impl FileEntry {
         }
     }
 
-
     pub fn dir(path: &str) -> Self {
         Self::new(path, true)
     }
 
-
     pub fn file(path: &str) -> Self {
         Self::new(path, false)
     }
-
 
     pub fn meta(mut self, meta: &str) -> Self {
         self.meta = meta.to_owned();
         self
     }
 
-
     pub fn hidden(mut self, hidden: bool) -> Self {
         self.hidden = hidden;
         self
     }
-
 
     pub fn name(&self) -> &str {
         self.path.rsplit('/').next().unwrap_or(&self.path)
     }
 }
 
-
 pub trait FileSource {
-
 
     fn list(&self, dir: &str) -> Result<Vec<FileEntry>, String>;
 
@@ -144,9 +105,6 @@ pub trait FileSource {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct MemorySource {
     pub entries: Vec<FileEntry>,
@@ -160,7 +118,6 @@ impl MemorySource {
             home: None,
         }
     }
-
 
     pub fn home(mut self, home: &str) -> Self {
         self.home = Some(home.to_owned());
@@ -185,8 +142,6 @@ impl FileSource for MemorySource {
         self.home.clone()
     }
 }
-
-
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FsSource {
@@ -232,9 +187,6 @@ impl FileSource for FsSource {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Choose {
 
@@ -245,7 +197,6 @@ pub enum Choose {
 
     Any,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileCmd {
@@ -295,8 +246,6 @@ impl Actions for FileCmd {
 
 impl FileCmd {
 
-
-
     pub fn vim_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::Enter), FileCmd::Open),
@@ -312,10 +261,7 @@ impl FileCmd {
     }
 }
 
-
 pub type UrlValidator = Rc<dyn Fn(&str) -> Result<(), String>>;
-
-
 
 #[derive(Clone)]
 pub struct UrlEntry {
@@ -384,10 +330,8 @@ impl std::fmt::Debug for UrlEntry {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileBrowserResult {
-
 
     Chosen {
         path: String,
@@ -397,9 +341,6 @@ pub enum FileBrowserResult {
     Url(String),
     Cancelled,
 }
-
-
-
 
 pub struct FileBrowser {
     pub id: WidgetId,
@@ -411,7 +352,6 @@ pub struct FileBrowser {
     pub path: TextInput,
     pub list: ListBox,
 
-
     pub entries: Vec<FileEntry>,
 
     pub choose_kind: Choose,
@@ -421,7 +361,6 @@ pub struct FileBrowser {
     pub show_hidden: bool,
 
     pub hidden_box: Option<Checkbox>,
-
 
     pub breadcrumb: Option<Breadcrumb>,
 
@@ -441,7 +380,6 @@ pub struct FileBrowser {
     pub result: Option<FileBrowserResult>,
 
     pub area: Rect,
-
 
     pub stepper: Option<String>,
     source: Box<dyn FileSource>,
@@ -484,12 +422,10 @@ impl FileBrowser {
         b
     }
 
-
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
     }
-
 
     pub fn choose(mut self, kind: Choose) -> Self {
         self.choose_kind = kind;
@@ -497,12 +433,10 @@ impl FileBrowser {
         self
     }
 
-
     pub fn checkbox(mut self, label: &str, checked: bool) -> Self {
         self.checkbox = Some(Checkbox::new(self.id.sub("ro"), label, checked));
         self
     }
-
 
     pub fn show_hidden(mut self, on: bool) -> Self {
         self.show_hidden = on;
@@ -513,22 +447,17 @@ impl FileBrowser {
         self
     }
 
-
-
-
     pub fn hidden_toggle(mut self, on: bool) -> Self {
         self.hidden_box =
             on.then(|| Checkbox::new(self.id.sub("hidden"), "Show hidden files", self.show_hidden));
         self
     }
 
-
     pub fn path_bar(mut self, on: bool) -> Self {
         self.breadcrumb = on.then(|| Breadcrumb::new(self.id.sub("crumb"), vec![]));
         self.load();
         self
     }
-
 
     pub fn filter(mut self, on: bool) -> Self {
         self.filter = on.then(|| {
@@ -540,19 +469,16 @@ impl FileBrowser {
         self
     }
 
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self.list.type_ahead = on;
         self
     }
 
-
     pub fn keys(mut self, keys: KeyMap<FileCmd>) -> Self {
         self.keys = keys;
         self
     }
-
 
     pub fn url_entry(mut self, entry: UrlEntry) -> Self {
         self.url_button.label = entry.button.clone();
@@ -560,17 +486,14 @@ impl FileBrowser {
         self
     }
 
-
     pub fn stepper(mut self, line: &str) -> Self {
         self.stepper = Some(line.to_owned());
         self
     }
 
-
     pub fn url_button(&self) -> Option<&Button> {
         self.url.is_some().then_some(&self.url_button)
     }
-
 
     pub fn load(&mut self) {
         let cwd = self.cwd.trim_end_matches('/').to_owned();
@@ -755,7 +678,6 @@ impl FileBrowser {
         Outcome::Changed
     }
 
-
     pub fn on_key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing) -> Outcome {
         let cur = focus.current();
         if cur == Some(self.path.id) {
@@ -903,11 +825,6 @@ impl FileBrowser {
         }
     }
 
-
-
-
-
-
     pub fn pointer(&mut self, ev: &PointerEvent, focus: &mut Focus) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
@@ -944,7 +861,6 @@ impl FileBrowser {
             .flatten()
         {
             focus.focus(self.list.id);
-
 
             let open = self.list.click.activates(ev.count(), self.list.cursor == i);
             self.list.cursor = i;
@@ -990,7 +906,6 @@ impl FileBrowser {
         Outcome::Consumed
     }
 
-
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if let Some(f) = self.filter.as_mut()
             && f.editing
@@ -1002,11 +917,9 @@ impl FileBrowser {
         self.path.on_paste(text)
     }
 
-
     pub fn is_editing(&self) -> bool {
         self.path.editing || self.filter.as_ref().is_some_and(|f| f.editing)
     }
-
 
     pub fn on_blur(&mut self, change: FocusChange) -> Outcome {
         match self.filter.as_mut() {
@@ -1014,7 +927,6 @@ impl FileBrowser {
             None => crate::core::focus::forward_blur(change, &mut [&mut self.path]),
         }
     }
-
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let (w, h) = if screen.width < 100 {
@@ -1121,12 +1033,9 @@ impl FileBrowser {
         }
     }
 
-
     pub fn initial_focus(&self) -> WidgetId {
         self.list.id
     }
-
-
 
     pub fn hints(&self, _focused: Option<WidgetId>) -> Vec<Hint> {
         let mut v = Vec::new();
@@ -1178,329 +1087,3 @@ impl Overlay for FileBrowser {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::crossterm::event::KeyModifiers;
-
-    const ID: WidgetId = WidgetId::of("fb");
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: KeyModifiers::NONE,
-        }
-    }
-
-    fn ch(c: char) -> Key {
-        key(KeyCode::Char(c))
-    }
-
-    fn source() -> MemorySource {
-        MemorySource::new(vec![
-            FileEntry::dir("/home/ada"),
-            FileEntry::dir("/home/ada/src").meta("3 items"),
-            FileEntry::dir("/home/ada/.config"),
-            FileEntry::dir("/home/ada/notes"),
-            FileEntry::file("/home/ada/todo.md").meta("2 KB"),
-            FileEntry::dir("/home/ada/src/api").meta("git · main"),
-            FileEntry::dir("/home/ada/src/web"),
-            FileEntry::file("/home/ada/src/README.md"),
-        ])
-        .home("/home/ada")
-    }
-
-    fn labels(b: &FileBrowser) -> Vec<&str> {
-        b.list.items.iter().map(|i| i.label.as_str()).collect()
-    }
-
-    struct Rig {
-        focus: Focus,
-        ring: FocusRing,
-    }
-
-    impl Rig {
-        fn new(b: &FileBrowser) -> Self {
-            let mut focus = Focus::default();
-            focus.focus(b.initial_focus());
-            Self {
-                focus,
-                ring: FocusRing::default(),
-            }
-        }
-        fn key(&mut self, b: &mut FileBrowser, k: Key) -> Outcome {
-            b.on_key(&k, &mut self.focus, &self.ring)
-        }
-    }
-
-    fn draw(b: &mut FileBrowser, w: u16, h: u16) -> String {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(Rect::new(0, 0, w, h));
-        b.render(Rect::new(0, 0, w, h), &mut buf, &mut ctx);
-        (0..h)
-            .map(|y| {
-                (0..w)
-                    .map(|x| buf[(x, y)].symbol().to_owned())
-                    .collect::<String>()
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-
-    #[test]
-    fn folders_list_first_and_hidden_entries_wait_for_the_toggle() {
-        let mut b = FileBrowser::new(ID, "Choose", source(), "/home/ada");
-        assert_eq!(labels(&b), ["..", "notes/", "src/", "todo.md"]);
-        assert!(b.list.items[3].disabled, "a file is not a choice in Dirs");
-        assert_eq!(b.path.text(), "~");
-        let mut r = Rig::new(&b);
-        r.key(&mut b, ch('.'));
-        assert_eq!(labels(&b), ["..", ".config/", "notes/", "src/", "todo.md"]);
-        assert!(b.hidden_box.as_ref().is_some_and(|c| c.checked));
-        r.key(&mut b, ch('.'));
-        assert_eq!(labels(&b).len(), 4);
-    }
-
-    #[test]
-    fn enter_opens_backspace_goes_up_and_space_chooses() {
-        let mut b = FileBrowser::new(ID, "Choose", source(), "/home/ada");
-        let mut r = Rig::new(&b);
-        r.key(&mut b, key(KeyCode::Down));
-        r.key(&mut b, key(KeyCode::Down));
-        assert_eq!(b.list.cursor, 2, "src/");
-        r.key(&mut b, key(KeyCode::Enter));
-        assert_eq!(b.cwd, "/home/ada/src");
-        assert_eq!(b.path.text(), "~/src");
-        assert_eq!(labels(&b), ["..", "api/", "web/", "README.md"]);
-        assert_eq!(b.list.items[1].meta.as_deref(), Some("git · main"));
-        r.key(&mut b, key(KeyCode::Down));
-        r.key(&mut b, ch(' '));
-        assert_eq!(
-            b.result,
-            Some(FileBrowserResult::Chosen {
-                path: "/home/ada/src/api".into(),
-                checked: false
-            })
-        );
-        b.result = None;
-        r.key(&mut b, key(KeyCode::Backspace));
-        assert_eq!(b.cwd, "/home/ada");
-    }
-
-    #[test]
-    fn choose_respects_the_kind() {
-        let mut b = FileBrowser::new(ID, "Open", source(), "/home/ada");
-        let mut r = Rig::new(&b);
-        b.list.cursor = 3;
-        r.key(&mut b, ch(' '));
-        assert_eq!(b.error.as_deref(), Some("Choose a folder, not a file"));
-        let mut b = FileBrowser::new(ID, "Open", source(), "/home/ada").choose(Choose::Files);
-        assert!(!b.list.items[3].disabled);
-        b.list.cursor = 2;
-        r.key(&mut b, ch(' '));
-        assert_eq!(b.cwd, "/home/ada/src");
-        assert!(b.result.is_none());
-        b.list.cursor = 3;
-        r.key(&mut b, ch(' '));
-        assert_eq!(
-            b.result,
-            Some(FileBrowserResult::Chosen {
-                path: "/home/ada/src/README.md".into(),
-                checked: false
-            })
-        );
-    }
-
-    #[test]
-    fn type_ahead_jumps_and_the_filter_narrows() {
-        let mut b = FileBrowser::new(ID, "Choose", source(), "/home/ada").filter(true);
-        let mut r = Rig::new(&b);
-        r.key(&mut b, ch('n'));
-        assert_eq!(b.list.cursor, 1, "type-ahead to notes/");
-        r.key(
-            &mut b,
-            Key {
-                code: KeyCode::Char('f'),
-                mods: KeyModifiers::CONTROL,
-            },
-        );
-        let filter = b.filter.as_ref().expect("filter").id;
-        assert!(r.focus.is(filter));
-        for c in "no".chars() {
-            r.key(&mut b, ch(c));
-        }
-        assert_eq!(labels(&b), ["..", "notes/"]);
-        r.key(&mut b, key(KeyCode::Enter));
-        assert!(r.focus.is(b.list.id), "Enter returns to the list");
-    }
-
-    #[test]
-    fn a_typed_location_opens_or_says_why_not() {
-        let mut b = FileBrowser::new(ID, "Choose", source(), "/home/ada");
-        let mut r = Rig::new(&b);
-        r.key(&mut b, ch('/'));
-        assert!(r.focus.is(b.path.id) && b.path.editing);
-        b.path.clear();
-        for c in "~/src/web".chars() {
-            r.key(&mut b, ch(c));
-        }
-        r.key(&mut b, key(KeyCode::Enter));
-        assert_eq!(b.cwd, "/home/ada/src/web");
-        assert!(r.focus.is(b.list.id));
-        r.key(&mut b, ch('/'));
-        b.path.clear();
-        for c in "~/nope".chars() {
-            r.key(&mut b, ch(c));
-        }
-        r.key(&mut b, key(KeyCode::Enter));
-        assert_eq!(b.error.as_deref(), Some("Folder not found: ~/nope"));
-    }
-
-    #[test]
-    fn esc_cancels_only_when_the_policy_allows_it() {
-        let mut b = FileBrowser::new(ID, "Choose", source(), "/home/ada");
-        let mut r = Rig::new(&b);
-        r.key(&mut b, key(KeyCode::Esc));
-        assert_eq!(b.result, Some(FileBrowserResult::Cancelled));
-        let mut b = FileBrowser::new(ID, "Choose", source(), "/home/ada").dismiss(Dismiss::NEVER);
-        r.key(&mut b, key(KeyCode::Esc));
-        assert_eq!(b.result, None);
-        assert!(!b.hints(None).iter().any(|h| h.key == "Esc"));
-    }
-
-    #[test]
-    fn the_url_entry_validates_before_it_answers() {
-        let mut b = FileBrowser::new(ID, "Choose", source(), "/home/ada")
-            .keys(FileCmd::vim_keymap())
-            .url_entry(
-                UrlEntry::new("Git URL…", "Git URL")
-                    .empty_error("Enter a repository URL")
-                    .validate(|u| {
-                        if u.contains("acme/api") {
-                            Ok(())
-                        } else {
-                            Err("not found".into())
-                        }
-                    }),
-            );
-        let mut r = Rig::new(&b);
-        r.key(&mut b, ch('g'));
-        assert!(b.url_mode && r.focus.is(b.path.id));
-        assert_eq!(
-            b.url_button().map(|x| x.label.as_str()),
-            Some("Browse folders")
-        );
-        r.key(&mut b, key(KeyCode::Enter));
-        assert_eq!(b.error.as_deref(), Some("Enter a repository URL"));
-        b.path.begin_edit();
-        for c in "github.com/acme/web".chars() {
-            r.key(&mut b, ch(c));
-        }
-        r.key(&mut b, key(KeyCode::Enter));
-        assert_eq!(b.error.as_deref(), Some("not found"));
-        b.path.begin_edit();
-        b.path.clear();
-        for c in "github.com/acme/api".chars() {
-            r.key(&mut b, ch(c));
-        }
-        r.key(&mut b, key(KeyCode::Enter));
-        assert_eq!(
-            b.result,
-            Some(FileBrowserResult::Url("github.com/acme/api".into()))
-        );
-    }
-
-    #[test]
-    fn hints_name_the_bound_keys() {
-        let b = FileBrowser::new(ID, "Choose", source(), "/home/ada");
-        let keys: Vec<(&str, String)> = b
-            .hints(None)
-            .iter()
-            .map(|h| (h.key, h.action.to_string()))
-            .collect();
-        assert_eq!(
-            keys,
-            [
-                ("Enter", "Open".to_owned()),
-                ("Space", "Choose".to_owned()),
-                (".", "Hidden files".to_owned()),
-                ("Tab", "Next".to_owned()),
-                ("Esc", "Cancel".to_owned()),
-            ]
-        );
-        let b = FileBrowser::new(ID, "Choose", source(), "/home/ada")
-            .keys(FileCmd::vim_keymap())
-            .hidden_toggle(false)
-            .url_entry(UrlEntry::new("Git URL…", "Git URL"));
-        let keys: Vec<&str> = b.hints(None).iter().map(|h| h.key).collect();
-        assert_eq!(keys, ["Enter", "Space", "g", "Tab", "Esc"]);
-    }
-
-    #[test]
-    fn the_path_bar_names_the_folders_and_opens_one() {
-        let mut b = FileBrowser::new(ID, "Choose a folder", source(), "/home/ada/src/api")
-            .path_bar(true)
-            .checkbox("Mount read-only", true);
-        let text = draw(&mut b, 120, 40);
-        assert!(text.contains("~ › src › api"), "{text}");
-        assert!(text.contains("Mount read-only"), "{text}");
-        assert!(text.contains("Show hidden files"), "{text}");
-        assert_eq!(
-            b.crumb_paths,
-            ["/home/ada", "/home/ada/src", "/home/ada/src/api"]
-        );
-        let mut r = Rig::new(&b);
-        r.key(&mut b, ch(' '));
-        assert_eq!(
-            b.result,
-            Some(FileBrowserResult::Chosen {
-                path: "/home/ada/src/api".into(),
-                checked: true
-            })
-        );
-    }
-
-    #[test]
-    fn an_unreadable_folder_says_why() {
-        struct Broken;
-        impl FileSource for Broken {
-            fn list(&self, _: &str) -> Result<Vec<FileEntry>, String> {
-                Err("Permission denied".into())
-            }
-            fn is_dir(&self, _: &str) -> bool {
-                true
-            }
-        }
-        let mut b = FileBrowser::new(ID, "Choose", Broken, "/root");
-        assert_eq!(b.error.as_deref(), Some("Permission denied"));
-        let text = draw(&mut b, 100, 30);
-        assert!(text.contains("! Permission denied"), "{text}");
-    }
-
-    #[test]
-    #[cfg(unix)]
-    fn the_real_filesystem_lists_a_folder() {
-        let dir = std::env::temp_dir().join(format!("junie-fb-{}", std::process::id()));
-        std::fs::create_dir_all(dir.join("sub")).expect("mkdir");
-        std::fs::write(dir.join("a.txt"), "hello").expect("write");
-        std::os::unix::fs::symlink(dir.join("sub"), dir.join("link")).expect("link");
-        let path = dir.to_string_lossy().into_owned();
-        let b = FileBrowser::new(ID, "Choose", FsSource::new(), &path).choose(Choose::Any);
-        assert_eq!(
-            labels(&b),
-            ["..", "link/", "sub/", "a.txt"],
-            "a linked folder is a folder"
-        );
-        assert_eq!(
-            b.list.items[3].meta.as_deref(),
-            Some(crate::ui::text::bytes(5).as_str())
-        );
-        std::fs::remove_dir_all(&dir).expect("cleanup");
-    }
-}

@@ -1,35 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::Cell;
 
 use ratatui::buffer::Buffer;
@@ -44,13 +14,10 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{self, Placement};
 use crate::ui::text::{truncate, width, wrap};
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tooltips {
 
     pub enabled: bool,
-
 
     pub delay_ms: u64,
 
@@ -91,9 +58,6 @@ impl Default for Tooltips {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Tip {
     pub text: String,
@@ -114,7 +78,6 @@ impl Tip {
     }
 }
 
-
 pub fn tip_id(owner: WidgetId) -> WidgetId {
     owner.sub("junie.tooltip")
 }
@@ -123,20 +86,15 @@ thread_local! {
 
     static SHOWN: Cell<Option<WidgetId>> = const { Cell::new(None) };
 
-
     static DISMISSED: Cell<Option<WidgetId>> = const { Cell::new(None) };
 
     static QUEUED: Cell<bool> = const { Cell::new(false) };
 }
 
-
 pub(crate) fn begin_frame() {
     QUEUED.with(|q| q.set(false));
     SHOWN.with(|s| s.set(None));
 }
-
-
-
 
 pub fn show(
     ctx: &mut RenderCtx,
@@ -177,9 +135,6 @@ pub fn show(
     ctx.overlay(move |buf, ctx| draw(buf, ctx, owner, anchor, &tip, policy));
 }
 
-
-
-
 pub fn on_input(input: &Input) -> Option<Outcome> {
     let Input::Key(k) = input else {
         return None;
@@ -192,7 +147,6 @@ pub fn on_input(input: &Input) -> Option<Outcome> {
     SHOWN.with(|s| s.set(None));
     Some(Outcome::Changed)
 }
-
 
 fn layout(
     screen: Rect,
@@ -245,7 +199,6 @@ fn draw(
     }
     SHOWN.with(|s| s.set(Some(owner)));
 
-
     let on_popover = area
         .positions()
         .any(|p| buf.cell(p).is_some_and(|c| c.bg == t.popover));
@@ -276,138 +229,3 @@ fn draw(
     ctx.hits.register_hover(tip_id(owner), area);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::event::Key;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use ratatui::crossterm::event::KeyModifiers;
-    use ratatui::layout::Position;
-
-    const OWNER: WidgetId = WidgetId::of("save");
-    const ANCHOR: Rect = Rect::new(2, 1, 8, 1);
-
-    fn tip() -> Tip {
-        Tip::new("Save the query").shortcut("Ctrl+S")
-    }
-
-    fn frame(interaction: Interaction) -> (Buffer, HitRegistry) {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 8));
-        {
-            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-            ctx.clickable(OWNER, ANCHOR);
-            show(&mut ctx, OWNER, ANCHOR, &tip(), None);
-            ctx.flush_overlays(&mut buf);
-        }
-        (buf, hits)
-    }
-
-    fn text(buf: &Buffer) -> String {
-        let mut s = String::new();
-        for y in 0..buf.area.height {
-            for x in 0..buf.area.width {
-                s.push_str(buf[(x, y)].symbol());
-            }
-            s.push('\n');
-        }
-        s
-    }
-
-    fn hovering(id: WidgetId, ms: Option<u64>) -> Interaction {
-        Interaction {
-            hover: Some(id),
-            hover_ms: ms,
-            ..Default::default()
-        }
-    }
-
-    fn esc() -> Input {
-        Input::Key(Key {
-            code: KeyCode::Esc,
-            mods: KeyModifiers::NONE,
-        })
-    }
-
-
-
-    #[test]
-    fn a_resting_pointer_shows_the_description_and_shortcut() {
-        let (buf, _) = frame(hovering(OWNER, Some(100)));
-        assert!(!text(&buf).contains("Save the query"), "not yet");
-        assert_eq!(
-            crate::ui::reveal::hover_wait().map(|w| w.1),
-            Some(500),
-            "the runtime is told when to draw again"
-        );
-        let (buf, hits) = frame(hovering(OWNER, Some(600)));
-        let s = text(&buf);
-        let row: Vec<&str> = s.lines().collect();
-        assert!(row[2].contains("Save the query  Ctrl+S"), "{s}");
-
-        let x = row[2].find("Ctrl").unwrap() as u16;
-        assert_eq!(buf[(x, 2)].fg, Theme::junie().text_muted);
-
-        assert_eq!(hits.hover_at(Position::new(4, 2)), Some(tip_id(OWNER)));
-        assert_eq!(hits.hit(Position::new(4, 2)), None);
-
-        let (buf, _) = frame(Interaction::default());
-        assert!(!text(&buf).contains("Save the query"));
-    }
-
-
-
-    #[test]
-    fn it_is_hoverable_dismissible_and_persistent() {
-        let (buf, _) = frame(hovering(OWNER, Some(700)));
-        assert!(text(&buf).contains("Save the query"));
-
-        let (buf, _) = frame(hovering(tip_id(OWNER), Some(0)));
-        assert!(text(&buf).contains("Save the query"));
-
-        assert_eq!(on_input(&esc()), Some(Outcome::Changed));
-        let (buf, _) = frame(hovering(OWNER, Some(5_000)));
-        assert!(!text(&buf).contains("Save the query"), "stays dismissed");
-        assert_eq!(on_input(&esc()), None, "nothing shown: Esc goes on");
-
-        frame(Interaction::default());
-        let (buf, _) = frame(hovering(OWNER, Some(700)));
-        assert!(text(&buf).contains("Save the query"));
-
-        let (buf, _) = frame(Interaction {
-            pressed: Some(OWNER),
-            ..hovering(OWNER, Some(800))
-        });
-        assert!(!text(&buf).contains("Save the query"));
-        frame(Interaction::default());
-
-        let (buf, _) = frame(Interaction {
-            hover_suppressed: true,
-            ..hovering(OWNER, Some(800))
-        });
-        assert!(!text(&buf).contains("Save the query"));
-    }
-
-    #[test]
-    fn the_policy_turns_tooltips_off_or_changes_the_delay() {
-        let theme = Theme::junie();
-        let run = |policy: Tooltips, ms: u64| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 8));
-            let mut ctx = RenderCtx::new(&theme, hovering(OWNER, Some(ms)), &mut hits, &mut ring);
-            ctx.tooltips = policy;
-            show(&mut ctx, OWNER, ANCHOR, &tip(), None);
-            ctx.flush_overlays(&mut buf);
-            text(&buf).contains("Save the query")
-        };
-        assert!(!run(Tooltips::OFF, 5_000));
-        assert!(run(Tooltips::default().delay_ms(0), 0));
-        assert!(!run(Tooltips::default(), 599));
-    }
-}

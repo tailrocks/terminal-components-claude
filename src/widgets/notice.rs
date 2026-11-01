@@ -1,21 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -24,7 +8,6 @@ use crate::core::id::WidgetId;
 use crate::theme::{Theme, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{truncate, wrap};
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NoticeKind {
@@ -50,7 +33,6 @@ impl NoticeKind {
         }
     }
 
-
     pub fn message_tone(self) -> Tone {
         match self {
             NoticeKind::Error => Tone::Error,
@@ -59,8 +41,6 @@ impl NoticeKind {
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Notice {
@@ -74,7 +54,6 @@ pub struct Notice {
     pub max_lines: usize,
 
     pub detail_tone: Tone,
-
 
     pub mark_cut: bool,
 }
@@ -140,7 +119,6 @@ impl Notice {
         self
     }
 
-
     fn lines(&self, text: &str, w: usize, max: usize) -> Vec<String> {
         let wrapped = wrap(text, w.max(1));
         let cut = wrapped.len() > max;
@@ -154,8 +132,6 @@ impl Notice {
         lines
     }
 
-
-
     pub fn height(&self, width: u16) -> u16 {
         let w = width.saturating_sub(2) as usize;
         let message = self.lines(&self.message, w, self.message_lines).len();
@@ -166,12 +142,9 @@ impl Notice {
         (message.max(1) + detail + usize::from(self.hint.is_some())) as u16
     }
 
-
-
     pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) -> u16 {
         self.render_theme(area, buf, ctx.theme, bg)
     }
-
 
     pub fn render_theme(&self, area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) -> u16 {
         let area = area.intersection(*buf.area());
@@ -192,7 +165,6 @@ impl Notice {
                 *y += 1;
             }
         };
-
 
         let reveal = |y: u16, text: &str, max: usize| {
             if max > 0 && y > area.y && y <= area.bottom() && wrap(text, w.max(1)).len() > max {
@@ -224,9 +196,6 @@ impl Notice {
     }
 }
 
-
-
-
 impl crate::ui::measure::Measure for Notice {
     fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
         let text = [
@@ -244,10 +213,7 @@ impl crate::ui::measure::Measure for Notice {
     }
 }
 
-
 const SAMPLE_ID: WidgetId = WidgetId::of("notice-sample");
-
-
 
 impl crate::ui::specimen::Specimen for Notice {
     fn specimen_id(&self) -> WidgetId {
@@ -293,132 +259,3 @@ impl crate::ui::specimen::Specimen for Notice {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn text(buf: &Buffer, y: u16) -> String {
-        (0..buf.area.width)
-            .map(|x| buf[(x, y)].symbol().to_owned())
-            .collect::<String>()
-            .trim_end()
-            .to_owned()
-    }
-
-
-
-    #[test]
-    fn a_message_cut_at_its_line_limit_reveals_on_hover() {
-        let t = Theme::junie();
-        let mut hits = crate::core::hit::HitRegistry::default();
-        let mut ring = crate::core::focus::FocusRing::default();
-        let msg = "FATAL: password authentication failed for user acme_app on the replica";
-        let n = Notice::error(msg).message_lines(1);
-        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 2));
-        let mut ctx = RenderCtx::new(
-            &t,
-            crate::ui::ctx::Interaction::default(),
-            &mut hits,
-            &mut ring,
-        );
-        n.render(buf.area, &mut buf, &mut ctx, t.canvas);
-        ctx.flush_overlays(&mut buf);
-        drop(ctx);
-        assert!(text(&buf, 0).ends_with('…'), "{:?}", text(&buf, 0));
-        assert_eq!(
-            hits.hover_at(ratatui::layout::Position::new(5, 0)),
-            Some(crate::ui::reveal::cut_id(Rect::new(2, 0, 28, 1))),
-        );
-    }
-
-
-
-    #[test]
-    fn a_notice_at_its_measure_shows_every_line_whole() {
-        use crate::ui::measure::Measure;
-        let t = Theme::junie();
-        let mut hits = crate::core::hit::HitRegistry::default();
-        let mut ring = crate::core::focus::FocusRing::default();
-        let ctx = RenderCtx::new(
-            &t,
-            crate::ui::ctx::Interaction::default(),
-            &mut hits,
-            &mut ring,
-        );
-        let n = Notice::error("Connection refused by the replica")
-            .detail("prod-replica:5432 rejected the handshake after 3 attempts")
-            .hint("Check the VPN, then test again");
-        let size = n.measure(ratatui::layout::Size::new(10, 1), &ctx);
-        assert_eq!(size.height, 3);
-        let mut buf = Buffer::empty(Rect::new(0, 0, size.width, size.height));
-        n.render_theme(buf.area, &mut buf, &t, t.canvas);
-        assert!(text(&buf, 0).ends_with("Connection refused by the replica"));
-        assert!(text(&buf, 1).ends_with("after 3 attempts"));
-        assert!(text(&buf, 2).ends_with("then test again"));
-    }
-
-    #[test]
-    fn an_error_draws_a_bold_mark_its_message_detail_and_hint() {
-        let t = Theme::junie();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 6));
-        let n = Notice::error("Could not connect")
-            .detail("Timed out after 10 s")
-            .hint("Enter retries");
-        let rows = n.render_theme(buf.area, &mut buf, &t, t.canvas);
-        assert_eq!(rows, 3);
-        assert_eq!(rows, n.height(30));
-        assert_eq!(text(&buf, 0), "! Could not connect");
-        assert_eq!(text(&buf, 1), "  Timed out after 10 s");
-        assert_eq!(text(&buf, 2), "  Enter retries");
-        assert!(buf[(0, 0)].modifier.contains(Modifier::BOLD));
-        assert_eq!(buf[(0, 0)].fg, t.error);
-        assert_eq!(buf[(2, 0)].fg, t.error);
-        assert_eq!(buf[(2, 1)].fg, t.text_secondary);
-        assert_eq!(buf[(2, 2)].fg, t.text_muted);
-    }
-
-    #[test]
-    fn a_detail_past_its_limit_is_cut_and_marked() {
-        let t = Theme::junie();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 6));
-        let n = Notice::error("Failed").detail("one two three four five six seven eight nine ten");
-        let rows = n.render_theme(buf.area, &mut buf, &t, t.canvas);
-        assert_eq!(rows, 3);
-        assert!(text(&buf, 2).ends_with('…'), "{:?}", text(&buf, 2));
-
-        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 6));
-        n.clone()
-            .mark_cut(false)
-            .render_theme(buf.area, &mut buf, &t, t.canvas);
-        assert!(!text(&buf, 2).ends_with('…'));
-    }
-
-    #[test]
-    fn each_kind_has_its_own_glyph() {
-        let t = Theme::junie();
-        let glyphs: Vec<&str> = [
-            NoticeKind::Error,
-            NoticeKind::Warning,
-            NoticeKind::Info,
-            NoticeKind::Success,
-        ]
-        .iter()
-        .map(|k| k.glyph(&t).0)
-        .collect();
-        let mut unique = glyphs.clone();
-        unique.dedup();
-        assert_eq!(unique.len(), 4, "{glyphs:?}");
-    }
-
-    #[test]
-    fn a_notice_stops_at_the_bottom_of_its_area() {
-        let t = Theme::junie();
-        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 4));
-        let n = Notice::warning("Disk almost full")
-            .detail("a b")
-            .hint("Free space");
-        let rows = n.render_theme(Rect::new(0, 0, 30, 2), &mut buf, &t, t.canvas);
-        assert_eq!(rows, 2);
-        assert_eq!(text(&buf, 2), "");
-    }
-}

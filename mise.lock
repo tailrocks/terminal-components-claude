@@ -35,9 +35,9 @@ url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9
 url_api = "https://api.github.com/repos/nextest-rs/nextest/releases/assets/620608067"
 
 [[tools."cargo:https://github.com/tailrocks/tuiscotti"]]
-version = "rev:a1ea27f757d75d07b05499276cd932e9f8e067ad"
+version = "rev:d8d54155947f6303a41dfd6079b53c0abc16f29a"
 backend = "cargo:https://github.com/tailrocks/tuiscotti"
-specifiers = ["rev:a1ea27f757d75d07b05499276cd932e9f8e067ad"]
+specifiers = ["rev:d8d54155947f6303a41dfd6079b53c0abc16f29a"]
 
 [tools."cargo:https://github.com/tailrocks/tuiscotti".options]
 crate = "tuiscotti-cli"

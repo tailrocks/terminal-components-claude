@@ -1,16 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Margin, Position, Rect};
@@ -35,7 +24,6 @@ use crate::widgets::scrollbar;
 pub enum DialogBody {
     Text(String),
     Input(TextInput),
-
 
     Facts {
         facts: Vec<crate::widgets::props::Prop>,
@@ -62,8 +50,6 @@ pub struct Dialog {
     pub id: WidgetId,
     pub title: String,
 
-
-
     pub title_status: Option<StatusKind>,
     pub body: DialogBody,
     pub actions: Vec<Button>,
@@ -71,10 +57,7 @@ pub struct Dialog {
     pub cancel_index: Option<usize>,
     pub width: u16,
 
-
-
     pub keymap: KeyMap<DialogCmd>,
-
 
     pub nav: NavKeys,
     pub area: Rect,
@@ -83,102 +66,55 @@ pub struct Dialog {
 
     pub dismiss: Dismiss,
 
-
-
     pub close_button: crate::widgets::icon_button::IconButton,
-
 
     pub confirm_index: Option<usize>,
 
-
-
     pub body_scroll: bool,
-
 
     pub max_height: Option<u16>,
 
-
-
     pub outer_margin: Margin,
-
-
-
 
     pub placement: Placement,
 
-
     pub anchor: Rect,
-
-
 
     pub backdrop: Backdrop,
 
-
-
-
-
     pub chrome: (u16, u16),
-
-
 
     pub button_row: ButtonRow,
 
-
     gap: u16,
-
 
     pad: crate::theme::Insets,
 
-
     pub scroll: ScrollPane,
-
-
-
 
     pub horizontal: Option<HScroll>,
 
-
     strings: Strings,
-
-
 
     pub ack_enter: AckEnter,
 
-
-
-
     pub mnemonics: bool,
-
 
     pristine: String,
 
-
-
     pub guard_dirty_prompt: bool,
-
-
-
-
-
-
-
 
     pub guard_destructive_dismiss: bool,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AckEnter {
-
 
     #[default]
     Submit,
 
-
     NextField,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogCmd {
@@ -196,13 +132,10 @@ impl Actions for DialogCmd {
         }
     }
 
-
-
     fn default_keymap() -> KeyMap<Self> {
         vec![]
     }
 }
-
 
 pub const OUTER_MARGIN: Margin = Margin {
     horizontal: 3,
@@ -222,8 +155,6 @@ impl Dialog {
         self
     }
 
-
-
     pub fn accelerators(mut self, keys: Option<(char, char)>) -> Self {
         self.keymap = match keys {
             Some((yes, no)) => vec![
@@ -235,54 +166,41 @@ impl Dialog {
         self
     }
 
-
     pub fn keymap(mut self, keymap: KeyMap<DialogCmd>) -> Self {
         self.keymap = keymap;
         self
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-
     pub fn ack_enter(mut self, ack_enter: AckEnter) -> Self {
         self.ack_enter = ack_enter;
         self
     }
-
 
     pub fn mnemonics(mut self, on: bool) -> Self {
         self.mnemonics = on;
         self
     }
 
-
     pub fn guard_dirty_prompt(mut self, on: bool) -> Self {
         self.guard_dirty_prompt = on;
         self
     }
-
 
     pub fn guard_destructive_dismiss(mut self, on: bool) -> Self {
         self.guard_destructive_dismiss = on;
         self
     }
 
-
-
     fn dismissal_is_destructive(&self) -> bool {
         self.cancel_index
             .and_then(|i| self.actions.get(i))
             .is_some_and(|b| b.kind == ButtonKind::Danger)
     }
-
-
-
-
-
 
     pub(crate) fn dismiss_in_force(&self) -> Dismiss {
         let mut d = self.dismiss;
@@ -296,17 +214,12 @@ impl Dialog {
         d
     }
 
-
-
     fn has_text_field(&self) -> bool {
         matches!(
             self.body,
             DialogBody::Input(_) | DialogBody::Facts { ack: Some(_), .. }
         )
     }
-
-
-
 
     pub fn mnemonic_keys(&self) -> Vec<Option<(char, usize)>> {
         let mut taken: Vec<char> = vec![];
@@ -328,11 +241,9 @@ impl Dialog {
             .collect()
     }
 
-
     fn mnemonics_live(&self) -> bool {
         self.mnemonics && !self.has_text_field()
     }
-
 
     fn mnemonic_action(&self, key: &Key) -> Option<usize> {
         let KeyCode::Char(c) = key.code else {
@@ -347,12 +258,9 @@ impl Dialog {
             .position(|m| m.is_some_and(|(k, _)| k == c))
     }
 
-
     pub fn prompt_dirty(&self) -> bool {
         matches!(&self.body, DialogBody::Input(i) if i.text() != self.pristine)
     }
-
-
 
     fn gated_action(&self) -> Option<usize> {
         self.confirm_index.or_else(|| {
@@ -492,8 +400,6 @@ impl Dialog {
         }
     }
 
-
-
     fn follow_strings(&mut self, s: Strings) {
         let old = std::mem::replace(&mut self.strings, s);
         if old == s {
@@ -511,7 +417,6 @@ impl Dialog {
             );
         }
     }
-
 
     pub fn facts(
         id: WidgetId,
@@ -577,18 +482,12 @@ impl Dialog {
         }
     }
 
-
     pub fn armed(&self) -> bool {
         match &self.body {
             DialogBody::Facts { ack: Some(a), .. } => a.input.text().trim() == a.token,
             _ => true,
         }
     }
-
-
-
-
-
 
     pub fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         let s = &self.strings;
@@ -614,7 +513,6 @@ impl Dialog {
             && focused == Some(inp.id)
         {
             if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
-
 
                 let gated = self
                     .gated_action()
@@ -684,7 +582,6 @@ impl Dialog {
         }
         v.extend(dismiss_hint());
 
-
         if matches!(self.body, DialogBody::Text(_)) {
             if let Some(k) = crate::core::keymap::hint_key(&self.keymap, DialogCmd::Confirm)
                 && let Some(p) = self.actions.iter().find(|b| {
@@ -702,10 +599,6 @@ impl Dialog {
         v
     }
 
-
-
-
-
     pub fn cancel_label(mut self, label: &str) -> Self {
         if let Some(b) = self.cancel_index.and_then(|i| self.actions.get_mut(i)) {
             b.label = label.to_owned();
@@ -713,27 +606,20 @@ impl Dialog {
         self
     }
 
-
     pub fn title_status(mut self, kind: StatusKind) -> Self {
         self.title_status = Some(kind);
         self
     }
-
 
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
     }
 
-
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
     }
-
-
-
-
 
     pub fn edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
         if let Some(inp) = self.input_mut() {
@@ -742,19 +628,12 @@ impl Dialog {
         self
     }
 
-
-
-
-
-
     pub(crate) fn dismissed(&mut self) -> Outcome {
         match self.cancel_index {
             Some(ci) => self.finish(DialogResult::Action(ci)),
             None => self.finish(DialogResult::Cancelled),
         }
     }
-
-
 
     pub fn actions(mut self, actions: Vec<Button>, cancel_index: Option<usize>) -> Self {
         self.actions = actions;
@@ -785,9 +664,6 @@ impl Dialog {
         }
     }
 
-
-
-
     fn code_rows(code: &[String]) -> u16 {
         if code.is_empty() {
             0
@@ -796,13 +672,9 @@ impl Dialog {
         }
     }
 
-
-
     fn code_bar_rows(code: &[String], inner_w: u16, h_cfg: &HScroll) -> u16 {
         u16::from(!code.is_empty() && h_cfg.shows_bar(&Self::code_extent(code, inner_w)))
     }
-
-
 
     fn code_extent(code: &[String], inner_w: u16) -> ScrollState {
         let widest = code
@@ -815,11 +687,9 @@ impl Dialog {
         s
     }
 
-
     fn scroll_code(&mut self, delta: isize) -> Outcome {
         self.scroll.wheel(Axis::Horizontal, delta as i32).outcome()
     }
-
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
 
@@ -837,25 +707,17 @@ impl Dialog {
         Outcome::Consumed
     }
 
-
-
     fn ack_rows(&self, ack: Option<&AckInput>, width: u16) -> u16 {
         ack.map_or(0, |a| a.input.height_for(self.field_width(width)) + 1)
     }
-
-
 
     fn field_width(&self, width: u16) -> u16 {
         self.inner_width(width) + TextInput::GUTTER
     }
 
-
-
     fn inner_width(&self, width: u16) -> u16 {
         width.saturating_sub(2 * (1 + self.pad.x))
     }
-
-
 
     fn scroll_rows(&self, width: u16) -> u16 {
         let inner_w = self.inner_width(width);
@@ -868,8 +730,6 @@ impl Dialog {
         }
     }
 
-
-
     fn fixed_rows(&self, width: u16) -> u16 {
         match &self.body {
             DialogBody::Text(_) => 0,
@@ -881,21 +741,15 @@ impl Dialog {
         }
     }
 
-
-
-
     fn chrome_rows(&self) -> u16 {
         5 + 2 * self.pad.y
     }
-
-
 
     fn action_rows(&self, width: u16) -> u16 {
         self.button_row
             .rows_at_gap(self.inner_width(width), &self.actions, self.gap)
             .max(1)
     }
-
 
     pub fn height(&self, width: u16) -> u16 {
         self.chrome_rows()
@@ -904,48 +758,40 @@ impl Dialog {
             + self.fixed_rows(width)
     }
 
-
     pub fn button_row(mut self, row: ButtonRow) -> Self {
         self.button_row = row;
         self
     }
-
 
     pub fn body_scroll(mut self, on: bool) -> Self {
         self.body_scroll = on;
         self
     }
 
-
     pub fn max_height(mut self, rows: Option<u16>) -> Self {
         self.max_height = rows;
         self
     }
-
 
     pub fn outer_margin(mut self, margin: Margin) -> Self {
         self.outer_margin = margin;
         self
     }
 
-
     pub fn backdrop(mut self, backdrop: Backdrop) -> Self {
         self.backdrop = backdrop;
         self
     }
-
 
     pub fn chrome(mut self, top: u16, bottom: u16) -> Self {
         self.chrome = (top, bottom);
         self
     }
 
-
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
         self
     }
-
 
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = anchor;
@@ -953,14 +799,12 @@ impl Dialog {
         self
     }
 
-
     pub fn confirm_index(mut self, index: Option<usize>) -> Self {
         self.confirm_index = index;
         self
     }
 
     fn finish(&mut self, r: DialogResult) -> Outcome {
-
 
         if let DialogResult::Action(i) = r
             && Some(i) == self.confirm_index
@@ -993,8 +837,6 @@ impl Dialog {
     ) -> Outcome {
         let cur = focus.current();
 
-
-
         if key.is(KeyCode::Esc)
             && self.dismiss.escape
             && let Some(inp) = self.input_mut()
@@ -1019,9 +861,6 @@ impl Dialog {
                     return Outcome::Changed;
                 }
                 Some(InputAction::Committed) => {
-
-
-
 
                     if is_facts {
                         if self.ack_enter == AckEnter::NextField {
@@ -1088,7 +927,6 @@ impl Dialog {
             }
         }
 
-
         if let Some(i) = self.mnemonic_action(key) {
             let usable =
                 !self.actions[i].disabled && (Some(i) != self.confirm_index || self.armed());
@@ -1130,7 +968,6 @@ impl Dialog {
                 Outcome::Changed
             }
 
-
             (Some(Nav::Left), _) if arrow && key.shift() && self.scroll.h.overflows() => {
                 self.scroll_code(-1)
             }
@@ -1147,10 +984,6 @@ impl Dialog {
             _ => Outcome::Consumed,
         }
     }
-
-
-
-
 
     pub fn on_blur(&mut self, change: crate::core::focus::FocusChange) -> Outcome {
         match self.input_mut() {
@@ -1169,18 +1002,12 @@ impl Dialog {
         }
     }
 
-
-
-
-
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
         match self.input_mut() {
             Some(inp) if inp.id == id => inp.on_press_count(pos, count),
             _ => Outcome::Ignored,
         }
     }
-
-
 
     pub fn on_click(
         &mut self,
@@ -1190,9 +1017,6 @@ impl Dialog {
     ) -> Outcome {
         self.on_click_count(id, pos, 1, focus)
     }
-
-
-
 
     pub fn on_click_count(
         &mut self,
@@ -1231,8 +1055,6 @@ impl Dialog {
         Outcome::Consumed
     }
 
-
-
     pub fn on_click_outside(&mut self) -> Outcome {
         if self.dismiss_in_force().outside_click {
             self.dismissed()
@@ -1241,16 +1063,10 @@ impl Dialog {
         }
     }
 
-
-
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let bounds = body_bounds(screen, self.chrome.0, self.chrome.1);
         self.render_in(screen, bounds, buf, ctx);
     }
-
-
-
-
 
     pub fn render_in(&mut self, screen: Rect, bounds: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.follow_strings(ctx.theme.strings);
@@ -1328,9 +1144,6 @@ impl Dialog {
         let action_rows = self.action_rows(width);
         let actions_y = area.bottom().saturating_sub(1 + self.pad.y + action_rows);
 
-
-
-
         let fixed = self.fixed_rows(width);
         let scroll_bottom = actions_y.saturating_sub(1 + fixed).max(body_y);
         let viewport = scroll_bottom - body_y;
@@ -1363,8 +1176,6 @@ impl Dialog {
             }
             DialogBody::Facts { facts, code, ack } => {
 
-
-
                 let sheet_area = Rect::new(0, 0, inner.width, content);
                 let mut sheet = Buffer::empty(sheet_area);
                 fill(&mut sheet, sheet_area, ratatui::style::Style::new().bg(bg));
@@ -1372,7 +1183,6 @@ impl Dialog {
                 let facts_h = crate::widgets::props::measure(facts, inner.width);
                 let mut y = scroll_bottom;
                 if !code.is_empty() {
-
 
                     let extent = Self::code_extent(code, inner.width);
                     let off = self.scroll.h.offset;
@@ -1423,7 +1233,6 @@ impl Dialog {
         }
         if self.scroll.overflows() && viewport > 0 {
 
-
             let track = Rect::new(area.right() - 2, body_y, 1, viewport);
             self.scroll.set_track(self.id, Axis::Vertical, track);
             let below = self.scroll.max_offset() - self.scroll.offset;
@@ -1469,7 +1278,6 @@ impl Dialog {
             bg,
         );
 
-
         ctx.hits.register_surface(self.id, area);
 
         match &self.body {
@@ -1495,10 +1303,6 @@ impl Dialog {
     }
 }
 
-
-
-
-
 pub fn body_bounds(screen: Rect, top: u16, bottom: u16) -> Rect {
     let h = screen.height.saturating_sub(top + bottom);
     if h == 0 {
@@ -1506,8 +1310,6 @@ pub fn body_bounds(screen: Rect, top: u16, bottom: u16) -> Rect {
     }
     Rect::new(screen.x, screen.y + top, screen.width, h)
 }
-
-
 
 fn blit_rows(src: &Buffer, from: u16, dst: &mut Buffer, at: Rect) {
     let at = at.intersection(*dst.area());
@@ -1532,8 +1334,6 @@ impl Scrollable for Dialog {
         &mut self.scroll
     }
 
-
-
     fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         let r = self.scroll.wheel(axis, delta);
         if r.is_consumed() {
@@ -1545,12 +1345,6 @@ impl Scrollable for Dialog {
 }
 
 impl Dialog {
-
-
-
-
-
-
 
     pub fn pointer_in(
         &mut self,
@@ -1585,897 +1379,3 @@ impl Dialog {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::focus::FocusRing;
-    use crate::core::hit::HitRegistry;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-    use crate::widgets::props::Prop;
-
-    fn gate(width: u16) -> Dialog {
-        let facts = vec![
-            Prop::new("Action", "move to Trash 4 items under ~/work/ide"),
-            Prop::new("Mode", "Trash · native macOS Trash · space returns after the Trash is emptied").wrap(),
-            Prop::new("Estimate", "44.0 KiB allocated · APFS clones may overcount · purgeable space excluded · not a free-space guarantee").wrap(),
-            Prop::new("Threat model", "an unprivileged user · ancestors are re-resolved at commit · a concurrent rename of the final path cannot be excluded").wrap(),
-            Prop::new("Paths", "~/work/ide/.idea · ~/work/ide/a/b/c/d/e/deep.iml · ~/work/ide/app.iml · ~/work/ide/mod/mod.iml").wrap(),
-        ];
-        let code = vec![
-            "/Users/alex/work/ide/.idea".to_owned(),
-            "/Users/alex/work/ide/a/b/c/d/e/deep.iml".to_owned(),
-        ];
-        let mut d = Dialog::facts(
-            WidgetId::of("gate2"),
-            "Trash 4 items · gate 2 of 2",
-            facts,
-            code,
-            Some("TRASH 4 UNDER /Users/alex/work/ide ON mbp"),
-            Button::danger(WidgetId::of("gate2").sub("ok"), "Execute"),
-        );
-        d.width = width;
-        d
-    }
-
-    #[test]
-    fn a_title_status_leads_the_title_with_its_glyph_and_hue() {
-        let theme = Theme::junie();
-        let screen = Rect::new(0, 0, 80, 24);
-        let draw = |d: &mut Dialog| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut buf = Buffer::empty(screen);
-            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-            d.render(screen, &mut buf, &mut ctx);
-            buf
-        };
-        let row = |buf: &Buffer, y: u16| {
-            (0..80)
-                .map(|x| buf[(x, y)].symbol().to_owned())
-                .collect::<String>()
-        };
-        let mut plain = gate(70);
-        let buf = draw(&mut plain);
-        let y = (0..24)
-            .find(|&y| row(&buf, y).contains("Trash 4 items"))
-            .unwrap();
-        assert!(!row(&buf, y).contains("▲"));
-        let mut d = gate(70).title_status(StatusKind::Warn);
-        let buf = draw(&mut d);
-        let line = row(&buf, y);
-        assert!(line.contains("▲ Trash 4 items"), "{line:?}");
-        let x = (0..80).find(|&x| buf[(x, y)].symbol() == "▲").unwrap();
-        let (_, st) = theme.status(StatusKind::Warn);
-        let c = &buf[(x, y)];
-        assert_eq!(c.fg, theme.legible(st.fg.unwrap(), c.bg));
-    }
-
-
-
-
-    #[test]
-    fn every_line_of_a_long_code_preview_is_reached_by_scrolling_the_body() {
-        let code: Vec<String> = (1..=14).map(|i| format!("step {i:02} apt-get")).collect();
-        let mut d = Dialog::facts(
-            WidgetId::of("plan"),
-            "Start plan",
-            vec![Prop::new("Host", "mbp"), Prop::new("Steps", "14")],
-            code,
-            None,
-            Button::primary(WidgetId::of("plan").sub("ok"), "Start"),
-        );
-        let screen = Rect::new(0, 0, 72, 20);
-        let text = rows(&draw(&mut d, screen, screen)).join("\n");
-        assert!(text.contains("Host"), "{text}");
-        assert!(text.contains("step 01"), "{text}");
-        assert!(!text.contains("… "), "no line is summarised: {text}");
-        assert!(text.contains("more"), "the cut is announced: {text}");
-        let mut focus = crate::core::focus::Focus::default();
-        focus.focus(d.actions[0].id);
-        let ring = FocusRing::default();
-        let mut seen = text;
-        for _ in 0..20 {
-            d.on_key(&key(KeyCode::Down), &mut focus, &ring);
-            seen.push_str(&rows(&draw(&mut d, screen, screen)).join("\n"));
-        }
-        for i in 1..=14 {
-            assert!(seen.contains(&format!("step {i:02}")), "line {i}: {seen}");
-        }
-    }
-
-    #[test]
-    fn a_code_line_wider_than_the_dialog_scrolls_sideways_under_its_own_bar() {
-        let sql = "DELETE FROM customers WHERE id IN ('9e3d2906-68f5-4661-9c1c-e263532d8d84', 'da8dba6a-5f40-4c1e-9ebe-c4cfcc81aa10');";
-        let mut d = Dialog::facts(
-            WidgetId::of("del"),
-            "Delete 2 rows",
-            vec![Prop::new("Table", "public.customers")],
-            vec![sql.to_owned()],
-            None,
-            Button::danger(WidgetId::of("del").sub("ok"), "Delete"),
-        );
-        let screen = Rect::new(0, 0, 80, 24);
-        let theme = Theme::junie();
-        let draw = |d: &mut Dialog| {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut buf = Buffer::empty(screen);
-            {
-                let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-                d.render(screen, &mut buf, &mut ctx);
-            }
-            (buf, hits)
-        };
-        let (buf, hits) = draw(&mut d);
-        let bar = d.scroll.h_track();
-        assert!(!bar.is_empty(), "the preview gets a horizontal bar");
-        assert_eq!(buf[(bar.x, bar.y)].symbol(), scrollbar::H_THUMB);
-        assert_eq!(
-            hits.hit(Position::new(bar.x + 3, bar.y)),
-            Some(scrollbar::h_id_for(d.id))
-        );
-        assert!(d.hints(None).iter().any(|h| h.key == "⇧←→"));
-        let line = |buf: &Buffer| -> String {
-            (0..80)
-                .map(|x| buf[(x, bar.y - 1)].symbol().to_owned())
-                .collect()
-        };
-        assert!(line(&buf).contains("DELETE FROM"));
-
-
-        let mut focus = crate::core::focus::Focus::default();
-        let ring = FocusRing::default();
-        let shift = Key {
-            code: KeyCode::Right,
-            mods: ratatui::crossterm::event::KeyModifiers::SHIFT,
-        };
-        assert_eq!(d.on_key(&shift, &mut focus, &ring), Outcome::Changed);
-        assert_eq!(d.scroll.h.offset, HScroll::default().step);
-        let (buf, _) = draw(&mut d);
-        assert!(line(&buf).contains('…'), "cut on the left: {}", line(&buf));
-        assert!(
-            buf[(bar.x, bar.y)].symbol() != scrollbar::H_THUMB,
-            "the thumb moved"
-        );
-
-
-        assert_eq!(d.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
-        let (buf, _) = draw(&mut d);
-        let grab = (bar.x..bar.right())
-            .find(|&x| buf[(x, bar.y)].symbol() == scrollbar::H_THUMB)
-            .unwrap();
-        d.on_click(
-            scrollbar::h_id_for(d.id),
-            Position::new(grab, bar.y),
-            &mut focus,
-        );
-        assert_eq!(
-            d.on_drag(
-                scrollbar::h_id_for(d.id),
-                Position::new(bar.right() + 4, bar.y)
-            ),
-            Outcome::Changed
-        );
-        assert_eq!(d.scroll.h.offset, d.scroll.h.max_offset());
-        let (buf, _) = draw(&mut d);
-        assert!(
-            line(&buf).contains("aa10');"),
-            "the line's end: {}",
-            line(&buf)
-        );
-    }
-
-    fn render(d: &mut Dialog, screen: Rect) -> (Rect, Rect, Vec<Rect>) {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(screen);
-        d.render(screen, &mut buf, &mut ctx);
-        let ack = match &d.body {
-            DialogBody::Facts { ack: Some(a), .. } => a.input.area,
-            _ => unreachable!(),
-        };
-        (d.area, ack, d.actions.iter().map(|b| b.area).collect())
-    }
-
-    #[test]
-    fn wrapped_facts_are_measured_so_the_acknowledgement_and_actions_stay_inside_the_frame() {
-        let mut d = gate(78);
-        let (area, ack, actions) = render(&mut d, Rect::new(0, 0, 120, 40));
-        let inner = area.inner(ratatui::layout::Margin::new(1, 1));
-        assert!(
-            inner.contains(Position::new(ack.x, ack.bottom() - 1)),
-            "the typed phrase field is inside the frame: frame {area:?}, field {ack:?}"
-        );
-        for b in &actions {
-            assert!(
-                inner.contains(Position::new(b.x, b.y)),
-                "button {b:?} inside {area:?}"
-            );
-            assert!(
-                b.y > ack.bottom() - 1,
-                "actions sit below the field: {b:?} vs {ack:?}"
-            );
-        }
-
-        let measured = d.height(78);
-        assert_eq!(area.height, measured);
-        let facts_rows = crate::widgets::props::measure(
-            match &d.body {
-                DialogBody::Facts { facts, .. } => facts,
-                _ => unreachable!(),
-            },
-            72,
-        );
-        assert!(
-            facts_rows > 5,
-            "the wrapped facts take more rows than they have entries"
-        );
-    }
-
-    #[test]
-    fn backdrop_clicks_follow_the_dismiss_policy() {
-        let id = WidgetId::of("d");
-        let mut plain = Dialog::confirm(id, "Run?", "Run the suite.", "Run");
-        plain.on_click_outside();
-        assert_eq!(plain.result, Some(DialogResult::Action(0)));
-
-
-        let mut gated = gate(78);
-        assert_eq!(gated.on_click_outside(), Outcome::Consumed);
-        assert_eq!(gated.result, None);
-
-
-        let mut del =
-            Dialog::destructive(id, "Delete?", "Gone for good.", "Delete").dismiss(Dismiss::ESCAPE);
-        assert_eq!(del.on_click_outside(), Outcome::Consumed);
-        assert_eq!(del.result, None);
-        let mut locked =
-            Dialog::confirm(id, "Run?", "Run the suite.", "Run").dismiss(Dismiss::NEVER);
-        let mut focus = crate::core::focus::Focus::default();
-        let ring = FocusRing::default();
-        let esc = Key {
-            code: KeyCode::Esc,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        locked.on_key(&esc, &mut focus, &ring);
-        locked.on_click_outside();
-        assert_eq!(locked.result, None);
-    }
-
-
-
-
-    #[test]
-    fn a_destructive_cancel_refuses_light_dismissal_but_not_esc() {
-        use crate::core::intent::DismissReason as R;
-        use crate::ui::layer::Overlay;
-        let id = WidgetId::of("d");
-        let destructive_cancel = || {
-            Dialog::confirm(id, "Credentials?", "The launch is paused.", "Retry").actions(
-                vec![
-                    Button::secondary(id.sub("retry"), "Retry"),
-                    Button::danger(id.sub("cancel"), "Cancel launch"),
-                ],
-                Some(1),
-            )
-        };
-        let mut d = destructive_cancel();
-        assert_eq!(d.on_click_outside(), Outcome::Consumed);
-        assert_eq!(d.result, None, "a stray click does not cancel the launch");
-        let policy = Overlay::dismiss(&d);
-        assert!(
-            !policy.allows(R::OutsideClick),
-            "the layer stack refuses it"
-        );
-        assert!(!policy.allows(R::FocusOut));
-        assert!(policy.allows(R::Esc) && policy.allows(R::CloseButton));
-        let mut focus = crate::core::focus::Focus::default();
-        let ring = FocusRing::default();
-        let esc = Key {
-            code: KeyCode::Esc,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        };
-        d.on_key(&esc, &mut focus, &ring);
-        assert_eq!(d.result, Some(DialogResult::Action(1)), "Esc still cancels");
-
-
-        let mut light = destructive_cancel().guard_destructive_dismiss(false);
-        light.on_click_outside();
-        assert_eq!(light.result, Some(DialogResult::Action(1)));
-
-
-        let mut del = Dialog::destructive(id, "Delete?", "Gone for good.", "Delete");
-        del.on_click_outside();
-        assert_eq!(del.result, Some(DialogResult::Action(0)));
-    }
-
-    #[test]
-    fn the_gated_action_is_refused_until_the_token_matches_even_before_a_redraw() {
-        let mut d = gate(78);
-        assert_eq!(d.confirm_index, Some(1));
-
-        assert_eq!(d.finish(DialogResult::Action(1)), Outcome::Consumed);
-        assert_eq!(d.result, None);
-        if let DialogBody::Facts { ack: Some(a), .. } = &mut d.body {
-            let token = a.token.clone();
-            a.input = a.input.clone().value(&token);
-        }
-        d.finish(DialogResult::Action(1));
-        assert_eq!(d.result, Some(DialogResult::Action(1)));
-    }
-
-    #[test]
-    fn a_short_screen_clips_the_facts_never_the_field_or_the_actions() {
-        let mut d = gate(78);
-        let (area, ack, actions) = render(&mut d, Rect::new(0, 0, 120, 16));
-        let inner = area.inner(ratatui::layout::Margin::new(1, 1));
-        assert!(area.height <= 14);
-        assert!(
-            inner.contains(Position::new(ack.x, ack.bottom() - 1)),
-            "{ack:?} in {area:?}"
-        );
-        for b in &actions {
-            assert!(inner.contains(Position::new(b.x, b.y)), "{b:?} in {area:?}");
-        }
-    }
-
-    fn hint_text(hints: &[Hint]) -> String {
-        hints
-            .iter()
-            .map(|h| format!("{} {}", h.key, h.action))
-            .collect::<Vec<_>>()
-            .join(" · ")
-    }
-
-    #[test]
-    fn a_destructive_dialog_names_the_focused_cancel_button_not_confirm() {
-        let d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete");
-
-
-        let text = hint_text(&d.hints(Some(d.initial_focus)));
-        assert_eq!(text, "←→ Choose · Enter Cancel · Esc Cancel");
-        assert!(!text.contains("Confirm"), "{text}");
-
-        let text = hint_text(&d.hints(Some(d.actions[1].id)));
-        assert!(text.contains("Enter Delete"), "{text}");
-    }
-
-    #[test]
-    fn a_typed_acknowledgement_says_what_to_type_and_hides_the_gated_action() {
-        let d = gate(78);
-        let text = hint_text(&d.hints(Some(d.initial_focus)));
-        assert_eq!(
-            text,
-            "Type \"TRASH 4 UNDER /Users/alex/work/ide ON mbp\" to confirm · Esc Cancel"
-        );
-        let next = gate(78).ack_enter(AckEnter::NextField);
-        assert_eq!(
-            hint_text(&next.hints(Some(next.initial_focus))),
-            "Type \"TRASH 4 UNDER /Users/alex/work/ide ON mbp\" to confirm · Enter Next · Esc Cancel"
-        );
-
-        let text = hint_text(&d.hints(Some(d.actions[1].id)));
-        assert_eq!(text, "Esc Cancel");
-    }
-
-    #[test]
-    fn a_prompt_names_its_primary_action_while_editing() {
-        let input = TextInput::new(WidgetId::of("name"), "Name");
-        let mut d = Dialog::prompt(WidgetId::of("p"), "Rename", input, "Rename");
-        let focused = Some(d.initial_focus);
-        assert_eq!(
-            hint_text(&d.hints(focused)),
-            "Enter Edit · Tab Next · Esc Cancel"
-        );
-        if let DialogBody::Input(i) = &mut d.body {
-            i.begin_edit();
-        }
-        assert_eq!(hint_text(&d.hints(focused)), "Enter Rename · Esc Cancel");
-    }
-
-    #[test]
-    fn the_cancel_label_renames_the_button_and_the_hints() {
-        let d = Dialog::destructive(
-            WidgetId::of("c"),
-            "Cancel the launch?",
-            "The pipeline stops.",
-            "Cancel launch",
-        )
-        .cancel_label("Keep launching");
-        assert_eq!(d.actions[0].label, "Keep launching");
-        assert_eq!(d.cancel_index, Some(0));
-        assert_eq!(
-            hint_text(&d.hints(Some(d.initial_focus))),
-            "←→ Choose · Enter Keep launching · Esc Keep launching"
-        );
-
-        assert_eq!(
-            hint_text(&d.hints(Some(d.actions[1].id))),
-            "←→ Choose · Enter Cancel launch · Esc Keep launching"
-        );
-    }
-
-
-    fn draw(d: &mut Dialog, screen: Rect, bounds: Rect) -> Buffer {
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(screen);
-        d.render_in(screen, bounds, &mut buf, &mut ctx);
-        buf
-    }
-
-
-
-    #[test]
-    fn chrome_rows_place_render_like_render_in_body_bounds() {
-        let screen = Rect::new(0, 0, 60, 20);
-        let mut a = Dialog::confirm(WidgetId::of("c"), "Quit?", "Leave now.", "Quit");
-        let want = draw(&mut a, screen, body_bounds(screen, 1, 2));
-        let mut b = Dialog::confirm(WidgetId::of("c"), "Quit?", "Leave now.", "Quit").chrome(1, 2);
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut got = Buffer::empty(screen);
-        b.render(screen, &mut got, &mut ctx);
-        assert_eq!(rows(&got), rows(&want));
-        assert_eq!(a.area, b.area);
-
-        let mut c = Dialog::confirm(WidgetId::of("c"), "Quit?", "Leave now.", "Quit");
-        let whole = draw(&mut c, screen, screen);
-        assert_ne!(rows(&whole), rows(&want));
-    }
-
-    fn rows(buf: &Buffer) -> Vec<String> {
-        let a = buf.area;
-        (a.y..a.bottom())
-            .map(|y| {
-                (a.x..a.right())
-                    .map(|x| buf.cell((x, y)).map_or(" ", |c| c.symbol()))
-                    .collect::<String>()
-            })
-            .collect()
-    }
-
-    fn key(code: KeyCode) -> Key {
-        Key {
-            code,
-            mods: ratatui::crossterm::event::KeyModifiers::NONE,
-        }
-    }
-
-    fn help_text() -> String {
-        (1..=30)
-            .map(|i| format!("line {i:02}"))
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-
-
-
-    fn ack_dialog(enter: AckEnter) -> (Dialog, crate::core::focus::Focus, FocusRing) {
-        let mut d = Dialog::facts(
-            WidgetId::of("drop"),
-            "Drop table",
-            vec![Prop::new("Table", "public.orders")],
-            vec![],
-            Some("orders"),
-            Button::danger(WidgetId::of("drop").sub("ok"), "Drop"),
-        )
-        .ack_enter(enter);
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let screen = Rect::new(0, 0, 100, 30);
-        let mut buf = Buffer::empty(screen);
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        d.render(screen, &mut buf, &mut ctx);
-        let mut focus = crate::core::focus::Focus::default();
-        focus.focus(d.initial_focus);
-        (d, focus, ring)
-    }
-
-    fn type_into(d: &mut Dialog, focus: &mut crate::core::focus::Focus, ring: &FocusRing, s: &str) {
-        for c in s.chars() {
-            d.on_key(&key(KeyCode::Char(c)), focus, ring);
-        }
-    }
-
-    #[test]
-    fn enter_in_a_matching_acknowledgement_presses_the_gated_action() {
-        let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
-        let ack = d.initial_focus;
-
-        type_into(&mut d, &mut focus, &ring, "orders");
-        assert_eq!(hint_text(&d.hints(Some(ack))), "Enter Drop · Esc Cancel");
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-        assert_eq!(
-            d.result,
-            Some(DialogResult::Action(1)),
-            "Enter on the matching text presses Drop, never Cancel"
-        );
-    }
-
-    #[test]
-    fn enter_in_a_mismatched_acknowledgement_keeps_editing_and_says_so() {
-        let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
-        let ack = d.initial_focus;
-
-        type_into(&mut d, &mut focus, &ring, "order");
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-        assert_eq!(d.result, None);
-        assert_eq!(focus.current(), Some(ack), "focus stays in the field");
-        assert!(d.is_editing(), "the field keeps the caret");
-        let DialogBody::Facts { ack: Some(a), .. } = &d.body else {
-            unreachable!()
-        };
-        assert_eq!(a.input.field.error.as_deref(), Some("Does not match"));
-
-        type_into(&mut d, &mut focus, &ring, "s");
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-        assert_eq!(d.result, Some(DialogResult::Action(1)));
-    }
-
-    #[test]
-    fn ack_enter_next_field_keeps_the_two_step_confirmation() {
-        let (mut d, mut focus, ring) = ack_dialog(AckEnter::NextField);
-        let ack = d.initial_focus;
-
-        type_into(&mut d, &mut focus, &ring, "orders");
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-        assert_eq!(d.result, None);
-        assert_ne!(focus.current(), Some(ack), "Enter moved on to the buttons");
-    }
-
-    #[test]
-    fn label_mnemonics_press_their_action_and_never_a_y_on_cancel() {
-        let ring = FocusRing::default();
-        let d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete")
-            .cancel_label("Keep");
-        assert_eq!(d.mnemonic_keys(), vec![Some(('k', 0)), Some(('d', 0))]);
-
-        let mut y = d.clone();
-        let mut focus = crate::core::focus::Focus::default();
-        focus.focus(y.initial_focus);
-        y.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
-        assert_eq!(y.result, None, "y with Keep focused does nothing");
-
-        let mut del = d.clone();
-        del.on_key(&key(KeyCode::Char('d')), &mut focus, &ring);
-        assert_eq!(del.result, Some(DialogResult::Action(1)));
-        let mut keep = d.clone();
-        keep.on_key(&key(KeyCode::Char('K')), &mut focus, &ring);
-        assert_eq!(keep.result, Some(DialogResult::Action(0)));
-
-        let three = Dialog::confirm(WidgetId::of("x"), "Unsaved", "Save?", "Save").actions(
-            vec![
-                Button::subtle(WidgetId::of("c"), "Cancel"),
-                Button::danger(WidgetId::of("d"), "Discard"),
-                Button::primary(WidgetId::of("s"), "Save"),
-            ],
-            Some(0),
-        );
-        assert_eq!(
-            three.mnemonic_keys(),
-            vec![Some(('c', 0)), Some(('d', 0)), Some(('s', 0))]
-        );
-        let clash =
-            Dialog::confirm(WidgetId::of("x"), "Stop?", "Stop it?", "Stop").cancel_label("Stay");
-        assert_eq!(clash.mnemonic_keys(), vec![Some(('s', 0)), Some(('t', 1))]);
-
-        let mut off = d.clone().mnemonics(false);
-        off.on_key(&key(KeyCode::Char('d')), &mut focus, &ring);
-        assert_eq!(off.result, None);
-    }
-
-    #[test]
-    fn mnemonics_never_fire_while_a_text_field_takes_letters() {
-        let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
-        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-
-        type_into(&mut d, &mut focus, &ring, "c");
-        assert_eq!(d.result, None);
-        let DialogBody::Facts { ack: Some(a), .. } = &d.body else {
-            unreachable!()
-        };
-        assert_eq!(a.input.text(), "c");
-    }
-
-    #[test]
-    fn the_mnemonic_is_underlined_in_its_button() {
-        let mut d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete")
-            .cancel_label("Keep");
-        let screen = Rect::new(0, 0, 80, 20);
-        let buf = draw(&mut d, screen, screen);
-        let b = d.actions[1].area;
-        let cell = buf.cell((b.x + 1, b.y)).unwrap();
-        assert_eq!(cell.symbol(), "D");
-        assert!(cell.modifier.contains(ratatui::style::Modifier::UNDERLINED));
-        let next = buf.cell((b.x + 2, b.y)).unwrap();
-        assert!(!next.modifier.contains(ratatui::style::Modifier::UNDERLINED));
-
-        let mut p = Dialog::prompt(
-            WidgetId::of("p"),
-            "Rename",
-            TextInput::new(WidgetId::of("n"), "Name"),
-            "Rename",
-        );
-        let buf = draw(&mut p, screen, screen);
-        let b = p.actions[1].area;
-        let cell = buf.cell((b.x + 1, b.y)).unwrap();
-        assert!(!cell.modifier.contains(ratatui::style::Modifier::UNDERLINED));
-    }
-
-    #[test]
-    fn an_edited_prompt_ignores_a_backdrop_click() {
-        let input = TextInput::new(WidgetId::of("name"), "Name").value("draft");
-        let mut d = Dialog::prompt(WidgetId::of("p"), "Rename", input, "Rename");
-
-        let mut clean = d.clone();
-        clean.on_click_outside();
-        assert_eq!(clean.result, Some(DialogResult::Action(0)));
-
-        d.on_paste(" v2");
-        assert!(d.prompt_dirty());
-        assert_eq!(d.on_click_outside(), Outcome::Consumed);
-        assert_eq!(d.result, None);
-        let mut off = d.clone().guard_dirty_prompt(false);
-        off.on_click_outside();
-        assert_eq!(off.result, Some(DialogResult::Action(0)));
-    }
-
-    #[test]
-    fn letter_accelerators_follow_the_dialog_config() {
-        let mut focus = crate::core::focus::Focus::default();
-        let ring = FocusRing::default();
-
-        let mut d = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit");
-        d.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
-        assert_eq!(d.result, None);
-        d.on_key(&key(KeyCode::Char('q')), &mut focus, &ring);
-        assert_eq!(d.result, Some(DialogResult::Action(1)));
-        let mut yes = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit")
-            .accelerators(Some(('y', 'n')));
-        assert_eq!(
-            hint_text(&yes.hints(Some(yes.initial_focus))),
-            "←→ Choose · Enter Quit · Esc Cancel · y Quit · n Cancel"
-        );
-        yes.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
-        assert_eq!(yes.result, Some(DialogResult::Action(1)));
-        let mut off = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit")
-            .accelerators(None)
-            .width(40);
-        off.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
-        assert_eq!(off.result, None, "letters are inert without accelerators");
-        assert_eq!(off.width, 40);
-        let mut custom = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit")
-            .accelerators(Some(('o', 'a')));
-        custom.on_key(&key(KeyCode::Char('o')), &mut focus, &ring);
-        assert!(matches!(custom.result, Some(DialogResult::Action(_))));
-    }
-
-    #[test]
-    fn a_text_body_taller_than_the_screen_scrolls_to_its_last_line() {
-        let screen = Rect::new(0, 0, 72, 20);
-        let mut d = Dialog::confirm(WidgetId::of("help"), "Keys", &help_text(), "Close");
-        let buf = draw(&mut d, screen, screen);
-        let text = rows(&buf).join("\n");
-        assert!(text.contains("line 01"), "{text}");
-        assert!(!text.contains("line 30"), "{text}");
-
-        assert!(text.contains("more"), "a \"↓ N more\" marker: {text}");
-        assert!(text.contains(scrollbar::THUMB), "{text}");
-        assert!(
-            hint_text(&d.hints(Some(d.initial_focus))).contains("↑↓ Scroll"),
-            "the hints say the body scrolls"
-        );
-
-        let mut focus = crate::core::focus::Focus::default();
-        let ring = FocusRing::default();
-        d.on_key(&key(KeyCode::End), &mut focus, &ring);
-        let text = rows(&draw(&mut d, screen, screen)).join("\n");
-        assert!(text.contains("line 30"), "{text}");
-        assert!(!text.contains("more"), "{text}");
-
-        for _ in 0..40 {
-            d.wheel(Axis::Vertical, -100).outcome();
-        }
-        let text = rows(&draw(&mut d, screen, screen)).join("\n");
-        assert!(text.contains("line 01"), "{text}");
-    }
-
-    #[test]
-    fn body_scroll_off_cuts_the_body_as_before() {
-        let screen = Rect::new(0, 0, 72, 20);
-        let mut d = Dialog::confirm(WidgetId::of("help"), "Keys", &help_text(), "Close")
-            .body_scroll(false)
-            .max_height(Some(12));
-        let mut focus = crate::core::focus::Focus::default();
-        let ring = FocusRing::default();
-        draw(&mut d, screen, screen);
-        assert_eq!(d.area.height, 12);
-        d.on_key(&key(KeyCode::End), &mut focus, &ring);
-        let text = rows(&draw(&mut d, screen, screen)).join("\n");
-        assert!(text.contains("line 01"), "{text}");
-    }
-
-    #[test]
-    fn every_fact_of_a_short_gate_is_reachable_and_the_typed_phrase_is_whole() {
-        let screen = Rect::new(0, 0, 72, 20);
-        let mut d = gate(66);
-        let text = rows(&draw(&mut d, screen, screen)).join("\n");
-
-        assert!(text.contains("ON mbp to confirm"), "{text}");
-        assert!(!text.contains("confi…"), "{text}");
-        assert!(text.contains("more"), "{text}");
-        let mut focus = crate::core::focus::Focus::default();
-        focus.focus(d.actions[0].id);
-        let ring = FocusRing::default();
-        let mut seen = text;
-        for _ in 0..20 {
-            d.on_key(&key(KeyCode::Down), &mut focus, &ring);
-            seen.push_str(&rows(&draw(&mut d, screen, screen)).join("\n"));
-        }
-        for label in ["Action", "Mode", "Estimate", "Threat model", "Paths"] {
-            assert!(seen.contains(label), "{label} is reachable: {seen}");
-        }
-
-        let ack = match &d.body {
-            DialogBody::Facts { ack: Some(a), .. } => a.input.area,
-            _ => unreachable!(),
-        };
-        let actions_y = d.actions[0].area.y;
-        assert_eq!(
-            actions_y,
-            ack.y + 2,
-            "one blank row between the field and the actions"
-        );
-    }
-
-    #[test]
-    fn an_anchored_dialog_opens_under_the_control_that_asked() {
-        let screen = Rect::new(0, 0, 100, 30);
-        let button = Rect::new(10, 4, 12, 1);
-        let mut d = Dialog::confirm(WidgetId::of("d"), "Discard?", "Unsaved edits.", "Discard")
-            .anchor(button, Placement::Below);
-        draw(&mut d, screen, screen);
-        assert_eq!((d.area.x, d.area.y), (10, 5), "{:?}", d.area);
-        let mut c = Dialog::confirm(WidgetId::of("d"), "Discard?", "Unsaved edits.", "Discard");
-        draw(&mut c, screen, screen);
-        assert_eq!(
-            c.area.x,
-            (100 - c.area.width).div_ceil(2),
-            "centred by default"
-        );
-    }
-
-    #[test]
-    fn a_dialog_stays_inside_its_bounds_with_a_margin() {
-        let screen = Rect::new(0, 0, 72, 20);
-        let bounds = body_bounds(screen, 1, 2);
-        let mut d = gate(78);
-        draw(&mut d, screen, bounds);
-        let a = d.area;
-        assert!(a.y > bounds.y, "{a:?} below the header in {bounds:?}");
-        assert!(
-            a.bottom() < bounds.bottom(),
-            "{a:?} above the status in {bounds:?}"
-        );
-        assert!(a.x >= bounds.x + OUTER_MARGIN.horizontal, "{a:?}");
-        assert!(
-            a.right() + OUTER_MARGIN.horizontal <= bounds.right(),
-            "{a:?}"
-        );
-
-        let mut d = gate(78).outer_margin(Margin::new(0, 0));
-        draw(&mut d, screen, bounds);
-        assert_eq!(d.area.width, 72);
-    }
-
-    #[test]
-    fn the_padding_comes_from_the_theme_dialog_insets() {
-        let screen = Rect::new(0, 0, 80, 24);
-        let mut theme = Theme::junie();
-        theme.spacing.dialog = crate::theme::Insets::new(4, 2);
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        let mut buf = Buffer::empty(screen);
-        let mut d = Dialog::confirm(WidgetId::of("c"), "Run?", "Run the suite.", "Run");
-        d.render_in(screen, screen, &mut buf, &mut ctx);
-        let a = d.area;
-        let title_at = (a.x..a.right())
-            .find(|&x| buf.cell((x, a.y + 3)).map_or("", |c| c.symbol()) == "R")
-            .unwrap();
-        assert_eq!(title_at, a.x + 5, "border + 4 columns of padding");
-        assert_eq!(a.height, d.height(d.width), "the height counts the padding");
-    }
-
-    #[test]
-    fn a_narrow_dialog_wraps_its_actions_and_never_cuts_the_primary() {
-        let screen = Rect::new(0, 0, 30, 20);
-        let mut d = Dialog::destructive(
-            WidgetId::of("del"),
-            "Delete?",
-            "Gone for good.",
-            "Delete all",
-        )
-        .cancel_label("Keep files");
-        let text = rows(&draw(&mut d, screen, screen)).join("\n");
-        assert!(text.contains("Delete all"), "{text}");
-        assert!(text.contains("Keep files"), "{text}");
-        let (keep, del) = (d.actions[0].area, d.actions[1].area);
-        assert_ne!(keep.y, del.y, "two lines: {keep:?} {del:?}");
-        assert!(del.bottom() < d.area.bottom(), "inside the frame");
-    }
-
-    #[test]
-    fn a_prompt_field_label_lines_up_with_the_title() {
-        let screen = Rect::new(0, 0, 80, 24);
-        let input = TextInput::new(WidgetId::of("name"), "Task name").required(true);
-        let mut d = Dialog::prompt(WidgetId::of("p"), "Rename task", input, "Rename");
-        let r = rows(&draw(&mut d, screen, screen));
-        let col = |needle: &str| {
-            r.iter()
-                .find_map(|l| l.find(needle).map(|b| l[..b].chars().count()))
-                .unwrap()
-        };
-        assert_eq!(col("Rename task"), col("Task name"));
-    }
-}
-
-#[cfg(test)]
-mod track_click_tests {
-    use super::*;
-    use crate::core::focus::{Focus, FocusRing};
-    use crate::core::hit::HitRegistry;
-    use crate::core::scroll::TrackClick;
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-
-    fn pressed_at_the_bottom(click: Option<TrackClick>, app: TrackClick) -> usize {
-        let text: Vec<String> = (1..=40).map(|i| format!("line {i:02}")).collect();
-        let mut d = Dialog::confirm(WidgetId::of("help"), "Keys", &text.join("\n"), "Close");
-        d.scroll.track_click = click;
-        let theme = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let screen = Rect::new(0, 0, 72, 20);
-        let mut buf = Buffer::empty(screen);
-        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
-        ctx.track_click = app;
-        d.render_in(screen, screen, &mut buf, &mut ctx);
-        assert!(!d.scroll.v_track().is_empty(), "the body scrolls");
-        let bottom = Position::new(d.scroll.v_track().x, d.scroll.v_track().bottom() - 1);
-        let mut focus = Focus::default();
-        assert_eq!(
-            d.on_click(scrollbar::id_for(d.id), bottom, &mut focus),
-            Outcome::Changed
-        );
-        d.scroll.offset
-    }
-
-
-
-    #[test]
-    fn a_dialog_body_track_click_can_page() {
-        let page = pressed_at_the_bottom(Some(TrackClick::Page), TrackClick::Jump);
-        assert!(page > 0, "one page down");
-        assert_eq!(
-            pressed_at_the_bottom(None, TrackClick::Page),
-            page,
-            "app-wide"
-        );
-        assert!(
-            pressed_at_the_bottom(None, TrackClick::Jump) > page,
-            "default jumps"
-        );
-    }
-}

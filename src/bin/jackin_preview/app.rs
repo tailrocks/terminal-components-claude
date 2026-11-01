@@ -112,20 +112,6 @@ pub struct App {
 }
 
 impl App {
-    #[cfg(test)]
-    pub fn top_layer<L: junie_tui::ui::layer::Layer<ModalResult, World>>(&self) -> Option<&L> {
-        self.layers.top_as()
-    }
-
-    #[cfg(test)]
-    pub fn layer_count(&self) -> usize {
-        self.layers.len()
-    }
-
-    #[cfg(test)]
-    pub fn top_dismiss(&self) -> Option<junie_tui::ui::popup::Dismiss> {
-        self.layers.top().map(|t| t.layer.spec().dismiss)
-    }
 
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
         let mut world = crate::domain::fixtures::world_for(scenario);

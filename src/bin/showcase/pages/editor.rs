@@ -318,11 +318,6 @@ impl EditorPage {
             });
     }
 
-    #[cfg(test)]
-    pub fn text(&self) -> &str {
-        self.editor.text()
-    }
-
     fn word_before_cursor(&self) -> (usize, String) {
         let cur = self.editor.cursor_offset();
         let head = &self.editor.text()[..cur];

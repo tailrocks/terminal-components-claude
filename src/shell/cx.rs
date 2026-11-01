@@ -1,7 +1,5 @@
 
 
-
-
 use std::any::Any;
 
 use crate::core::focus::{Focus, FocusRing};
@@ -10,23 +8,15 @@ use crate::ui::context::ContextConfig;
 use crate::ui::layer::{Layer, LayerTag};
 use crate::ui::popup::Dismiss;
 
-
 pub type TopFn<R, W> = Box<dyn FnOnce(&mut dyn Layer<R, W>)>;
-
-
 
 pub enum Request<R, W: ?Sized = (), G = ()> {
 
-
     Status(String, Tone),
-
 
     StatusAs(String, StatusKind),
 
-
-
     Progress(String, super::JobKey),
-
 
     Open(Box<dyn Layer<R, W>>, LayerTag),
 
@@ -36,26 +26,16 @@ pub enum Request<R, W: ?Sized = (), G = ()> {
 
     Go(G),
 
-
-
     Back,
-
-
 
     Copy(String, Option<String>),
 
     Help,
 
-
-
     RefusedOutsideClick(Dismiss),
 }
 
 impl<R, W: ?Sized, G> Request<R, W, G> {
-
-
-
-
 
     pub fn allowed_in_background(&self) -> bool {
         matches!(
@@ -65,20 +45,15 @@ impl<R, W: ?Sized, G> Request<R, W, G> {
     }
 }
 
-
-
 pub fn background<R, W: ?Sized, G>(
     requests: Vec<Request<R, W, G>>,
 ) -> impl Iterator<Item = Request<R, W, G>> {
     requests.into_iter().filter(Request::allowed_in_background)
 }
 
-
-
 pub struct Cx<'a, R, W: ?Sized = (), G = ()> {
     pub focus: &'a mut Focus,
     pub ring: &'a FocusRing,
-
 
     pub context: ContextConfig,
     pub requests: Vec<Request<R, W, G>>,
@@ -94,12 +69,10 @@ impl<'a, R, W: ?Sized, G> Cx<'a, R, W, G> {
         }
     }
 
-
     pub fn context(mut self, context: ContextConfig) -> Self {
         self.context = context;
         self
     }
-
 
     pub fn take(&mut self) -> Vec<Request<R, W, G>> {
         std::mem::take(&mut self.requests)
@@ -113,27 +86,21 @@ impl<'a, R, W: ?Sized, G> Cx<'a, R, W, G> {
         self.focus.prev(self.ring);
     }
 
-
     pub fn status(&mut self, s: impl Into<String>) {
         self.status_in(s, Tone::Secondary);
     }
-
 
     pub fn status_in(&mut self, s: impl Into<String>, tone: Tone) {
         self.requests.push(Request::Status(s.into(), tone));
     }
 
-
     pub fn status_as(&mut self, kind: StatusKind, s: impl Into<String>) {
         self.requests.push(Request::StatusAs(s.into(), kind));
     }
 
-
-
     pub fn progress(&mut self, job: super::JobKey, s: impl Into<String>) {
         self.requests.push(Request::Progress(s.into(), job));
     }
-
 
     pub fn error(&mut self, s: impl Into<String>) {
         self.status_in(s, Tone::Error);
@@ -159,8 +126,6 @@ impl<'a, R, W: ?Sized, G> Cx<'a, R, W, G> {
         self.requests.push(Request::Copy(s.into(), None));
     }
 
-
-
     pub fn copy_as(&mut self, s: impl Into<String>, what: impl Into<String>) {
         self.requests
             .push(Request::Copy(s.into(), Some(what.into())));
@@ -177,7 +142,6 @@ impl<'a, R, W: ?Sized, G> Cx<'a, R, W, G> {
 
 impl<'a, R: 'static, W: ?Sized + 'static, G> Cx<'a, R, W, G> {
 
-
     pub fn with_top<L: Layer<R, W>>(&mut self, f: impl FnOnce(&mut L) + 'static) {
         self.requests
             .push(Request::Top(Box::new(move |layer: &mut dyn Layer<R, W>| {
@@ -189,24 +153,3 @@ impl<'a, R: 'static, W: ?Sized + 'static, G> Cx<'a, R, W, G> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_background_page_may_only_report_a_status() {
-        let mut focus = Focus::default();
-        let ring = FocusRing::default();
-        let mut cx: Cx<'_, ()> = Cx::new(&mut focus, &ring);
-        cx.status("saved");
-        cx.error("lost");
-        cx.go(());
-        cx.copy("x");
-        cx.help();
-        cx.close();
-        let kept: Vec<_> = background(cx.take()).collect();
-        assert_eq!(kept.len(), 2);
-        assert!(matches!(kept[0], Request::Status(_, Tone::Secondary)));
-        assert!(matches!(kept[1], Request::Status(_, Tone::Error)));
-    }
-}

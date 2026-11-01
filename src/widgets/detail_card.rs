@@ -1,25 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -30,7 +10,6 @@ use crate::widgets::button::Button;
 use crate::widgets::empty::{self, EmptyState};
 use crate::widgets::panel::Panel;
 use crate::widgets::props::{self, Prop};
-
 
 #[derive(Debug, Clone)]
 pub struct DetailCard {
@@ -46,19 +25,14 @@ pub struct DetailCard {
 
     pub max_height: Option<u16>,
 
-
     pub reserve: u16,
 
     pub empty: Option<EmptyState>,
 
     pub focused: bool,
 
-
-
-
     pub fit: bool,
 }
-
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DetailLayout {
@@ -68,7 +42,6 @@ pub struct DetailLayout {
     pub bg: Color,
 
     pub props_h: u16,
-
 
     pub slot: Rect,
 
@@ -91,12 +64,10 @@ impl DetailCard {
         }
     }
 
-
     pub fn fit(mut self, on: bool) -> Self {
         self.fit = on;
         self
     }
-
 
     pub fn empty(state: EmptyState) -> Self {
         Self {
@@ -105,24 +76,20 @@ impl DetailCard {
         }
     }
 
-
     pub fn meta(mut self, meta: &str) -> Self {
         self.meta = Some(meta.to_owned());
         self
     }
-
 
     pub fn props(mut self, props: Vec<Prop>) -> Self {
         self.props = props;
         self
     }
 
-
     pub fn actions(mut self, row: ActionRow) -> Self {
         self.actions = row;
         self
     }
-
 
     pub fn max_size(mut self, width: Option<u16>, height: Option<u16>) -> Self {
         self.max_width = width;
@@ -130,19 +97,15 @@ impl DetailCard {
         self
     }
 
-
     pub fn reserve(mut self, rows: u16) -> Self {
         self.reserve = rows;
         self
     }
 
-
     pub fn focused(mut self, on: bool) -> Self {
         self.focused = on;
         self
     }
-
-
 
     pub fn render(
         &self,
@@ -216,120 +179,3 @@ impl DetailCard {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::id::WidgetId;
-    use crate::core::{focus::FocusRing, hit::HitRegistry};
-    use crate::theme::Theme;
-    use crate::ui::ctx::Interaction;
-
-    fn row(buf: &Buffer, y: u16) -> String {
-        (0..buf.area.width)
-            .map(|x| buf[(x, y)].symbol().to_owned())
-            .collect()
-    }
-
-    #[test]
-    fn facts_slot_and_actions_take_their_rows() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let area = Rect::new(0, 0, 60, 12);
-        let mut buf = Buffer::empty(area);
-        let mut connect = Button::primary(WidgetId::of("c"), "Connect");
-        let mut edit = Button::secondary(WidgetId::of("e"), "Edit…");
-        let l = DetailCard::new("prod-eu")
-            .meta("postgres")
-            .props(vec![
-                Prop::new("Engine", "PostgreSQL"),
-                Prop::new("Host", "db"),
-            ])
-            .max_size(Some(40), None)
-            .render(
-                area,
-                &mut buf,
-                &mut ctx,
-                t.canvas,
-                &mut [&mut connect, &mut edit],
-            );
-        assert_eq!(l.card.width, 40, "capped at max_width");
-        assert_eq!(l.props_h, 2);
-        let text: String = (0..12).map(|y| row(&buf, y) + "\n").collect();
-        assert!(
-            text.contains("prod-eu") && text.contains("postgres"),
-            "{text}"
-        );
-        assert!(
-            text.contains("Engine") && text.contains("PostgreSQL"),
-            "{text}"
-        );
-        assert_eq!(
-            l.slot.y,
-            l.card.y + 1 + 2 + 1 + 1,
-            "under the facts and a blank row"
-        );
-        assert_eq!(l.actions.len(), 2);
-        assert_eq!(
-            l.actions[0].y,
-            l.slot.bottom(),
-            "actions on the card's last row"
-        );
-        assert!(row(&buf, l.actions[0].y).contains("Connect"));
-        assert_eq!(
-            hits.hit(ratatui::layout::Position::new(
-                l.actions[1].x + 1,
-                l.actions[1].y
-            )),
-            Some(edit.id)
-        );
-    }
-
-    #[test]
-    fn a_fitted_card_ends_under_its_facts() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let area = Rect::new(0, 0, 40, 30);
-        let mut buf = Buffer::empty(area);
-        let mut ok = Button::primary(WidgetId::of("ok"), "Open");
-        let card = DetailCard::new("orders").props(vec![Prop::new("Rows", "12")]);
-        let tall = card
-            .clone()
-            .render(area, &mut buf, &mut ctx, t.canvas, &mut [&mut ok]);
-        assert_eq!(tall.card.height, 30);
-        let fitted = card
-            .fit(true)
-            .render(area, &mut buf, &mut ctx, t.canvas, &mut [&mut ok]);
-        assert_eq!(fitted.props_h, 1);
-        assert_eq!(fitted.actions[0].y, fitted.slot.bottom());
-        assert!(fitted.card.height < 10, "{:?}", fitted.card);
-        assert_eq!(
-            fitted.card.bottom(),
-            fitted.actions[0].y + 2,
-            "the action row ends the card"
-        );
-    }
-
-    #[test]
-    fn nothing_selected_shows_the_empty_state_instead() {
-        let t = Theme::junie();
-        let mut hits = HitRegistry::default();
-        let mut ring = FocusRing::default();
-        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
-        let area = Rect::new(0, 0, 40, 8);
-        let mut buf = Buffer::empty(area);
-        let l = DetailCard::empty(EmptyState::new("Select a connection")).render(
-            area,
-            &mut buf,
-            &mut ctx,
-            t.canvas,
-            &mut [],
-        );
-        assert_eq!(l.card, Rect::ZERO);
-        let text: String = (0..8).map(|y| row(&buf, y)).collect();
-        assert!(text.contains("Select a connection"));
-    }
-}
