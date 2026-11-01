@@ -1,16 +1,30 @@
+min_version = "2026.10.18"
+
 [tools]
 "aqua:nextest-rs/nextest/cargo-nextest" = "0.9.148"
 actionlint = "1.7.12"
 shellcheck = "0.11.0"
 zizmor = "1.31.1"
-
 jactionlint = "2.3.0"
 gh = "2.103.3"
-
 "github:tailrocks/velnor-new" = { version = "0.1.69", bin = "velnor-actions" }
-
 "cargo:https://github.com/tailrocks/tuiscotti" = { version = "rev:d8d54155947f6303a41dfd6079b53c0abc16f29a", crate = "tuiscotti-cli" }
+mr-boxington = { version = "1.29.1", postinstall = "mbx setup --yes" }
+rust = { version = "1.99.1", profile = "minimal", components = [
+  "clippy",
+  "rustfmt",
+], targets = [
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+  "aarch64-unknown-linux-gnu",
+  "x86_64-unknown-linux-gnu",
+], mr_boxington = true }
 
-mr-boxington = { version = "1.29.0", postinstall = "mbx setup --yes" }
+[settings]
+cargo.binstall = true
+idiomatic_version_file_enable_tools = ["rust"]
+lockfile = true
 
-rust = { version = "1.99.1", components = "clippy,rustfmt" }
+[wrappers.cargo]
+command = "mbx"
+env = { MBX_CARGO_SHIM_MODE = "1" }

@@ -12,7 +12,7 @@ plan_timeout_minutes = 15
 
 [stacks.rust]
 
-compile_driver = "cargo"
+compile_driver = "mbx"
 
 test_runner = "cargo_nextest"
 
