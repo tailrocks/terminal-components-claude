@@ -331,6 +331,7 @@ fn holla_disk_tree_and_plan_review_flows() {
     plan.wait_text("8 included");
     plan.key("escape");
     plan.wait_text("Search actions and resources");
+    plan.wait_text("live · 3 s ago");
     plan.visual("functional/holla_plan_review");
     plan.finish();
 }
