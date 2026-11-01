@@ -29,7 +29,7 @@ path = "src/bin/tablepro/main.rs"
 
 [[bin]]
 name = "jackin-preview"
-path = "src/bin/jackin_preview/main.rs"
+path = "src/bin/jackin/main.rs"
 
 [[bin]]
 name = "holla"
