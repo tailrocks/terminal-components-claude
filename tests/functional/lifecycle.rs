@@ -57,9 +57,10 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
         y: find(&app.screen(), "Open popover ▾").y,
     };
     app.click(trigger);
-    let open = app.wait_screen("popover opens", |s| {
-        text(s).contains("Esc on") || text(s).contains("Dismiss")
-    });
+    // Wait for the popover's own content: the page prose also mentions
+    // "Dismiss", and resizing mid-open leaves the trigger in its owner
+    // state instead of the settled one.
+    let open = app.wait_text("report.pdf");
     assert!(text(&open).contains("Open popover"));
     app.resize(80, 24);
     let narrow = app.wait_screen("popover still owned at 80x24", |s| {
@@ -73,36 +74,29 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
     // The page-neutral-under-popup restyle (selected tab loses its
     // accent) lands on a later frame than the popup itself; wait for the
     // tab underline to actually go neutral before freezing.
-    // Forced ticks so the neutralization frames are rendered even when
-    // no further input is queued, then wait for both to land.
-    app.advance_clock(2_000);
     let tab = find(&app.screen(), "Playground");
     app.wait_screen("selected tab neutral under popover", |s| {
         s.cell_at(u32::from(tab.x), u32::from(tab.y) + 1)
             .map(|c| c.fg())
             == Some(tui_test::SnapshotColor::Rgb(77, 77, 77))
     });
-    // The trigger's background settles a frame or two after the tab's
-    // under heavier load; tick and re-check until both hold together.
-    let trigger = find(&app.screen(), "Open popover \u{25be}");
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
-    loop {
-        let settled = app.try_sustained(std::time::Duration::from_millis(600), |s| {
+    // Let the neutral state age, then park the pointer off the trigger
+    // with a single motion: repeated motions to the same cell are
+    // deduped by the terminal, and a motion sent before the popover
+    // finished re-anchoring is consumed before the hover lock engages.
+    assert!(
+        app.try_sustained(std::time::Duration::from_millis(600), |s| {
             s.cell_at(u32::from(tab.x), u32::from(tab.y) + 1)
                 .map(|c| c.fg())
                 == Some(tui_test::SnapshotColor::Rgb(77, 77, 77))
-                && super::support::cell_bg(s, trigger) == tui_test::SnapshotColor::Rgb(74, 74, 82)
-        });
-        if settled {
-            break;
-        }
-        assert!(
-            std::time::Instant::now() < deadline,
-            "popover page must settle neutral"
-        );
-        app.advance_clock(40);
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
+        }),
+        "selected tab must go neutral under the popover"
+    );
+    app.move_to(super::support::Point { x: 79, y: 0 });
+    let trigger = find(&app.screen(), "Open popover \u{25be}");
+    app.wait_screen("trigger unhovered under popover", |s| {
+        super::support::cell_bg(s, trigger) == tui_test::SnapshotColor::Rgb(39, 39, 42)
+    });
     app.visual("functional/showcase_popover_resize");
     app.key("escape");
     app.wait_screen("escape dismisses the popover after resize", |s| {

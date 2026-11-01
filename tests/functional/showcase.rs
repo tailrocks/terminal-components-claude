@@ -259,9 +259,15 @@ fn showcase_wheel_scrolls_pointed_grid_without_moving_sidebar() {
     );
     let initial = app.wait_text("Northwind Traders");
     let cell = find(&initial, "1001");
+    // Text only: the sidebar "moving" means its content scrolled, not
+    // that a selection style changed when focus followed the wheel.
     let sidebar = |s: &TerminalSnapshot| {
         (2..39u32)
-            .flat_map(|y| (0..28u32).filter_map(move |x| s.cell_at(x, y).cloned()))
+            .map(|y| {
+                (0..28u32)
+                    .filter_map(|x| s.cell_at(x, y).map(|c| c.text().to_string()))
+                    .collect::<String>()
+            })
             .collect::<Vec<_>>()
     };
     let before = sidebar(&initial);
