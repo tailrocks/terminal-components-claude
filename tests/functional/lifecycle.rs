@@ -57,9 +57,7 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
         y: find(&app.screen(), "Open popover ▾").y,
     };
     app.click(trigger);
-    // Wait for the popover's own content: the page prose also mentions
-    // "Dismiss", and resizing mid-open leaves the trigger in its owner
-    // state instead of the settled one.
+
     let open = app.wait_text("report.pdf");
     assert!(text(&open).contains("Open popover"));
     app.resize(80, 24);
@@ -67,23 +65,14 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
         s.cols() == 80 && s.rows() == 24 && text(s).contains("Open popover")
     });
     assert_eq!((narrow.cols(), narrow.rows()), (80, 24));
-    // Freeze with the popover still open: the page beneath a popup shows
-    // no focus or hover, so this frame has no timing-sensitive state.
-    // (Freezing after dismissal raced the trigger's hover background,
-    // which depends on when the terminal delivers the parked motion.)
-    // The page-neutral-under-popup restyle (selected tab loses its
-    // accent) lands on a later frame than the popup itself; wait for the
-    // tab underline to actually go neutral before freezing.
+
     let tab = find(&app.screen(), "Playground");
     app.wait_screen("selected tab neutral under popover", |s| {
         s.cell_at(u32::from(tab.x), u32::from(tab.y) + 1)
             .map(|c| c.fg())
             == Some(tui_test::SnapshotColor::Rgb(77, 77, 77))
     });
-    // Let the neutral state age, then park the pointer off the trigger
-    // with a single motion: repeated motions to the same cell are
-    // deduped by the terminal, and a motion sent before the popover
-    // finished re-anchoring is consumed before the hover lock engages.
+
     assert!(
         app.try_sustained(std::time::Duration::from_millis(600), |s| {
             s.cell_at(u32::from(tab.x), u32::from(tab.y) + 1)

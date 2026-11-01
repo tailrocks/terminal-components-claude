@@ -51,8 +51,6 @@ fn button_lifecycle(color: &str) {
     app.up(inside(run));
     app.wait_text("Run task ✓");
 
-    // Give cancellation a distinct prior result: a spurious Run activation
-    // would replace Preview in the visible status line.
     app.click(inside(preview));
     app.wait_text("Preview ✓");
     app.down(inside(run));
@@ -62,8 +60,6 @@ fn button_lifecycle(color: &str) {
     assert!(text(&cancelled).contains("Preview ✓"));
     assert!(!text(&cancelled).contains("Run task ✓"));
 
-    // The toggle is an observable state change, so a duplicate activation on
-    // press and release cannot pass by merely rewriting the same status text.
     app.click(inside(toggle));
     let on = app.wait_text("Auto-approve on");
     assert!(row_text(&on, u32::from(toggle.y)).contains("● Auto-approve"));
@@ -175,8 +171,7 @@ fn showcase_wheel_targets_the_pointed_pane_then_keys_follow_clicked_focus() {
         text(&scrolled).contains("row 1 · vertical"),
         "wheel must not move the list cursor"
     );
-    // Frozen checkpoint after the wheel move: later clicks create a
-    // transient activation flash, which is not a freezable state.
+
     app.visual("functional/showcase_nested_scroll");
     let row = (0..scrolled.rows())
         .find_map(|y| {
@@ -212,7 +207,7 @@ fn showcase_primary_button_exact_rest_hover_held_colours() {
     );
     let initial = app.wait_text("Run task");
     let run = inside(find(&initial, "Run task"));
-    // Literal reviewed values, not values read back from the theme code.
+
     assert_eq!(bg(&initial, run), SnapshotColor::Rgb(72, 224, 84));
     assert!(!text(&initial).contains("Run task ✓"));
 
@@ -241,7 +236,7 @@ fn showcase_primary_button_exact_rest_hover_held_colours() {
     app.wait_screen("release flash returns to hover", |s| {
         bg(s, run) == SnapshotColor::Rgb(58, 179, 67)
     });
-    // The "Run task ✓" footer flash fades on wall time; freeze after it.
+
     app.wait_absent("Run task \u{2713}");
     app.visual("functional/showcase_primary_colours");
     app.finish();
@@ -259,8 +254,7 @@ fn showcase_wheel_scrolls_pointed_grid_without_moving_sidebar() {
     );
     let initial = app.wait_text("Northwind Traders");
     let cell = find(&initial, "1001");
-    // Text only: the sidebar "moving" means its content scrolled, not
-    // that a selection style changed when focus followed the wheel.
+
     let sidebar = |s: &TerminalSnapshot| {
         (2..39u32)
             .map(|y| {
@@ -307,18 +301,16 @@ fn showcase_checks_radio_exclusivity_mixed_and_disabled() {
             && t.contains("(\u{25cf}) eu-west-1")
     });
     assert!(text(&initial).contains("(●) eu-west-1"));
-    // The States column repeats labels; the Playground copy is the first match.
+
     let first = |s: &TerminalSnapshot, needle: &str| find_all(s, needle)[0];
-    // Toggle a checkbox off and back on through its label.
+
     app.click(inside(first(&initial, "Send notifications")));
     app.wait_text("[ ] Send notifications");
     app.click(inside(first(&app.screen(), "Send notifications")));
     app.wait_text("[✓] Send notifications");
-    // Radio exclusivity in the Region group.
-    // Region is a disabled group: it must not react (acknowledged by the
-    // working Isolation group below in the same session).
+
     assert!(text(&initial).contains("(●) eu-west-1"));
-    // Radio exclusivity in the enabled Isolation level group.
+
     app.click(inside(find(&app.screen(), "Repeatable read")));
     let radio = app.wait_text("(●) Repeatable read");
     assert!(text(&radio).contains("( ) Read committed"));
@@ -328,12 +320,12 @@ fn showcase_checks_radio_exclusivity_mixed_and_disabled() {
     assert!(text(&next).contains("( ) Repeatable read"));
     app.key("up");
     app.wait_text("(●) Repeatable read");
-    // Mixed checkbox: clicking Select all rows checks every row.
+
     app.click(inside(find(&app.screen(), "Select all rows")));
     app.wait_screen("select-all checks the mixed box", |s| {
         !text(s).contains("[–] Select all rows")
     });
-    // Disabled toggle does not react to hover or press; a working toggle still flips after it.
+
     let beta = find(&app.screen(), "Beta features");
     let rest = crop(&app.settle(), beta, 20, 1);
     app.move_to(inside(beta));
@@ -368,7 +360,7 @@ fn showcase_tab_selection_survives_focus_move_and_single_gutter() {
         1,
         "exactly one focus gutter"
     );
-    // Moving keyboard focus elsewhere must not clear the strip selection.
+
     app.key("tab");
     let moved = app.settle();
     assert!(
@@ -404,13 +396,13 @@ fn showcase_select_outside_click_and_escape_dismiss_without_change() {
     };
     app.click(arrow);
     app.wait_text("customer");
-    // Outside click dismisses without changing the value.
+
     app.click(inside(find(&app.screen(), "Filters")));
     let dismissed = app.wait_screen("outside click closes the select popup", |s| {
         !text(s).contains("customer")
     });
     assert!(text(&dismissed).contains("created_at"));
-    // Escape also dismisses without changing the value.
+
     app.click(arrow);
     app.wait_text("customer");
     app.key("escape");
@@ -418,7 +410,7 @@ fn showcase_select_outside_click_and_escape_dismiss_without_change() {
         !text(s).contains("customer")
     });
     assert!(text(&escaped).contains("created_at"));
-    // Choosing an option changes the value exactly once.
+
     app.click(arrow);
     app.wait_text("customer");
     let option = find_all(&app.screen(), "total")
@@ -469,20 +461,28 @@ fn showcase_splitter_seam_drag_resizes_panes() {
         40,
         "truecolor",
     );
-    let initial = app.wait_text("splitter.rs");
+    let initial = app.wait_screen("splits page with Editor and splitter.rs", |s| {
+        !find_all(s, "Editor").is_empty() && !find_all(s, "splitter.rs").is_empty()
+    });
     let editor_before = find(&initial, "Editor");
     let content = find(&initial, "splitter.rs");
-    // Seam column sits between the Explorer and Editor boxes on content rows.
+
     let seam = Point {
         x: editor_before.x - 5,
         y: content.y,
     };
     app.down(seam);
+
+    let mut last_x = editor_before.x;
     for step in 1..=4 {
         app.drag_to(Point {
             x: seam.x + step * 2,
             y: seam.y,
         });
+        let moved = app.wait_screen("seam drag step moves the Editor pane", |s| {
+            find_all(s, "Editor").first().is_some_and(|p| p.x > last_x)
+        });
+        last_x = find(&moved, "Editor").x;
     }
     app.up(Point {
         x: seam.x + 8,
@@ -491,7 +491,7 @@ fn showcase_splitter_seam_drag_resizes_panes() {
     let resized = app.wait_screen("dragging the seam moves the Editor pane", |s| {
         find_all(s, "Editor")
             .first()
-            .is_some_and(|p| p.x > editor_before.x)
+            .is_some_and(|p| p.x >= editor_before.x + 4)
     });
     assert!(
         find(&resized, "Editor").x >= editor_before.x + 4,
@@ -521,7 +521,7 @@ fn showcase_scrollbar_thumb_drag_moves_list() {
     );
     let initial = app.wait_text("Row 001");
     let row1 = find(&initial, "Row 001");
-    // Long-list scrollbar track is the column right of the list rows; the thumb (┃) sits at its top.
+
     let thumb = (row1.x..row1.x + 30)
         .flat_map(|x| (row1.y..row1.y + 3).map(move |y| Point { x, y }))
         .find(|p| {
@@ -566,7 +566,7 @@ fn showcase_keyboard_activation_after_click_focus() {
     );
     let initial = app.wait_text("Run task");
     assert!(!text(&initial).contains("Run task ✓"));
-    // Click Preview to move focus into the page, then Tab to Run task and activate by keyboard.
+
     app.click(inside(find(&initial, "Preview")));
     app.wait_text("Preview ✓");
     app.key("tab");
@@ -600,7 +600,7 @@ fn showcase_list_selection_keyboard_and_multiselect() {
     app.key("up");
     app.key("enter");
     app.wait_text("Chosen: Python");
-    // Multi-select file list: toggling a third file updates the count.
+
     app.click(inside(find(&app.screen(), "src/api/auth.rs")));
     app.wait_text("1 selected");
     app.key("space");
@@ -629,7 +629,7 @@ fn showcase_tree_expand_and_file_selection() {
         !text(s).contains("Nothing selected")
     });
     assert!(text(&selected).contains("config.rs"));
-    // Collapse and re-expand the src folder.
+
     let folder = find_all(&app.screen(), "src")
         .into_iter()
         .find(|pt| pt.x > 28 && pt.y < 12)
@@ -643,9 +643,7 @@ fn showcase_tree_expand_and_file_selection() {
     app.wait_screen("expanding src restores its files", |s| {
         text(s).contains("▾ src") && text(s).contains("1.9 KB")
     });
-    // Park the pointer inert, then round-trip focus with Tab/Shift+Tab:
-    // the arrival frame proves the parked motion was consumed (hover off)
-    // and renders the focus cursor.
+
     let label = find_all(&app.screen(), "src")
         .into_iter()
         .find(|pt| pt.x > 28 && pt.y < 12)
@@ -671,9 +669,7 @@ fn showcase_tree_expand_and_file_selection() {
     app.wait_screen("focus returns to the tree", |s| {
         gutter_text(s).as_deref() == Some("▎")
     });
-    // Re-park until the settled state holds: the parked motion can be
-    // delivered after the keys, and only its consumption clears the
-    // click's hover from the folder row.
+
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
     loop {
         if app.try_sustained(std::time::Duration::from_millis(600), |s| settled(s)) {
@@ -701,7 +697,7 @@ fn showcase_input_edit_apply_and_escape_reverts() {
         "truecolor",
     );
     app.wait_text("payments-gateway");
-    // Two Tabs move from the sidebar into the first field's edit mode.
+
     app.key("tab");
     app.key("tab");
     app.wait_screen("field is in edit mode", |s| text(s).contains("EDIT"));
@@ -711,7 +707,7 @@ fn showcase_input_edit_apply_and_escape_reverts() {
     app.key("enter");
     let applied = app.settle();
     assert!(text(&applied).contains("payments-gateway-renamed"));
-    // A second edit cancelled with Escape reverts to the applied value.
+
     app.key("enter");
     app.type_text("-bad");
     app.wait_text("payments-gateway-renamed-bad");
@@ -741,9 +737,7 @@ fn showcase_dialog_opens_traps_and_escape_cancels() {
         t.contains("Cancel") && (t.contains("Run") || t.contains("Confirm"))
     });
     assert!(!text(&open).contains("Nothing yet") || text(&open).contains("Cancel"));
-    // Freeze inside the modal: the page beneath shows neither focus nor
-    // hover, and the dialog's own frame is settled. Freezing after the
-    // Escape kept racing the invoking row's hover/cursor frames.
+
     app.visual("functional/showcase_dialogs");
     app.key("escape");
     let cancelled = app.wait_screen("escape cancels the dialog", |s| {
@@ -796,8 +790,6 @@ fn showcase_form_required_validation_and_reset() {
     app.visual("functional/showcase_forms");
     app.finish();
 }
-
-// ---- Page coverage: every NAV page is launched, settled and frozen. ----
 
 fn visit_page(slug: &str, heading: &str) {
     let app = App::new(

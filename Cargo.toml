@@ -14,8 +14,7 @@ members = ["."]
 [lib]
 name = "junie_tui"
 path = "src/lib.rs"
-# Doctests need `cargo test --doc`, which this repo never runs (nextest
-# only). Examples in docs are mirrored by functional tests instead.
+
 doctest = false
 
 [[bin]]
@@ -45,21 +44,16 @@ unicode-width = "0.2"
 unicode-segmentation = "1"
 
 [target.'cfg(unix)'.dependencies]
-# terminal input checks crossterm 0.29 lacks (runtime `tty_input`)
+
 libc = "0.2"
 
 [dev-dependencies]
-# Live driver: tuiscotti-tui-test 0.2.1 (crate tui_test), the live half of
-# latest Tuiscotti — checked mouse/keyboard input, native PTY launch.
+
 tui-test = { package = "tuiscotti-tui-test", version = "=0.2.1" }
-# Latest tuiscotti main (0.4.0, offline frozen-check layer) for the
-# FrozenStore visual gate in tests/functional.
+
 tuiscotti-latest = { package = "tuiscotti", git = "https://github.com/tailrocks/tuiscotti", rev = "d8d54155947f6303a41dfd6079b53c0abc16f29a" }
 serde_json = "1"
 
-# Optimize dependencies in dev and test builds (tuiscotti's recommendation):
-# the review PNG/HTML rendered for a visual mismatch drops from seconds to
-# tens of milliseconds. Our own crates stay unoptimized for fast rebuilds.
 [profile.dev.package."*"]
 opt-level = 3
 

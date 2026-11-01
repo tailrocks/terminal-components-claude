@@ -119,20 +119,9 @@ impl App {
         }
     }
 
-    /// Standard visual gate for every functional test (latest approach):
-    /// freeze the current live screen with latest Tuiscotti and require an
-    /// exact match with the reviewed baseline. A missing or changed
-    /// baseline fails; `check()` returning `Ok` alone is not a pass.
     pub fn visual(&self, test_id: &str) {
-        // Settle first so release flashes and other transients have expired;
-        // freezing a mid-animation frame would be timing-dependent.
         let _ = self.settle();
-        // Then require a stable frame: two identical consecutive cell
-        // fingerprints (cells and cursor) before freezing. Under load the
-        // app may not have consumed the last input yet when output first
-        // goes quiet; a single quiet period would freeze that pending
-        // frame. The deadline bounds screens that legitimately keep
-        // redrawing; those tests wait for a settled state themselves.
+
         let fingerprint = |screen: &TerminalSnapshot| {
             let mut bytes = serde_json::to_vec(screen.cells()).expect("serialize cells");
             let cursor = screen.cursor();
@@ -141,23 +130,29 @@ impl App {
             bytes.push(u8::from(cursor.visible()));
             bytes
         };
-        let deadline = Instant::now() + Duration::from_millis(1500);
+        let deadline = Instant::now() + Duration::from_millis(5000);
         let mut screen = self.screen();
         let mut previous = fingerprint(&screen);
+        let mut stable_since = Instant::now();
         loop {
             std::thread::sleep(Duration::from_millis(100));
             let candidate = self.screen();
             let current = fingerprint(&candidate);
-            let stable = current == previous;
+            if current == previous {
+                if stable_since.elapsed() >= Duration::from_millis(700) {
+                    screen = candidate;
+                    break;
+                }
+            } else {
+                stable_since = Instant::now();
+            }
             screen = candidate;
             previous = current;
-            if stable || Instant::now() >= deadline {
+            if Instant::now() >= deadline {
                 break;
             }
         }
-        // Freeze the very snapshot that proved stable, not a fresh capture:
-        // a frame rendered between the check and a new capture could move
-        // the cursor or a hover background and reintroduce the race.
+
         let sample = tuiscotti_latest::sample::Sample::state(
             test_id,
             screen,
@@ -180,17 +175,11 @@ impl App {
         self.log(format!("visual {test_id} pass"));
     }
 
-    /// Non-panicking `wait_sustained`: true when the predicate held
-    /// continuously for `hold` within a bounded window, false otherwise.
-    /// Lets a test cycle an input (e.g. Shift+Tab) until the settled
-    /// state is actually reached and stays.
     pub fn try_sustained(
         &self,
         hold: Duration,
         predicate: impl Fn(&TerminalSnapshot) -> bool,
     ) -> bool {
-        // The caller only asks to verify a state it has just observed, so
-        // an absent state is an immediate false, not a wait.
         if !predicate(&self.screen()) {
             return false;
         }
@@ -315,8 +304,7 @@ impl App {
 
     pub fn wheel(&self, point: Point, down: bool, amount: usize) {
         self.move_to(point);
-        // The fork's MouseAction::Scroll targets (0, 0); its public encoder
-        // preserves component coordinates after checked motion validates modes/bounds.
+
         let bytes = tui_test::input::mouse::scroll(point.x, point.y, !down);
         self.log(format!("wheel {point:?} down={down} amount={amount}"));
         for _ in 0..amount {

@@ -1,41 +1,31 @@
-# Velnor Actions input for this repository. Everything under
-# .github/workflows/ (plus .github/actions/, .github/scripts/,
-# .github/actionlint.yaml, .github/AGENTS.md) is generated from this file by
-# `velnor-actions generate`; never hand-edit those outputs. See docs/ci.md.
 schema = 1
 
 [workflow]
 policy = "consumer-v1"
-# The working branch; pushes here run CI, pull requests run CI regardless.
+
 default_branch = "design/interaction-polish"
-# CI runs on ubuntu-26.04 (see docs/ci.md).
+
 runner_label = "ubuntu-26.04"
 crate_timeout_minutes = 15
-# Plan checks out full history (fetch-depth 0); this repo carries a large
-# historical snapshot estate, so checkout alone exceeds the 5-minute default.
+
 plan_timeout_minutes = 15
 
 [stacks.rust]
-# Plain Cargo; matches the documented gate in AGENTS.md.
+
 compile_driver = "cargo"
-# Nextest only (AGENTS.md: never `cargo test`). Velnor selects the `ci`
-# profile from .config/nextest.toml. Doctests are disabled in Cargo.toml
-# (`[lib] doctest = false`) so no `cargo test --doc` step is generated;
-# formatting is a native step because rustfmt.toml exists.
+
 test_runner = "cargo_nextest"
-# No test is ignored: the functional suite is non-ignored and required.
+
 run_ignored = "default"
 
 [discovery]
-# Archived evidence workspaces under docs/ are records, not CI units.
+
 exclude = ["docs/**"]
 
 [agents]
-# .github/CLAUDE.md is a symlink to .github/AGENTS.md (AGENTS.md rule).
+
 claude_md = "symlink"
 
-# The functional suite is the only test suite: it is a required gate on
-# pull requests and pushes (see docs/functional-testing.md).
 [workflow.dispatch.inputs.tier]
 type = "choice"
 description = "Test tier (docs/functional-testing.md)"
@@ -53,4 +43,3 @@ test_threads = 4
 triggers = ["pull_request", "push", "workflow_dispatch"]
 dispatch_inputs = { tier = ["functional"] }
 artifacts = [{ name = "functional-terminal-evidence", paths = ["target/functional", "target/nextest/functional"], when = "failure", retention_days = 14 }]
-

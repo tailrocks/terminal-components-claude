@@ -1,11 +1,10 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
 pub enum Motion {
-    /// Tick-driven state and decorative motion.
     #[default]
     Full,
-    /// State advances; decorative motion stays still.
+
     Reduced,
-    /// Ticks never advance; `--frame` selects the frame shown.
+
     Paused,
 }
 

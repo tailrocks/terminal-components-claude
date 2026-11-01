@@ -1,12 +1,5 @@
-# cargo-nextest config. Process-per-test isolation is the default and is
-# required for PTY captures (libtest --test-threads shares one process).
-#
-# The only test target is `functional` (tests/functional): real binaries in
-# PTYs driven by tui_test, each ending with a frozen Tuiscotti check.
-#   cargo nextest run --locked --test functional --profile functional
-
 [test-groups]
-# Real TUI binaries in PTYs; cap concurrency so boot does not starve.
+
 pty = { max-threads = 8 }
 
 [profile.default]

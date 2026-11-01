@@ -1,7 +1,5 @@
 use super::support::{App, HOLLA, find, text};
 
-// ------------------------------------------------------------------- Holla
-
 fn holla(name: &str, scenario: &str) -> App {
     App::new(
         name,
@@ -64,7 +62,7 @@ fn holla_cancelling_second_gate_leaves_no_started_activity() {
     app.key("escape");
     let cancelled = app.wait_text("Cancelled · nothing was executed");
     assert!(!text(&cancelled).contains("gate 2 of 2"));
-    // Independent acknowledgement: the activity picker must be empty.
+
     app.key("ctrl+g");
     let empty = app.wait_screen("empty activity picker", |s| {
         let t = text(s);
@@ -103,9 +101,7 @@ fn holla_browser_pointer_selection_loads_preview_and_hidden_toggle() {
     app.key("ctrl+h");
     let hidden = app.wait_text("16 entries · 2 hidden hidden");
     assert!(!text(&hidden).contains(".env"));
-    // End on the go-to-path field: its text caret pins the terminal cursor
-    // to a content-derived position, unlike the file list where the cursor
-    // rests wherever the last frame happened to leave it.
+
     app.key("g");
     app.wait_text("Go to path");
     app.visual("functional/holla_browser_pointer");
@@ -198,8 +194,7 @@ fn holla_browser_hidden_files_preview_scroll_and_bad_path_recovery() {
     app.wait_text("first 2000 lines");
     let original = app.wait_text("line 5");
     let preview = find(&original, "line 5");
-    // The preview's line-number gutter also scrolls. Its visible left border
-    // separates that gutter from the file list, which must stay unchanged.
+
     let preview_border = original.row(u32::from(preview.y)).expect("preview row")
         [..usize::from(preview.x)]
         .iter()
@@ -303,7 +298,7 @@ fn holla_second_gate_wrong_phrase_stays_then_exact_phrase_executes() {
         text(s).contains("gate 2 of 2")
     });
     assert!(!text(&still).contains("Cancelled"));
-    // Clear and type the exact phrase.
+
     app.key("ctrl+u");
     app.paste("I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox");
     app.key("enter");

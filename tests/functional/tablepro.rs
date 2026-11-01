@@ -64,12 +64,9 @@ fn tablepro_write_confirmation_cancels_retries_and_executes_only_when_armed() {
     assert!(!text(&held).contains("rows affected"));
     app.up(execute);
     app.move_to(outside);
-    // Let the preceding click feedback finish while Execute is still disabled,
-    // before its enabled appearance becomes the next comparison baseline.
+
     app.settle();
 
-    // Typing the required token proves the rejected click did not close the
-    // modal or transfer typing to the underlying SQL editor.
     app.key("ctrl+l");
     app.type_text("orders");
     let enabled = app.wait_screen("confirmation token enables Execute", |screen| {
@@ -91,9 +88,6 @@ fn tablepro_write_confirmation_cancels_retries_and_executes_only_when_armed() {
     let executed = app.wait_text("rows affected");
     assert!(!text(&executed).contains("Type orders to confirm"));
 
-    // Close the dirty query through its public leave guard, then quit cleanly.
-    // Returning from the modal resumes text editing; leave it before Ctrl+W,
-    // which is an editor word-deletion shortcut while the EDIT footer is shown.
     app.key("escape");
     let navigation = app.wait_text("Ctrl+X Explain");
     assert!(text(&navigation).contains("UPDATE orders SET status = 'paid' WHERE id = 'x'"));
@@ -101,8 +95,7 @@ fn tablepro_write_confirmation_cancels_retries_and_executes_only_when_armed() {
     app.wait_text("Close tab with unsaved work?");
     app.click_text("Close anyway");
     app.wait_text("No open tabs");
-    // The footer status flash fades on its own clock; freeze only after it
-    // has fully faded so the baseline never captures a mid-flash frame.
+
     app.wait_screen("status flash faded before freeze", |s| {
         let footer = row_text(s, 49);
         !footer.contains("Cancelled")
@@ -154,8 +147,6 @@ fn tablepro_connection_failure_retries_then_another_connection_succeeds() {
     freeze(&app, "functional/tablepro_connection_recovery");
     app.finish();
 }
-
-// ---------------------------------------------------------------- TablePro
 
 const CLOSE_PROMPT: &str = "Close tab with unsaved work?";
 const TARGET_SQL: &str = "SELECT 'unsaved_picker_regression';";
@@ -337,7 +328,6 @@ fn close_all_tabs(app: &App) {
             text(s).contains("Close tab with unsaved work?") || text(s).contains("No open tabs")
         });
         if text(&s).contains("Close tab with unsaved work?") {
-            // Guard focus starts on Cancel; Right+Enter chooses Close anyway.
             app.key("right");
             app.key("enter");
         }
@@ -345,8 +335,6 @@ fn close_all_tabs(app: &App) {
     app.wait_text("No open tabs");
 }
 
-/// Freeze after the "✓ Connected to …" footer flash has faded: the flash
-/// expires on the app clock, so capturing it is timing-dependent.
 fn freeze(app: &App, test_id: &str) {
     app.wait_absent("\u{2713} Connected to");
     app.visual(test_id);
@@ -468,7 +456,7 @@ fn tablepro_query_select_results_and_error_recovery() {
         let t = text(s).to_lowercase();
         t.contains("error") || t.contains("syntax") || t.contains("failed")
     });
-    // Correct the query and recover.
+
     app.key("ctrl+a");
     app.paste("SELECT * FROM orders;");
     app.key("ctrl+r");
@@ -493,12 +481,10 @@ fn tablepro_history_rerun_and_help_and_layout() {
     app.wait_screen("history opens", |s| {
         text(s).to_lowercase().contains("history")
     });
-    // Freeze only the settled consequence: the run has finished (no
-    // "running" status) and its entry has landed in history (16 entries).
+
     app.wait_screen("history entry settled", |s| {
         let t = text(s);
-        // The connect flash in the footer fades on wall time; freeze only
-        // after it is gone so the footer hint row is deterministic.
+
         t.contains("16 entries") && !t.contains("running") && !t.contains("\u{2713} Connected to")
     });
     app.visual("functional/tablepro_history");

@@ -1,7 +1,3 @@
-//! Strict visual check with latest Tuiscotti (main `d8d5415`, 0.4.0):
-//! a live `tui_test` snapshot fed into `tuiscotti::check::FrozenStore`.
-//! `check()` returning `Ok` is not a pass — the outcome must be asserted.
-
 use super::support::{App, SHOWCASE, find, text};
 
 #[test]

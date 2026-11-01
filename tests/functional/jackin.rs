@@ -4,8 +4,7 @@ const PAUSED: &[&str] = &["--motion", "paused", "--frame", "40"];
 
 fn button(app: &App, label: &str) -> Point {
     let screen = app.wait_text(label);
-    // The dialog action row contains Cancel as well as the requested action;
-    // titles and footer hints are deliberately excluded.
+
     let candidates: Vec<_> = find_all(&screen, label)
         .into_iter()
         .filter(|point| {
@@ -22,8 +21,6 @@ fn button(app: &App, label: &str) -> Point {
     );
     candidates[0]
 }
-
-// ------------------------------------------------------------------ Jackin
 
 fn jackin(name: &str, motion: &str) -> App {
     App::new(
@@ -51,8 +48,7 @@ fn jackin_launch_detach_reconnect_preserves_capsule() {
     app.key("enter");
     let picker = app.wait_text("Launch · choose Agent");
     assert!(text(&picker).contains("payments-platform › the-architect"));
-    // Frozen checkpoint at the deterministic picker screen: the capsule and
-    // manager screens cycle agent status words, so they are not freezable.
+
     app.visual("functional/jackin_launch_reconnect");
     app.key("enter");
     app.wait_text("Loading the-architect into workspace payments-platform");
@@ -123,8 +119,7 @@ fn jackin_editor_cancel_keeps_unsaved_name_and_discard_restores() {
     assert!(text(&reopened).contains("payments-platform"));
     assert!(!text(&reopened).contains("payments-platform-functional"));
     assert!(!text(&reopened).contains("• 1 change"));
-    // The "Discarded 1 change" footer flash fades on wall time; freeze
-    // after it so the editor footer is deterministic.
+
     app.wait_absent("Discarded 1 change");
     app.visual("functional/jackin_editor_discard");
     app.finish();
@@ -132,8 +127,6 @@ fn jackin_editor_cancel_keeps_unsaved_name_and_discard_restores() {
 
 #[test]
 fn jackin_help_owns_keys_and_wheel_then_restores_manager_focus() {
-    // Paused motion freezes the SimClock: the manager sliver beside the
-    // Help popup carries a "N s ago" relative time that must not tick.
     let app = jackin("jackin-help", "paused");
     app.wait_text("Current directory");
     app.key("down");
@@ -154,8 +147,7 @@ fn jackin_help_owns_keys_and_wheel_then_restores_manager_focus() {
         let t = text(s);
         t.contains("Keyboard shortcuts") && t.contains("1–29 of 30")
     });
-    // Freeze on the static Help screen: the manager carries a live
-    // uptime counter that changes between runs.
+
     app.visual("functional/jackin_help_ownership");
     app.key("escape");
     let manager = app.wait_screen("help closes onto same workspace", |s| {
@@ -334,7 +326,6 @@ fn jackin_account_required_masked_save_cancel_and_remove() {
 
 #[test]
 fn jackin_first_use_empty_manager_and_intro() {
-    // Real-time motion; wait for the intro tagline, then skip with Space.
     let app = App::new(
         "jackin-first-use",
         JACKIN,
@@ -360,7 +351,7 @@ fn jackin_first_use_empty_manager_and_intro() {
 fn jackin_manager_stop_cancel_then_confirm() {
     let app = jackin("jackin-manager-stop", "paused");
     app.wait_text("Current directory");
-    // Select a running instance row, then press t for the Stop gate.
+
     app.key("down");
     app.key("t");
     let gate = app.wait_screen("stop gate may open", |s| {
@@ -401,8 +392,7 @@ fn jackin_cockpit_launch_failure_acknowledges() {
     app.wait_text("Loading the-architect into workspace");
     app.settle();
     app.visual("functional/jackin_launch_failure");
-    // Ctrl+Q is swallowed while a launch is active; abort it first
-    // (the launch footer offers Ctrl+C Abort now).
+
     app.key("ctrl+c");
     app.wait_text("Current directory");
     app.finish();
