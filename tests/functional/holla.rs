@@ -331,7 +331,20 @@ fn holla_disk_tree_and_plan_review_flows() {
     plan.wait_text("8 included");
     plan.key("escape");
     plan.wait_text("Search actions and resources");
-    plan.wait_text("live · 3 s ago");
+    let window_start = std::time::Instant::now();
+    let mut saw_previous_age = false;
+    let mut first_poll = true;
+    while window_start.elapsed() < std::time::Duration::from_secs(3) {
+        let frame = text(&plan.screen());
+        if frame.contains("live · 2 s ago") {
+            saw_previous_age = true;
+        }
+        if frame.contains("live · 3 s ago") && (saw_previous_age || first_poll) {
+            break;
+        }
+        first_poll = false;
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
     plan.visual("functional/holla_plan_review");
     plan.finish();
 }
