@@ -252,7 +252,7 @@ fn showcase_wheel_scrolls_pointed_grid_without_moving_sidebar() {
     let app = App::new(
         "showcase-datagrid-wheel",
         SHOWCASE,
-        &["--page", "datagrid", "--motion", "reduced", "--frame", "40"],
+        &["--page", "datagrid", "--motion", "paused", "--frame", "40"],
         120,
         40,
         "truecolor",
@@ -658,19 +658,24 @@ fn showcase_tree_expand_and_file_selection() {
         gutter_text(s).as_deref() != Some("▎")
     });
     app.key("shift+tab");
-    let mut arrived = false;
-    for _ in 0..64 {
+    app.wait_screen("focus returns to the tree", |s| {
+        gutter_text(s).as_deref() == Some("▎")
+    });
+    // Re-park until the settled state holds: the parked motion can be
+    // delivered after the keys, and only its consumption clears the
+    // click's hover from the folder row.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    loop {
         if app.try_sustained(std::time::Duration::from_millis(600), |s| settled(s)) {
-            arrived = true;
             break;
         }
-        let before = find_all(&app.screen(), "▎");
-        app.key("shift+tab");
-        app.wait_screen("focus moves or settles on the tree", |s| {
-            settled(s) || find_all(s, "▎") != before
-        });
+        assert!(
+            std::time::Instant::now() < deadline,
+            "tree row must settle without hover"
+        );
+        app.move_to(Point { x: 0, y: 0 });
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
-    assert!(arrived, "focus must settle on the tree row");
     app.visual("functional/showcase_trees");
     app.finish();
 }
@@ -731,46 +736,28 @@ fn showcase_dialog_opens_traps_and_escape_cancels() {
         text(s).contains("Nothing yet") || text(s).contains("Cancelled")
     });
     assert!(text(&cancelled).contains("Open a dialog"));
-    // Park the pointer inert, then cycle Shift+Tab until focus is back on
-    // the confirm row with its hover consumed. Input is FIFO, so reaching
-    // that state proves the parked motion was processed; the focus-arrival
-    // frame also renders the terminal cursor deterministically.
+    // Escape returns focus to the invoking row by design. The pointer
+    // never left that row (the click), so the deterministic end state is
+    // focused + hovered; sustain exactly that before freezing. Blind
+    // focus cycling is not used: the page's focus ring is long and its
+    // traversal timing is load-dependent.
     let label = find(&app.screen(), "Confirm run");
     let gutter = Point {
         x: label.x - 1,
         y: label.y,
     };
-    let settled = |s: &TerminalSnapshot| {
-        s.cell_at(u32::from(gutter.x), u32::from(gutter.y))
-            .map(|c| c.text())
-            == Some("\u{258e}")
-            && cell_bg(s, label) != tui_test::SnapshotColor::Rgb(72, 224, 84)
-    };
-    app.move_to(Point { x: 0, y: 0 });
-    let mut arrived = false;
-    for _ in 0..64 {
-        if app.try_sustained(std::time::Duration::from_millis(600), |s| settled(s)) {
-            arrived = true;
-            break;
-        }
-        let before = find_all(&app.screen(), "\u{258e}");
-        app.key("shift+tab");
-        app.wait_screen("focus moves or settles on confirm", |s| {
-            settled(s) || find_all(s, "\u{258e}") != before
-        });
-    }
-    assert!(arrived, "focus must settle on the confirm row");
-    // Freeze in the hover state, not against it: the pointer's stored
-    // position is what the app re-renders from, so rest-state freezes
-    // raced late motion delivery. Point at the row and sustain its
-    // hover-bright background instead.
     let hovered = |s: &TerminalSnapshot| {
         s.cell_at(u32::from(gutter.x), u32::from(gutter.y))
             .map(|c| c.text())
             == Some("\u{258e}")
             && cell_bg(s, label) == tui_test::SnapshotColor::Rgb(58, 179, 67)
     };
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+    app.wait_screen("focus returns to the confirm row", |s| {
+        s.cell_at(u32::from(gutter.x), u32::from(gutter.y))
+            .map(|c| c.text())
+            == Some("\u{258e}")
+    });
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
     loop {
         app.move_to(label);
         if app.try_sustained(std::time::Duration::from_millis(600), |s| hovered(s)) {

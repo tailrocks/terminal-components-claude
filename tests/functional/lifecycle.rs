@@ -70,6 +70,9 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
     // no focus or hover, so this frame has no timing-sensitive state.
     // (Freezing after dismissal raced the trigger's hover background,
     // which depends on when the terminal delivers the parked motion.)
+    // One forced tick first: the page-neutral-under-popup restyle lands
+    // on the frame after the popup appears.
+    app.advance_clock(40);
     app.visual("functional/showcase_popover_resize");
     app.key("escape");
     app.wait_screen("escape dismisses the popover after resize", |s| {
