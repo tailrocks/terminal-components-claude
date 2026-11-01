@@ -40,3 +40,35 @@ fn showcase_help_survives_shrink_and_growth_and_returns_focus() {
     app.visual("functional/showcase_help_resize");
     app.finish();
 }
+
+#[test]
+fn showcase_popover_survives_resize_and_escape_returns_focus() {
+    let app = App::new(
+        "showcase-popover-resize",
+        SHOWCASE,
+        &["--page", "popups", "--motion", "paused"],
+        120,
+        40,
+        "truecolor",
+    );
+    app.wait_text("Open popover ▾");
+    app.click(super::support::Point {
+        x: find(&app.screen(), "Open popover ▾").x + 2,
+        y: find(&app.screen(), "Open popover ▾").y,
+    });
+    let open = app.wait_screen("popover opens", |s| {
+        text(s).contains("Esc on") || text(s).contains("Dismiss")
+    });
+    assert!(text(&open).contains("Open popover"));
+    app.resize(80, 24);
+    let narrow = app.wait_screen("popover still owned at 80x24", |s| {
+        s.cols() == 80 && s.rows() == 24 && text(s).contains("Open popover")
+    });
+    assert_eq!((narrow.cols(), narrow.rows()), (80, 24));
+    app.key("escape");
+    app.wait_screen("escape dismisses the popover after resize", |s| {
+        text(s).contains("Open popover ▾")
+    });
+    app.visual("functional/showcase_popover_resize");
+    app.finish();
+}

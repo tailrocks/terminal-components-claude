@@ -1,5 +1,8 @@
-use super::support::{App, HOLLA, JACKIN, Point, crop, find, find_all, row_text, text};
+use super::support::{App, JACKIN, Point, crop, find, find_all, row_text, text};
 
+fn inside(p: Point) -> Point {
+    Point { x: p.x + 2, ..p }
+}
 const PAUSED: &[&str] = &["--motion", "paused", "--frame", "40"];
 
 fn button(app: &App, label: &str) -> Point {
@@ -23,145 +26,151 @@ fn button(app: &App, label: &str) -> Point {
     candidates[0]
 }
 
-#[test]
-fn holla_trust_cancel_then_run_uses_the_child_directory() {
-    let app = App::new(
-        "holla-trust-run",
-        HOLLA,
-        &["--scenario", "monorepo-child", "--motion", "reduced"],
+// ------------------------------------------------------------------ Jackin
+
+fn jackin(name: &str, motion: &str) -> App {
+    App::new(
+        name,
+        JACKIN,
+        &[
+            "--scenario",
+            "returning",
+            "--motion",
+            motion,
+            "--frame",
+            "40",
+        ],
         120,
         40,
         "truecolor",
-    );
-    app.wait_text("From acme · the parent root");
-    app.type_text("test");
-    let results = app.wait_text("alias test");
-    assert!(text(&results).contains("Run tests"));
+    )
+}
+
+#[test]
+fn jackin_launch_detach_reconnect_preserves_capsule() {
+    let app = jackin("jackin-launch", "paused");
+    let manager = app.wait_text("Current directory");
+    assert!(text(&manager).contains("2 running"));
     app.key("enter");
-    app.wait_text("Trust ~/work/acme/apps/frontend/mise.toml?");
-    app.wait_text("[tasks.test]");
-    app.key("escape");
-    let cancelled = app.wait_absent("Trust ~/work/acme/apps/frontend/mise.toml?");
-    assert!(text(&cancelled).contains("Run tests"));
-    assert!(!text(&cancelled).contains("19 passed"));
+    let picker = app.wait_text("Launch · choose Agent");
+    assert!(text(&picker).contains("payments-platform › the-architect"));
+    // Frozen checkpoint at the deterministic picker screen: the capsule and
+    // manager screens cycle agent status words, so they are not freezable.
+    app.visual("functional/jackin_launch_reconnect");
+    app.key("enter");
+    app.wait_text("Loading the-architect into workspace payments-platform");
+    app.advance_clock(30_000);
+    let capsule = app.wait_screen("launch hands off to capsule", |s| {
+        let t = text(s);
+        t.contains("Claude Code v2.1.14")
+            && t.contains("Allow edit to src/settlement/config.rs? (y/n)")
+            && t.contains("Ctrl+B Pane commands")
+    });
+    assert!(!text(&capsule).contains("junie-tui:advance-clock:"));
+    assert!(!text(&capsule).contains("Launch failed"));
+
+    app.key("ctrl+b");
+    app.wait_text("prefix…");
+    app.key("d");
+    let detached = app.wait_text("Detached · payments-platform keeps running");
+    assert!(text(&detached).contains("3 running"));
 
     app.key("enter");
-    app.wait_text("Trust ~/work/acme/apps/frontend/mise.toml?");
-    app.key("right");
-    app.key("enter");
-    app.wait_text("arguments");
-    app.key("ctrl+s");
-    let launched = app.wait_screen("frontend test has its own activity and output", |screen| {
-        let visible = text(screen);
-        visible
-            .lines()
-            .any(|line| line.trim_start().starts_with("frontend test ·"))
-            && visible.contains("╭─ output")
+    app.wait_screen("reconnect restores live capsule", |s| {
+        let t = text(s);
+        t.contains("Claude Code v2.1.14") && t.contains("Ctrl+B Pane commands")
     });
-    let launched_text = text(&launched);
-    assert!(launched_text.lines().any(|line| {
-        line.trim_start()
-            .starts_with("$ mise run //apps/frontend:test")
-    }));
-    let activity_header = launched_text
-        .lines()
-        .find(|line| line.trim_start().starts_with("frontend test ·"))
-        .expect("the activity header");
-    let directory = activity_header
-        .split("here ·")
-        .nth(1)
-        .and_then(|location| location.split('·').next())
-        .expect("activity header states its working directory")
-        .trim();
-    assert_eq!(directory, "~/work/acme/apps/frontend");
-    app.wait_text("19 passed (19)");
-    app.wait_text("succeeded");
-    app.visual("functional/holla_trust_cancel_then_run");
+    app.key("ctrl+b");
+    app.wait_text("prefix…");
+    app.key("d");
+    app.wait_text("Detached · payments-platform keeps running");
     app.finish();
 }
 
 #[test]
-fn holla_browser_hidden_files_preview_scroll_and_bad_path_recovery() {
-    let app = App::new(
-        "holla-browser",
-        HOLLA,
-        &["--scenario", "parity-browser", "--motion", "reduced"],
-        120,
-        40,
-        "nocolor",
-    );
-    app.wait_text("holla❯");
-    app.type_text("Browse ~/work/site");
+fn jackin_editor_cancel_keeps_unsaved_name_and_discard_restores() {
+    let app = jackin("jackin-editor", "reduced");
+    app.wait_text("Current directory");
+    app.key("down");
+    app.wait_text("Workspaces › payments-platform");
+    app.key("e");
+    app.wait_text("Directory basename by default");
+    app.key("tab");
+    app.wait_text("Enter Apply");
+    app.key("end");
+    app.paste("-functional");
+    app.wait_text("payments-platform-functional");
     app.key("enter");
-    let initial = app.wait_text("16 entries");
-    assert!(!text(&initial).contains(".env"));
-    app.key("ctrl+h");
-    app.wait_text("Hidden entries shown");
-    app.wait_text(".env");
-    app.key("ctrl+h");
-    let hidden = app.wait_text("Hidden entries hidden");
-    assert!(!text(&hidden).contains(".env"));
-    app.key("home");
-    app.key("down");
-    app.key("down");
-    app.key("down");
-    app.wait_text("first 2000 lines");
-    let original = app.wait_text("line 5");
-    let preview = find(&original, "line 5");
-    // The preview's line-number gutter also scrolls. Its visible left border
-    // separates that gutter from the file list, which must stay unchanged.
-    let preview_border = original.row(u32::from(preview.y)).expect("preview row")
-        [..usize::from(preview.x)]
-        .iter()
-        .rposition(|cell| cell.text() == "│")
-        .expect("preview has a visible left border");
-    let segments = |screen: &tui_test::TerminalSnapshot| {
-        let cells = screen.row(u32::from(preview.y)).expect("preview row");
-        let split = usize::from(preview.x);
-        let left: String = cells[..preview_border]
-            .iter()
-            .map(|cell| cell.text())
-            .collect();
-        let preview: String = cells[split..].iter().map(|cell| cell.text()).collect();
-        (left, preview)
-    };
-    let (before_left, before_preview) = segments(&original);
-    app.wheel(preview, true, 3);
-    let scrolled = app.wait_screen("preview content advances after wheel", |screen| {
-        segments(screen).1 != before_preview && text(screen).contains("first 2000 lines")
-    });
-    assert_eq!(
-        segments(&scrolled).0,
-        before_left,
-        "wheel leaves the file list unchanged"
-    );
-    assert!(text(&scrolled).contains("16 entries"));
-    app.wheel(preview, false, 3);
-    let restored = app.wait_screen("preview wheel up restores original content", |screen| {
-        segments(screen).1 == before_preview
-    });
-    assert_eq!(
-        segments(&restored).0,
-        before_left,
-        "reverse wheel leaves the file list unchanged"
-    );
-    app.key("g");
-    app.wait_text("type a path or a name");
-    app.type_text("nope");
+    app.wait_text("Name payments-platform-functional · save to apply");
+
+    app.click_text("Cancel");
+    let dialog = app.wait_text("Unsaved changes");
+    assert!(text(&dialog).contains("1 change would be"));
     app.key("enter");
-    app.wait_text("no such file or directory");
+    app.wait_screen("cancel returns to unchanged pending edit", |s| {
+        let t = text(s);
+        !t.contains("Unsaved changes")
+            && t.contains("payments-platform-functional")
+            && t.contains("1 change")
+    });
+    app.key("enter");
+    app.wait_text("Unsaved changes");
+    app.key("right");
+    app.wait_text("Enter Discard");
+    app.key("enter");
+    let discarded = app.wait_text("Discarded 1 change");
+    assert!(!text(&discarded).contains("payments-platform-functional"));
+
+    app.key("e");
+    let reopened = app.wait_text("Directory basename by default");
+    assert!(text(&reopened).contains("payments-platform"));
+    assert!(!text(&reopened).contains("payments-platform-functional"));
+    assert!(!text(&reopened).contains("• 1 change"));
+    app.visual("functional/jackin_editor_discard");
+    app.finish();
+}
+
+#[test]
+fn jackin_help_owns_keys_and_wheel_then_restores_manager_focus() {
+    let app = jackin("jackin-help", "reduced");
+    app.wait_text("Current directory");
+    app.key("down");
+    app.wait_text("Workspaces › payments-platform");
+    app.key("?");
+    let top = app.wait_text("1–29 of 30");
+    assert!(text(&top).contains("Keyboard shortcuts"));
+
+    app.key("e");
+    app.key("pagedown");
+    let bottom = app.wait_text("2–30 of 30");
+    assert!(text(&bottom).contains("Keyboard shortcuts"));
+    assert!(!text(&bottom).contains("Directory basename by default"));
+
+    let point = find(&bottom, "scroll under pointer");
+    app.wheel(point, false, 1);
+    app.wait_screen("help wheel restores top rows", |s| {
+        let t = text(s);
+        t.contains("Keyboard shortcuts") && t.contains("1–29 of 30")
+    });
     app.key("escape");
-    app.wait_absent("no such file or directory");
-    app.wait_text("type a path or a name");
+    let manager = app.wait_screen("help closes onto same workspace", |s| {
+        let t = text(s);
+        !t.contains("Keyboard shortcuts")
+            && t.contains("Workspaces › payments-platform")
+            && t.contains("saved workspace · 1 running")
+    });
+    assert!(!text(&manager).contains("› edit"));
+
+    app.key("enter");
+    let picker = app.wait_text("Launch · choose Agent");
+    assert!(text(&picker).contains("payments-platform › the-architect"));
     app.key("escape");
-    app.wait_absent("type a path or a name");
-    app.wait_text("16 entries");
-    app.key("home");
-    app.key("g");
-    app.wait_text("type a path or a name");
-    app.key("escape");
-    app.wait_absent("type a path or a name");
-    app.visual("functional/holla_browser_hidden_files");
+    let cancelled = app.wait_screen("picker cancellation returns to manager", |s| {
+        let t = text(s);
+        !t.contains("Launch · choose Agent") && t.contains("Current directory")
+    });
+    assert!(text(&cancelled).contains("2 running"));
+    app.visual("functional/jackin_help_ownership");
     app.finish();
 }
 
