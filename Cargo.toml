@@ -28,7 +28,7 @@ name = "tablepro"
 path = "src/bin/tablepro/main.rs"
 
 [[bin]]
-name = "jackin-preview"
+name = "jackin"
 path = "src/bin/jackin/main.rs"
 
 [[bin]]
