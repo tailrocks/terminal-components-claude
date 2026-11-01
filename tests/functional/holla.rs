@@ -248,3 +248,120 @@ fn holla_browser_hidden_files_preview_scroll_and_bad_path_recovery() {
     app.visual("functional/holla_browser_hidden_files");
     app.finish();
 }
+
+#[test]
+fn holla_first_use_idle_and_no_results() {
+    let app = holla("holla-first-use", "first-use");
+    app.wait_text("Search actions and resources");
+    app.type_text("zzzzqq");
+    let none = app.wait_screen("no results for nonsense query", |s| {
+        !text(s).contains("cargo check")
+    });
+    assert!(text(&none).contains("Search actions and resources"));
+    app.key("escape");
+    app.wait_text("Search actions and resources");
+    app.visual("functional/holla_first_use_idle");
+    app.finish();
+}
+
+#[test]
+fn holla_help_overlay() {
+    let app = holla("holla-help", "first-use");
+    app.wait_text("Search actions and resources");
+    app.key("f1");
+    app.wait_text("Key reference");
+    app.key("escape");
+    app.wait_absent("Key reference");
+    app.visual("functional/holla_help");
+    app.finish();
+}
+
+#[test]
+fn holla_second_gate_wrong_phrase_stays_then_exact_phrase_executes() {
+    let app = holla("holla-second-gate-execute", "docker-cleanup");
+    app.wait_text("Clean Docker completely");
+    app.key("enter");
+    app.wait_text("Here › Clean Docker completely");
+    app.key("c");
+    app.wait_screen("first confirmation gate", |s| {
+        text(s).contains("gate 1 of 2")
+    });
+    app.key("right");
+    app.key("enter");
+    app.wait_screen("second confirmation gate", |s| {
+        text(s).contains("gate 2 of 2")
+    });
+    app.type_text("I UNDERSTAND: WRONG");
+    app.key("enter");
+    let still = app.wait_screen("wrong phrase keeps the second gate", |s| {
+        text(s).contains("gate 2 of 2")
+    });
+    assert!(!text(&still).contains("Cancelled"));
+    // Clear and type the exact phrase.
+    app.key("ctrl+u");
+    app.paste("I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox");
+    app.key("enter");
+    let executed = app.wait_screen("exact phrase executes the plan", |s| {
+        !text(s).contains("gate 2 of 2")
+    });
+    assert!(!text(&executed).contains("Cancelled · nothing was executed"));
+    app.visual("functional/holla_second_gate_execute");
+    app.finish();
+}
+
+#[test]
+fn holla_disk_tree_and_plan_review_flows() {
+    let app = holla("holla-disk-tree", "disk-cleanup");
+    app.wait_screen("disk usage tree opens", |s| {
+        text(s).contains("Disk › Usage") || text(s).contains("Disk")
+    });
+    app.settle();
+    app.visual("functional/holla_disk_tree");
+    app.finish();
+
+    let plan = holla("holla-plan-review", "upgrade-plan");
+    plan.wait_text("8 steps · 8 included");
+    for _ in 0..5 {
+        plan.key("down");
+    }
+    plan.key("space");
+    plan.wait_text("7 included");
+    plan.key("u");
+    plan.wait_text("8 included");
+    plan.key("escape");
+    plan.wait_text("Search actions and resources");
+    plan.visual("functional/holla_plan_review");
+    plan.finish();
+}
+
+#[test]
+fn holla_launch_failure_state_is_visible() {
+    let app = holla("holla-launch-failure", "launch-failure");
+    app.wait_screen("failed activity state", |s| {
+        let t = text(s).to_lowercase();
+        t.contains("fail") || t.contains("exit") || t.contains("search actions")
+    });
+    app.settle();
+    app.visual("functional/holla_launch_failure");
+    app.finish();
+}
+
+#[test]
+fn holla_resize_finder_recovers() {
+    let app = holla("holla-resize", "parity-browser");
+    app.wait_text("Search actions and resources");
+    app.paste("Browse ~/work/site");
+    app.wait_text("▎ Browse ~/work/site");
+    app.key("enter");
+    app.wait_text("16 entries");
+    app.resize(80, 24);
+    app.wait_screen("files still listed at 80x24", |s| {
+        s.cols() == 80 && text(s).contains("16 entries")
+    });
+    app.resize(120, 40);
+    app.wait_screen("files still listed at 120x40", |s| {
+        s.cols() == 120 && text(s).contains("16 entries")
+    });
+    app.visual("functional/holla_resize_narrow");
+    app.finish();
+}

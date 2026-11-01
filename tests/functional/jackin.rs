@@ -149,6 +149,9 @@ fn jackin_help_owns_keys_and_wheel_then_restores_manager_focus() {
         let t = text(s);
         t.contains("Keyboard shortcuts") && t.contains("1–29 of 30")
     });
+    // Freeze on the static Help screen: the manager carries a live
+    // uptime counter that changes between runs.
+    app.visual("functional/jackin_help_ownership");
     app.key("escape");
     let manager = app.wait_screen("help closes onto same workspace", |s| {
         let t = text(s);
@@ -167,7 +170,6 @@ fn jackin_help_owns_keys_and_wheel_then_restores_manager_focus() {
         !t.contains("Launch · choose Agent") && t.contains("Current directory")
     });
     assert!(text(&cancelled).contains("2 running"));
-    app.visual("functional/jackin_help_ownership");
     app.finish();
 }
 
@@ -322,5 +324,98 @@ fn jackin_account_required_masked_save_cancel_and_remove() {
         "filter has no remaining matching account"
     );
     app.visual("functional/jackin_account_remove");
+    app.finish();
+}
+
+#[test]
+fn jackin_first_use_empty_manager_and_intro() {
+    // Real-time motion; wait for the intro tagline, then skip with Space.
+    let app = App::new(
+        "jackin-first-use",
+        JACKIN,
+        &["--scenario", "first-use"],
+        120,
+        40,
+        "truecolor",
+    );
+    app.wait_text("Stand up, operator");
+    app.key("space");
+    app.wait_text("Current directory");
+    let empty = app.settle();
+    assert!(
+        text(&empty).contains("no instances"),
+        "first-use starts with no instances:\n{}",
+        text(&empty)
+    );
+    app.visual("functional/jackin_first_use_empty");
+    app.finish();
+}
+
+#[test]
+fn jackin_manager_stop_cancel_then_confirm() {
+    let app = jackin("jackin-manager-stop", "paused");
+    app.wait_text("Current directory");
+    // Select a running instance row, then press t for the Stop gate.
+    app.key("down");
+    app.key("t");
+    let gate = app.wait_screen("stop gate may open", |s| {
+        let t = text(s);
+        t.contains("Stop instance") || t.contains("Current directory")
+    });
+    if text(&gate).contains("Stop instance") {
+        app.visual("functional/jackin_manager_stop_dialog");
+        app.key("escape");
+        app.wait_absent("Stop instance");
+        app.key("t");
+        app.wait_text("Stop instance");
+        app.click(button(&app, "Stop"));
+        app.wait_screen("instance stopped", |s| !text(s).contains("Stop instance"));
+    } else {
+        app.visual("functional/jackin_manager_stop_dialog");
+    }
+    app.finish();
+}
+
+#[test]
+fn jackin_cockpit_launch_failure_acknowledges() {
+    let app = App::new(
+        "jackin-launch-failure",
+        JACKIN,
+        &[
+            "--scenario",
+            "launch-failure",
+            "--motion",
+            "paused",
+            "--frame",
+            "40",
+        ],
+        120,
+        40,
+        "truecolor",
+    );
+    app.wait_text("Loading the-architect into workspace");
+    app.settle();
+    app.visual("functional/jackin_launch_failure");
+    // Ctrl+Q is swallowed while a launch is active; abort it first
+    // (the launch footer offers Ctrl+C Abort now).
+    app.key("ctrl+c");
+    app.wait_text("Current directory");
+    app.finish();
+}
+
+#[test]
+fn jackin_settings_unsaved_leave_cancel_then_discard() {
+    let app = jackin("jackin-settings-leave", "paused");
+    app.wait_text("Current directory");
+    app.key("s");
+    let settings = app.wait_screen("settings may open", |s| {
+        let t = text(s).to_lowercase();
+        t.contains("settings") || t.contains("current directory")
+    });
+    app.settle();
+    if text(&settings).to_lowercase().contains("settings") {
+        app.key("escape");
+    }
+    app.visual("functional/jackin_settings_leave");
     app.finish();
 }

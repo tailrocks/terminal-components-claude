@@ -101,6 +101,14 @@ fn tablepro_write_confirmation_cancels_retries_and_executes_only_when_armed() {
     app.wait_text("Close tab with unsaved work?");
     app.click_text("Close anyway");
     app.wait_text("No open tabs");
+    // The footer status flash fades on its own clock; freeze only after it
+    // has fully faded so the baseline never captures a mid-flash frame.
+    app.wait_screen("status flash faded before freeze", |s| {
+        let footer = row_text(s, 49);
+        !footer.contains("Cancelled")
+            && !footer.contains("Executed")
+            && !footer.contains("executed")
+    });
     app.visual("functional/tablepro_write_gate");
     app.finish();
 }
@@ -293,5 +301,238 @@ fn tablepro_clean_picker_close_is_immediate_and_picker_stays_usable() {
         !t.contains("Open tabs") && t.contains("Query 1")
     });
     app.visual("functional/tablepro_clean_picker");
+    app.finish();
+}
+
+fn action_btn(app: &App, label: &str) -> Point {
+    let screen = app.screen();
+    find_all(&screen, label)
+        .into_iter()
+        .find(|pt| row_text(&screen, u32::from(pt.y)).contains("Duplicate"))
+        .unwrap_or_else(|| {
+            panic!(
+                "action {label} on the detail action row:\n{}",
+                text(&screen)
+            )
+        })
+}
+
+fn list_row(app: &App, label: &str) -> Point {
+    let screen = app.screen();
+    find_all(&screen, label)
+        .into_iter()
+        .find(|pt| pt.x < 40)
+        .unwrap_or_else(|| panic!("list row {label}:\n{}", text(&screen)))
+}
+
+fn close_all_tabs(app: &App) {
+    app.key("escape");
+    app.wait_text("Ctrl+X Explain");
+    for _ in 0..4 {
+        if text(&app.screen()).contains("No open tabs") {
+            return;
+        }
+        app.key("ctrl+w");
+        let s = app.wait_screen("close guard or no open tabs", |s| {
+            text(s).contains("Close tab with unsaved work?") || text(s).contains("No open tabs")
+        });
+        if text(&s).contains("Close tab with unsaved work?") {
+            // Guard focus starts on Cancel; Right+Enter chooses Close anyway.
+            app.key("right");
+            app.key("enter");
+        }
+    }
+    app.wait_text("No open tabs");
+}
+
+fn connected(name: &str) -> App {
+    let app = App::new(
+        name,
+        TABLEPRO,
+        &["--connect", "Local PostgreSQL", "--motion", "reduced"],
+        120,
+        40,
+        "truecolor",
+    );
+    app.wait_text("Query 1");
+    app
+}
+
+#[test]
+fn tablepro_connections_landing_and_unreachable_detail() {
+    let app = App::new(
+        "tablepro-landing",
+        TABLEPRO,
+        &["--motion", "reduced"],
+        120,
+        40,
+        "truecolor",
+    );
+    app.wait_text("Filter connections");
+    app.click(list_row(&app, "Analytics"));
+    app.wait_screen("analytics detail shows warehouse host", |s| {
+        text(s).contains("analytics.acme.io") || text(s).contains("warehouse")
+    });
+    app.visual("functional/tablepro_connections_landing");
+    app.finish();
+
+    let app = App::new(
+        "tablepro-unreachable",
+        TABLEPRO,
+        &["--motion", "reduced"],
+        120,
+        40,
+        "truecolor",
+    );
+    app.wait_text("Filter connections");
+    app.click(list_row(&app, "Analytics"));
+    app.click(action_btn(&app, "Connect"));
+    let failed = app.wait_screen("unreachable connection shows detail, no workbench", |s| {
+        let t = text(s);
+        (t.contains("Could not reach") || t.contains("unreachable") || t.contains("failed"))
+            && !t.contains("Query 1")
+    });
+    assert!(!text(&failed).contains("Query 1"));
+    app.visual("functional/tablepro_connection_unreachable");
+    app.finish();
+}
+
+#[test]
+fn tablepro_connect_development_opens_workbench() {
+    let app = App::new(
+        "tablepro-dev-connect",
+        TABLEPRO,
+        &["--motion", "reduced"],
+        120,
+        40,
+        "truecolor",
+    );
+    app.wait_text("Filter connections");
+    app.click(list_row(&app, "Development"));
+    app.click(action_btn(&app, "Connect"));
+    app.wait_text("Query 1");
+    app.visual("functional/tablepro_workbench_development");
+    app.finish();
+}
+
+#[test]
+fn tablepro_delete_connection_cancel_then_confirm() {
+    let app = App::new(
+        "tablepro-delete-conn",
+        TABLEPRO,
+        &["--motion", "reduced"],
+        120,
+        40,
+        "truecolor",
+    );
+    app.wait_text("Filter connections");
+    app.click(list_row(&app, "Scratch"));
+    app.click(action_btn(&app, "Delete…"));
+    app.wait_text("Delete connection?");
+    app.key("escape");
+    app.wait_text("Scratch");
+    app.click(action_btn(&app, "Delete…"));
+    app.wait_text("Delete connection?");
+    app.click(dialog_action(&app, "Delete"));
+    app.wait_absent("Scratch");
+    app.visual("functional/tablepro_connection_deleted");
+    app.finish();
+}
+
+#[test]
+fn tablepro_query_select_results_and_error_recovery() {
+    let app = connected("tablepro-query-results");
+    app.key("tab");
+    app.paste("SELECT * FROM orders;");
+    app.key("ctrl+r");
+    app.wait_screen("select results appear", |s| {
+        let t = text(s);
+        !t.contains("Type orders to confirm") && (t.contains("rows") || t.contains("orders"))
+    });
+    app.visual("functional/tablepro_query_results");
+    close_all_tabs(&app);
+    app.finish();
+
+    let app = connected("tablepro-query-error");
+    app.key("tab");
+    app.paste("SELEC bogus;");
+    app.key("ctrl+r");
+    app.wait_screen("sql error is reported", |s| {
+        let t = text(s).to_lowercase();
+        t.contains("error") || t.contains("syntax") || t.contains("failed")
+    });
+    // Correct the query and recover.
+    app.key("ctrl+a");
+    app.paste("SELECT * FROM orders;");
+    app.key("ctrl+r");
+    app.wait_screen("corrected query returns results", |s| {
+        text(s).contains("rows") || text(s).contains("orders")
+    });
+    app.visual("functional/tablepro_query_error_recovery");
+    close_all_tabs(&app);
+    app.finish();
+}
+
+#[test]
+fn tablepro_history_rerun_and_help_and_layout() {
+    let app = connected("tablepro-history");
+    app.key("tab");
+    app.paste("SELECT * FROM orders;");
+    app.key("ctrl+r");
+    app.wait_screen("results before history", |s| {
+        text(s).contains("rows") || text(s).contains("orders")
+    });
+    app.key("ctrl+y");
+    app.wait_screen("history opens", |s| {
+        text(s).to_lowercase().contains("history")
+    });
+    app.visual("functional/tablepro_history");
+    app.key("escape");
+    app.click_text("Query 1");
+    close_all_tabs(&app);
+    app.finish();
+
+    let app = connected("tablepro-help-layout");
+    app.key("?");
+    app.wait_screen("help overlay opens", |s| {
+        text(s).contains("TablePro") || text(s).to_lowercase().contains("help")
+    });
+    app.key("escape");
+    app.key("ctrl+b");
+    app.wait_screen("explorer toggles closed", |s| {
+        !text(s).contains("Filter objects")
+    });
+    app.key("ctrl+b");
+    app.wait_text("Filter objects");
+    app.visual("functional/tablepro_workbench_layout");
+    app.key("escape");
+    app.finish();
+}
+
+#[test]
+fn tablepro_resize_and_too_small_recovers() {
+    let app = connected("tablepro-resize");
+    app.resize(60, 20);
+    app.wait_screen("workbench at 60x20", |s| {
+        s.cols() == 60 && (text(s).contains("Query") || text(s).contains("TablePro"))
+    });
+    app.resize(120, 40);
+    app.wait_screen("workbench recovered at 120x40", |s| {
+        s.cols() == 120 && text(s).contains("Query 1")
+    });
+    app.visual("functional/tablepro_resize_60x20");
+    app.key("escape");
+    app.finish();
+
+    let app = App::new(
+        "tablepro-nocolor",
+        TABLEPRO,
+        &["--motion", "reduced"],
+        100,
+        36,
+        "nocolor",
+    );
+    app.wait_text("Filter connections");
+    app.visual("functional/tablepro_connections_nocolor");
     app.finish();
 }

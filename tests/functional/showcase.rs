@@ -738,3 +738,96 @@ fn showcase_form_required_validation_and_reset() {
     app.visual("functional/showcase_forms");
     app.finish();
 }
+
+// ---- Page coverage: every NAV page is launched, settled and frozen. ----
+
+fn visit_page(slug: &str, heading: &str) {
+    let app = App::new(
+        &format!("showcase-page-{slug}"),
+        SHOWCASE,
+        &["--page", slug, "--motion", "paused"],
+        120,
+        40,
+        "truecolor",
+    );
+    app.wait_text(heading);
+    app.settle();
+    app.visual(&format!("functional/showcase_page_{slug}"));
+    app.finish();
+}
+
+macro_rules! page_test {
+    ($fn_name:ident, $slug:expr, $heading:expr) => {
+        #[test]
+        fn $fn_name() {
+            visit_page($slug, $heading);
+        }
+    };
+}
+
+page_test!(showcase_page_chrome, "chrome", "Chrome");
+page_test!(showcase_page_statushints, "statushints", "Status & hints");
+page_test!(
+    showcase_page_breadcrumbsrails,
+    "breadcrumbsrails",
+    "Breadcrumbs & rails"
+);
+page_test!(showcase_page_helpkeys, "helpkeys", "Help & keys");
+page_test!(showcase_page_quitleave, "quitleave", "Quit & leave");
+page_test!(
+    showcase_page_focusnavigation,
+    "focusnavigation",
+    "Focus & navigation"
+);
+page_test!(showcase_page_textareas, "textareas", "Text areas");
+page_test!(showcase_page_toolbars, "toolbars", "Toolbars");
+page_test!(showcase_page_editable, "editable", "Editable");
+page_test!(showcase_page_selection, "selection", "Selection");
+page_test!(showcase_page_celleditors, "celleditors", "Cell editors");
+page_test!(showcase_page_columns, "columns", "Columns");
+page_test!(showcase_page_sidebars, "sidebars", "Sidebars");
+page_test!(showcase_page_pickers, "pickers", "Pickers");
+page_test!(showcase_page_dialogkinds, "dialogkinds", "Dialog kinds");
+page_test!(showcase_page_filebrowser, "filebrowser", "File browser");
+page_test!(showcase_page_progress, "progress", "Progress");
+page_test!(showcase_page_emptyerror, "emptyerror", "Empty & error");
+page_test!(showcase_page_meters, "meters", "Meters");
+page_test!(showcase_page_notices, "notices", "Notices");
+page_test!(showcase_page_panels, "panels", "Panels");
+page_test!(showcase_page_masterdetail, "masterdetail", "Master-detail");
+page_test!(showcase_page_panetree, "panetree", "Pane tree");
+page_test!(showcase_page_codeeditor, "codeeditor", "Code editor");
+page_test!(showcase_page_diff, "diff", "Diff");
+page_test!(showcase_page_terminal, "terminal", "Terminal");
+page_test!(
+    showcase_page_textutilities,
+    "textutilities",
+    "Text utilities"
+);
+page_test!(showcase_page_settings, "settings", "Settings");
+page_test!(showcase_page_taskrunner, "taskrunner", "Task runner");
+page_test!(
+    showcase_page_queryworkbench,
+    "queryworkbench",
+    "Query workbench"
+);
+page_test!(showcase_page_connections, "connections", "Connections");
+page_test!(showcase_page_finder, "finder", "Finder");
+page_test!(showcase_page_diskcleanup, "diskcleanup", "Disk cleanup");
+page_test!(showcase_page_activity, "activity", "Activity");
+page_test!(showcase_page_workspaces, "workspaces", "Workspaces");
+page_test!(
+    showcase_page_accountsusage,
+    "accountsusage",
+    "Accounts & usage"
+);
+page_test!(
+    showcase_page_launchcockpit,
+    "launchcockpit",
+    "Launch cockpit"
+);
+page_test!(
+    showcase_page_readonlyreport,
+    "readonlyreport",
+    "Read-only report"
+);
