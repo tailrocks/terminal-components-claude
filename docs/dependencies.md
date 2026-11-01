@@ -7,6 +7,7 @@ complete dependency freshness audit.
 | Dependency | Pin | Reason / follow-up |
 | --- | --- | --- |
 | Existing `tuiscotti` | `a1ea27f757d75d07b05499276cd932e9f8e067ad` | Held below current main because the frozen visual harness depends on the removed live `Tui`/`Session`, `Observation`, and grouped-store APIs. Current main `d8d54155947f6303a41dfd6079b53c0abc16f29a` is tuiscotti 0.4.0 and is offline only. Migrate callers and verify reference compatibility deliberately; do not repin and mass-approve the frozen oracle. |
+| Latest Tuiscotti (offline check), renamed `tuiscotti-latest` | Git `d8d54155947f6303a41dfd6079b53c0abc16f29a` (0.4.0) | Strict `FrozenStore` visual check in `tests/functional/visual.rs`; renamed so the legacy 0.2 live harness keeps its API until its deliberate migration. |
 | New live driver, Rust crate `tui_test` | Registry `tuiscotti-tui-test = "=0.2.1"` | The user-requested fork supplies checked mouse input, native isolated launches, raw bytes, bounded waits, and owned snapshots needed by executable functional tests. This is a published dependency, with no vendoring or local patch. |
 | Rust / Nextest | `1.99.1` / `0.9.148` | Existing repository pins retained. Both are used for the new suite. |
 | Velnor Actions | `0.1.29` | Existing generator pin retained; generated functional CI is validated with the pinned actionlint, shellcheck and zizmor. No manual generated-file edits. |
