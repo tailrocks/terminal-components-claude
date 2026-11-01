@@ -459,7 +459,7 @@ fn showcase_splitter_seam_drag_resizes_panes() {
         40,
         "truecolor",
     );
-    let initial = app.wait_text("Explorer");
+    let initial = app.wait_text("splitter.rs");
     let editor_before = find(&initial, "Editor");
     let content = find(&initial, "splitter.rs");
     // Seam column sits between the Explorer and Editor boxes on content rows.

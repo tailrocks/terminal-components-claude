@@ -82,6 +82,27 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
             .map(|c| c.fg())
             == Some(tui_test::SnapshotColor::Rgb(77, 77, 77))
     });
+    // The trigger's background settles a frame or two after the tab's
+    // under heavier load; tick and re-check until both hold together.
+    let trigger = find(&app.screen(), "Open popover \u{25be}");
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    loop {
+        let settled = app.try_sustained(std::time::Duration::from_millis(600), |s| {
+            s.cell_at(u32::from(tab.x), u32::from(tab.y) + 1)
+                .map(|c| c.fg())
+                == Some(tui_test::SnapshotColor::Rgb(77, 77, 77))
+                && super::support::cell_bg(s, trigger) == tui_test::SnapshotColor::Rgb(74, 74, 82)
+        });
+        if settled {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "popover page must settle neutral"
+        );
+        app.advance_clock(40);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
     app.visual("functional/showcase_popover_resize");
     app.key("escape");
     app.wait_screen("escape dismisses the popover after resize", |s| {

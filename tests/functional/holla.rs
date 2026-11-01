@@ -85,7 +85,7 @@ fn holla_browser_pointer_selection_loads_preview_and_hidden_toggle() {
     app.key("enter");
     let listing = app.wait_screen("loaded directory listing", |s| {
         let t = text(s);
-        t.contains("Files · ~/work/site") && t.contains("16 entries")
+        t.contains("Files · ~/work/site") && t.contains("16 entries") && t.contains("index.html")
     });
     assert!(!text(&listing).contains(".env"));
 
