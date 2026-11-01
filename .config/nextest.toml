@@ -26,6 +26,19 @@ test-group = "pty"
 slow-timeout = { period = "60s", terminate-after = 3 }
 
 [[profile.default.overrides]]
+filter = "binary(functional)"
+test-group = "pty"
+threads-required = 2
+slow-timeout = { period = "30s", terminate-after = 3 }
+
+[profile.functional]
+default-filter = 'binary(functional)'
+fail-fast = false
+
+[profile.functional.junit]
+path = "functional.xml"
+
+[[profile.default.overrides]]
 # Boot-streaming screens: give them a second slot so they do not starve.
 filter = '''
   binary(visual_baseline) & (

@@ -39,9 +39,9 @@ claude_md = "symlink"
 # triggers.
 [workflow.dispatch.inputs.tier]
 type = "choice"
-description = "Visual tier (docs/visual-testing/plan.md C1)"
+description = "Test tier (docs/functional-testing.md; docs/visual-testing/plan.md C1)"
 default = "smoke"
-options = ["smoke", "full", "narrow", "capture"]
+options = ["functional", "smoke", "full", "narrow", "capture"]
 
 [workflow.dispatch.inputs.filter]
 type = "string"
@@ -59,6 +59,18 @@ triggers = ["workflow_dispatch"]
 dispatch_inputs = { tier = ["smoke"] }
 filter_input = "filter"
 artifacts = [{ name = "visual-smoke-{shard}", paths = ["target/tuiscotti/actual", "target/tuiscotti/expected", "target/tuiscotti/diff"], when = "failure", retention_days = 14 }]
+
+[[stacks.rust.suites]]
+id = "functional"
+profile = "functional"
+run_ignored = "default"
+partitions = 1
+build = "archive"
+timeout_minutes = 15
+test_threads = 4
+triggers = ["pull_request", "push", "workflow_dispatch"]
+dispatch_inputs = { tier = ["functional"] }
+artifacts = [{ name = "functional-terminal-evidence", paths = ["target/functional", "target/nextest/functional"], when = "failure", retention_days = 14 }]
 
 [[stacks.rust.suites]]
 id = "visual-full"

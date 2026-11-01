@@ -11,6 +11,10 @@ Install the checked-out workspace's pinned developer tools with `mise install`, 
 
 The commands above are starting points verified against the package manifests. Format, check, lint, and test the affected workspace using its configured commands. Run focused tests first, then required integration and visual gates. Record exact command, branch, revision, and result. A passing local command is evidence only for that command and revision; old visual and nextest results are not current verification.
 
+## Executable functional tests
+
+For real keyboard, pointer, pressed, scroll, form, and save/cancel journeys, use `cargo nextest run --locked --test functional --no-tests fail`. These non-ignored tests launch all four shipped binaries in isolated PTYs using the exact published `tuiscotti-tui-test` fork. [Functional testing](functional-testing.md) explains the reference harness, interaction assertions, coverage matrix, CI evidence, and the distinction from the existing frozen visual suite. [Dependency compatibility](dependencies.md) records why the old tuiscotti pin remains while current tuiscotti has moved to an offline workflow.
+
 ## Frozen CLI parity captures
 
 `tools/frozen_baseline.py` extracts the signed `visual-baseline` tag into an isolated directory, builds its four CLI binaries, then runs the frozen `visual_baseline` Nextest target against both frozen and candidate binary directories. The frozen target uses real `tuiscotti::Tui` processes (`tests/visual_baseline/scenarios/mod.rs`, `tests/visual_baseline/support.rs`) and `GroupedStore::check_with(..., 1.0)` with `ArtifactSet::AnsiCursor`; it checks the full frame, including cursor and attributes. It pins `tuiscotti` to `a1ea27f757d75d07b05499276cd932e9f8e067ad`.
