@@ -302,8 +302,10 @@ sizes and colors does not replace distinct domain journeys.
 ## CI and failure evidence
 
 The source configuration is [.velnor/config.toml](../.velnor/config.toml)
-(`compile_driver = "mbx"`: CI builds run through mr-boxington, matching
-the local mise setup). The dedicated functional suite runs on PRs and
+(`compile_driver = "cargo"`: Velnor's mbx driver requires host-seeded
+tool caches that GitHub-hosted runners do not provide, so CI builds with
+cargo directly; local builds run through mr-boxington via the mise
+postinstall `mbx setup`). The dedicated functional suite runs on PRs and
 branch pushes and can be selected manually with `tier=functional`. Its
 generated command is:
 

@@ -14,10 +14,13 @@ gh = "2.103.3"
 "github:tailrocks/velnor-new" = { version = "0.1.69", bin = "velnor-actions" }
 # tuiscotti's CLI at the same rev as the tuiscotti-latest dev-dependency.
 "cargo:https://github.com/tailrocks/tuiscotti" = { version = "rev:d8d54155947f6303a41dfd6079b53c0abc16f29a", crate = "tuiscotti-cli" }
-# mr-boxington (mbx): shared Cargo build cache, run through mise native
-# integration (the mr_boxington option on rust below). Pin is the latest release.
-mr-boxington = "1.29.0"
+# mr-boxington (mbx) 1.29.0 (latest): shared Cargo build cache. The
+# postinstall runs the documented standalone `mbx setup` on install, which
+# links mbx as the cargo wrapper for local builds. CI uses Velnor's cargo
+# compile driver: its mbx driver requires host-seeded tool caches that
+# GitHub-hosted runners do not provide (docs/functional-testing.md).
+mr-boxington = { version = "1.29.0", postinstall = "mbx setup --yes" }
 # Last on purpose: mise puts each tool's bin directory on PATH in this
 # order, and rust's is ~/.cargo/bin, where an older `cargo install`ed
 # cargo-nextest, velnor-actions or tuiscotti would otherwise win.
-rust = { version = "1.99.1", components = "clippy,rustfmt", mr_boxington = true }
+rust = { version = "1.99.1", components = "clippy,rustfmt" }

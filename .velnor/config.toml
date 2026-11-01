@@ -14,7 +14,7 @@ crate_timeout_minutes = 15
 
 [stacks.rust]
 # Plain Cargo; matches the documented gate in AGENTS.md.
-compile_driver = "mbx"
+compile_driver = "cargo"
 # Nextest only (AGENTS.md: never `cargo test`). Velnor selects the `ci`
 # profile from .config/nextest.toml. Doctests are disabled in Cargo.toml
 # (`[lib] doctest = false`) so no `cargo test --doc` step is generated;
