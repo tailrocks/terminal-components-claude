@@ -300,8 +300,12 @@ fn showcase_checks_radio_exclusivity_mixed_and_disabled() {
         40,
         "truecolor",
     );
-    let initial = app.wait_text("Select all rows");
-    assert!(text(&initial).contains("[✓] Send notifications"));
+    let initial = app.wait_screen("checks page fully rendered", |s| {
+        let t = text(s);
+        t.contains("Select all rows")
+            && t.contains("[\u{2713}] Send notifications")
+            && t.contains("(\u{25cf}) eu-west-1")
+    });
     assert!(text(&initial).contains("(●) eu-west-1"));
     // The States column repeats labels; the Playground copy is the first match.
     let first = |s: &TerminalSnapshot, needle: &str| find_all(s, needle)[0];
