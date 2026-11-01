@@ -669,15 +669,8 @@ impl App {
                 Outcome::Changed
             }
             TpCmd::CloseTab => {
-                if let Some(w) = self.workbench.as_mut() {
-                    let i = w.active;
-                    if w.tabs.get(i).is_some_and(|t| t.dirty()) {
-                        self.apply_requests(vec![Request::Go(Act::ConfirmCloseTab(i))]);
-                    } else {
-                        w.close_tab(i);
-                        let pf = w.primary_focus().unwrap_or(crate::workbench::EXPLORER);
-                        self.shell.focus.focus(pf);
-                    }
+                if let Some(w) = self.workbench.as_ref() {
+                    self.request_close_tab(w.active);
                 }
                 Outcome::Changed
             }
@@ -1418,6 +1411,19 @@ impl App {
         self.layers.top_as()
     }
 
+    fn request_close_tab(&mut self, index: usize) {
+        let Some(w) = self.workbench.as_mut() else {
+            return;
+        };
+        if w.tabs.get(index).is_some_and(|t| t.dirty()) {
+            self.act(Act::ConfirmCloseTab(index));
+        } else {
+            w.close_tab(index);
+            let focus = w.primary_focus().unwrap_or(crate::workbench::EXPLORER);
+            self.shell.focus.focus(focus);
+        }
+    }
+
     fn top_kind(&self) -> Option<&'static str> {
         self.layers.top().map(|e| e.tag.kind)
     }
@@ -1502,11 +1508,13 @@ impl App {
                         .layers
                         .top_as::<Picker>()
                         .map_or(i, |p| tab_index(p, i));
-                    if let Some(w) = self.workbench.as_mut() {
-                        w.close_tab(idx);
-                    }
+                    // Pop the picker first so the close guard restores the
+                    // workbench's focus when cancelled or confirmed.
                     self.layers.pop(&mut self.shell.focus);
-                    self.open_tab_list();
+                    self.request_close_tab(idx);
+                    if self.layers.is_empty() {
+                        self.open_tab_list();
+                    }
                 }
                 Outcome::Changed
             }

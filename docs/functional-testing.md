@@ -405,3 +405,29 @@ future dependency changes need explicit qualification.
 [fork-wait]: https://github.com/tailrocks/tui-test/blob/7abeac8478aa9c05ec7bef93afb10209cc348bec/crates/tui-test/src/wait.rs
 [upstream-release]: https://github.com/microsoft/tui-test/releases/tag/0.1.1
 [upstream-checked]: https://github.com/microsoft/tui-test/pull/282
+
+## Union suite (best of both reviews)
+
+The suite combines both reviewed deliveries: the `tuiscotti-tui-test` journeys
+(color matrix, nested scrolling, resize/help, TablePro connection/write gates,
+Holla trust/browser, Jackin workspace/account) plus journeys ported from the
+companion review in `tests/functional/ported.rs` (literal Showcase colours
+`#48e054`/`#3ab343`/`#2e9a38` and one focus gutter, datagrid wheel with an
+unchanged sidebar, TablePro dirty-tab close guard, Holla finder/second-gate,
+Jackin launch/editor/help) and a strict visual check in
+`tests/functional/visual.rs`.
+
+`visual.rs` uses latest Tuiscotti main `d8d5415` (0.4.0, renamed dev-dependency
+`tuiscotti-latest`): a live `tui_test` snapshot is checked with
+`FrozenStore::check` and the test asserts `outcome.is_pass()` — an `Ok` result
+alone is not a pass, and a missing baseline fails. The approved baseline lives
+in `tests/functional/baselines/`; approval was done once with the Tuiscotti
+CLI `accept` command, never by the test itself.
+
+TablePro fix: the tab picker's Delete route now shares the Ctrl+W dirty-tab
+guard (`request_close_tab` in `src/bin/tablepro/app.rs`). The regression test
+`ported::tablepro_dirty_picker_close_matches_ctrl_w_and_cancel_preserves_sql`
+fails on the original source and passes with the fix.
+
+Verified on macOS (in addition to the Linux evidence in the audit):
+`cargo nextest run --locked --test functional --profile functional` — 25 passed.
