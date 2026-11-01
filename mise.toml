@@ -7,7 +7,7 @@ shellcheck = "0.11.0"
 zizmor = "1.31.1"
 jactionlint = "2.3.0"
 gh = "2.103.3"
-"github:tailrocks/velnor-new" = { version = "0.1.70", bin = "velnor-actions" }
+"github:tailrocks/velnor-new" = { version = "0.1.71", bin = "velnor-actions" }
 "cargo:https://github.com/tailrocks/tuiscotti" = { version = "rev:d8d54155947f6303a41dfd6079b53c0abc16f29a", crate = "tuiscotti-cli" }
 mr-boxington = { version = "1.29.1", postinstall = "mbx setup --yes" }
 rust = { version = "1.99.1", profile = "minimal", components = [
