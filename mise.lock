@@ -76,6 +76,23 @@ url = "https://github.com/tailrocks/velnor-new/releases/download/v0.1.29/velnor-
 url_api = "https://api.github.com/repos/tailrocks/velnor-new/releases/assets/659190562"
 provenance = "github-attestations"
 
+[[tools.mr-boxington]]
+version = "1.29.0"
+backend = "packslip:github.com/jdx/mr-boxington"
+specifiers = ["1.29.0"]
+
+[tools.mr-boxington."platforms.linux-x64"]
+checksum = "sha256:b713e1a3b8e7a8696b7e365ef222a5b4bb45b18ad6c30b6f86972194294c31ae"
+url = "https://github.com/jdx/mr-boxington/releases/download/v1.29.0/mbx-x86_64-unknown-linux-gnu.tar.gz"
+signer = "sigstore-oidc:https://github.com/jdx/mr-boxington/.github/workflows/release.yml"
+repository_ids = { repository = "1340721957" }
+
+[tools.mr-boxington."platforms.macos-arm64"]
+checksum = "sha256:5675b2a3b16059757933448b8fd70579716f356cae311766becd9da38c983ab5"
+url = "https://github.com/jdx/mr-boxington/releases/download/v1.29.0/mbx-aarch64-apple-darwin.tar.gz"
+signer = "sigstore-oidc:https://github.com/jdx/mr-boxington/.github/workflows/release.yml"
+repository_ids = { repository = "1340721957" }
+
 [[tools.rust]]
 version = "1.99.1"
 backend = "core:rust"
