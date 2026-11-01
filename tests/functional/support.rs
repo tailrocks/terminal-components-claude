@@ -119,9 +119,7 @@ impl App {
         }
     }
 
-    pub fn visual(&self, test_id: &str) {
-        let _ = self.settle();
-
+    pub fn stable_screen(&self) -> TerminalSnapshot {
         let fingerprint = |screen: &TerminalSnapshot| {
             let mut bytes = serde_json::to_vec(screen.cells()).expect("serialize cells");
             let cursor = screen.cursor();
@@ -147,6 +145,12 @@ impl App {
                 break;
             }
         }
+        screen
+    }
+
+    pub fn visual(&self, test_id: &str) {
+        let _ = self.settle();
+        let screen = self.stable_screen();
 
         let sample = tuiscotti_latest::sample::Sample::state(
             test_id,

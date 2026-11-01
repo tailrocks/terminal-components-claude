@@ -519,7 +519,8 @@ fn showcase_scrollbar_thumb_drag_moves_list() {
         40,
         "truecolor",
     );
-    let initial = app.wait_text("Row 001");
+    app.wait_text("Row 001");
+    let initial = app.stable_screen();
     let row1 = find(&initial, "Row 001");
 
     let thumb = (row1.x..row1.x + 30)
@@ -542,9 +543,10 @@ fn showcase_scrollbar_thumb_drag_moves_list() {
         x: thumb.x,
         y: thumb.y + 8,
     });
-    let scrolled = app.wait_screen("thumb drag advances the list", |s| {
+    app.wait_screen("thumb drag advances the list", |s| {
         visible_list_rows(s).first().is_some_and(|f| *f > 1)
     });
+    let scrolled = app.stable_screen();
     assert_eq!(
         cropped_text(&scrolled, find(&scrolled, "Junie works through a"), 24, 7),
         neighbour_before,
