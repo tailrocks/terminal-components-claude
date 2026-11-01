@@ -130,25 +130,17 @@ impl App {
             bytes.push(u8::from(cursor.visible()));
             bytes
         };
-        let deadline = Instant::now() + Duration::from_millis(5000);
+        let deadline = Instant::now() + Duration::from_millis(1500);
         let mut screen = self.screen();
         let mut previous = fingerprint(&screen);
-        let mut stable_since = Instant::now();
         loop {
             std::thread::sleep(Duration::from_millis(100));
             let candidate = self.screen();
             let current = fingerprint(&candidate);
-            if current == previous {
-                if stable_since.elapsed() >= Duration::from_millis(700) {
-                    screen = candidate;
-                    break;
-                }
-            } else {
-                stable_since = Instant::now();
-            }
+            let stable = current == previous;
             screen = candidate;
             previous = current;
-            if Instant::now() >= deadline {
+            if stable || Instant::now() >= deadline {
                 break;
             }
         }

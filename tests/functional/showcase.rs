@@ -802,6 +802,8 @@ fn visit_page(slug: &str, heading: &str) {
     );
     app.wait_text(heading);
     app.settle();
+    app.advance_clock(100);
+    app.settle();
     app.visual(&format!("functional/showcase_page_{slug}"));
     app.finish();
 }
