@@ -70,9 +70,18 @@ fn showcase_popover_survives_resize_and_escape_returns_focus() {
     // no focus or hover, so this frame has no timing-sensitive state.
     // (Freezing after dismissal raced the trigger's hover background,
     // which depends on when the terminal delivers the parked motion.)
-    // One forced tick first: the page-neutral-under-popup restyle lands
-    // on the frame after the popup appears.
-    app.advance_clock(40);
+    // The page-neutral-under-popup restyle (selected tab loses its
+    // accent) lands on a later frame than the popup itself; wait for the
+    // tab underline to actually go neutral before freezing.
+    // Forced ticks so the neutralization frames are rendered even when
+    // no further input is queued, then wait for both to land.
+    app.advance_clock(2_000);
+    let tab = find(&app.screen(), "Playground");
+    app.wait_screen("selected tab neutral under popover", |s| {
+        s.cell_at(u32::from(tab.x), u32::from(tab.y) + 1)
+            .map(|c| c.fg())
+            == Some(tui_test::SnapshotColor::Rgb(77, 77, 77))
+    });
     app.visual("functional/showcase_popover_resize");
     app.key("escape");
     app.wait_screen("escape dismisses the popover after resize", |s| {
