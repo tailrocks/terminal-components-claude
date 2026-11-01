@@ -1370,4 +1370,3 @@ impl SizeCache {
         self.entries.sort_by(|a, b| a.path.cmp(&b.path));
     }
 }
-

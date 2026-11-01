@@ -1,5 +1,3 @@
-
-
 use std::borrow::Cow;
 
 use crate::core::id::WidgetId;
@@ -8,25 +6,21 @@ use crate::widgets::keyhint::{Hint, HintPriority};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct HintCx {
-
     pub focus: Option<WidgetId>,
 }
 
 impl HintCx {
-
     pub const fn new(focus: Option<WidgetId>) -> Self {
         Self { focus }
     }
 }
 
 pub trait HasHints {
-
     fn hints(&self, cx: &HintCx) -> Vec<Hint>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Binding {
-
     pub key: Option<KeyBinding>,
 
     pub label: Cow<'static, str>,
@@ -35,7 +29,6 @@ pub struct Binding {
 }
 
 impl Binding {
-
     pub fn key(key: KeyBinding, action: impl Into<Cow<'static, str>>) -> Self {
         Self {
             key: Some(key),
@@ -54,7 +47,6 @@ impl Binding {
 }
 
 pub trait Bindings {
-
     fn bindings(&self) -> Vec<Binding>;
 
     fn chords(&self) -> Vec<KeyBinding> {
@@ -112,4 +104,3 @@ pub fn nav_hints(nav: &NavKeys, type_ahead: bool, ends: bool) -> Vec<Hint> {
     }
     v
 }
-

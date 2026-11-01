@@ -1,5 +1,3 @@
-
-
 use std::cell::Cell;
 
 use ratatui::buffer::Buffer;
@@ -16,7 +14,6 @@ use crate::ui::text::{truncate, width, wrap};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tooltips {
-
     pub enabled: bool,
 
     pub delay_ms: u64,
@@ -25,7 +22,6 @@ pub struct Tooltips {
 }
 
 impl Tooltips {
-
     pub const OFF: Self = Self {
         enabled: false,
         delay_ms: 600,
@@ -119,7 +115,6 @@ pub fn show(
         return;
     }
     if ctx.interaction.pressed == Some(owner) {
-
         DISMISSED.with(|d| d.set(Some(owner)));
         return;
     }
@@ -160,7 +155,6 @@ fn layout(
         .max(1) as usize;
     let mut lines = wrap(&tip.text, room);
     if let Some(key) = key {
-
         let last = lines.last().map(|l| width(l)).unwrap_or(0);
         if last + 2 + width(key) <= room {
             if let Some(l) = lines.last_mut() {
@@ -228,4 +222,3 @@ fn draw(
 
     ctx.hits.register_hover(tip_id(owner), area);
 }
-

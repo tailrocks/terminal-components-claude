@@ -1,5 +1,3 @@
-
-
 use std::cell::Cell;
 
 use crate::core::event::{Key, Outcome};
@@ -9,7 +7,6 @@ use crate::core::keymap::{Nav, NavKeys};
 use crate::core::typeahead::TypeAhead;
 
 pub trait RowSource {
-
     fn len(&self) -> usize;
 
     fn is_empty(&self) -> bool {
@@ -47,7 +44,6 @@ impl RowSource for [String] {
 }
 
 pub struct RowFn<'a> {
-
     pub len: usize,
 
     pub enabled: &'a dyn Fn(usize) -> bool,
@@ -69,7 +65,6 @@ impl RowSource for RowFn<'_> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Moved {
-
     Ignored,
 
     Stayed(usize),
@@ -78,7 +73,6 @@ pub enum Moved {
 }
 
 impl Moved {
-
     pub fn index(self) -> Option<usize> {
         match self {
             Moved::Ignored => None,
@@ -101,7 +95,6 @@ impl Moved {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Cursor {
-
     pub index: usize,
 
     pub wrap: bool,
@@ -118,7 +111,6 @@ impl Default for Cursor {
 }
 
 impl Cursor {
-
     pub const fn new(index: usize) -> Self {
         Self {
             index,
@@ -194,7 +186,6 @@ impl Cursor {
         for _ in 0..n {
             let next = crate::core::nav::step_index(i, n, delta, self.wrap);
             if next == i {
-
                 break;
             }
             i = next;
@@ -278,14 +269,12 @@ impl Cursor {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyStep {
-
     Nav(Nav),
 
     Type(char),
 }
 
 impl KeyStep {
-
     pub fn of(key: &Key, nav: &NavKeys, type_ahead: bool) -> Option<Self> {
         Self::ordered(key, nav, type_ahead, TypeAheadPrecedence::TypeAhead)
     }
@@ -311,7 +300,6 @@ impl KeyStep {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum TypeAheadPrecedence {
-
     #[default]
     Shortcuts,
 
@@ -327,7 +315,6 @@ thread_local! {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Pass {
-
     Direct,
 
     Shortcuts,
@@ -336,7 +323,6 @@ enum Pass {
 }
 
 impl TypeAheadPrecedence {
-
     pub fn install(self) {
         PRECEDENCE.with(|p| p.set(self));
     }
@@ -378,7 +364,6 @@ pub fn route_key(key: &Key, mut handle: impl FnMut() -> Outcome) -> Outcome {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum NavProfile {
-
     #[default]
     Desktop,
 
@@ -390,7 +375,6 @@ thread_local! {
 }
 
 impl NavProfile {
-
     pub const fn nav(self) -> NavKeys {
         match self {
             NavProfile::Desktop => NavKeys::DESKTOP,
@@ -412,7 +396,5 @@ impl NavProfile {
 }
 
 pub trait Navigable: RowSource {
-
     fn cursor(&self) -> Cursor;
 }
-

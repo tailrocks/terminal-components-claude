@@ -1,5 +1,3 @@
-
-
 use crate::core::event::Outcome;
 
 use std::time::{Duration, Instant};
@@ -8,7 +6,6 @@ use std::time::{Duration, Instant};
 pub struct Moment(u64);
 
 impl Moment {
-
     pub const ZERO: Moment = Moment(0);
 
     pub const fn from_millis(ms: u64) -> Moment {
@@ -38,7 +35,6 @@ pub struct WallClock {
 }
 
 impl WallClock {
-
     pub fn new() -> Self {
         Self {
             origin: Instant::now(),
@@ -76,7 +72,6 @@ impl Clock for WallClock {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SimClock {
-
     pub now_ms: i64,
 
     pub running: bool,
@@ -87,7 +82,6 @@ pub struct SimClock {
 }
 
 impl SimClock {
-
     pub const fn new(epoch_secs: i64, utc_offset_secs: i64) -> Self {
         Self {
             now_ms: 0,
@@ -166,7 +160,6 @@ impl SimClock {
 pub struct ClockStep;
 
 impl ClockStep {
-
     pub const PREFIX: &'static str = "junie-tui:advance-clock:";
 
     pub const ENV: &'static str = "JUNIE_TUI_TEST_CLOCK";
@@ -234,4 +227,3 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
     let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
     (if m <= 2 { y + 1 } else { y }, m, d)
 }
-

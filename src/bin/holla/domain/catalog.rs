@@ -3765,4 +3765,3 @@ fn activity_items(w: &World, out: &mut Vec<Item>) {
         );
     }
 }
-

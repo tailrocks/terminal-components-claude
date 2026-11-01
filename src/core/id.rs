@@ -1,5 +1,3 @@
-
-
 use std::fmt;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -19,7 +17,6 @@ const fn fnv1a(mut hash: u64, bytes: &[u8]) -> u64 {
 }
 
 impl WidgetId {
-
     pub const fn of(path: &str) -> Self {
         Self(fnv1a(FNV_OFFSET, path.as_bytes()))
     }
@@ -71,7 +68,6 @@ pub const fn custom_hash16(name: &str) -> u16 {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ItemKey {
-
     Index(usize),
 
     Num(u64),
@@ -80,7 +76,6 @@ pub enum ItemKey {
 }
 
 impl ItemKey {
-
     pub const fn index(i: usize) -> Self {
         ItemKey::Index(i)
     }
@@ -202,7 +197,6 @@ parts! {
 }
 
 impl Part {
-
     pub const fn custom(name: &str) -> Part {
         Part(custom_hash16(name))
     }
@@ -223,14 +217,12 @@ impl fmt::Debug for Part {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct PartRef {
-
     pub part: Part,
 
     pub item: Option<ItemKey>,
 }
 
 impl PartRef {
-
     pub const OVERFLOW_BEFORE: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(0));
 
     pub const OVERFLOW_AFTER: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(1));
@@ -246,4 +238,3 @@ impl PartRef {
         }
     }
 }
-

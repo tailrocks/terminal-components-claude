@@ -500,4 +500,3 @@ pub fn mise_tasks(cwd: &str, output: Result<&str, &str>) -> Discovery {
     }
     d
 }
-

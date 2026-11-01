@@ -1,5 +1,3 @@
-
-
 pub fn step_index(cursor: usize, len: usize, delta: isize, wrap: bool) -> usize {
     if len == 0 {
         return 0;
@@ -11,4 +9,3 @@ pub fn step_index(cursor: usize, len: usize, delta: isize, wrap: bool) -> usize 
         to.clamp(0, len as isize - 1) as usize
     }
 }
-

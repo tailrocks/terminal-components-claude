@@ -95,4 +95,3 @@ pub fn quote(a: &str) -> String {
 pub fn displays(cmds: &[Command]) -> Vec<String> {
     cmds.iter().map(Command::display).collect()
 }
-

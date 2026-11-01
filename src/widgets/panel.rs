@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyModifiers;
 use ratatui::layout::{Position, Rect};
@@ -30,7 +28,6 @@ pub enum PanelKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PanelFocus {
-
     #[default]
     Title,
 
@@ -39,7 +36,6 @@ pub enum PanelFocus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum CardHeading {
-
     Plain,
 
     #[default]
@@ -264,7 +260,6 @@ impl<'a> Panel<'a> {
                 )
             }
             PanelKind::Framed => {
-
                 let row = if meta > 0 {
                     title + meta + 5
                 } else {
@@ -306,7 +301,6 @@ impl<'a> Panel<'a> {
                     );
                 }
                 if self.focused && self.title.is_some() && self.focus_mark == PanelFocus::Bar {
-
                     let s = crate::ui::ctx::VisualState {
                         focused: true,
                         ..Default::default()
@@ -321,7 +315,6 @@ impl<'a> Panel<'a> {
                 let (x, w) = self.title_span(area);
                 self.title_row(x, area.y, w, buf, t, head_bg);
                 if heading == CardHeading::Rule && self.title.is_some() && area.height > 2 {
-
                     let rule = t.glyphs.h_divider.repeat(w as usize);
                     buf.set_string(x, area.y + 1, rule, Style::new().fg(t.rule_on(bg)).bg(bg));
                 }
@@ -508,7 +501,6 @@ pub struct ScrollPanel {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PanelCmd {
-
     Follow,
 
     Copy,
@@ -539,7 +531,6 @@ impl Actions for PanelCmd {
 }
 
 impl ScrollPanel {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -614,7 +605,6 @@ impl ScrollPanel {
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
-
         if let Some(o) = edit_menu_key(self, key) {
             return o;
         }
@@ -625,7 +615,6 @@ impl ScrollPanel {
         match cmd {
             Some(PanelCmd::SelectAll) => return self.select_all(),
             Some(PanelCmd::Copy) => {
-
                 let Some(text) = self.selected_text() else {
                     return Outcome::Ignored;
                 };
@@ -815,7 +804,6 @@ impl ScrollPanel {
                 .draw_with_fade(body, buf, ctx, self.id, focused, &[]);
         }
         if rows_h < area.height && self.h_enabled() {
-
             let y = area.y + rows_h;
             fill(
                 buf,
@@ -832,7 +820,6 @@ impl ScrollPanel {
 }
 
 impl ScrollPanel {
-
     fn rows(&self) -> &[String] {
         if self.wrap {
             &self.wrapped_cache.1
@@ -1166,7 +1153,6 @@ impl EditMenuHost for ScrollPanel {
         crate::core::keymap::label_for(&self.keymap, cmd)
     }
     fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
-
         ev.id == self.id
     }
     fn edit_run(&mut self, cmd: crate::core::edit::TextCmd) -> bool {
@@ -1185,4 +1171,3 @@ impl EditMenuHost for ScrollPanel {
         false
     }
 }
-

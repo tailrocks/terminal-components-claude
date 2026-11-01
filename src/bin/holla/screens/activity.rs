@@ -1027,7 +1027,6 @@ impl Screen for ActivityTab {
         }
         bits
     }
-
 }
 
 const FOLLOW_UPS: [&str; 8] = [
@@ -1045,4 +1044,3 @@ fn follow_up_supported(label: &str) -> bool {
     let l = label.to_lowercase();
     FOLLOW_UPS.iter().any(|p| l.starts_with(p))
 }
-

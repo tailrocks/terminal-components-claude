@@ -116,7 +116,6 @@ pub struct FlatRow {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TreeAction {
-
     Expand(Path),
 
     Activate(Path),
@@ -124,7 +123,6 @@ pub enum TreeAction {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BranchAction {
-
     #[default]
     Toggle,
 
@@ -182,7 +180,6 @@ impl std::ops::DerefMut for TreeView {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TreeCmd {
-
     ExpandAll,
 
     CollapseAll,
@@ -403,7 +400,6 @@ impl TreeView {
     pub const MIN_LABEL: u16 = 12;
 
     pub fn flatten(&mut self) {
-
         let focused: Option<Path> = self.rows.get(self.core.cursor).map(|r| r.path.clone());
         let before: Option<Path> = self
             .cursor
@@ -677,7 +673,6 @@ impl TreeView {
             return (Outcome::Ignored, None);
         }
         if unassigned_chord(key, &self.keymap) {
-
             return (Outcome::Ignored, None);
         }
         if let Some(action) = lookup(&self.keymap, key) {
@@ -697,7 +692,6 @@ impl TreeView {
         let (nav, moved) = nav;
         let out = match nav {
             Nav::Up | Nav::Down | Nav::PageUp | Nav::PageDown | Nav::Home | Nav::End => {
-
                 if let Some(i) = moved.index() {
                     self.set_cursor(i);
                 }
@@ -719,7 +713,6 @@ impl TreeView {
                 if row.has_children && row.expanded {
                     return self.toggle(self.core.cursor);
                 } else if row.depth > 0 {
-
                     let depth = row.depth;
                     if let Some(pi) = self.rows[..self.core.cursor]
                         .iter()
@@ -945,7 +938,6 @@ impl TreeView {
             s.hovered |= ctx.interaction.hovered(gid);
             s.pressed |= ctx.interaction.pressed(gid);
             if row.note {
-
                 s.hovered = false;
                 s.pressed = false;
             }
@@ -975,7 +967,6 @@ impl TreeView {
                 " "
             };
             let gs = if row.busy {
-
                 st.fg(t.legible_mark(t.accent, st.bg.unwrap_or(bg)))
             } else if row.has_children {
                 st.fg(t.text_secondary)
@@ -993,7 +984,6 @@ impl TreeView {
                 && !row.busy
                 && let Some(m) = self.selected_marker
             {
-
                 rp.mark(ctx, buf, x, y, MarkKind::Glyph(m), focused);
             }
             x += 2;
@@ -1027,7 +1017,6 @@ impl TreeView {
             let mut lx = x;
             if let Some(g) = row.glyph.as_deref() {
                 if !row.note {
-
                     ctx.register_part(
                         self.id,
                         PartRef::item(Part::MARKER, ItemKey::index(ri)),
@@ -1038,7 +1027,6 @@ impl TreeView {
                     lx,
                     y,
                     g,
-
                     st.fg(if row.glyph_tone == Tone::Muted {
                         t.text_muted
                     } else {
@@ -1123,7 +1111,6 @@ impl crate::ui::measure::Measure for TreeView {
                 let lead = 1 + (row.depth as u16) * self.indent + 2;
                 let label = if row.glyph.is_some() { 2 } else { 0 } + w(&row.label);
                 let rest = match row.meta.as_deref().filter(|_| self.show_meta) {
-
                     Some(m) => label.max(10) + 2 + w(m) + 1,
                     None => label + 1,
                 };
@@ -1282,4 +1269,3 @@ impl crate::core::pointer::MouseTarget for TreeView {
         }
     }
 }
-

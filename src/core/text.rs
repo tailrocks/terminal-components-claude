@@ -1,5 +1,3 @@
-
-
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
@@ -540,4 +538,3 @@ impl TextBuffer {
         UnicodeWidthStr::width(self.text.as_str())
     }
 }
-

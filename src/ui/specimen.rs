@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Style};
@@ -12,7 +10,6 @@ use crate::ui::ctx::{Interaction, RenderCtx, VisualState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SpecimenState {
-
     Rest,
 
     Hover,
@@ -43,7 +40,6 @@ pub enum SpecimenState {
 }
 
 impl SpecimenState {
-
     pub const ALL: [Self; 14] = [
         Self::Rest,
         Self::Hover,
@@ -131,7 +127,6 @@ impl SpecimenState {
 }
 
 pub trait Specimen {
-
     fn specimen_id(&self) -> WidgetId;
 
     fn supports(&self, state: SpecimenState) -> bool;
@@ -1019,4 +1014,3 @@ fn picker_sample(
     }
     p
 }
-

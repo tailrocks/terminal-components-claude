@@ -1,5 +1,3 @@
-
-
 use crate::core::id::WidgetId;
 use crate::theme::Strings;
 use crate::ui::leave::{Leave, LeaveGuard, Stakes};
@@ -10,7 +8,6 @@ use super::PageKey;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Nav<R> {
-
     Push(R),
 
     Replace(R),
@@ -38,7 +35,6 @@ pub struct Router<P> {
 }
 
 impl<P> Router<P> {
-
     pub fn new(root: P) -> Self {
         Self::with_tabs(vec![root])
     }
@@ -256,4 +252,3 @@ impl<P> Router<P> {
         (depth + 1 < self.depth()).then_some(Nav::PopTo(depth))
     }
 }
-

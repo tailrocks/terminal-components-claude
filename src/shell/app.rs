@@ -1,5 +1,3 @@
-
-
 use std::time::Duration;
 
 use ratatui::Frame;
@@ -31,7 +29,6 @@ use crate::widgets::dialog::Dialog;
 pub struct PageKey(pub u64);
 
 impl PageKey {
-
     pub const ROOT: Self = Self(0);
 
     pub fn of(value: impl std::hash::Hash) -> Self {
@@ -83,7 +80,6 @@ impl<P> Default for Shell<P> {
 }
 
 impl<P: Default> Shell<P> {
-
     pub fn copy_at(&mut self, text: &str, what: Option<&str>, now: Moment) -> Copied {
         let r = self.clipboard.copy(text);
         let (msg, tone) = Clipboard::report(&r, text, what);
@@ -203,7 +199,6 @@ impl<P> Shell<P> {
 }
 
 pub trait App {
-
     type Status;
 
     fn shell(&self) -> &Shell<Self::Status>;
@@ -344,7 +339,6 @@ pub fn render<A: App + ?Sized>(app: &mut A, frame: &mut Frame) {
 }
 
 pub fn handle<A: App + ?Sized>(app: &mut A, input: Input) -> Outcome {
-
     let seen = app.shell_mut().status.on_input(&input);
     if let Input::Resize(w, h) = input {
         app.shell_mut().size = (w, h);
@@ -398,4 +392,3 @@ impl<A: App> Application for A {
         super::clipboard::take_output()
     }
 }
-

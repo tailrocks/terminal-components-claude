@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -36,7 +34,6 @@ pub struct DetailCard {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DetailLayout {
-
     pub card: Rect,
 
     pub bg: Color,
@@ -134,7 +131,6 @@ impl DetailCard {
             panel = panel.meta(m);
         }
         if self.fit {
-
             let mut scratch = Buffer::empty(card);
             let probe = panel.render(card, &mut scratch, t);
             let chrome = card.height.saturating_sub(probe.height);
@@ -178,4 +174,3 @@ impl DetailCard {
         }
     }
 }
-

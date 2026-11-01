@@ -1,5 +1,3 @@
-
-
 use std::ops::Range;
 
 use ratatui::crossterm::event::KeyModifiers;
@@ -11,7 +9,6 @@ use crate::widgets::field_common::PointerSelect;
 
 #[derive(Debug, Clone)]
 pub(crate) struct TextSelect<P> {
-
     pub sel: Option<(P, P)>,
 
     pub press: Option<P>,
@@ -36,7 +33,6 @@ impl<P> Default for TextSelect<P> {
 }
 
 impl<P: Copy + Ord> TextSelect<P> {
-
     pub fn range(&self) -> Option<(P, P)> {
         let (a, b) = self.sel?;
         (a != b).then(|| (a.min(b), a.max(b)))
@@ -253,4 +249,3 @@ pub(crate) fn plain_slice(s: &str, from: usize, to: usize) -> &str {
     let end = cells[b - 1].bytes.end;
     &s[start..end]
 }
-

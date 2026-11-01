@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -53,7 +51,6 @@ pub struct Step {
 }
 
 impl Step {
-
     fn shown_meta(&self) -> Option<String> {
         match (&self.meta, self.state) {
             (Some(m), _) => Some(m.clone()),
@@ -99,7 +96,6 @@ impl std::ops::DerefMut for StepRail {
 }
 
 impl StepRail {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.core.nav = nav;
         self
@@ -405,4 +401,3 @@ impl crate::core::pointer::MouseTarget for StepRail {
         }
     }
 }
-

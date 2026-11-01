@@ -1,5 +1,3 @@
-
-
 use ratatui::layout::Position;
 
 use ratatui::crossterm::event::KeyModifiers;
@@ -14,7 +12,6 @@ use super::scroll::Scrollable;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusOn {
-
     #[default]
     Press,
 
@@ -23,7 +20,6 @@ pub enum FocusOn {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SecondaryOutside {
-
     #[default]
     Reopen,
 
@@ -34,7 +30,6 @@ pub enum SecondaryOutside {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SecondaryRoute {
-
     Nothing,
 
     Target(WidgetId),
@@ -49,7 +44,6 @@ pub enum SecondaryRoute {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PointerConfig {
-
     pub focus_on: FocusOn,
 
     pub double_click_ms: u64,
@@ -86,7 +80,6 @@ pub struct PointerConfig {
 }
 
 impl PointerConfig {
-
     pub const DEFAULT: Self = Self {
         focus_on: FocusOn::Press,
         double_click_ms: 500,
@@ -187,7 +180,6 @@ impl Default for PointerConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Release {
-
     Click(WidgetId),
 
     Outside,
@@ -547,7 +539,6 @@ impl PointerState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PointerEvent {
-
     pub id: WidgetId,
 
     pub hit: Hit,
@@ -558,7 +549,6 @@ pub struct PointerEvent {
 }
 
 impl PointerEvent {
-
     pub fn new(
         hits: &HitRegistry,
         phase: Phase,
@@ -688,7 +678,6 @@ pub fn scroll_input<S: Scrollable + ?Sized>(w: &mut S, ev: &PointerEvent) -> Opt
 }
 
 pub trait MouseTarget {
-
     type Action;
 
     fn mouse_id(&self) -> WidgetId;
@@ -708,7 +697,6 @@ pub struct PointerParts<'a> {
 }
 
 pub trait PointerHost {
-
     fn pointer_parts(&mut self) -> PointerParts<'_>;
 
     fn layer_open(&self) -> bool;
@@ -897,7 +885,6 @@ impl PointerRouter {
             return Outcome::Ignored;
         };
         if layer {
-
             p.router.state.surface_press(p.hits, id, p.focus);
         } else if p.router.state.config.focus_on == FocusOn::Press && p.ring.contains(id) {
             p.focus.focus(id);
@@ -927,7 +914,6 @@ impl PointerRouter {
             SecondaryRoute::Swallowed => Outcome::Consumed,
             SecondaryRoute::Target(id) => at(host, id),
             SecondaryRoute::Outside { backdrop, reopen } => {
-
                 host.pointer_parts().router.state.press(backdrop);
                 let out = Self::release(host, m, Some(backdrop), layer, now).or(Outcome::Changed);
 
@@ -962,7 +948,6 @@ impl PointerRouter {
         let mut out = Outcome::Ignored;
         let mut tried: Vec<WidgetId> = Vec::new();
         for ev in events {
-
             if tried.contains(&ev.owner()) {
                 continue;
             }
@@ -990,7 +975,6 @@ impl PointerRouter {
             Release::Click(id) => id,
             Release::Outside => return host.outside(m.pos).outcome().or(Outcome::Changed),
             Release::Cancelled => {
-
                 let Some(pressed) = pressed else {
                     return Outcome::Changed;
                 };
@@ -1018,4 +1002,3 @@ impl PointerRouter {
         out.or(Outcome::Changed)
     }
 }
-

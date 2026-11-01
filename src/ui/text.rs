@@ -1,5 +1,3 @@
-
-
 use std::ops::Range;
 
 use unicode_segmentation::UnicodeSegmentation;
@@ -240,7 +238,6 @@ pub fn crumb_fit(label: &str, max: usize) -> String {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum DurationStyle {
-
     Compact,
 
     #[default]
@@ -305,7 +302,6 @@ pub fn bytes(n: u64) -> String {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WrapOpts {
-
     pub keep_indent: bool,
 
     pub hang_at_gap: Option<u8>,
@@ -321,7 +317,6 @@ impl Default for WrapOpts {
 }
 
 impl WrapOpts {
-
     pub const PLAIN: Self = Self {
         keep_indent: false,
         hang_at_gap: None,
@@ -439,7 +434,6 @@ struct SearchText {
 
 impl SearchText {
     fn new(source: &str, lowercase: bool) -> Self {
-
         let text = if lowercase {
             source.to_lowercase()
         } else {
@@ -529,4 +523,3 @@ pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
     }
     Some((60 + (matched.last().copied().unwrap_or(0) as u32), matched))
 }
-

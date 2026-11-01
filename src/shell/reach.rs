@@ -1,5 +1,3 @@
-
-
 use std::collections::BTreeSet;
 
 use ratatui::Terminal;
@@ -34,7 +32,6 @@ const STALL: (usize, usize) = (3, 12);
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Reach {
-
     pub size: (u16, u16),
 
     pub too_small: bool,
@@ -47,7 +44,6 @@ pub struct Reach {
 }
 
 impl Reach {
-
     pub(crate) fn of(
         size: (u16, u16),
         too_small: bool,
@@ -80,7 +76,6 @@ pub struct Words {
 }
 
 impl Words {
-
     pub(crate) fn read(buf: &Buffer) -> Self {
         let mut out = Self::default();
         out.add(buf);
@@ -168,7 +163,6 @@ pub(crate) struct Probe<A> {
 }
 
 impl<A: App + Application> Probe<A> {
-
     pub(crate) fn new(app: A, term: Terminal<TestBackend>) -> Self {
         let mut p = Self { app, term };
         p.draw();
@@ -214,7 +208,6 @@ impl<A: App + Application> Probe<A> {
     }
 
     pub(crate) fn explore(&mut self, want: &Words, reached: &mut Words) -> usize {
-
         reached.add_overflowed();
         let left = want.against(reached).0;
         let mut acc = Acc {
@@ -373,7 +366,6 @@ impl<A: App + Application> Probe<A> {
 
 fn notches(bar: Bar) -> u16 {
     match bar.axis {
-
         Axis::Vertical if bar.track.height < 9 => 1,
         Axis::Vertical => (bar.track.height / 3 - 1).max(1),
         Axis::Horizontal => 1,
@@ -390,7 +382,6 @@ struct Acc {
 }
 
 impl Acc {
-
     fn add(&mut self, buf: &Buffer) -> bool {
         let mut frame = Words::read(buf);
         frame.add_overflowed();
@@ -527,7 +518,6 @@ pub struct Case<H: 'static> {
 }
 
 impl<H> Case<H> {
-
     pub const fn page(name: &'static str, base: Setup<H>) -> Self {
         Self {
             name,
@@ -553,7 +543,6 @@ impl<H> Case<H> {
 }
 
 impl<H: Harness> Case<H> {
-
     fn build(&self) -> (H, Words) {
         let mut h = H::fresh();
         (self.base)(&mut h);
@@ -715,4 +704,3 @@ macro_rules! reach_tests {
         }
     };
 }
-

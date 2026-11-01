@@ -1,5 +1,3 @@
-
-
 use crate::core::hints::{
     Binding, Bindings, HasHints, HintCx, actions_bindings, nav_bindings, nav_hints,
 };
@@ -191,4 +189,3 @@ impl Bindings for Select {
         v
     }
 }
-

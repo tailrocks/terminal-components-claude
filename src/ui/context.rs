@@ -1,5 +1,3 @@
-
-
 use crate::core::keymap::Actions;
 use crate::core::list::Navigable;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -17,7 +15,6 @@ use crate::widgets::tree::TreeView;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextKeys {
-
     pub shift_f10: bool,
 
     pub menu_key: bool,
@@ -26,7 +23,6 @@ pub struct ContextKeys {
 }
 
 impl ContextKeys {
-
     pub const DEFAULT: Self = Self {
         shift_f10: true,
         menu_key: true,
@@ -69,7 +65,6 @@ impl Default for ContextKeys {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextConfig {
-
     pub keys: ContextKeys,
 
     pub moves_cursor: bool,
@@ -125,14 +120,12 @@ impl Default for ContextConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContextAnchor {
-
     Pointer(Position),
 
     Control { id: WidgetId, fallback: Rect },
 }
 
 impl ContextAnchor {
-
     pub fn apply(self, menu: ContextMenu) -> ContextMenu {
         match self {
             Self::Pointer(pos) => menu.at(pos),
@@ -148,7 +141,6 @@ pub struct ContextRequest<T> {
 }
 
 impl<T> ContextRequest<T> {
-
     pub fn menu(&self, id: WidgetId, items: Vec<MenuItem>) -> ContextMenu {
         self.anchor.apply(ContextMenu::new(id, items))
     }
@@ -162,7 +154,6 @@ impl<T> ContextRequest<T> {
 }
 
 pub trait ContextSource {
-
     type Target: Copy;
 
     fn context_target(&self, ev: &PointerEvent) -> Option<Self::Target>;
@@ -257,7 +248,6 @@ impl ContextSource for ListBox {
 impl ContextSource for TreeView {
     type Target = usize;
     fn context_target(&self, ev: &PointerEvent) -> Option<usize> {
-
         self.row_at(ev)
     }
     fn context_select(&mut self, row: usize) {
@@ -278,7 +268,6 @@ impl ContextSource for TreeView {
 }
 
 impl ContextSource for DataTable {
-
     type Target = (usize, usize);
     fn context_target(&self, ev: &PointerEvent) -> Option<(usize, usize)> {
         if !ev.on(self.id) {
@@ -328,7 +317,6 @@ impl ContextSource for DataTable {
 }
 
 impl ContextSource for DataGrid {
-
     type Target = (usize, usize);
     fn context_target(&self, ev: &PointerEvent) -> Option<(usize, usize)> {
         if !ev.on(self.id) {
@@ -387,4 +375,3 @@ impl ContextSource for Tabs {
         })
     }
 }
-

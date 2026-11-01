@@ -1,5 +1,3 @@
-
-
 use std::ops::Range;
 use std::rc::Rc;
 
@@ -43,7 +41,6 @@ impl std::ops::Deref for FieldError {
 }
 
 impl FieldError {
-
     pub fn message_mut(&mut self) -> &mut String {
         &mut self.message
     }
@@ -68,7 +65,6 @@ impl From<&str> for FieldError {
 }
 
 pub trait Validate {
-
     type Value;
     fn validate(&self, text: &str) -> Result<Self::Value, FieldError>;
 }
@@ -90,21 +86,18 @@ impl<V, C> std::fmt::Debug for Validator<V, C> {
 }
 
 impl<V: 'static> Validator<V> {
-
     pub fn new(f: impl Fn(&str) -> Result<V, FieldError> + 'static) -> Self {
         Self(Rc::new(move |_: &(), text: &str| f(text)))
     }
 }
 
 impl Validator {
-
     pub fn check(f: impl Fn(&str) -> Option<String> + 'static) -> Self {
         Self::new(move |text| f(text).map_or(Ok(()), |m| Err(FieldError::from(m))))
     }
 }
 
 impl<V: 'static, C: 'static> Validator<V, C> {
-
     pub fn with_context(f: impl Fn(&C, &str) -> Result<V, FieldError> + 'static) -> Self {
         Self(Rc::new(f))
     }
@@ -128,7 +121,6 @@ impl<V> Validate for Validator<V> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ValidateWhen {
-
     Commit,
 
     #[default]
@@ -139,7 +131,6 @@ pub enum ValidateWhen {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditExit {
-
     Commit,
 
     Cancel,
@@ -149,7 +140,6 @@ pub enum EditExit {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EditResult {
-
     pub outcome: Outcome,
 
     pub edited: bool,
@@ -210,7 +200,6 @@ pub struct EditField {
 }
 
 impl EditField {
-
     pub fn single(text: impl Into<String>) -> Self {
         Self::with_buffer(TextBuffer::single(text), false)
     }
@@ -633,7 +622,6 @@ impl Default for EditField {
 }
 
 pub trait Editable {
-
     fn field(&mut self) -> &mut EditField;
 
     fn edit_id(&self) -> WidgetId;
@@ -709,4 +697,3 @@ impl<T: Editable> PointerField for T {
         Outcome::Changed
     }
 }
-

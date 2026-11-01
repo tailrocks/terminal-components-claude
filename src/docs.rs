@@ -1,5 +1,3 @@
-
-
 use crate::core::hints::{Binding, Bindings, HasHints, HintCx};
 use crate::core::id::WidgetId;
 use crate::core::list::NavProfile;
@@ -7,7 +5,6 @@ use crate::widgets::keyhint::Hint;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KnobLayer {
-
     Profile,
 
     Widget,
@@ -46,7 +43,6 @@ pub struct MouseRow {
 
 #[derive(Debug, Clone, Copy)]
 pub struct WidgetDoc {
-
     pub name: &'static str,
     pub file: &'static str,
 
@@ -533,4 +529,3 @@ pub mod widget {
         ],
     };
 }
-

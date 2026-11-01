@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Margin, Rect, Size};
@@ -29,7 +27,6 @@ pub enum PaneNode {
 }
 
 impl PaneNode {
-
     pub fn leaves(&self) -> Vec<PaneId> {
         match self {
             PaneNode::Leaf(id) => vec![*id],
@@ -216,7 +213,6 @@ impl PaneNode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Seam {
-
     pub path: Vec<u8>,
     pub dir: SplitDir,
 
@@ -260,7 +256,6 @@ pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, dir: Direction) -> Optio
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaneRefusal {
-
     ZoomedFocus,
 
     ZoomedResize,
@@ -275,7 +270,6 @@ pub enum PaneRefusal {
 }
 
 impl PaneRefusal {
-
     pub fn message(self) -> &'static str {
         match self {
             PaneRefusal::ZoomedFocus => "Unzoom to move focus",
@@ -290,7 +284,6 @@ impl PaneRefusal {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaneCmd {
-
     Next,
 
     Prev,
@@ -303,7 +296,6 @@ pub enum PaneCmd {
 }
 
 impl Actions for PaneCmd {
-
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::F(6)), PaneCmd::Next),
@@ -353,7 +345,6 @@ impl Actions for PaneCmd {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Frames {
-
     #[default]
     WhenSplit,
 
@@ -366,7 +357,6 @@ pub type PaneResult = Result<Outcome, PaneRefusal>;
 
 #[derive(Debug, Clone)]
 pub struct PaneTree {
-
     pub id: WidgetId,
     pub root: PaneNode,
 
@@ -389,7 +379,6 @@ pub struct PaneTree {
 }
 
 impl PaneTree {
-
     pub fn new(id: WidgetId, first: PaneId) -> Self {
         Self {
             id,
@@ -549,7 +538,6 @@ impl PaneTree {
             if let Some(PaneNode::Split { dir: sd, .. }) = self.root.node_at_mut(&path[..k])
                 && *sd == want
             {
-
                 let delta = cells.min(i16::MAX as u16) as i16;
                 chosen = Some((path[..k].to_vec(), if grows_first { delta } else { -delta }));
                 break;
@@ -666,7 +654,6 @@ impl PaneTree {
             }
             panel.render(r, buf, t);
             if hovered && !focused && r.width > 4 {
-
                 let w = crate::ui::text::width(&name) as u16 + 2;
                 for x in r.x + 2..(r.x + 2 + w).min(r.right().saturating_sub(2)) {
                     buf[(x, r.y)].set_style(t.primary().bg(bg));
@@ -814,4 +801,3 @@ impl crate::ui::specimen::Specimen for PaneTree {
         ctx.interaction = saved;
     }
 }
-

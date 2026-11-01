@@ -1,5 +1,3 @@
-
-
 pub mod activity;
 pub mod cleanup;
 pub mod disk;
@@ -30,7 +28,6 @@ pub type LayerSlot = LayerEntry<ModalResult, (), usize>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModalResult {
-
     Dialog {
         action: Option<usize>,
         text: Option<String>,
@@ -64,13 +61,15 @@ impl From<LayerResult> for ModalResult {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Go {
-
     Run {
         item: String,
         args: Vec<(String, String)>,
     },
 
-    Alternatives { item: String, anchor: Rect },
+    Alternatives {
+        item: String,
+        anchor: Rect,
+    },
 
     Push(Page),
 
@@ -84,7 +83,10 @@ pub enum Go {
 
     Gate1Accepted(GateTarget),
 
-    Trusted { config: String, then: String },
+    Trusted {
+        config: String,
+        then: String,
+    },
 
     CleanupPlan(Vec<String>),
 
@@ -189,7 +191,6 @@ impl junie_tui::shell::PageTypes for Holla {
 pub use junie_tui::shell::{open_context, rebuild_on_tick, row_anchor, row_choice};
 
 impl ModalResult {
-
     pub fn menu_chosen(&self) -> Option<usize> {
         match *self {
             Self::MenuChosen(k) => Some(k),
@@ -199,7 +200,6 @@ impl ModalResult {
 }
 
 pub trait Screen: junie_tui::shell::Page<Holla> {
-
     fn on_context_key(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
@@ -218,7 +218,6 @@ pub trait Screen: junie_tui::shell::Page<Holla> {
     fn as_files(&mut self) -> Option<&mut files::FilesPage> {
         None
     }
-
 }
 
 pub fn ticks_label(ticks: u64) -> String {

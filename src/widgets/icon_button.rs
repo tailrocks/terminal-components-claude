@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -12,7 +10,6 @@ use crate::ui::tooltip::Tip;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum IconLook {
-
     #[default]
     Close,
 
@@ -36,7 +33,6 @@ pub struct IconButton {
 }
 
 impl IconButton {
-
     pub const DEFAULT_PAD: u16 = 1;
 
     pub fn close(id: WidgetId) -> Self {
@@ -197,4 +193,3 @@ impl crate::ui::specimen::Specimen for IconButton {
         self.render(area.x, area.y, buf, ctx, host, Some(Tip::default()));
     }
 }
-

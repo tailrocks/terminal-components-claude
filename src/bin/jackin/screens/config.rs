@@ -2161,12 +2161,11 @@ impl ConfigTabs {
             ),
         ];
         let _ = scope_word;
-        if e.is_some() {
-            if let Some(fld) = fields.iter_mut().find(|x| x.name == "key")
-                && let FieldKindW::Input(i) = &mut fld.kind
-            {
-                i.help = "Renaming replaces the row".into();
-            }
+        if e.is_some()
+            && let Some(fld) = fields.iter_mut().find(|x| x.name == "key")
+            && let FieldKindW::Input(i) = &mut fld.kind
+        {
+            i.help = "Renaming replaces the row".into();
         }
         let mut form = FormDialog::new(f, &title, fields)
             .width(70)

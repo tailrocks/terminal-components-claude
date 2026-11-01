@@ -1,5 +1,3 @@
-
-
 use crate::core::event::{ClientPlatform, Key};
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
@@ -17,7 +15,6 @@ pub enum Nav {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NavKeys {
-
     pub arrows: bool,
 
     pub vim: bool,
@@ -28,7 +25,6 @@ pub struct NavKeys {
 }
 
 impl NavKeys {
-
     pub const DESKTOP: Self = Self {
         arrows: true,
         vim: false,
@@ -122,7 +118,6 @@ impl NavKeys {
 }
 
 impl Default for NavKeys {
-
     fn default() -> Self {
         crate::core::list::NavProfile::current().nav()
     }
@@ -276,7 +271,6 @@ impl From<char> for KeyBinding {
 pub type KeyMap<A> = Vec<(KeyBinding, A)>;
 
 pub trait Actions: Copy + PartialEq + Sized + 'static {
-
     fn default_keymap() -> KeyMap<Self>;
 
     fn label(self) -> &'static str;
@@ -340,4 +334,3 @@ pub fn intern(label: String) -> &'static str {
     labels.insert(l);
     l
 }
-

@@ -3255,4 +3255,3 @@ pub fn plan_git_switch_primary(w: &World) -> Plan {
         .fact("Resolution", "primary branch read from origin/HEAD per project · never hard-coded")
         .fact("Blocked", "dirty, detached, diverged or in-progress projects are skipped without discarding work")
 }
-

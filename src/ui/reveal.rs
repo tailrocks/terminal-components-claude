@@ -1,5 +1,3 @@
-
-
 use std::rc::Rc;
 
 use ratatui::buffer::Buffer;
@@ -16,7 +14,6 @@ use crate::ui::text::{truncate, wider_than, width, wrap};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RevealMode {
-
     #[default]
     Tooltip,
 
@@ -25,7 +22,6 @@ pub enum RevealMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Reveal {
-
     pub hover: bool,
 
     pub keyboard: Option<KeyCode>,
@@ -44,7 +40,6 @@ pub struct Reveal {
 }
 
 impl Reveal {
-
     pub const OFF: Self = Self {
         hover: false,
         keyboard: None,
@@ -116,7 +111,6 @@ impl Reveal {
 }
 
 impl Default for Reveal {
-
     fn default() -> Self {
         Self {
             hover: true,
@@ -133,7 +127,6 @@ impl Default for Reveal {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct Extent {
-
     max: u16,
 
     page: u16,
@@ -143,7 +136,6 @@ type SharedExtent = std::rc::Rc<std::cell::Cell<Extent>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct RevealState {
-
     pub config: Option<Reveal>,
 
     pub open: bool,
@@ -261,7 +253,6 @@ impl RevealState {
         let max = self.extent.get().max as i32;
         let next = (self.scroll as i32 + delta).clamp(0, max) as u16;
         if next == self.scroll {
-
             Outcome::Consumed
         } else {
             self.scroll = next;
@@ -546,7 +537,6 @@ pub(crate) fn overflowed() -> Vec<String> {
 
 #[derive(Debug, Default)]
 struct PointerTip {
-
     target: Option<WidgetId>,
     scroll: u16,
     extent: SharedExtent,
@@ -613,7 +603,6 @@ pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
         let next =
             (p.scroll as i32 + dy * p.wheel_lines.max(1) as i32).clamp(0, extent.max as i32) as u16;
         if next == p.scroll && p.passes {
-
             return None;
         }
         Some(if next == p.scroll {
@@ -947,4 +936,3 @@ fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {
         );
     }
 }
-

@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
@@ -16,7 +14,6 @@ use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct EditCaps {
-
     pub editable: bool,
 
     pub selection: bool,
@@ -27,7 +24,6 @@ pub struct EditCaps {
 }
 
 impl EditCaps {
-
     pub fn of(field: &EditField) -> Self {
         Self {
             editable: !field.read_only,
@@ -92,7 +88,6 @@ pub fn edit_items(
 
 #[derive(Debug, Clone)]
 pub struct EditMenu {
-
     pub enabled: bool,
 
     pub keys: ContextKeys,
@@ -119,7 +114,6 @@ impl Default for EditMenu {
 }
 
 impl EditMenu {
-
     pub fn id_for(owner: WidgetId) -> WidgetId {
         owner.sub("edit-menu")
     }
@@ -218,7 +212,6 @@ impl EditMenu {
 }
 
 pub trait EditMenuHost {
-
     fn edit_menu(&mut self) -> &mut EditMenu;
 
     fn edit_owner(&self) -> WidgetId;
@@ -320,4 +313,3 @@ pub fn point_field(field: &mut EditField, offset: usize) {
     field.buffer.select_range(offset, offset);
     field.buffer.clear_selection();
 }
-

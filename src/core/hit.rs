@@ -1,5 +1,3 @@
-
-
 use ratatui::layout::{Position, Rect};
 
 use super::id::{ItemKey, Part, PartRef, WidgetId};
@@ -63,7 +61,6 @@ pub struct HitMark {
 }
 
 impl HitMark {
-
     pub(crate) fn regions_len(&self) -> usize {
         self.regions
     }
@@ -71,7 +68,6 @@ impl HitMark {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReleaseFrom {
-
     Press(WidgetId),
 
     Secondary,
@@ -84,7 +80,6 @@ pub struct Hit {
 }
 
 impl HitRegion {
-
     fn plain(id: WidgetId, area: Rect) -> Self {
         Self {
             id,
@@ -154,7 +149,6 @@ impl HitRegistry {
 
     pub fn raise(&mut self, id: WidgetId) {
         if let Some(bar) = self.bar(id) {
-
             let parts: Vec<HitRegion> = self
                 .regions
                 .iter()
@@ -520,7 +514,6 @@ impl HitRegistry {
     }
 
     pub fn area_of(&self, id: WidgetId) -> Option<Rect> {
-
         if let Some(bar) = self.bar(id) {
             return Some(bar.track);
         }
@@ -546,7 +539,6 @@ pub(crate) struct PartMap {
 }
 
 impl PartMap {
-
     pub fn clear(&mut self) {
         self.entries.clear();
     }
@@ -583,4 +575,3 @@ impl PartMap {
         Some((e.part.item?.as_index()?, e.col?))
     }
 }
-

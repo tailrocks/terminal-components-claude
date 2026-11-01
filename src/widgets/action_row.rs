@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
@@ -12,7 +10,6 @@ use crate::widgets::button::{Button, ButtonRow, RowAlign, row_layout, row_layout
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionRow {
-
     pub align: RowAlign,
 
     pub gap: u16,
@@ -135,4 +132,3 @@ impl ActionRow {
             .step(buttons.iter().copied(), cur, forward)
     }
 }
-

@@ -315,4 +315,3 @@ impl Layer<ModalResult> for TextModal {
         Some(LayerOut::Close(ModalResult::Closed))
     }
 }
-

@@ -562,4 +562,3 @@ impl AccountRegistry {
         v
     }
 }
-

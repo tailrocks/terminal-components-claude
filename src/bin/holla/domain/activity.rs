@@ -1,5 +1,3 @@
-
-
 use crate::domain::context::ScopeTag;
 use crate::domain::effect::Effect;
 use crate::domain::exec::Command;
@@ -12,7 +10,6 @@ pub const TERM_EXIT_TICKS: u64 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActivityState {
-
     Queued,
     Running,
 
@@ -54,7 +51,6 @@ impl ActivityState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActivityKind {
-
     Task,
 
     Logs { services: Vec<String> },
@@ -77,9 +73,7 @@ pub enum LineTone {
 pub enum LineKind {
     Output,
 
-    Prompt {
-        secret: bool,
-    },
+    Prompt { secret: bool },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -257,7 +251,6 @@ pub struct CancelState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InputError {
-
     Finished,
 
     NotStarted,
@@ -432,7 +425,6 @@ impl Activity {
             && elapsed >= end
             && self.state != ActivityState::Detached
         {
-
             while let Some(l) = self.script.lines.get(self.cursor).cloned() {
                 self.cursor += 1;
                 if let LineKind::Output = l.kind {
@@ -572,7 +564,6 @@ impl Activity {
             return Ok(());
         }
         if bytes == [0x04] {
-
             if self.waiting.is_some() {
                 let pending = std::mem::take(&mut self.pending);
                 let answer = if pending.is_empty() {
@@ -599,7 +590,6 @@ impl Activity {
                             .into_owned();
                         self.answer_prompt(line, None, tick);
                     } else {
-
                         self.echo_pending(None);
                         self.pending.clear();
                         self.echo_active = false;
@@ -710,7 +700,6 @@ impl Activity {
             _ => vec![],
         }
     }
-
 }
 
 pub fn key_bytes(key: &junie_tui::core::event::Key) -> Option<Vec<u8>> {
@@ -736,4 +725,3 @@ pub fn key_bytes(key: &junie_tui::core::event::Key) -> Option<Vec<u8>> {
         _ => return None,
     })
 }
-

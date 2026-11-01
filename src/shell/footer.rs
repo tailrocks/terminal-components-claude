@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -11,7 +9,6 @@ use super::Shell;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FooterStatus {
-
     Toned {
         text: String,
         tone: Tone,
@@ -25,7 +22,6 @@ pub enum FooterStatus {
 }
 
 impl FooterStatus {
-
     pub fn is_error(&self) -> bool {
         match self {
             Self::Toned { tone, .. } => *tone == Tone::Error,
@@ -36,7 +32,6 @@ impl FooterStatus {
 
 #[derive(Debug, Clone, Default)]
 pub struct Footer {
-
     pub hints: Option<Vec<Hint>>,
 
     pub fallback: Vec<Hint>,
@@ -148,7 +143,6 @@ impl Footer {
             }
         }
         if self.status.as_ref().is_some_and(FooterStatus::is_error) {
-
             for h in &mut hints {
                 h.priority = HintPriority::Normal;
             }
@@ -227,4 +221,3 @@ const PEEK_MIN: usize = 8;
 pub fn deliverable(key: &str) -> bool {
     crate::core::keyboard::label_deliverable(key)
 }
-

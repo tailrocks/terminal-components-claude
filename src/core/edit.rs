@@ -1,12 +1,9 @@
-
-
 use super::event::ClientPlatform;
 use super::keymap::{Actions, KeyBinding, KeyMap};
 use super::text::TextBuffer;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EditEntry {
-
     #[default]
     Immediate,
 
@@ -17,7 +14,6 @@ pub enum EditEntry {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusSelect {
-
     #[default]
     SelectAll,
 
@@ -27,7 +23,6 @@ pub enum FocusSelect {
 }
 
 impl FocusSelect {
-
     pub fn apply(self, buf: &mut TextBuffer) {
         match self {
             FocusSelect::SelectAll => buf.select_all(),
@@ -45,14 +40,12 @@ impl FocusSelect {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldKeys {
-
     Emacs,
 
     Desktop,
 }
 
 impl FieldKeys {
-
     pub const fn for_platform(platform: ClientPlatform) -> Self {
         match platform {
             ClientPlatform::MacOs => Self::Emacs,
@@ -79,7 +72,6 @@ impl FieldKeys {
             ]),
         }
         map.extend([
-
             (KeyBinding::ctrl('z').shift(), TextCmd::Redo),
             (KeyBinding::ctrl('Z'), TextCmd::Redo),
             (KeyBinding::ctrl('z'), TextCmd::Undo),
@@ -124,7 +116,6 @@ pub const CMD_TEXT_KEYS: [(KeyBinding, TextCmd); 15] = {
 };
 
 impl Default for FieldKeys {
-
     fn default() -> Self {
         Self::for_platform(ClientPlatform::current())
     }
@@ -132,7 +123,6 @@ impl Default for FieldKeys {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextCmd {
-
     SelectAll,
 
     Copy,
@@ -195,7 +185,6 @@ struct Snap {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EditKind {
-
     #[default]
     Typing,
 
@@ -212,7 +201,6 @@ pub struct UndoStack {
 }
 
 impl UndoStack {
-
     pub const LIMIT: usize = 200;
 
     pub fn new() -> Self {
@@ -317,4 +305,3 @@ pub mod clipboard {
         HOOK.with(|h| *h.borrow_mut() = None);
     }
 }
-

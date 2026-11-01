@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
@@ -102,4 +100,3 @@ fn mix(fg: u8, bg: u8, keep: f32) -> u8 {
         .round()
         .clamp(0.0, 255.0) as u8
 }
-

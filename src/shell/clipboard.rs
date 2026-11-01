@@ -1,5 +1,3 @@
-
-
 use std::cell::RefCell;
 
 use crate::core::edit::clipboard;
@@ -13,7 +11,6 @@ thread_local! {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Copied {
-
     Copied { chars: usize },
 
     Unsupported,
@@ -22,7 +19,6 @@ pub enum Copied {
 }
 
 impl Copied {
-
     pub fn ok(&self) -> bool {
         matches!(self, Self::Copied { .. })
     }
@@ -30,7 +26,6 @@ impl Copied {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Clipboard {
-
     pub osc52: bool,
 
     pub limit: usize,
@@ -45,7 +40,6 @@ impl Default for Clipboard {
 }
 
 impl Clipboard {
-
     pub const DEFAULT_LIMIT: usize = 100_000;
 
     pub const fn new() -> Self {
@@ -158,4 +152,3 @@ fn base64(bytes: &[u8]) -> String {
     }
     out
 }
-

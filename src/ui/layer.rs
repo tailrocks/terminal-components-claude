@@ -1,5 +1,3 @@
-
-
 use std::any::Any;
 
 use ratatui::buffer::Buffer;
@@ -21,7 +19,6 @@ use crate::widgets::keyhint::Hint;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LayerKind {
-
     Modal,
 
     Popover,
@@ -51,7 +48,6 @@ pub struct LayerSpec {
 }
 
 impl LayerSpec {
-
     pub const fn modal(dismiss: Dismiss) -> Self {
         Self {
             kind: LayerKind::Modal,
@@ -127,7 +123,6 @@ impl LayerSpec {
 }
 
 pub trait Overlay {
-
     type Action;
 
     fn dismiss(&self) -> Dismiss;
@@ -160,7 +155,6 @@ pub struct LayerCx<'a, W: ?Sized = ()> {
 }
 
 pub trait Layer<R, W: ?Sized = ()>: Any {
-
     fn spec(&self) -> LayerSpec;
 
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, app: &W);
@@ -248,14 +242,12 @@ pub trait Layer<R, W: ?Sized = ()>: Any {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerOut<R> {
-
     Close(R),
 
     Event(R),
 }
 
 impl<R> LayerOut<R> {
-
     pub fn into_inner(self) -> R {
         match self {
             Self::Close(r) | Self::Event(r) => r,
@@ -299,7 +291,6 @@ pub struct LayerEntry<R, W: ?Sized = (), O = ()> {
 }
 
 impl<R: 'static, W: ?Sized + 'static, O> LayerEntry<R, W, O> {
-
     pub fn get<L: Layer<R, W>>(&self) -> Option<&L> {
         let any: &dyn Any = &*self.layer;
         any.downcast_ref()
@@ -320,14 +311,12 @@ impl<R: 'static, W: ?Sized + 'static, O> Modal for LayerEntry<R, W, O> {
 pub type ShellLayers<R, W = (), O = ()> = ModalStack<LayerEntry<R, W, O>>;
 
 pub enum Taken<R, W: ?Sized = (), O = ()> {
-
     Event(R),
 
     Closed(LayerEntry<R, W, O>, R),
 }
 
 pub enum Dismissed<R, W: ?Sized = (), O = ()> {
-
     None,
 
     Refused,
@@ -336,14 +325,12 @@ pub enum Dismissed<R, W: ?Sized = (), O = ()> {
 }
 
 pub enum LayerPointer<R, W: ?Sized = (), O = ()> {
-
     Handled(Outcome),
 
     Dismissed(Dismissed<R, W, O>),
 }
 
 impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
-
     pub fn pointer(
         &mut self,
         ev: &PointerEvent,
@@ -571,7 +558,6 @@ impl Overlay for Select {
         self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
-
         LayerSpec::popover(self.list.dismiss)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<SelectAction> {
@@ -585,7 +571,6 @@ impl Overlay for Completion {
         self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
-
         LayerSpec::popover(self.list.dismiss).hides_page_focus(false)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<CompletionAction> {
@@ -600,11 +585,9 @@ impl Overlay for crate::widgets::option_editor::ChoiceEditor {
         self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
-
         LayerSpec::popover(self.list.dismiss)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<Self::Action> {
         Response::emit(crate::widgets::option_editor::ChoiceResult::Cancel)
     }
 }
-

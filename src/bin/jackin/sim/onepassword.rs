@@ -607,4 +607,3 @@ pub fn classify_plain(provider: Provider, value: &str) -> SecretClass {
         outcome,
     }
 }
-

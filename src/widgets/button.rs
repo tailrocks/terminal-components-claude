@@ -295,7 +295,6 @@ fn place_lines(area: Rect, widths: &[u16], gap: u16, right: bool) -> Vec<Rect> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowAlign {
-
     #[default]
     Start,
 
@@ -304,7 +303,6 @@ pub enum RowAlign {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowOverflow {
-
     #[default]
     More,
 
@@ -313,7 +311,6 @@ pub enum RowOverflow {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ButtonRow {
-
     pub align: RowAlign,
 
     pub gap: Option<u16>,
@@ -325,7 +322,6 @@ pub struct ButtonRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RowLayout {
-
     pub rects: Vec<Option<Rect>>,
 
     pub more: Option<Rect>,
@@ -493,7 +489,6 @@ impl ButtonRow {
                         budget -= w + gap;
                         keep[i] = true;
                     } else {
-
                         break;
                     }
                 }
@@ -576,4 +571,3 @@ impl crate::core::pointer::MouseTarget for Button {
         }
     }
 }
-

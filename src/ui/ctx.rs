@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
@@ -30,7 +28,6 @@ pub struct Interaction {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusVisible {
-
     #[default]
     Always,
 
@@ -38,7 +35,6 @@ pub enum FocusVisible {
 }
 
 impl Interaction {
-
     pub fn focused(&self, id: WidgetId) -> bool {
         !self.focus_hidden && self.has_focus(id)
     }
@@ -439,7 +435,6 @@ impl<'a> RenderCtx<'a> {
     }
 
     pub fn flush_overlays(&mut self, buf: &mut Buffer) {
-
         crate::ui::reveal::flush_cuts(self);
         while !self.overlays.is_empty() {
             let queued = std::mem::take(&mut self.overlays);
@@ -488,7 +483,6 @@ impl<'a> RenderCtx<'a> {
     }
 
     pub fn modal_backdrop_with(&mut self, buf: &mut Buffer, screen: Rect, backdrop: Backdrop) {
-
         self.flush_overlays(buf);
         let t = self.theme;
         let top = backdrop.keep_top.min(screen.height);
@@ -503,7 +497,6 @@ impl<'a> RenderCtx<'a> {
         );
         for pos in dim.positions() {
             if let Some(c) = buf.cell_mut(pos) {
-
                 let bar = t.glyphs.focus_bar;
                 let is_bar = c.symbol() == bar
                     && (!bar.is_ascii() || c.fg == t.focus || c.fg == t.text_on_accent);
@@ -545,14 +538,12 @@ pub fn fill(buf: &mut Buffer, area: Rect, style: ratatui::style::Style) {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Backdrop {
-
     pub keep_bottom: u16,
 
     pub keep_top: u16,
 }
 
 impl Backdrop {
-
     pub const DEFAULT: Self = Self {
         keep_bottom: 1,
         keep_top: 0,
@@ -579,4 +570,3 @@ impl Default for Backdrop {
         Self::DEFAULT
     }
 }
-

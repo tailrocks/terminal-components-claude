@@ -1,5 +1,3 @@
-
-
 use crate::clock::Moment;
 use crate::core::event::{Input, MouseKind};
 use crate::theme::Tone;
@@ -42,7 +40,6 @@ impl<P> Default for StatusLine<P> {
 }
 
 impl<P> StatusLine<P> {
-
     pub const DEFAULT_TTL_MS: u64 = 5_000;
 
     pub const fn new() -> Self {
@@ -153,7 +150,6 @@ impl<P> StatusLine<P> {
 }
 
 impl<P: Default> StatusLine<P> {
-
     pub fn set(&mut self, text: impl Into<String>, tone: Tone) {
         self.set_with(text, tone, P::default())
     }
@@ -179,4 +175,3 @@ impl<P: Default> StatusLine<P> {
         self.progress(job, text)
     }
 }
-

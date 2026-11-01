@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -15,7 +8,6 @@ use crate::ui::specimen::{Specimen, SpecimenState};
 use crate::widgets::diff::DiffView;
 use crate::widgets::steps::StepRail;
 use crate::widgets::viewport::{Span, TextViewport};
-
 
 const SAMPLE_ROWS: u16 = 4;
 

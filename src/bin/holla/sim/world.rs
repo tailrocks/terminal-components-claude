@@ -1,5 +1,3 @@
-
-
 use std::collections::BTreeMap;
 
 use crate::domain::action::Item;
@@ -31,7 +29,6 @@ pub struct Source {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BatchMode {
-
     Sequential,
 
     Parallel,
@@ -47,7 +44,6 @@ pub struct Batch {
 }
 
 impl Batch {
-
     pub fn tally(&self, w: &World) -> (usize, usize, usize, usize) {
         let mut t = (0, 0, 0, 0);
         for m in &self.members {
@@ -71,26 +67,12 @@ impl Batch {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
-    ActivityEnded {
-        id: String,
-        ok: bool,
-    },
+    ActivityEnded { id: String, ok: bool },
 
-    BatchDone {
-        id: String,
-        ok: bool,
-    },
-    PlanStepEnded {
-        plan: String,
-        step: usize,
-        ok: bool,
-    },
-    PlanDone {
-        plan: String,
-    },
-    DiscoveryDone {
-        source: String,
-    },
+    BatchDone { id: String, ok: bool },
+    PlanStepEnded { plan: String, step: usize, ok: bool },
+    PlanDone { plan: String },
+    DiscoveryDone { source: String },
     ScanDone,
 }
 
@@ -189,7 +171,6 @@ pub struct ScanState {
 }
 
 impl ScanState {
-
     pub fn revealed(&self, tick: u64) -> usize {
         if self.cancelled {
             return self.revealed_at_cancel.min(self.order.len());
@@ -663,7 +644,6 @@ impl World {
                 }
             }
             Effect::CargoClean(target) => {
-
                 let target = target.clone();
                 let _ = self.fs.remove_permanent(&target);
                 if self.cargo.target.as_deref() == Some(target.as_str()) {
@@ -695,7 +675,6 @@ impl World {
                 self.docker.networks = 0;
             }
             Effect::DockerVolumePrune => {
-
                 self.docker.volumes.retain(|v| v.used_by.is_some());
                 self.docker.reclaimable_gb =
                     self.docker.images_gb + self.docker.volumes_gb() + self.docker.builder_cache_gb;
@@ -745,7 +724,6 @@ impl World {
             Effect::GitPullMerge(path) => {
                 if let Some(g) = self.git.iter_mut().find(|g| &g.path == path) {
                     if g.behind > 0 && g.ahead > 0 && g.pull_config != "rebase" {
-
                         g.ahead += 1;
                     }
                     g.behind = 0;
@@ -775,9 +753,7 @@ impl World {
                     }
                 }
             }
-            Effect::GitFetch(_) => {
-
-            }
+            Effect::GitFetch(_) => {}
             Effect::GitSwitch(path, branch) => {
                 if let Some(g) = self.git.iter_mut().find(|g| &g.path == path) {
                     g.branch = Some(branch.clone());
@@ -828,9 +804,7 @@ impl World {
                     self.upgrade.casks_outdated.clear();
                 }
             }
-            Effect::AmpUpdate | Effect::OmzUpgrade => {
-
-            }
+            Effect::AmpUpdate | Effect::OmzUpgrade => {}
             Effect::GradleStop => {
                 self.gradle.daemon_running = false;
             }
@@ -1097,4 +1071,3 @@ pub enum SourceState {
     Done,
     Failed(String),
 }
-

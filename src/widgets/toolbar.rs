@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -82,7 +80,6 @@ impl ToolItem {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolbarAction {
-
     Activated(usize),
 
     Toggled(usize, bool),
@@ -306,7 +303,6 @@ impl Toolbar {
                 KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Down
             )
         {
-
             self.open_menu();
             return (Outcome::Changed, None);
         }
@@ -409,7 +405,6 @@ impl Toolbar {
             let it = &self.items[i];
             let w = it.width();
             if x + w > limit {
-
                 if overflowing {
                     self.hidden.extend(i..n);
                     if let Some(sx) = sep_at {
@@ -485,7 +480,6 @@ impl Toolbar {
             }
         }
         if self.hidden.is_empty() {
-
             self.menu = None;
             self.cursor = self.cursor.min(n.saturating_sub(1));
         } else {
@@ -587,7 +581,6 @@ impl crate::ui::specimen::Specimen for Toolbar {
             it.on = Some(true);
         }
         let area = if state == crate::ui::specimen::SpecimenState::Overflow {
-
             Rect {
                 width: area.width.min(t.width().saturating_sub(1)),
                 ..area
@@ -624,4 +617,3 @@ impl crate::core::pointer::MouseTarget for Toolbar {
         self.on_click(ev.id).into()
     }
 }
-

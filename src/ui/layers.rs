@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
@@ -24,7 +22,6 @@ use crate::widgets::picker::{Picker, PickerAction};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerResult {
-
     Dialog {
         action: Option<usize>,
         text: Option<String>,
@@ -125,7 +122,6 @@ fn picker_event(p: &mut Picker, ev: Option<PickerAction>) {
 }
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -142,7 +138,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
     }
 
     fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, W>) -> Outcome {
-
         if ev.part().part == crate::core::id::Part::BACKDROP && !self.edit_menu.owns(ev) {
             return Outcome::Ignored;
         }
@@ -179,7 +174,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
 }
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ContextMenu {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -220,7 +214,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Contex
 }
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDialog {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -284,7 +277,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
 }
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ChoiceDialog {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -314,7 +306,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Choice
 }
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDialog {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -360,7 +351,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
 }
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOverlay {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -426,4 +416,3 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FileBr
         self.result.take().map(|r| out(LayerResult::File(r), true))
     }
 }
-

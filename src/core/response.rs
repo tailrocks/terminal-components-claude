@@ -1,12 +1,9 @@
-
-
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not, Sub};
 
 use super::event::Outcome;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord, Hash)]
 pub enum Flow {
-
     #[default]
     Ignored,
 
@@ -15,7 +12,6 @@ pub enum Flow {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord, Hash)]
 pub enum Invalidate {
-
     #[default]
     None,
 
@@ -39,7 +35,6 @@ impl<A> Default for Response<A> {
 }
 
 impl<A> Response<A> {
-
     pub const fn ignored() -> Self {
         Self {
             flow: Flow::Ignored,
@@ -164,7 +159,6 @@ impl<A> Response<A> {
 }
 
 impl Response<()> {
-
     pub fn lift<B>(self) -> Response<B> {
         Response {
             flow: self.flow,
@@ -214,7 +208,6 @@ impl BitOrAssign for Response<()> {
 pub struct StateFlags(u16);
 
 impl StateFlags {
-
     pub const FOCUSED: Self = Self(1 << 0);
 
     pub const FOCUS_VISIBLE: Self = Self(1 << 1);
@@ -372,4 +365,3 @@ impl std::fmt::Debug for StateFlags {
         f.write_str(")")
     }
 }
-

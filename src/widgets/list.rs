@@ -91,7 +91,6 @@ impl std::ops::DerefMut for ListBox {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListCmd {
-
     ToggleAll,
 
     SelectAll,
@@ -353,12 +352,10 @@ impl ListBox {
         }
         let shift = key.shift();
         if unassigned_chord(key, &self.keymap) {
-
             return Outcome::Ignored;
         }
         if self.mode == SelectMode::Single && lookup(&self.keymap, key) == Some(ListCmd::SelectAll)
         {
-
             return Outcome::Ignored;
         }
 
@@ -391,7 +388,6 @@ impl ListBox {
                 return moved.outcome();
             }
             Some((KeyStep::Nav(_), moved)) => {
-
                 let Some(to) = moved.index() else {
                     return Outcome::Ignored;
                 };
@@ -517,7 +513,6 @@ impl ListBox {
             let rid = self.row_id(li);
             let mut s = ctx.child_state(self.id, rid, li == self.core.cursor);
             if self.mode == SelectMode::Multi {
-
                 let mark = self.mark_id(li);
                 s.hovered |= ctx.interaction.hovered(mark);
                 s.pressed |= ctx.interaction.pressed(mark);
@@ -541,7 +536,6 @@ impl ListBox {
             let label_w = text_w.saturating_sub(2);
             let (lw, meta_w) = Self::label_width(item, text_w);
             if let Some(rows) = block {
-
                 for (k, line) in rows.iter().take(h as usize).enumerate() {
                     let ls = if line.more { st.fg(t.text_muted) } else { st };
                     let text = crate::ui::text::fit(&line.text, lw);
@@ -571,7 +565,6 @@ impl ListBox {
             }
             ctx.register_part(self.id, Self::row_part(li), row);
             if self.mode == SelectMode::Multi {
-
                 let mark = Rect::new(row.x, row.y, row.width.min(3), row.height);
                 ctx.register_part(self.id, Self::mark_part(li), mark);
             }
@@ -778,4 +771,3 @@ impl crate::core::pointer::MouseTarget for ListBox {
         }
     }
 }
-

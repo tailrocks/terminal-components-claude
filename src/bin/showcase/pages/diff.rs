@@ -339,4 +339,3 @@ impl Page for DiffPage {
         Some(&mut self.template)
     }
 }
-

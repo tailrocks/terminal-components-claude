@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -100,7 +98,6 @@ impl HasHints for Picker {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PickerAction {
-
     QueryChanged,
     Chosen(usize),
 
@@ -119,7 +116,6 @@ pub enum PickerAction {
 }
 
 impl Picker {
-
     pub const MAX_ROWS: u16 = 12;
 
     pub const WIDTH: u16 = 64;
@@ -130,7 +126,6 @@ impl Picker {
             .max_rows(Self::MAX_ROWS)
             .width(Self::WIDTH, Self::WIDTH)
             .placement(Placement::Center)
-
             .hover_moves_cursor(false);
         Self {
             id,
@@ -351,7 +346,6 @@ impl Picker {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
-
         if self.list.query.is_some()
             && let Some(o) = edit_menu_key(self, key)
         {
@@ -454,7 +448,6 @@ impl Picker {
                     } else if r.outcome == Outcome::Changed && r.exit.is_none() {
                         (Outcome::Changed, None)
                     } else {
-
                         (Outcome::Consumed, None)
                     }
                 }
@@ -464,7 +457,6 @@ impl Picker {
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<PickerAction> {
-
         if id == crate::ui::popup::backdrop_id(self.id) {
             return self.on_click_outside();
         }
@@ -542,7 +534,6 @@ impl Picker {
             t.title().bg(bg),
         );
         if let Some(scope) = &self.scope {
-
             let room = inner.width.saturating_sub(width(&self.title) as u16 + 3) as usize;
             if room >= 6 {
                 let scope = truncate(scope, room);
@@ -584,7 +575,6 @@ impl Picker {
                 );
                 line.as_position()
             } else {
-
                 let look = crate::widgets::edit::LineLook {
                     text: fs,
                     selection: t.selection(),
@@ -596,7 +586,6 @@ impl Picker {
                 query.draw_line(buf, line, &look)
             };
             if line.width > 0 {
-
                 let id = ctx.register_part(self.id, PartRef::of(Part::QUERY), line);
                 ctx.pointer_shape(id, crate::core::shape::PointerShape::Text);
             }
@@ -615,7 +604,6 @@ impl Picker {
 
         self.list.layout(list, &self.items[..], ctx);
         let hint_row = |buf: &mut Buffer| {
-
             if !hints.is_empty() {
                 let hy = inner.bottom().saturating_sub(1);
                 buf.set_string(
@@ -672,7 +660,6 @@ impl Picker {
         let label_cap = label_need.min((row_w * 45 / 100).max(6));
         let mut cols = vec![
             Col::content(label_cap.min(12), label_cap),
-
             Col::content(detail_need.min(4), detail_need)
                 .flex(1, u16::MAX)
                 .droppable(0),
@@ -785,7 +772,6 @@ impl Picker {
                             );
                         }
                     } else {
-
                         detail_cut = true;
                     }
                 }
@@ -864,7 +850,6 @@ impl crate::core::pointer::MouseTarget for Picker {
             self.on_click_outside()
         } else {
             match self.on_click(ev.id) {
-
                 Some(PickerAction::Chosen(i))
                     if ev
                         .mods()
@@ -907,7 +892,6 @@ impl EditMenuHost for Picker {
         self.list.query.as_ref().and_then(|q| q.shortcut(cmd))
     }
     fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
-
         self.list.query.is_some() && ev.part().part == Part::QUERY
     }
     fn edit_point(&mut self, pos: ratatui::layout::Position) {
@@ -920,4 +904,3 @@ impl EditMenuHost for Picker {
         self.list.query.as_mut().is_some_and(|q| q.run(cmd).edited)
     }
 }
-

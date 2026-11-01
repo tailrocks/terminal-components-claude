@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -62,7 +60,6 @@ impl NavItem {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavAction {
-
     Activated(usize),
 }
 
@@ -447,7 +444,6 @@ impl crate::ui::specimen::Specimen for NavList {
 }
 
 impl NavList {
-
     fn sample(&self) -> Self {
         let mut l = self.clone();
         l.items.truncate(3);
@@ -482,7 +478,6 @@ impl crate::core::pointer::MouseTarget for NavList {
         let bar = scrollbar::id_for(self.id);
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
-
                 Axis::Vertical if self.scroll.overflows() => {
                     Self::scrolled(self.scroll.scroll_by(delta as isize)).into()
                 }
@@ -513,4 +508,3 @@ impl crate::core::pointer::MouseTarget for NavList {
         }
     }
 }
-

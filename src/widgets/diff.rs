@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
@@ -57,7 +55,6 @@ pub struct DiffHunk {
 }
 
 impl DiffHunk {
-
     pub fn old_len(&self) -> usize {
         self.lines
             .iter()
@@ -91,7 +88,6 @@ pub enum DiffStatus {
 }
 
 impl DiffStatus {
-
     pub fn marker(&self) -> &'static str {
         match self {
             DiffStatus::Added => "A",
@@ -175,7 +171,6 @@ impl DiffFile {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DiffMode {
-
     #[default]
     Unified,
 
@@ -503,7 +498,6 @@ pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs, s: &Strings) -> V
                     i += 1;
                 }
                 _ => {
-
                     let mut removes = vec![];
                     while i < h.lines.len() && h.lines[i].kind == DiffLineKind::Remove {
                         removes.push(expand_tabs(&h.lines[i].text));
@@ -602,4 +596,3 @@ impl crate::core::pointer::MouseTarget for DiffView {
         (ev.on(self.id()) || self.term.edit_menu.owns(ev)).then(|| self.pointer(ev))
     }
 }
-

@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -10,7 +8,6 @@ use crate::ui::ctx::{RenderCtx, fill};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dismiss {
-
     pub escape: bool,
 
     pub outside_click: bool,
@@ -26,7 +23,6 @@ pub struct Dismiss {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RefuseFeedback {
-
     #[default]
     Flash,
 
@@ -34,7 +30,6 @@ pub enum RefuseFeedback {
 }
 
 impl Dismiss {
-
     pub const LIGHT: Self = Self {
         escape: true,
         outside_click: true,
@@ -64,7 +59,6 @@ impl Dismiss {
 }
 
 impl Dismiss {
-
     pub const fn pass_through(mut self, on: bool) -> Self {
         self.pass_through = on;
         self
@@ -112,7 +106,6 @@ pub const fn backdrop_id(owner: WidgetId) -> WidgetId {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Placement {
-
     Below,
 
     Above,
@@ -126,7 +119,6 @@ pub enum Placement {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Overflow {
-
     Shrink,
 
     Slide,
@@ -145,7 +137,6 @@ pub fn backdrop(ctx: &mut RenderCtx, owner: WidgetId, dismiss: Dismiss, screen: 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VAlign {
-
     Center,
 
     Third,
@@ -153,7 +144,6 @@ pub enum VAlign {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Place {
-
     pub margin: u16,
 
     pub v_align: VAlign,
@@ -166,7 +156,6 @@ pub struct Place {
 }
 
 impl Place {
-
     pub const DEFAULT: Self = Self {
         margin: 1,
         v_align: VAlign::Center,
@@ -329,7 +318,6 @@ fn side(
             }
         }
         Overflow::Shrink => {
-
             let after_wins = if after {
                 room_after >= room_before
             } else {
@@ -377,4 +365,3 @@ pub fn surface_for(
     ctx.hits.register(WidgetId::of("popup.surface"), area);
     area.inner(ratatui::layout::Margin::new(1, 1))
 }
-

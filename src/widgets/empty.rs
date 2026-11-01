@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -252,7 +250,6 @@ impl crate::ui::specimen::Specimen for EmptyState {
     }
 
     fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
-
         height(self, 24) + u16::from(self.hint.is_some())
     }
 
@@ -274,4 +271,3 @@ impl crate::ui::specimen::Specimen for EmptyState {
         render_ctx(area, buf, ctx, &e, bg);
     }
 }
-

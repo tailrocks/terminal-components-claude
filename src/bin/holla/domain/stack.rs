@@ -833,4 +833,3 @@ pub struct ToolOutputs {
     pub mise_tasks: Option<Result<String, String>>,
     pub pnpm_store_path: Option<Result<String, String>>,
 }
-

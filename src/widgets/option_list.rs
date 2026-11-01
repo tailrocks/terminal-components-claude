@@ -1,5 +1,3 @@
-
-
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
@@ -24,7 +22,6 @@ use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectArrows {
-
     Step,
 
     Open,
@@ -32,7 +29,6 @@ pub enum SelectArrows {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WheelMode {
-
     #[default]
     Viewport,
 
@@ -41,7 +37,6 @@ pub enum WheelMode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
-
     pub key: ItemKey,
     pub label: String,
 
@@ -70,7 +65,6 @@ impl Default for Item {
 }
 
 impl Item {
-
     pub fn new(label: impl Into<String>) -> Self {
         Self {
             key: ItemKey::index(0),
@@ -144,7 +138,6 @@ impl Item {
 }
 
 pub trait AsItem {
-
     fn as_item(&self) -> &Item;
 }
 
@@ -166,7 +159,6 @@ impl<T: AsItem> RowSource for [T] {
     }
     fn key(&self, i: usize) -> ItemKey {
         match self[i].as_item().key {
-
             ItemKey::Index(_) => ItemKey::index(i),
             k => k,
         }
@@ -175,7 +167,6 @@ impl<T: AsItem> RowSource for [T] {
 
 #[derive(Debug, Clone)]
 pub struct OptionList {
-
     pub id: WidgetId,
 
     pub cursor: Cursor,
@@ -225,7 +216,6 @@ pub struct OptionList {
 }
 
 impl OptionList {
-
     pub const MAX_ROWS: u16 = 8;
 
     pub const WIDTH: (u16, u16) = (12, 40);
@@ -641,4 +631,3 @@ impl Scrollable for OptionList {
         Some(Response::changed())
     }
 }
-

@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Margin, Position, Rect};
@@ -40,7 +38,6 @@ pub struct AckInput {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogResult {
-
     Action(usize),
     Cancelled,
 }
@@ -109,7 +106,6 @@ pub struct Dialog {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AckEnter {
-
     #[default]
     Submit,
 
@@ -118,7 +114,6 @@ pub enum AckEnter {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogCmd {
-
     Confirm,
 
     Cancel,
@@ -149,7 +144,6 @@ impl HasHints for Dialog {
 }
 
 impl Dialog {
-
     pub fn width(mut self, width: u16) -> Self {
         self.width = width;
         self
@@ -429,7 +423,6 @@ impl Dialog {
         let cancel = Button::secondary(id.sub("cancel"), Strings::DEFAULT.cancel);
         let cancel_id = cancel.id;
         let ack = token.map(|tok| AckInput {
-
             input: TextInput::new(
                 id.sub("ack"),
                 &Strings::fill(Strings::DEFAULT.type_to_confirm, &[&tok]),
@@ -513,7 +506,6 @@ impl Dialog {
             && focused == Some(inp.id)
         {
             if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
-
                 let gated = self
                     .gated_action()
                     .and_then(|i| self.actions.get(i))
@@ -547,7 +539,6 @@ impl Dialog {
                 v.push(hint("Tab", s.hint_next));
             }
             if inp.editing {
-
                 v.push(hint("Esc", s.hint_cancel));
             } else {
                 v.extend(dismiss_hint());
@@ -692,7 +683,6 @@ impl Dialog {
     }
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-
         if let Some(inp) = self.input_mut()
             && inp.id == pressed
         {
@@ -805,7 +795,6 @@ impl Dialog {
     }
 
     fn finish(&mut self, r: DialogResult) -> Outcome {
-
         if let DialogResult::Action(i) = r
             && Some(i) == self.confirm_index
             && !self.armed()
@@ -820,7 +809,6 @@ impl Dialog {
                 inp.commit();
             }
             if !inp.validate() {
-
                 inp.resume();
                 return Outcome::Changed;
             }
@@ -861,7 +849,6 @@ impl Dialog {
                     return Outcome::Changed;
                 }
                 Some(InputAction::Committed) => {
-
                     if is_facts {
                         if self.ack_enter == AckEnter::NextField {
                             focus.next(ring);
@@ -874,7 +861,6 @@ impl Dialog {
                         }
                         let mismatch = self.strings.ack_mismatch;
                         if let Some(inp) = self.input_mut() {
-
                             inp.begin_edit();
                             inp.field.error = Some(mismatch.into());
                         }
@@ -975,7 +961,6 @@ impl Dialog {
                 self.scroll_code(1)
             }
             (Some(nav @ (Nav::Left | Nav::Right)), _) => {
-
                 if let Some(id) = self.button_row.step(&self.actions, cur, nav == Nav::Right) {
                     focus.focus(id);
                 }
@@ -1025,7 +1010,6 @@ impl Dialog {
         count: u8,
         focus: &mut crate::core::focus::Focus,
     ) -> Outcome {
-
         if id == crate::ui::modal::CLOSE && self.dismiss.shows_close() {
             return self.dismissed();
         }
@@ -1038,7 +1022,6 @@ impl Dialog {
         if scrollbar::is_bar_of(id, self.id) {
             let o = self.bar_press(pos).outcome().or(Outcome::Consumed);
             if id == scrollbar::id_for(self.id) {
-
                 self.scroll.v.release_track();
             }
             return o;
@@ -1093,7 +1076,6 @@ impl Dialog {
             .min(self.max_height.unwrap_or(u16::MAX));
         let height = self.height(width).min(room);
         let area = match self.placement {
-
             Placement::Center => {
                 bounds.centered(Constraint::Length(width), Constraint::Length(height))
             }
@@ -1175,7 +1157,6 @@ impl Dialog {
                 inp.render(r, buf, ctx, bg);
             }
             DialogBody::Facts { facts, code, ack } => {
-
                 let sheet_area = Rect::new(0, 0, inner.width, content);
                 let mut sheet = Buffer::empty(sheet_area);
                 fill(&mut sheet, sheet_area, ratatui::style::Style::new().bg(bg));
@@ -1183,7 +1164,6 @@ impl Dialog {
                 let facts_h = crate::widgets::props::measure(facts, inner.width);
                 let mut y = scroll_bottom;
                 if !code.is_empty() {
-
                     let extent = Self::code_extent(code, inner.width);
                     let off = self.scroll.h.offset;
                     self.scroll.h.set_content(extent.content_len);
@@ -1232,7 +1212,6 @@ impl Dialog {
             }
         }
         if self.scroll.overflows() && viewport > 0 {
-
             let track = Rect::new(area.right() - 2, body_y, 1, viewport);
             self.scroll.set_track(self.id, Axis::Vertical, track);
             let below = self.scroll.max_offset() - self.scroll.offset;
@@ -1345,7 +1324,6 @@ impl Scrollable for Dialog {
 }
 
 impl Dialog {
-
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -1378,4 +1356,3 @@ impl Dialog {
         }
     }
 }
-

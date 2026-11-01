@@ -1,5 +1,3 @@
-
-
 use ratatui::layout::{Position, Rect};
 
 use crate::core::hit::{Axis, Bar};
@@ -227,7 +225,6 @@ impl ScrollState {
             return false;
         }
         let Some(grab) = self.grab else {
-
             if self.paging {
                 return false;
             }
@@ -264,7 +261,6 @@ impl ScrollState {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum FollowCursor {
-
     #[default]
     OnMove,
 
@@ -273,7 +269,6 @@ pub enum FollowCursor {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ScrollbarVisibility {
-
     #[default]
     Auto,
 
@@ -283,7 +278,6 @@ pub enum ScrollbarVisibility {
 }
 
 impl ScrollbarVisibility {
-
     pub fn shows(self, scroll: &ScrollState) -> bool {
         match self {
             ScrollbarVisibility::Auto => scroll.overflows(),
@@ -295,7 +289,6 @@ impl ScrollbarVisibility {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum TrackClick {
-
     Jump,
 
     #[default]
@@ -304,7 +297,6 @@ pub enum TrackClick {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HScroll {
-
     pub enabled: bool,
 
     pub bar: ScrollbarVisibility,
@@ -326,7 +318,6 @@ impl Default for HScroll {
 }
 
 impl HScroll {
-
     pub fn off() -> Self {
         Self {
             enabled: false,
@@ -357,7 +348,6 @@ impl HScroll {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ScrollPane {
-
     pub v: ScrollState,
 
     pub h: ScrollState,
@@ -408,7 +398,6 @@ impl From<ScrollState> for ScrollPane {
 }
 
 impl ScrollPane {
-
     pub fn new(content_len: usize) -> Self {
         ScrollState::new(content_len).into()
     }
@@ -708,7 +697,6 @@ fn changed(moved: bool) -> Response<()> {
 }
 
 pub trait Scrollable {
-
     fn pane(&mut self) -> &mut ScrollPane;
 
     fn after_scroll(&mut self, _axis: Axis, _moved: bool) -> bool {
@@ -754,4 +742,3 @@ fn settle<S: Scrollable + ?Sized>(w: &mut S, axis: Axis, r: Response<()>) -> Res
         r
     }
 }
-

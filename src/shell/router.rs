@@ -1,5 +1,3 @@
-
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::core::event::{Input, Key, Outcome};
@@ -11,7 +9,6 @@ use super::App;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ShellAction<C = ()> {
-
     Quit,
 
     Help,
@@ -33,7 +30,6 @@ pub enum ShellAction<C = ()> {
 
 #[derive(Debug, Clone)]
 pub struct ShellKeys<C = ()> {
-
     pub quit: QuitKeys,
 
     pub priority: KeyMap<ShellAction<C>>,
@@ -56,7 +52,6 @@ impl<C> Default for ShellKeys<C> {
 }
 
 impl<C> ShellKeys<C> {
-
     pub fn new() -> Self {
         Self {
             quit: QuitKeys::DEFAULT,
@@ -185,7 +180,6 @@ impl<C> ShellKeys<C> {
 }
 
 pub trait KeyHost: App {
-
     type Cmd: Copy + PartialEq + 'static;
 
     fn shell_keys(&self) -> &ShellKeys<Self::Cmd>;
@@ -249,7 +243,6 @@ pub trait KeyHost: App {
 pub struct KeyRouter;
 
 impl KeyRouter {
-
     pub fn input<H: KeyHost + ?Sized>(host: &mut H, input: Input) -> Outcome {
         match input {
             Input::Key(key) => Self::route(host, &key),
@@ -425,4 +418,3 @@ impl KeyRouter {
         }
     }
 }
-

@@ -1,10 +1,7 @@
-
-
 use ratatui::layout::{Position, Rect};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SplitDir {
-
     Horizontal,
 
     Vertical,
@@ -159,7 +156,6 @@ impl Split {
             Maximized::None => {
                 let usable = area.height.saturating_sub(gap);
                 if usable < self.min_first + self.min_second {
-
                     return (area, Rect::ZERO);
                 }
                 let mut first = self.first_of(usable);
@@ -194,7 +190,6 @@ impl Split {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Overflow {
-
     #[default]
     Scroll,
 
@@ -203,14 +198,12 @@ pub enum Overflow {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackChild {
-
     pub height: u16,
 
     pub min: u16,
 }
 
 impl StackChild {
-
     pub const fn fixed(height: u16) -> Self {
         Self {
             height,
@@ -225,7 +218,6 @@ impl StackChild {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Stack {
-
     pub gap: u16,
 
     pub overflow: Overflow,
@@ -261,7 +253,6 @@ pub struct StackScroll {
 }
 
 impl StackScroll {
-
     pub fn on_wheel(&mut self, delta: i32) -> bool {
         self.scroll.scroll_by(delta.signum() as isize)
     }
@@ -294,7 +285,6 @@ impl StackScroll {
         };
         if let Some((axis, delta)) = ev.wheel() {
             return Some(match axis {
-
                 crate::core::hit::Axis::Vertical if !self.scroll.overflows() => Outcome::Ignored,
                 crate::core::hit::Axis::Vertical => moved(self.on_wheel(delta)),
                 crate::core::hit::Axis::Horizontal => Outcome::Ignored,
@@ -317,7 +307,6 @@ impl StackScroll {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StackLayout {
-
     pub slots: Vec<Option<Rect>>,
 
     pub track: Option<Rect>,
@@ -327,7 +316,6 @@ pub struct StackLayout {
 }
 
 impl StackLayout {
-
     pub fn slot(&self, i: usize) -> Option<Rect> {
         self.slots.get(i).copied().flatten()
     }
@@ -389,7 +377,6 @@ impl Stack {
         let fits = self.total(&h) <= room;
         let scrolls = !fits && self.overflow == Overflow::Scroll && n > 0;
         if scrolls {
-
             for (hi, c) in h.iter_mut().zip(children) {
                 *hi = c.height.min(area.height);
             }
@@ -454,7 +441,6 @@ impl Stack {
                 y = top + h[i] as u32;
                 placed = true;
             } else if !placed && top < area.bottom() as u32 {
-
                 slots[i] = Some(Rect::new(
                     content.x,
                     top as u16,
@@ -495,7 +481,6 @@ impl Stack {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SplitCmd {
-
     Left,
 
     Right,
@@ -506,7 +491,6 @@ pub enum SplitCmd {
 }
 
 impl crate::core::keymap::Actions for SplitCmd {
-
     fn default_keymap() -> crate::core::keymap::KeyMap<Self> {
         use crate::core::keymap::KeyBinding;
         use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -535,7 +519,6 @@ impl crate::core::keymap::Actions for SplitCmd {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitKeys {
-
     pub keymap: crate::core::keymap::KeyMap<SplitCmd>,
 
     pub step: u16,
@@ -552,7 +535,6 @@ impl Default for SplitKeys {
 }
 
 impl SplitKeys {
-
     pub fn keymap(mut self, keymap: crate::core::keymap::KeyMap<SplitCmd>) -> Self {
         self.keymap = keymap;
         self
@@ -637,4 +619,3 @@ impl SplitKeys {
         Some(crate::widgets::keyhint::hint(key, "Resize"))
     }
 }
-

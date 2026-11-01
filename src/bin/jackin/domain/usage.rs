@@ -558,4 +558,3 @@ impl OverallSummary {
         parts
     }
 }
-

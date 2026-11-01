@@ -1,5 +1,3 @@
-
-
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
@@ -114,7 +112,6 @@ pub struct Hint {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HintPriority {
-
     #[default]
     Auto,
 
@@ -124,7 +121,6 @@ pub enum HintPriority {
 }
 
 impl Hint {
-
     pub fn new(key: &'static str, action: impl Into<Cow<'static, str>>) -> Self {
         Self {
             key,
@@ -355,7 +351,6 @@ struct Right<'a> {
 }
 
 impl<'a> Right<'a> {
-
     fn toned(t: &'a Theme, text: &'a str, tone: Tone) -> Self {
         let mark = match tone {
             Tone::Error => "!",
@@ -535,7 +530,6 @@ fn render_right(
         style: st,
     }) = right
     {
-
         let text = if mark.is_empty() {
             r.to_owned()
         } else {
@@ -543,7 +537,6 @@ fn render_right(
         };
         let mut available = area.right().saturating_sub(x + 1) as usize;
         if !hints.is_empty() {
-
             let share = area.width as usize * style.status_min_share.min(100) as usize / 100;
             let pinned: Vec<usize> = (0..hints.len())
                 .filter(|&i| hints[i].is_pinned(style))
@@ -584,7 +577,6 @@ fn render_right(
     let (keep, compact) = fit(hints, limit.saturating_sub(x), style);
     let cut = keep.len() < hints.len();
     if style.align == HintAlign::Center {
-
         let mut used = cost(hints, &keep, &compact) as u16;
         used = if cut {
             used.saturating_sub(GAP) + 1
@@ -614,4 +606,3 @@ fn render_right(
     }
     keep.len()
 }
-

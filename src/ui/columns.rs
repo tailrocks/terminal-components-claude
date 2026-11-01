@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
@@ -12,7 +10,6 @@ use crate::widgets::table::SortDir;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Col {
-
     pub min: u16,
 
     pub ideal: u16,
@@ -25,7 +22,6 @@ pub struct Col {
 }
 
 impl Col {
-
     pub const fn content(min: u16, measured: u16) -> Self {
         let ideal = if measured > min { measured } else { min };
         Self {
@@ -75,7 +71,6 @@ pub fn solve(cols: &[Col], avail: u16, gap: u16) -> Vec<u16> {
             .iter()
             .enumerate()
             .filter(|(i, c)| visible[*i] && c.drop.is_some())
-
             .min_by_key(|(i, c)| (c.drop, std::cmp::Reverse(*i)))
             .map(|(i, _)| i);
         match victim {
@@ -191,7 +186,6 @@ impl Default for ColumnSizing {
 }
 
 impl ColumnSizing {
-
     pub fn user(&self, col: usize) -> Option<u16> {
         self.user.get(col).copied().flatten()
     }
@@ -390,4 +384,3 @@ pub fn header_menu(
     }
     v
 }
-

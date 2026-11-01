@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -25,7 +23,6 @@ use ratatui::crossterm::event::KeyCode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MenuItem {
-
     pub item: Item,
 
     pub shortcut: Option<std::borrow::Cow<'static, str>>,
@@ -83,7 +80,6 @@ impl MenuItem {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum UnknownKey {
-
     #[default]
     CloseAndPass,
 
@@ -141,7 +137,6 @@ impl HasHints for ContextMenu {
 }
 
 impl ContextMenu {
-
     pub fn release_selects(mut self, on: bool) -> Self {
         self.release_selects = on;
         self
@@ -354,7 +349,6 @@ impl ContextMenu {
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuAction>) {
         if unassigned_chord::<()>(key, &[]) {
-
             return (Outcome::Ignored, None);
         }
 
@@ -520,7 +514,6 @@ impl ContextMenu {
         let rows = self.rows_inner(area);
         let marker_row = |y: u16| Rect::new(area.x + 1, y, area.width.saturating_sub(2), 1);
         let marker = |ctx: &RenderCtx, id: WidgetId| {
-
             let s = ctx.state(id);
             if s.pressed {
                 t.primary().bg(bg).add_modifier(Modifier::BOLD)
@@ -548,7 +541,6 @@ impl ContextMenu {
             }
             let y = rows.y + k;
             let Some(i) = line else {
-
                 for x in rows.x + 1..rows.right().saturating_sub(1) {
                     buf.set_string(
                         x,
@@ -601,7 +593,6 @@ impl ContextMenu {
             {
                 let sw = width(sc) as u16;
                 if sw + width(&item.item.label) as u16 + 5 <= rows.width {
-
                     let scs = if item.item.disabled {
                         st
                     } else {
@@ -614,7 +605,6 @@ impl ContextMenu {
             }
             ctx.register_part(self.id, OptionList::row_part(i), row);
             if !item.item.disabled {
-
                 if self.release_selects {
                     ctx.hits.accept_release(rid, ReleaseFrom::Secondary);
                 }
@@ -655,7 +645,6 @@ impl ContextMenu {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuBarAction {
-
     Opened(usize),
 
     Chosen(usize, usize),
@@ -666,7 +655,6 @@ pub enum MenuBarAction {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OpenOn {
-
     #[default]
     Press,
 
@@ -675,7 +663,6 @@ pub enum OpenOn {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Overflow {
-
     #[default]
     Hide,
 
@@ -747,7 +734,6 @@ impl HasHints for MenuBar {
 }
 
 impl MenuBar {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -943,7 +929,6 @@ impl MenuBar {
 
     pub fn open_menu(&mut self, i: usize) {
         if i == self.labels.len() && self.chevron() {
-
             self.cursor = i;
             let items = self
                 .hidden()
@@ -983,7 +968,6 @@ impl MenuBar {
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuBarAction>) {
         let n = self.labels.len();
         if unassigned_chord::<()>(key, &[]) {
-
             return (Outcome::Ignored, None);
         }
 
@@ -1041,7 +1025,6 @@ impl MenuBar {
         }
         match nav {
             Some(nav @ (Nav::Home | Nav::End)) if n > 0 => {
-
                 self.cursor = if chevron {
                     let ring = self.ring();
                     if nav == Nav::Home {
@@ -1089,7 +1072,6 @@ impl MenuBar {
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarAction>) {
-
         let handled = self.press_handled.take();
         if handled.is_some() && handled == Some(id) && self.title_at(id).is_some() {
             return (Outcome::Consumed, None);
@@ -1153,7 +1135,6 @@ impl MenuBar {
         if let Some(id) = id
             && let Some(i) = self.title_at(id)
             && self.open_index() != Some(i)
-
             && !(i == self.labels.len() && self.chevron_open())
         {
             self.open_menu(i);
@@ -1359,11 +1340,8 @@ impl crate::core::pointer::MouseTarget for ContextMenu {
     ) -> crate::core::response::Response<MenuAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-        if ev.wheel().is_some() {
-
-            if self.list.on_backdrop(ev) {
-                return Response::ignored();
-            }
+        if ev.wheel().is_some() && self.list.on_backdrop(ev) {
+            return Response::ignored();
         }
         if let Some(r) = crate::core::pointer::scroll_input(&mut self.list, ev) {
             return r.lift();
@@ -1414,7 +1392,6 @@ impl crate::core::pointer::MouseTarget for MenuBar {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-
             return match self.open.as_mut() {
                 Some(m) => m.list.wheel(axis, delta).lift(),
                 None => Response::ignored(),
@@ -1427,4 +1404,3 @@ impl crate::core::pointer::MouseTarget for MenuBar {
         }
     }
 }
-

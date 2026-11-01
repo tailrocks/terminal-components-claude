@@ -1,5 +1,3 @@
-
-
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
@@ -45,7 +43,6 @@ pub struct Diagnostic {
 
 #[derive(Debug, Clone)]
 pub struct FindState {
-
     pub needle: EditField,
 
     pub matches: Vec<Range<usize>>,
@@ -60,9 +57,7 @@ pub enum EditorAction {
 
     Committed,
 
-    Leave {
-        backward: bool,
-    },
+    Leave { backward: bool },
 }
 
 #[derive(Debug, Clone)]
@@ -117,7 +112,6 @@ pub struct CodeEditor {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CodeCmd {
-
     Edit,
 
     Append,
@@ -252,7 +246,6 @@ impl CodeEditor {
     }
 
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
-
         if let Some(m) = self.edit_menu.menu() {
             return crate::core::hints::HasHints::hints(m, &crate::core::hints::HintCx::new(None));
         }
@@ -461,7 +454,6 @@ impl CodeEditor {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<EditorAction>) {
-
         if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
             return (Outcome::Ignored, None);
         }
@@ -529,7 +521,6 @@ impl CodeEditor {
         }
         if !self.editing {
             if self.entry() == EditEntry::Immediate && !self.focus_seen && !self.read_only {
-
                 self.begin_edit();
             } else {
                 return self.nav_key(key);
@@ -924,7 +915,6 @@ impl CodeEditor {
             self.text_area.width != text_area.width || self.text_area.height != text_area.height;
         self.text_area = text_area;
         if self.field.sel.drag {
-
             ctx.autoscroll(text_area);
         }
         let cur = self.field.buffer.cursor_pos();
@@ -1044,7 +1034,6 @@ impl CodeEditor {
                     continue;
                 }
                 if col >= self.hscroll && col == self.hscroll && self.hscroll > 0 {
-
                     col += gw;
                     x += gw as u16;
                     continue;
@@ -1135,7 +1124,6 @@ impl CodeEditor {
                 .draw_with_fade(body, buf, ctx, self.id, focused, &[]);
         }
         if has_hb {
-
             let y = area.y + rows_h;
             fill(buf, Rect::new(area.x, y, area.width, 1), fs);
             let hb = Rect::new(text_area.x, y, text_area.width, 1);
@@ -1302,7 +1290,6 @@ impl crate::ui::measure::Measure for CodeEditor {
 }
 
 impl Scrollable for CodeEditor {
-
     fn pane(&mut self) -> &mut ScrollPane {
         self.scroll.h.offset = self.hscroll;
         &mut self.scroll
@@ -1384,7 +1371,6 @@ impl EditMenuHost for CodeEditor {
         self.field.shortcut(cmd)
     }
     fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
-
         ev.id == self.id && self.text_area.contains(ev.pos())
     }
     fn edit_point(&mut self, pos: Position) {
@@ -1399,4 +1385,3 @@ impl EditMenuHost for CodeEditor {
         edited
     }
 }
-

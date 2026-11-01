@@ -1643,4 +1643,3 @@ pub fn world_for(scenario: Scenario) -> World {
         }
     }
 }
-

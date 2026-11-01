@@ -132,7 +132,6 @@ fn plan_key(id: &str) -> ItemKey {
 }
 
 impl App {
-
     pub fn launch(
         scenario: Scenario,
         motion: Motion,

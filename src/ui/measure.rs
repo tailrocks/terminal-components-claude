@@ -1,11 +1,8 @@
-
-
 use ratatui::layout::Size;
 
 use crate::ui::ctx::RenderCtx;
 
 pub trait Measure {
-
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size;
 
     fn min_width(&self, avail: Size, ctx: &RenderCtx) -> u16 {
@@ -41,14 +38,12 @@ impl<'a> Tile<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tiled {
-
     pub rects: Vec<ratatui::layout::Rect>,
 
     pub size: Size,
 }
 
 impl Tiled {
-
     pub fn at(&self, i: usize, origin: ratatui::layout::Rect) -> ratatui::layout::Rect {
         let r = self.rects.get(i).copied().unwrap_or_default();
         ratatui::layout::Rect::new(origin.x + r.x, origin.y + r.y, r.width, r.height)
@@ -72,7 +67,6 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
         let gaps = gap.0.saturating_mul(n - 1);
         let mins: u16 = row.iter().map(|t| t.min_width).sum();
         if mins.saturating_add(gaps) <= width {
-
             let mut widths: Vec<u16> = row.iter().map(|t| t.min_width).collect();
             let mut spare = width - gaps - mins;
             let fixed: u16 = row.iter().filter(|t| !t.grow).map(|t| t.min_width).sum();
@@ -119,4 +113,3 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
         size: Size::new(width, y),
     }
 }
-

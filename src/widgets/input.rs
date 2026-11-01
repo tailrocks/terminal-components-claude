@@ -111,7 +111,6 @@ pub struct TextInput {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ValidateOn {
-
     #[default]
     Change,
 
@@ -123,9 +122,7 @@ pub enum InputAction {
     Committed,
     Cancelled,
 
-    CommittedTab {
-        backward: bool,
-    },
+    CommittedTab { backward: bool },
     Changed,
 }
 
@@ -413,7 +410,6 @@ impl TextInput {
     pub fn cancel(&mut self) {
         self.editing = false;
         if self.field.buffer.text() != self.snapshot {
-
             self.field.record(EditKind::Other);
         }
         let snap = self.snapshot.clone();
@@ -500,7 +496,6 @@ impl TextInput {
         let entry = self.entry();
         if !self.editing {
             match entry {
-
                 EditEntry::Immediate if self.focus_seen => self.begin_edit(),
                 EditEntry::Immediate => self.begin_focus_edit(),
                 EditEntry::TypeToEdit | EditEntry::Explicit => {
@@ -544,7 +539,6 @@ impl TextInput {
             }
             EditAction::Cancel => {
                 if entry == EditEntry::Immediate && !self.is_dirty() {
-
                     return (Outcome::Ignored, None);
                 }
                 self.cancel();
@@ -592,7 +586,6 @@ impl TextInput {
     }
 
     fn offset_at(&self, pos: Position) -> usize {
-
         let glyphs = self.display_graphemes(true, crate::theme::Glyphs::UNICODE.mask);
         self.field.glyph_offset_at(pos, &glyphs)
     }
@@ -666,7 +659,6 @@ impl TextInput {
             && self.focus_edit
             && !self.is_dirty()
         {
-
             self.editing = false;
             self.field.buffer.clear_selection();
         }
@@ -733,9 +725,7 @@ impl TextInput {
             );
         }
         if label_rows > 1 {
-
         } else if self.required && !self.disabled && name_w + 4 <= area.width as usize {
-
             let ink = if self.field.error.is_some() {
                 t.tone_on(crate::theme::Tone::Error, bg)
             } else {
@@ -762,7 +752,6 @@ impl TextInput {
         let field = Rect::new(area.x, area.y + label_rows, area.width, 1);
         self.area = field;
         if self.label_hit && !self.label.is_empty() {
-
             let lw = if label_rows > 1 {
                 wrapped.iter().map(|l| width(l)).max().unwrap_or(0)
             } else {
@@ -801,14 +790,12 @@ impl TextInput {
         }
         let text = self.field.buffer.text();
         if text.is_empty() {
-
             let p = crate::ui::reveal::fit(ctx, inner, &self.placeholder, s.focused);
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
             if s.editing && inner.width > 0 {
                 ctx.set_cursor(Position::new(inner.x, inner.y));
             }
         } else {
-
             let glyphs = self.display_graphemes(s.editing, t.glyphs.mask);
             let look = LineLook {
                 text: fs,
@@ -853,7 +840,6 @@ impl TextInput {
             if let Some(id) = self.readout_link
                 && !self.disabled
             {
-
                 ctx.clickable(id, r);
             }
         }
@@ -912,7 +898,6 @@ impl Editable for TextInput {
         TextInput::on_label(self, pos)
     }
     fn label_click(&mut self) {
-
         if !self.editing {
             self.begin_focus_edit();
         }
@@ -990,4 +975,3 @@ impl EditMenuHost for TextInput {
         self.field.run(cmd).edited
     }
 }
-

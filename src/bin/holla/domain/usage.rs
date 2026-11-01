@@ -379,4 +379,3 @@ impl UsageStore {
 fn js(s: &str) -> String {
     format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
 }
-

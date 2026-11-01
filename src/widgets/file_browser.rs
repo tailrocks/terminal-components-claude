@@ -1,5 +1,3 @@
-
-
 use std::rc::Rc;
 
 use ratatui::buffer::Buffer;
@@ -28,7 +26,6 @@ use crate::widgets::list::{ListBox, ListItem, SelectMode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileEntry {
-
     pub path: String,
 
     pub dir: bool,
@@ -73,7 +70,6 @@ impl FileEntry {
 }
 
 pub trait FileSource {
-
     fn list(&self, dir: &str) -> Result<Vec<FileEntry>, String>;
 
     fn is_dir(&self, path: &str) -> bool;
@@ -145,7 +141,6 @@ impl FileSource for MemorySource {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FsSource {
-
     pub home: Option<String>,
 }
 
@@ -189,7 +184,6 @@ impl FileSource for FsSource {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Choose {
-
     #[default]
     Dirs,
 
@@ -200,7 +194,6 @@ pub enum Choose {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileCmd {
-
     Open,
 
     Parent,
@@ -245,7 +238,6 @@ impl Actions for FileCmd {
 }
 
 impl FileCmd {
-
     pub fn vim_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::Enter), FileCmd::Open),
@@ -265,7 +257,6 @@ pub type UrlValidator = Rc<dyn Fn(&str) -> Result<(), String>>;
 
 #[derive(Clone)]
 pub struct UrlEntry {
-
     pub button: String,
 
     pub back: String,
@@ -332,11 +323,7 @@ impl std::fmt::Debug for UrlEntry {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileBrowserResult {
-
-    Chosen {
-        path: String,
-        checked: bool,
-    },
+    Chosen { path: String, checked: bool },
 
     Url(String),
     Cancelled,
@@ -386,7 +373,6 @@ pub struct FileBrowser {
 }
 
 impl FileBrowser {
-
     pub fn new(id: WidgetId, title: &str, source: impl FileSource + 'static, start: &str) -> Self {
         let list = ListBox::new(id.sub("list"), vec![], SelectMode::Single);
         let type_ahead = list.type_ahead;
@@ -1019,7 +1005,6 @@ impl FileBrowser {
             ctx.hits.register(b.id, b.area);
         }
         if let Some(c) = self.hidden_box.as_mut() {
-
             let room = row.width.saturating_sub(used + 1);
             let cw = crate::ui::text::width(&c.label) as u16 + 6;
             if room >= cw {
@@ -1086,4 +1071,3 @@ impl Overlay for FileBrowser {
         Response::emit(FileBrowserResult::Cancelled)
     }
 }
-

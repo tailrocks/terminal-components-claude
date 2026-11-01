@@ -1,5 +1,3 @@
-
-
 use std::any::Any;
 
 use crate::core::focus::{Focus, FocusRing};
@@ -11,7 +9,6 @@ use crate::ui::popup::Dismiss;
 pub type TopFn<R, W> = Box<dyn FnOnce(&mut dyn Layer<R, W>)>;
 
 pub enum Request<R, W: ?Sized = (), G = ()> {
-
     Status(String, Tone),
 
     StatusAs(String, StatusKind),
@@ -36,7 +33,6 @@ pub enum Request<R, W: ?Sized = (), G = ()> {
 }
 
 impl<R, W: ?Sized, G> Request<R, W, G> {
-
     pub fn allowed_in_background(&self) -> bool {
         matches!(
             self,
@@ -141,7 +137,6 @@ impl<'a, R, W: ?Sized, G> Cx<'a, R, W, G> {
 }
 
 impl<'a, R: 'static, W: ?Sized + 'static, G> Cx<'a, R, W, G> {
-
     pub fn with_top<L: Layer<R, W>>(&mut self, f: impl FnOnce(&mut L) + 'static) {
         self.requests
             .push(Request::Top(Box::new(move |layer: &mut dyn Layer<R, W>| {
@@ -152,4 +147,3 @@ impl<'a, R: 'static, W: ?Sized + 'static, G> Cx<'a, R, W, G> {
             })));
     }
 }
-

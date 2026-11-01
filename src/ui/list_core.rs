@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -17,7 +15,6 @@ use crate::widgets::empty::EmptyState;
 
 #[derive(Debug, Clone)]
 pub struct ListCore {
-
     pub cursor: usize,
 
     pub wrap: bool,
@@ -50,7 +47,6 @@ pub struct ListCore {
 }
 
 impl ListCore {
-
     pub fn new(len: usize) -> Self {
         Self {
             cursor: 0,
@@ -133,4 +129,3 @@ impl ListCore {
         }
     }
 }
-

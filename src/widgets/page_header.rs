@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
@@ -178,7 +176,6 @@ impl crate::ui::measure::Measure for PageHeader {
         let w = |s: &str| width(s) as u16;
         let used = w(&self.title) + self.status.as_ref().map_or(0, |(s, _)| w(s));
         let row = match &self.right {
-
             Some(r) => (used + self.right_gap + w(r) + 1).max(used + 2 * self.inset),
             None => used + 2 * self.inset,
         };
@@ -204,4 +201,3 @@ impl crate::ui::measure::Measure for Heading {
 fn ink(t: &Theme, tone: Tone) -> Style {
     Style::new().fg(t.tone(tone))
 }
-

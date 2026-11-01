@@ -755,4 +755,3 @@ impl Page for FormsPage {
         Some(&mut self.template)
     }
 }
-

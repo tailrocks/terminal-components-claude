@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -98,7 +96,6 @@ impl StatusItem {
             _ => w,
         };
         if self.meter.is_some() {
-
             base + 1 + STATUS_METER_TRACK + 7
         } else {
             base
@@ -423,7 +420,6 @@ impl StatusBar {
                 let seg = Rect::new(p.x, area.y, p.width, 1);
                 let id = it.id.unwrap_or_else(|| reveal_id(p.group, p.index));
                 if it.id.is_none() && !ctx.inert {
-
                     ctx.hits.register_hover(id, seg);
                 }
                 crate::ui::tooltip::show(ctx, id, seg, tip, None);
@@ -434,7 +430,6 @@ impl StatusBar {
                 let id = it.id.unwrap_or_else(|| reveal_id(p.group, p.index));
                 let cfg = self.reveal.unwrap_or(ctx.reveal);
                 if it.id.is_none() && cfg.hover {
-
                     ctx.clickable(id, cut);
                 }
                 crate::ui::reveal::truncated(ctx, Some(cfg), id, cut, &it.text);
@@ -473,4 +468,3 @@ impl crate::ui::specimen::Specimen for StatusItem {
         bar.render(area, buf, ctx);
     }
 }
-

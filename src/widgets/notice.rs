@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -11,7 +9,6 @@ use crate::ui::text::{truncate, wrap};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NoticeKind {
-
     #[default]
     Error,
 
@@ -23,7 +20,6 @@ pub enum NoticeKind {
 }
 
 impl NoticeKind {
-
     fn glyph(self, t: &Theme) -> (&'static str, Style) {
         match self {
             NoticeKind::Error => ("!", t.error_fg().add_modifier(Modifier::BOLD)),
@@ -258,4 +254,3 @@ impl crate::ui::specimen::Specimen for Notice {
         n.render(area, buf, ctx, bg);
     }
 }
-

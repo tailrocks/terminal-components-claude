@@ -1,5 +1,3 @@
-
-
 use std::io::Write;
 use std::sync::atomic::{AtomicU8, Ordering};
 
@@ -8,7 +6,6 @@ use super::pointer::PointerState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum PointerShape {
-
     #[default]
     Default,
 
@@ -22,7 +19,6 @@ pub enum PointerShape {
 }
 
 impl PointerShape {
-
     pub const fn css_name(self) -> &'static str {
         match self {
             Self::Default => "default",
@@ -40,7 +36,6 @@ impl PointerShape {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum CaretShape {
-
     #[default]
     Bar,
 
@@ -52,7 +47,6 @@ pub enum CaretShape {
 }
 
 impl CaretShape {
-
     pub const fn decscusr(self) -> Option<&'static str> {
         match self {
             Self::Block => Some("\x1b[2 q"),
@@ -67,14 +61,12 @@ pub const CARET_RESET: &str = "\x1b[0 q";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ShapeSupport {
-
     pub pointer: bool,
 
     pub caret: bool,
 }
 
 impl ShapeSupport {
-
     pub const NONE: Self = Self {
         pointer: false,
         caret: false,
@@ -128,7 +120,6 @@ pub fn shapes_for(pointer: &PointerState, hits: &HitRegistry) -> Shapes {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Shapes {
-
     pub pointer: Option<PointerShape>,
 
     pub caret: Option<CaretShape>,
@@ -195,4 +186,3 @@ pub fn reset_sequence() -> String {
     }
     s
 }
-

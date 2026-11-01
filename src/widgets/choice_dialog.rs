@@ -1,5 +1,3 @@
-
-
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::hints::{HasHints, HintCx};
@@ -18,7 +16,6 @@ use ratatui::style::Style;
 
 #[derive(Clone)]
 pub struct ChoiceDialog {
-
     pub close_button: crate::widgets::icon_button::IconButton,
 
     pub dismiss: crate::ui::popup::Dismiss,
@@ -77,7 +74,6 @@ impl HasHints for ChoiceDialog {
 }
 
 impl ChoiceDialog {
-
     pub fn button_row(mut self, row: crate::widgets::button::ButtonRow) -> Self {
         self.button_row = row;
         self
@@ -216,7 +212,6 @@ impl ChoiceDialog {
             _ => None,
         };
         if let Some(back) = step {
-
             if let Some(id) = self.button_row.step(&self.buttons, cur, !back) {
                 focus.focus(id);
             }
@@ -342,7 +337,6 @@ impl ChoiceDialog {
 }
 
 impl ChoiceDialog {
-
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -380,4 +374,3 @@ impl ChoiceDialog {
         Response::ignored()
     }
 }
-

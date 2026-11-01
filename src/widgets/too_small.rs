@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -16,7 +14,6 @@ pub struct TooSmall<'a> {
 }
 
 impl<'a> TooSmall<'a> {
-
     pub const MIN_WIDTH: u16 = 72;
     pub const MIN_HEIGHT: u16 = 20;
 
@@ -65,7 +62,6 @@ impl<'a> TooSmall<'a> {
         ];
         let y0 = area.y + area.height.saturating_sub(5) / 2;
         for (i, (text, style)) in lines.into_iter().enumerate() {
-
             let y = y0 + i as u16 + u16::from(i == 3);
             if y < area.bottom() {
                 buf.set_string(center_x(area, text), y, text, style);
@@ -73,4 +69,3 @@ impl<'a> TooSmall<'a> {
         }
     }
 }
-

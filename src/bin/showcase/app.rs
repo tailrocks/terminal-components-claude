@@ -2323,4 +2323,3 @@ impl shell::KeyHost for App {
         self.set_status(text.into());
     }
 }
-

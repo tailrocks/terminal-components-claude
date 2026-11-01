@@ -106,7 +106,6 @@ impl Cell {
 
 #[derive(Debug, Clone)]
 pub struct ChoiceEdit {
-
     pub row: usize,
     pub col: usize,
     pub editor: ChoiceEditor,
@@ -114,7 +113,6 @@ pub struct ChoiceEdit {
 
 #[derive(Debug, Clone)]
 pub struct EditState {
-
     pub row: usize,
     pub col: usize,
 
@@ -168,7 +166,6 @@ impl crate::ui::measure::Measure for DataTable {
 
 #[derive(Debug, Clone)]
 pub struct DataTable {
-
     parts: PartMap,
     pub id: WidgetId,
     pub columns: Vec<Column>,
@@ -241,7 +238,6 @@ pub struct DataTable {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableCmd {
-
     SortByColumn,
 
     SelectAll,
@@ -264,10 +260,7 @@ impl Actions for TableCmd {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableAction {
-    Committed {
-        row: usize,
-        col: usize,
-    },
+    Committed { row: usize, col: usize },
     Cancelled,
     Activated(usize),
 
@@ -853,7 +846,6 @@ impl DataTable {
             let ca = &rows[a][col].text;
             let cb = &rows[b][col].text;
             let ord = if numeric {
-
                 parse_num(ca).cmp(&parse_num(cb))
             } else {
                 ca.to_lowercase().cmp(&cb.to_lowercase())
@@ -903,7 +895,6 @@ impl DataTable {
     }
 
     fn ensure_col_visible(&mut self) {
-
         self.scroll.reveal_column(self.cursor_col);
     }
 
@@ -1037,7 +1028,6 @@ impl DataTable {
         let mut e = self.edit.take()?;
         let src = e.row;
         if !e.field.validate() {
-
             self.edit = Some(e);
             return None;
         }
@@ -1137,7 +1127,6 @@ impl DataTable {
             return r;
         }
         if unassigned_chord(key, &self.keymap) {
-
             return (Outcome::Ignored, None);
         }
         let (r, c) = (self.cursor_row, self.cursor_col);
@@ -1280,7 +1269,6 @@ impl DataTable {
         let col = col.min(self.columns.len().saturating_sub(1));
         if let Some(e) = &self.edit {
             if e.row == self.order[display] && e.col == col {
-
                 if let Some(at) = self.edit_offset(pos)
                     && let Some(e) = self.edit.as_mut()
                 {
@@ -1302,7 +1290,6 @@ impl DataTable {
             let enabled = |r: usize| !disabled.contains(&r);
             let gesture = SelectGesture::from_mods(mods, self.toggle_mods, from);
             if gesture == SelectGesture::Only && !enabled(src) {
-
                 return (Outcome::Changed, None);
             }
             let changed = self.selection.apply(gesture, display, &self.order, enabled);
@@ -1459,7 +1446,6 @@ impl DataTable {
                     head,
                 );
             } else if cut && !ctx.inert {
-
                 ctx.hits.register_hover(hid, head);
             }
             if cut {
@@ -1479,13 +1465,11 @@ impl DataTable {
             }
         }
         if check_w > 0 && area.width > 3 + check_w {
-
             let cid = self.check_all_id();
             let state = self.selection_state();
             let lifted = ctx.interaction.hovered(cid) || ctx.interaction.pressed(cid);
             let st = crate::widgets::grid::header_style(ctx, cid, header_bg, true, false);
             let st = match state {
-
                 _ if lifted => st,
                 TriState::None => st,
                 _ => st.fg(t.legible(ctx.chosen(focused), st.bg.unwrap_or(header_bg))),
@@ -1558,7 +1542,6 @@ impl DataTable {
             };
             let row_disabled = self.is_disabled(src);
             if row_disabled {
-
                 s.hovered = false;
                 s.pressed = false;
             }
@@ -1611,7 +1594,6 @@ impl DataTable {
 
                 let shown: std::borrow::Cow<str> = if let Some(on) = col.editor.checked(&cell.text)
                 {
-
                     if on {
                         t.glyphs.check_on
                     } else {
@@ -1676,7 +1658,6 @@ impl DataTable {
                     }
                 } else {
                     if is_cursor_cell || is_choice_cell {
-
                         st = t.cell_cursor(flagged, s.pressed);
                     } else if flagged {
                         st = st.fg(t.error);
@@ -1797,7 +1778,6 @@ impl DataTable {
             self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
         if has_hb {
-
             let y = body.bottom();
             let right = area.right() - u16::from(has_sb);
             fill(
@@ -2019,4 +1999,3 @@ impl crate::core::pointer::MouseTarget for DataTable {
         }
     }
 }
-

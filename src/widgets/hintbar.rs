@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -72,7 +70,6 @@ pub struct HintBar;
 pub struct HintKeys(Vec<Option<crate::core::event::Key>>);
 
 impl HintKeys {
-
     pub fn register(
         ctx: &mut crate::ui::ctx::RenderCtx,
         buf: &mut Buffer,
@@ -111,7 +108,6 @@ impl HintKeys {
 }
 
 impl HintBar {
-
     pub const ID: crate::core::id::WidgetId = crate::core::id::WidgetId::of("hintbar");
 
     pub fn render_ctx(
@@ -204,4 +200,3 @@ impl crate::ui::specimen::Specimen for HintLayer {
         HintBar::render(area, buf, ctx.theme, &layer);
     }
 }
-

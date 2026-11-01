@@ -38,4 +38,3 @@ impl Motion {
         self == Motion::Paused
     }
 }
-

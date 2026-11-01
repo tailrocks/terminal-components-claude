@@ -1,5 +1,3 @@
-
-
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::hints::{HasHints, HintCx};
@@ -186,7 +184,6 @@ pub enum FormAction {
 }
 
 pub struct FormDialog {
-
     pub close_button: crate::widgets::icon_button::IconButton,
 
     pub dismiss: crate::ui::popup::Dismiss,
@@ -218,7 +215,6 @@ pub struct FormDialog {
 }
 
 impl FormDialog {
-
     pub fn button_row(mut self, row: crate::widgets::button::ButtonRow) -> Self {
         self.button_row = row;
         self
@@ -529,7 +525,6 @@ impl FormDialog {
                 Outcome::Changed
             }
             _ if !editing && matches!(self.nav.action(key), Some(Nav::Left | Nav::Right)) => {
-
                 let row = self
                     .actions
                     .iter()
@@ -559,7 +554,6 @@ impl FormDialog {
 
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
         if let Some(s) = self.select_owning(id) {
-
             return s.on_press(id, pos);
         }
         self.inputs()
@@ -787,7 +781,6 @@ impl FormDialog {
             let fh = f.height() as i32;
             let whole = y >= body.y as i32 && y < body.bottom() as i32;
             if !whole && let Some(id) = f.tab_stop() {
-
                 ctx.focus_stop(id);
             }
             if y + fh > body.y as i32 && y < body.bottom() as i32 {
@@ -865,7 +858,6 @@ impl FormDialog {
             y += fh + 1;
         }
         if self.scroll.overflows() {
-
             let rows = Rect::new(
                 area.x,
                 body.y,
@@ -960,7 +952,6 @@ impl Scrollable for FormDialog {
 }
 
 impl FormDialog {
-
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -1016,4 +1007,3 @@ impl FormDialog {
         }
     }
 }
-

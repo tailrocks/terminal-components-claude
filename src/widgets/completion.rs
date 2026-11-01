@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -37,7 +35,6 @@ pub enum CompletionAction {
 }
 
 impl Completion {
-
     pub const NAV: NavKeys = NavKeys::NO_VIM.home_end(false);
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
@@ -58,14 +55,10 @@ impl Completion {
     pub fn new(id: WidgetId) -> Self {
         let list = OptionList::new(id)
             .width(24, 48)
-
             .fit(crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET))
-
             .dismiss(Dismiss::LIGHT.pass_through(true))
             .nav(Self::NAV)
-
             .type_ahead(false)
-
             .hover_moves_cursor(false);
         Self {
             id,
@@ -322,4 +315,3 @@ impl crate::core::pointer::MouseTarget for Completion {
         }
     }
 }
-

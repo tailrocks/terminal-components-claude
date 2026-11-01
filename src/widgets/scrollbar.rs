@@ -162,7 +162,6 @@ pub const fn reserve(gap: u16) -> u16 {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VSplit {
-
     pub body: Rect,
 
     pub content: Rect,
@@ -286,7 +285,6 @@ pub fn render_with_fade_except(
 }
 
 impl ScrollPane {
-
     pub fn draw_v(
         &mut self,
         area: Rect,
@@ -364,4 +362,3 @@ pub fn position_label(scroll: &ScrollState) -> String {
     let r = scroll.visible_range();
     format!("{}–{} of {}", r.start + 1, r.end, scroll.content_len)
 }
-

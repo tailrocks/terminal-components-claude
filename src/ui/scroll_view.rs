@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::{Buffer, Cell};
 use ratatui::layout::{Position, Rect, Size};
 use ratatui::widgets::Padding;
@@ -20,7 +18,6 @@ pub struct Axes {
 }
 
 impl Axes {
-
     pub const BOTH: Self = Self {
         vertical: true,
         horizontal: true,
@@ -45,7 +42,6 @@ impl Default for Axes {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScrollCmd {
-
     PageUp,
 
     PageDown,
@@ -60,7 +56,6 @@ pub enum ScrollCmd {
 }
 
 impl Actions for ScrollCmd {
-
     fn default_keymap() -> KeyMap<Self> {
         use crate::core::keymap::KeyBinding;
         use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -96,7 +91,6 @@ impl Actions for ScrollCmd {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ViewLayout {
-
     pub viewport: Rect,
 
     pub content: Rect,
@@ -111,7 +105,6 @@ pub struct ViewLayout {
 }
 
 impl ViewLayout {
-
     pub fn overflows(&self) -> bool {
         self.content.width > self.viewport.width || self.content.height > self.viewport.height
     }
@@ -544,7 +537,6 @@ pub struct ScrollFrame {
 }
 
 impl ScrollFrame {
-
     pub fn area(&self) -> Rect {
         self.layout.inner
     }
@@ -560,4 +552,3 @@ impl ScrollFrame {
         }
     }
 }
-

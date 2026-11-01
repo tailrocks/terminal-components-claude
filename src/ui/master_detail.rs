@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -20,7 +18,6 @@ pub const SPLIT_MIN: u16 = 108;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetailSize {
-
     Share { pct: u16, min: u16, max: u16 },
 
     MasterShare { pct: u16, min: u16, max: u16 },
@@ -30,7 +27,6 @@ pub enum DetailSize {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Mode {
-
     #[default]
     Split,
 
@@ -52,7 +48,6 @@ pub struct MdLayout {
 
 #[derive(Debug, Clone)]
 pub struct MasterDetail {
-
     pub master: WidgetId,
 
     pub detail: WidgetId,
@@ -81,7 +76,6 @@ pub struct MasterDetail {
 }
 
 impl MasterDetail {
-
     pub fn new(master: WidgetId, detail: WidgetId) -> Self {
         Self {
             master,
@@ -109,7 +103,6 @@ impl MasterDetail {
         match self.size {
             DetailSize::Resizable => self.split.natural_extent(master, detail, self.gap),
             DetailSize::Share { pct, min, max } => {
-
                 let detail = detail.min(max.max(min));
                 let fits = |w: u16| {
                     let dw = ((w as u32 * pct as u32 / 100) as u16).clamp(min, max.max(min));
@@ -122,7 +115,6 @@ impl MasterDetail {
                 w
             }
             DetailSize::MasterShare { pct, min, max } => {
-
                 let master = master.min(max.max(min));
                 let fits = |w: u16| {
                     let mw = (((w as u32 * pct as u32 + 50) / 100) as u16).clamp(min, max.max(min));
@@ -170,7 +162,6 @@ impl MasterDetail {
     }
 
     pub fn collapsed_mode(&self, focus: &crate::ui::ctx::Interaction) -> Mode {
-
         let open = self.drawer && !focus.focused(self.master);
         let detail_focused = focus.focus.is_some_and(|f| self.in_detail(f)) && !focus.focus_hidden;
         if detail_focused || open {
@@ -460,4 +451,3 @@ impl crate::ui::specimen::Specimen for MasterDetail {
         line(buf, l.summary, "→ orders · 12,408 rows", t.muted().bg(bg));
     }
 }
-

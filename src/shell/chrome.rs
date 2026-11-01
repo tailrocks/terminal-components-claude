@@ -1,5 +1,3 @@
-
-
 use ratatui::layout::Rect;
 
 use crate::core::id::WidgetId;
@@ -8,7 +6,6 @@ use crate::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Regions {
-
     pub header: Rect,
 
     pub body: Rect,
@@ -18,7 +15,6 @@ pub struct Regions {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Chrome {
-
     pub header: u16,
 
     pub gap: u16,
@@ -35,7 +31,6 @@ impl Default for Chrome {
 }
 
 impl Chrome {
-
     pub const fn new() -> Self {
         Self {
             header: 1,
@@ -151,4 +146,3 @@ impl<C: Clone> Menus<C> {
         }
     }
 }
-

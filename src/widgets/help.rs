@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -20,7 +18,6 @@ use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HelpCmd {
-
     Close,
 }
 
@@ -83,7 +80,6 @@ impl HelpSection {
 }
 
 pub struct HelpOverlay {
-
     pub close_button: crate::widgets::icon_button::IconButton,
 
     pub dismiss: crate::ui::popup::Dismiss,
@@ -136,7 +132,6 @@ impl HasHints for HelpOverlay {
 }
 
 impl HelpOverlay {
-
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
@@ -320,14 +315,12 @@ impl HelpOverlay {
                         x + key_w + 1,
                         y,
                         truncate(action, action_w),
-
                         t.secondary().bg(bg),
                     );
                 }
             }
         }
         if self.scroll.overflows() {
-
             let body = Rect::new(
                 area.x,
                 inner.y,
@@ -408,4 +401,3 @@ impl crate::core::pointer::MouseTarget for HelpOverlay {
         Response::ignored()
     }
 }
-

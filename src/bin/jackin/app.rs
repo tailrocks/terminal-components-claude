@@ -112,7 +112,6 @@ pub struct App {
 }
 
 impl App {
-
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
         let mut world = crate::domain::fixtures::world_for(scenario);
         world.clock.running = motion != Motion::Paused;

@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -96,7 +94,6 @@ pub struct ChipBar {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChipCmd {
-
     Remove,
 
     Add,
@@ -334,7 +331,6 @@ impl ChipBar {
         }
         let action = lookup(&self.keymap, key);
         if unassigned_chord(key, &self.keymap) {
-
             return (Outcome::Ignored, None);
         }
         match action {
@@ -448,7 +444,6 @@ impl ChipBar {
             if i >= shown {
                 if let Some(m) = marker.as_ref().filter(|_| self.overflow_marker) {
                     if self.overflow_menu {
-
                         let left = x.saturating_sub(1).max(area.x);
                         let r = Rect::new(left, y, x + width(m) as u16 + 1 - left, 1)
                             .intersection(area);
@@ -537,7 +532,6 @@ impl ChipBar {
         }
         self.more_area = more_area;
         if more_area.is_empty() && matches!(self.menu, Some((_, BarMenu::Hidden(_)))) {
-
             self.menu = None;
         }
         if let Some((menu, _)) = self.menu.as_mut() {
@@ -607,7 +601,6 @@ impl crate::ui::specimen::Specimen for ChipBar {
         b.menu = None;
         let v = state.visual();
         if v.hovered && !b.chips.is_empty() {
-
             ctx.interaction.hover = Some(b.chip_id(0));
         }
         match state {
@@ -675,9 +668,7 @@ impl crate::core::pointer::MouseTarget for ChipBar {
 
 #[derive(Debug, Clone)]
 enum BarMenu {
-
     Hidden(Vec<usize>),
 
     Chip(Vec<ChipAction>),
 }
-

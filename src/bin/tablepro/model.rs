@@ -929,4 +929,3 @@ fn group_rank(g: &str) -> u32 {
         _ => 5,
     }
 }
-

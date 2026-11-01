@@ -92,4 +92,3 @@ pub fn parse<C: Parser>(after_help: String) -> C {
     let matches = C::command().after_help(after_help).get_matches();
     C::from_arg_matches(&matches).unwrap_or_else(|error| error.exit())
 }
-

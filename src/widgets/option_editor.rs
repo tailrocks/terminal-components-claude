@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -21,7 +19,6 @@ use crate::widgets::option_list::{OptionList, WheelMode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OptionItem {
-
     pub value: String,
 
     pub label: String,
@@ -92,7 +89,6 @@ impl Options {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ColumnEditor {
-
     #[default]
     Text,
 
@@ -110,7 +106,6 @@ pub enum ColumnEditor {
 }
 
 impl ColumnEditor {
-
     pub fn options(&self) -> Option<&Options> {
         match self {
             Self::Text => None,
@@ -209,7 +204,6 @@ impl ColumnEditor {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EditorConfig {
-
     pub dismiss: Dismiss,
 
     pub blur: BlurAction,
@@ -259,7 +253,6 @@ impl Default for EditorConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Affordance {
-
     #[default]
     Focused,
 
@@ -270,7 +263,6 @@ pub enum Affordance {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChoiceResult {
-
     Commit(String),
 
     Cancel,
@@ -289,7 +281,6 @@ enum Kind {
 
 #[derive(Debug, Clone)]
 pub struct ChoiceEditor {
-
     pub id: WidgetId,
     kind: Kind,
     pub options: Options,
@@ -309,7 +300,6 @@ pub struct ChoiceEditor {
 }
 
 impl ChoiceEditor {
-
     pub fn open(
         id: WidgetId,
         editor: &ColumnEditor,
@@ -441,7 +431,6 @@ impl ChoiceEditor {
     }
 
     pub fn on_key(&mut self, key: &Key, cfg: &EditorConfig) -> (Outcome, Option<ChoiceResult>) {
-
         if self.kind == Kind::Combo {
             use crate::widgets::field_common::EditAction;
             let action = self.query.action(key);
@@ -456,7 +445,6 @@ impl ChoiceEditor {
             }
         }
         if unassigned_chord::<()>(key, &[]) {
-
             return (Outcome::Consumed, None);
         }
         let combo = self.kind == Kind::Combo;
@@ -513,7 +501,6 @@ impl ChoiceEditor {
                     n => n,
                 };
                 match (at, nav) {
-
                     (None, Nav::Up | Nav::Down | Nav::Left | Nav::Right) => cursor.first(&shown),
                     _ => cursor.apply(nav, &shown, self.list.scroll.viewport_len),
                 }
@@ -645,7 +632,6 @@ impl ChoiceEditor {
             })
             .max()
             .unwrap_or(0) as u16
-
             + self.prefix()
             + 7;
         let (min_w, max_w) = cfg.popup_width;
@@ -665,7 +651,6 @@ impl ChoiceEditor {
         self.list.scroll.set_viewport(visible);
         self.list.scroll.follow(at);
         if search > 0 {
-
             let inner = pa
                 .intersection(screen)
                 .inner(ratatui::layout::Margin::new(1, 1));
@@ -711,7 +696,6 @@ impl ChoiceEditor {
                 );
                 line.as_position()
             } else {
-
                 self.query
                     .clone()
                     .draw_line(buf, line, &Self::query_look(t))
@@ -784,7 +768,6 @@ impl ChoiceEditor {
                 }
                 _ => {
                     if self.current == Some(i) {
-
                         buf.set_string(x, y, t.glyphs.current, st.fg(ink));
                     }
                     x += 2;
@@ -934,7 +917,6 @@ impl crate::core::pointer::MouseTarget for ChoiceEditor {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-
             if ev.part().part == Part::BACKDROP {
                 return Response::ignored();
             }
@@ -972,4 +954,3 @@ impl RowSource for Shown<'_> {
         &self.ed.options.0[self.rows[k]].label
     }
 }
-

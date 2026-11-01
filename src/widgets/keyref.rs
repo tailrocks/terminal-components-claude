@@ -1,5 +1,3 @@
-
-
 use crate::ui::text::{WrapOpts, width, wrap_with};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -118,7 +116,6 @@ impl crate::ui::specimen::Specimen for KeyReference {
 
     fn specimen_height(&self, state: crate::ui::specimen::SpecimenState) -> u16 {
         let w = if state == crate::ui::specimen::SpecimenState::Narrow {
-
             24
         } else {
             SPECIMEN_W
@@ -170,7 +167,6 @@ impl crate::ui::specimen::Specimen for KeyReference {
 }
 
 impl KeyReference {
-
     fn sample(&self, state: crate::ui::specimen::SpecimenState) -> Self {
         let mut r = self.clone();
         if state == crate::ui::specimen::SpecimenState::Overflow {
@@ -182,4 +178,3 @@ impl KeyReference {
         r
     }
 }
-

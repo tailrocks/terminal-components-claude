@@ -1368,4 +1368,3 @@ fn platforms_linux(motion: Motion) -> World {
     ];
     w
 }
-

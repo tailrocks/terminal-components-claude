@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -18,7 +16,6 @@ use crate::widgets::keyhint::Hint;
 use crate::widgets::menu::{ContextMenu, MenuItem};
 
 pub trait PageTypes {
-
     type State: ?Sized;
 
     type Msg;
@@ -161,4 +158,3 @@ pub fn rebuild_on_tick<P, V: PartialEq>(
         Outcome::Changed
     }
 }
-

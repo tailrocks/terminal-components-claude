@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
@@ -110,7 +108,6 @@ impl Breadcrumb {
             let current = i + 1 == n;
             let label = self.segments[i].clone();
             if current {
-
                 let st = t.title().bg(bg);
                 self.areas[i] = put(buf, &mut x, &label, st, true);
             } else if self.clickable {
@@ -209,4 +206,3 @@ impl crate::core::pointer::MouseTarget for Breadcrumb {
         }
     }
 }
-

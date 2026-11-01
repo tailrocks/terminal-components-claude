@@ -1,5 +1,3 @@
-
-
 use ratatui::crossterm::event::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
@@ -7,7 +5,6 @@ use ratatui::layout::Position;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Outcome {
-
     #[default]
     Ignored,
 
@@ -106,7 +103,6 @@ pub struct Mouse {
 }
 
 impl Mouse {
-
     pub const fn new(kind: MouseKind, pos: Position) -> Self {
         Self {
             kind,
@@ -143,7 +139,6 @@ impl Mouse {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InputConfig {
-
     pub shift_wheel_horizontal: bool,
 
     pub ctrl_click_secondary: bool,
@@ -153,14 +148,12 @@ pub struct InputConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClientPlatform {
-
     MacOs,
 
     Other,
 }
 
 impl ClientPlatform {
-
     pub const OVERRIDE_ENV: &'static str = "JUNIE_TUI_CLIENT_PLATFORM";
 
     pub const MACOS_TERM_PROGRAMS: [&'static str; 2] = ["Apple_Terminal", "iTerm.app"];
@@ -201,7 +194,6 @@ impl ClientPlatform {
 }
 
 impl InputConfig {
-
     pub const fn for_platform(platform: ClientPlatform) -> Self {
         Self {
             shift_wheel_horizontal: true,
@@ -212,7 +204,6 @@ impl InputConfig {
 }
 
 impl Default for InputConfig {
-
     fn default() -> Self {
         Self::for_platform(ClientPlatform::current())
     }
@@ -314,4 +305,3 @@ impl Input {
         }
     }
 }
-

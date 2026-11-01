@@ -1,5 +1,3 @@
-
-
 use std::io::{Write, stdout};
 use std::time::{Duration, Instant};
 
@@ -52,7 +50,6 @@ pub trait Application {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Coalesce {
-
     pub wheel: bool,
 
     pub pointer_moves: bool,
@@ -67,7 +64,6 @@ pub struct Coalesce {
 }
 
 impl Coalesce {
-
     pub const OFF: Self = Self {
         wheel: false,
         pointer_moves: false,
@@ -165,7 +161,6 @@ fn initialize_with_restoration<T>(
 const ENABLE_WRAP: &str = "\x1b[?7h";
 
 impl TerminalSession {
-
     pub fn enter() -> std::io::Result<Self> {
         Self::enter_with(KeyboardProtocol::current())
     }
@@ -173,7 +168,6 @@ impl TerminalSession {
     pub fn enter_with(protocol: KeyboardProtocol) -> std::io::Result<Self> {
         enable_raw_mode()?;
         let (terminal, restoration) = initialize_with_restoration(restore_terminal, || {
-
             prime_input()?;
             let mut out = stdout();
             execute!(
@@ -278,12 +272,10 @@ pub mod job_control {
     }
 
     extern "C" fn on_tstp(_sig: c_int) {
-
         REQUESTED.store(true, Ordering::SeqCst);
     }
 
     pub fn install() {
-
         let handler: extern "C" fn(c_int) = on_tstp;
         unsafe {
             signal(SIGTSTP, handler as *const () as usize);
@@ -295,7 +287,6 @@ pub mod job_control {
     }
 
     pub fn stop_self() {
-
         unsafe {
             signal(SIGTSTP, SIG_DFL);
             raise(SIGTSTP);
@@ -375,7 +366,6 @@ mod tty_input {
     fn fd() -> Option<RawFd> {
         static TTY: OnceLock<Option<(RawFd, Option<std::fs::File>)>> = OnceLock::new();
         TTY.get_or_init(|| {
-
             if unsafe { libc::isatty(libc::STDIN_FILENO) } == 1 {
                 return Some((libc::STDIN_FILENO, None));
             }
@@ -418,7 +408,6 @@ mod tty_input {
 }
 
 fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std::io::Result<()> {
-
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut dirty = true;
     let mut last_tick = Instant::now();
@@ -492,7 +481,6 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                 return Ok(());
             }
             if changed {
-
                 terminal.draw(|f| render_frame(app, f, suppress_colors))?;
                 if pump.settle(app) {
                     terminal.draw(|f| render_frame(app, f, suppress_colors))?;
@@ -500,7 +488,6 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
             }
         }
         if hover_due.is_some_and(|(_, due)| due <= now + wait) {
-
             dirty = true;
         }
 
@@ -516,7 +503,6 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                 dirty = true;
             }
             if app.should_quit() {
-
                 if dirty {
                     terminal.draw(|f| render_frame(app, f, suppress_colors))?;
                 }
@@ -536,7 +522,6 @@ pub struct SizeWatch {
 }
 
 impl SizeWatch {
-
     pub fn new(size: Option<(u16, u16)>) -> Self {
         Self { known: size }
     }
@@ -565,14 +550,12 @@ fn effective_input_config(app: InputConfig, protocol_active: bool) -> InputConfi
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FocusClickGuard {
-
     pub window: Duration,
     gained_at: Option<Instant>,
     swallowing: bool,
 }
 
 impl FocusClickGuard {
-
     pub const DEFAULT_WINDOW: Duration = Duration::from_millis(300);
 
     pub const fn new(window: Duration) -> Self {
@@ -692,7 +675,6 @@ impl InputPump {
         let mut burst: Option<(Input, usize)> = None;
         self.settle = None;
         loop {
-
             if let Some((last, folded)) = &burst
                 && (!self.policy.folds(last, last)
                     || *folded >= self.policy.max_batch
@@ -722,7 +704,6 @@ impl InputPump {
                 return Ok(changed || burst.is_some());
             }
             match &mut burst {
-
                 Some((last, folded)) => {
                     *last = input;
                     *folded += 1;
@@ -761,7 +742,6 @@ fn render_frame(app: &mut impl Application, frame: &mut Frame, suppress_colors: 
 }
 
 fn reset_frame_colors(buffer: &mut Buffer) {
-
     for cell in &mut buffer.content {
         cell.fg = Color::Reset;
         cell.bg = Color::Reset;
@@ -790,4 +770,3 @@ pub fn drain_pending_input() -> std::io::Result<usize> {
     }
     drained
 }
-

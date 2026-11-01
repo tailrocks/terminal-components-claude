@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
@@ -12,7 +10,6 @@ use crate::ui::layout::{Split, SplitDir};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SeamDoubleClick {
-
     #[default]
     Reset,
 
@@ -90,7 +87,6 @@ impl Splitter {
 
         let pressed = held || ctx.interaction.pressed == Some(self.id);
         if !pressed {
-
             self.grab = None;
         }
         if area.is_empty() {
@@ -220,4 +216,3 @@ impl crate::ui::specimen::Specimen for Splitter {
         s.render(strip, buf, ctx, bg);
     }
 }
-

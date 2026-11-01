@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -143,7 +141,6 @@ pub struct Tabs {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CloseReveal {
-
     #[default]
     Always,
 
@@ -152,7 +149,6 @@ pub enum CloseReveal {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TabRule {
-
     #[default]
     Auto,
 
@@ -167,7 +163,6 @@ pub const DEFAULT_CLOSE_KEYS: &[KeyCode] = &[KeyCode::Char('x'), KeyCode::Delete
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TabCmd {
-
     Close,
 
     New,
@@ -178,7 +173,6 @@ pub enum TabCmd {
 }
 
 impl TabCmd {
-
     pub fn digit_keys() -> KeyMap<Self> {
         ('1'..='9')
             .enumerate()
@@ -444,7 +438,6 @@ impl Tabs {
 
     pub fn on_wheel(&mut self, dx: i32, dy: i32) -> Outcome {
         if let Some((menu, _)) = self.menu.as_mut() {
-
             return if dy != 0 {
                 crate::core::scroll::Scrollable::wheel(&mut menu.list, Axis::Vertical, dy).outcome()
             } else {
@@ -514,7 +507,6 @@ impl Tabs {
         let to = i.min(self.items.len() - 1);
         self.cursor = to;
         if to != self.active {
-
             self.active = to;
             self.ensure_visible(to);
         }
@@ -548,7 +540,6 @@ impl Tabs {
         }
         let action = lookup(&self.keymap, key);
         if unassigned_chord(key, &self.keymap) {
-
             return (Outcome::Ignored, None);
         }
         if self.items.is_empty() {
@@ -1007,4 +998,3 @@ impl crate::core::pointer::MouseTarget for Tabs {
         }
     }
 }
-

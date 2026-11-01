@@ -802,4 +802,3 @@ pub enum HandoffStage {
     CapsuleDim(u8),
     Capsule,
 }
-

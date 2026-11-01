@@ -766,4 +766,3 @@ impl Layer<ModalResult, World> for InspectChanges {
         }
     }
 }
-

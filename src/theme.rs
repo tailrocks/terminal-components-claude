@@ -1,12 +1,9 @@
-
-
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::ui::ctx::VisualState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CursorStyle {
-
     #[default]
     Fill,
 
@@ -26,7 +23,6 @@ pub type CursorRow = Interactive;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Plane {
-
     Canvas,
 
     Surface,
@@ -80,7 +76,6 @@ impl Plane {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
-
     Row,
 
     CursorRow(CursorStyle),
@@ -102,7 +97,6 @@ pub enum Kind {
 }
 
 impl Kind {
-
     pub fn is_glyph(self) -> bool {
         matches!(self, Kind::Handle | Kind::Seam)
     }
@@ -159,7 +153,6 @@ pub struct Ladders {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StateModifiers {
-
     pub hover: Modifier,
 
     pub hover_flat: Modifier,
@@ -182,7 +175,6 @@ pub struct StateModifiers {
 }
 
 impl StateModifiers {
-
     pub const COLOR: Self = Self {
         hover: Modifier::empty(),
         hover_flat: Modifier::UNDERLINED,
@@ -232,7 +224,6 @@ pub struct LevelOverrides {
 }
 
 impl LevelOverrides {
-
     pub const ASCII_MONO: Self = Self {
         truecolor: None,
         ansi256: None,
@@ -302,7 +293,6 @@ impl ColorLevel {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Charset {
-
     #[default]
     Unicode,
 
@@ -310,7 +300,6 @@ pub enum Charset {
 }
 
 impl Charset {
-
     pub const OVERRIDE_ENV: &'static str = "JUNIE_TUI_GLYPHS";
 
     pub const ASCII_TERMS: [&'static str; 5] = ["linux", "vt", "cons25", "dumb", "pcansi"];
@@ -468,7 +457,6 @@ mod palette {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum InactiveSelection {
-
     #[default]
     Accent,
 
@@ -478,7 +466,6 @@ pub enum InactiveSelection {
 }
 
 impl InactiveSelection {
-
     pub const ALL: [InactiveSelection; 3] = [
         InactiveSelection::Accent,
         InactiveSelection::Neutral,
@@ -578,7 +565,6 @@ pub struct Theme {
 }
 
 impl Theme {
-
     pub const DEFAULT_EDIT_ENTRY: crate::core::edit::EditEntry =
         crate::core::edit::EditEntry::Immediate;
 
@@ -1161,7 +1147,6 @@ impl Theme {
             (self.highlight_danger, Plane::HighlightDanger),
             (self.accent, Plane::Accent),
             (self.error, Plane::Danger),
-
             (self.accent_bg, Plane::Card),
             (self.accent_bg_hover, Plane::Card),
             (self.accent_bg_subtle, Plane::Card),
@@ -1201,7 +1186,6 @@ impl Theme {
         let glyph = kind.is_glyph();
 
         if s.disabled {
-
             let rest = if body.is_fill() {
                 match kind {
                     Kind::Button(_) => self.ladder(Plane::Raised).rest,
@@ -1214,13 +1198,11 @@ impl Theme {
             let mut fg = self.disabled;
             let mut dim = m.disabled;
             if fg == bg {
-
                 fg = self.text_muted;
                 dim |= Modifier::DIM;
             }
             let mut style = Style::new().fg(fg).add_modifier(dim);
             if glyph {
-
                 style = style.add_modifier(Modifier::DIM);
             } else {
                 style = style.bg(bg);
@@ -1234,7 +1216,6 @@ impl Theme {
         }
 
         if glyph {
-
             let lad = if kind == Kind::Handle {
                 self.ladders.handle
             } else {
@@ -1358,10 +1339,8 @@ impl Theme {
         let gutter_fg = if !bar {
             bg
         } else if fill || danger_press {
-
             fg
         } else {
-
             self.legible_mark(self.focus, bg)
         };
         Interactive {
@@ -1768,7 +1747,6 @@ pub enum Tone {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusKind {
-
     Ok,
 
     Fail,
@@ -1820,7 +1798,6 @@ pub enum EnvKind {
 }
 
 impl EnvKind {
-
     pub const fn tone(self) -> Tone {
         match self {
             EnvKind::Production => Tone::Danger,
@@ -1861,7 +1838,6 @@ pub enum BadgeKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HintAlign {
-
     #[default]
     Start,
 
@@ -1870,7 +1846,6 @@ pub enum HintAlign {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Glyphs {
-
     pub focus_bar: &'static str,
 
     pub current: &'static str,
@@ -1993,7 +1968,6 @@ pub struct Glyphs {
 }
 
 impl Glyphs {
-
     pub fn env(&self, env: EnvKind) -> &'static str {
         match env {
             EnvKind::Production => self.env_production,
@@ -2177,7 +2151,6 @@ impl Default for Glyphs {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Strings {
-
     pub cancel: &'static str,
 
     pub save: &'static str,
@@ -2294,7 +2267,6 @@ pub struct Strings {
 }
 
 impl Strings {
-
     pub const DEFAULT: Self = Self {
         cancel: "Cancel",
         save: "Save",
@@ -2408,7 +2380,6 @@ impl Insets {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Spacing {
-
     pub button_gap: u16,
 
     pub dialog: Insets,
@@ -2438,7 +2409,6 @@ impl Default for Spacing {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HintBarStyle {
-
     pub align: HintAlign,
 
     pub status_min_share: u8,
@@ -2616,4 +2586,3 @@ fn nearest_16(r: u8, g: u8, b: u8) -> Color {
         }
     }
 }
-

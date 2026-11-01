@@ -1,5 +1,3 @@
-
-
 use junie_tui::widgets::steps::StepState;
 
 use crate::domain::agent::Agent;
@@ -73,7 +71,6 @@ impl Stage {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LaunchPlan {
-
     Clean,
 
     FailNetwork,
@@ -97,14 +94,9 @@ pub enum LaunchEvent {
     Activity(String),
     BuildLine(String),
     ContainerReady(String),
-    CredentialsResolved {
-        origin: String,
-        validation: String,
-    },
+    CredentialsResolved { origin: String, validation: String },
 
-    CredentialError {
-        message: String,
-    },
+    CredentialError { message: String },
     Failed(LaunchFailure),
     Ready,
 }
@@ -179,7 +171,6 @@ pub const BUILD_LOG: [&str; 44] = [
 
 impl LaunchRun {
     pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: &str) -> Self {
-
         let durations = [14, 18, 26, 30, 8, 92, 22, 20, 18, 34, 16];
         Self {
             plan,
@@ -342,4 +333,3 @@ impl LaunchRun {
         ev
     }
 }
-

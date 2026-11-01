@@ -35,7 +35,6 @@ impl crate::ui::measure::Measure for TextArea {
     }
 
     fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &crate::ui::ctx::RenderCtx) -> u16 {
-
         let message = self
             .field
             .error
@@ -306,26 +305,22 @@ impl TextArea {
         let entry = self.entry();
         if !self.editing {
             if entry == EditEntry::Immediate && !self.focus_seen {
-
                 self.begin_edit();
                 self.focus_select.apply(&mut self.field.buffer);
             } else if matches!(key.code, KeyCode::Enter | KeyCode::F(2)) && key.plain() {
                 self.begin_edit();
                 return (Outcome::Changed, None);
             } else if matches!(self.edit_action(key), EditAction::SelectAll) {
-
                 self.begin_edit();
                 self.field.buffer.select_all();
                 return (Outcome::Changed, None);
             } else if matches!(self.edit_action(key), EditAction::Paste) {
-
                 let o = paste_clipboard(|t| self.on_paste(t));
                 return (o, (o == Outcome::Changed).then_some(InputAction::Changed));
             } else if entry != EditEntry::Explicit
                 && let KeyCode::Char(c) = key.code
                 && !key.chord()
             {
-
                 self.begin_edit();
                 self.field.record(EditKind::Typing);
                 self.field.buffer.insert_char(c);
@@ -419,7 +414,6 @@ impl TextArea {
     }
 
     fn offset_at(&self, pos: Position) -> usize {
-
         let line = (self.scroll.offset as isize + (pos.y as isize - self.text_area.y as isize))
             .max(0) as usize;
         let col =
@@ -481,7 +475,6 @@ impl TextArea {
             && self.focus_edit
             && !self.is_dirty()
         {
-
             self.commit();
         }
         self.focus_seen = has_focus;
@@ -525,7 +518,6 @@ impl TextArea {
         let resized = body.width != self.area.width || body.height != self.area.height;
         self.area = body;
         if self.label_hit && !self.label.is_empty() {
-
             let lw = width(&self.label).min(area.width.saturating_sub(2) as usize) as u16;
             ctx.clickable(self.id, Rect::new(area.x, area.y, lw + 2, 1));
         }
@@ -569,7 +561,6 @@ impl TextArea {
                 self.hscroll = cur.col + 1 - width;
             }
         } else if !s.editing && self.was_editing {
-
             self.hscroll = 0;
         }
         self.was_editing = s.editing;
@@ -580,7 +571,6 @@ impl TextArea {
         self.last_cursor = Some(cur);
         self.follow_cursor = false;
         if text.is_empty() {
-
             let w = inner.width as usize;
             let wrapped =
                 crate::ui::text::wrap_with(&self.placeholder, w, crate::ui::text::WrapOpts::PLAIN);
@@ -639,7 +629,6 @@ impl TextArea {
                         buf.set_string(inner.right() - 1, y, t.glyphs.ellipsis, st);
                     }
                     if s.editing && li == cur.line {
-
                         for xx in inner.x..inner.right() {
                             if let Some(c) = buf.cell_mut(Position::new(xx, y)) {
                                 c.set_style(
@@ -746,7 +735,6 @@ impl Editable for TextArea {
         TextArea::on_label(self, pos)
     }
     fn label_click(&mut self) {
-
         if !self.editing {
             self.begin_edit();
             self.focus_select.apply(&mut self.field.buffer);
@@ -827,7 +815,6 @@ impl crate::ui::specimen::Specimen for TextArea {
 }
 
 impl Scrollable for TextArea {
-
     fn pane(&mut self) -> &mut ScrollPane {
         let width = self.text_area.width as usize;
         self.scroll.h.content_len = self.content_cols;
@@ -909,4 +896,3 @@ impl EditMenuHost for TextArea {
         self.field.run(cmd).edited
     }
 }
-

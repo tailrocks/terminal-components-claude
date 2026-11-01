@@ -1,5 +1,3 @@
-
-
 use crate::db::{Catalog, ColType, Table, Value};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -435,7 +433,6 @@ pub fn parse(stmt: &str) -> Result<Statement, ParseError> {
                 if w.accept("ANALYZE") {
                     analyze = true;
                 } else if w.accept("VERBOSE") || w.accept("(") {
-
                     while let Some(t) = w.peek() {
                         if t == ")" {
                             w.next();
@@ -728,9 +725,7 @@ pub fn is_dangerous(stmt: &Statement) -> bool {
 pub enum Decision {
     Run,
 
-    Confirm {
-        deliberate: bool,
-    },
+    Confirm { deliberate: bool },
 
     Deny,
 }
@@ -1341,4 +1336,3 @@ pub fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
         plan_text(c, depth + 1, out);
     }
 }
-

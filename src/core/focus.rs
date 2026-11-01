@@ -1,5 +1,3 @@
-
-
 use super::id::WidgetId;
 
 #[derive(Debug, Default, Clone)]
@@ -81,7 +79,6 @@ impl FocusRing {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusFallback {
-
     #[default]
     Nearest,
 
@@ -90,7 +87,6 @@ pub enum FocusFallback {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BlurAction {
-
     #[default]
     Commit,
 
@@ -101,14 +97,12 @@ pub enum BlurAction {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FocusChange {
-
     pub from: WidgetId,
 
     pub to: Option<WidgetId>,
 }
 
 pub trait BlurTarget {
-
     fn blur_id(&self) -> WidgetId;
 
     fn blur(&mut self) -> super::event::Outcome;
@@ -184,7 +178,6 @@ impl Focus {
     fn move_to(&mut self, id: Option<WidgetId>) {
         self.moves = self.moves.wrapping_add(1);
         if self.current != id {
-
             cancel_focus_request();
         }
         if let Some(from) = self.current
@@ -262,4 +255,3 @@ impl Focus {
         self.last_valid = self.last_index.and(self.current);
     }
 }
-

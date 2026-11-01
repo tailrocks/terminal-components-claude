@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Margin, Position, Rect};
@@ -22,7 +20,6 @@ pub use crate::widgets::option_list::{SelectArrows, WheelMode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TabInOpen {
-
     #[default]
     Choose,
 
@@ -33,7 +30,6 @@ pub enum TabInOpen {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Press {
-
     opened: bool,
 
     label: bool,
@@ -89,7 +85,6 @@ impl Select {
         let mut list = OptionList::new(id)
             .max_rows(Self::MAX_ROWS)
             .width(Self::POPUP_WIDTH.0, Self::POPUP_WIDTH.1)
-
             .clear_on_leave(false)
             .fade_edges(false);
         list.cursor = Cursor::new(selected);
@@ -250,7 +245,6 @@ impl Select {
             return (Outcome::Ignored, None);
         }
         if unassigned_chord::<()>(key, &[]) {
-
             return (Outcome::Ignored, None);
         }
 
@@ -262,7 +256,6 @@ impl Select {
         };
         let step = KeyStep::ordered(key, &self.list.nav, self.list.type_ahead, precedence);
         if let Some(KeyStep::Type(c)) = step {
-
             if !self.open {
                 self.list.cursor.index = self.selected;
             }
@@ -385,12 +378,10 @@ impl Select {
             return (Outcome::Consumed, None);
         }
         if id == self.bar_id() {
-
             self.list.scroll.release();
             return (Outcome::Consumed, None);
         }
         if id == self.id {
-
             if let Some(p) = self.press.take()
                 && (p.opened || p.label)
             {
@@ -562,7 +553,6 @@ impl Select {
         let shown = self.mixed.as_deref().unwrap_or(self.value());
         let value = crate::ui::text::truncate(shown, field.width.saturating_sub(5) as usize);
         let vs = if self.mixed.is_some() {
-
             fs.patch(t.placeholder(s))
         } else {
             fs
@@ -641,7 +631,6 @@ impl Select {
                     let area = row.area;
                     let st = row.style();
                     if row.state.selected {
-
                         let ink = st.fg(row.ink(ctx, t.text_secondary));
                         buf.set_string(area.x + 1, area.y, t.glyphs.current, ink);
                     }
@@ -697,7 +686,6 @@ impl RowSource for Select {
 }
 
 impl Navigable for Select {
-
     fn cursor(&self) -> Cursor {
         if self.open {
             self.list.cursor
@@ -765,7 +753,6 @@ impl crate::core::pointer::MouseTarget for Select {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-
             if ev.part().part == Part::BACKDROP || !self.open || self.disabled {
                 return Response::ignored();
             }
@@ -781,4 +768,3 @@ impl crate::core::pointer::MouseTarget for Select {
         }
     }
 }
-

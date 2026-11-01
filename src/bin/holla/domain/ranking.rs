@@ -302,4 +302,3 @@ pub fn explain(item: &Item, cwd_short: &str) -> Vec<(String, String)> {
     ));
     rows
 }
-

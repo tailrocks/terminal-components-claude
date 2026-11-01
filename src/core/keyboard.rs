@@ -1,5 +1,3 @@
-
-
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -98,7 +96,6 @@ pub fn decode(seq: &[u8]) -> Option<Key> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum KeyboardProtocol {
-
     #[default]
     Auto,
 
@@ -108,7 +105,6 @@ pub enum KeyboardProtocol {
 }
 
 impl KeyboardProtocol {
-
     pub const ENV: &'static str = "JUNIE_TUI_KEYBOARD_PROTOCOL";
 
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
@@ -129,14 +125,12 @@ impl KeyboardProtocol {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ProtocolState {
-
     pub enabled: bool,
 
     pub pushed: bool,
 }
 
 impl ProtocolState {
-
     pub fn enter(
         &mut self,
         policy: KeyboardProtocol,
@@ -244,7 +238,6 @@ pub fn observe(input: &Input) {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AltKeys {
-
     Delivered,
 
     Refused,
@@ -255,7 +248,6 @@ pub enum AltKeys {
 }
 
 impl AltKeys {
-
     pub const ENV: &'static str = "JUNIE_TUI_ALT_KEYS";
 
     pub const OPTION_TYPES_TERM_PROGRAMS: [&'static str; 2] = ["Apple_Terminal", "iTerm.app"];
@@ -347,4 +339,3 @@ pub fn label_deliverable(key: &str) -> bool {
 pub fn set_alt_delivered(on: bool) {
     ALT.store(if on { 1 } else { 2 }, Ordering::SeqCst);
 }
-

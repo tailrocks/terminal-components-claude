@@ -203,7 +203,6 @@ pub fn parse_config(
     };
     let mut entries: Vec<Vec<(String, Val, usize)>> = vec![];
     let mut in_action = false;
-    let mut saw_action_key = false;
     for (ln, raw) in text.lines().enumerate() {
         let line = strip_comment(raw).trim();
         if line.is_empty() {
@@ -212,7 +211,6 @@ pub fn parse_config(
         if line == "[[action]]" {
             entries.push(vec![]);
             in_action = true;
-            saw_action_key = true;
             continue;
         }
         if line.starts_with("[[") || line.starts_with('[') {
@@ -261,7 +259,6 @@ pub fn parse_config(
             e.push((key, val, ln + 1));
         }
     }
-    if !saw_action_key && !text.trim().is_empty() && cfg.diagnostics.is_empty() {}
     let mut ids_here: Vec<String> = vec![];
     for (index, e) in entries.iter().enumerate() {
         let get = |k: &str| {
@@ -554,4 +551,3 @@ fn json_str(s: Option<&str>) -> String {
         None => "null".into(),
     }
 }
-

@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -10,7 +8,6 @@ use crate::ui::ctx::{RenderCtx, VisualState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lockup {
-
     pub text: String,
 
     pub compact: bool,
@@ -77,4 +74,3 @@ impl Lockup {
         w
     }
 }
-

@@ -9,8 +9,9 @@ handlers, injects hit-region IDs, or renders into a test backend.
 The reference source is [tests/functional](../tests/functional/main.rs). The
 initial application review was against PR #26, commit
 `5b3dbd7ae799f325efbb4f4cc11b2f5518dec948`, on
-`design/interaction-polish`. This is the monolithic `junie-tui` package with
-four binaries and an `xtask` workspace member. Architecture reports describing
+`design/interaction-polish`. This is the monolithic `junie-tui` package with four binaries. (The former
+`xtask` workspace member existed only to serve the deleted visual-baseline
+estate; it was removed with that estate — see the migration mapping.) Architecture reports describing
 `crates/*` on other branches are not evidence about these binaries.
 
 ## Run the acceptance examples
@@ -364,7 +365,7 @@ per-app `app_tests*` suites.
 | In-module lib tests: src/core | 172 | Dropped: pure-logic units (keymap, scroll offsets, edit, selection, typeahead). Behavioural slices superseded by the journeys above. |
 | In-module lib tests: src/ui | 157 | Dropped: in-process render/layout units; superseded in behaviour by Showcase family journeys. |
 | In-module lib tests: src/widgets | 619 | Dropped: in-process widget variant/state units; superseded in behaviour by Showcase family journeys (deep) plus one consumer journey per app. |
-| In-module tests: src/shell, src/*.rs, xtask | ~440 | Dropped: app-state/router units and xtask tool tests; shell behaviour proven by real-app journeys. xtask visual tooling itself is retained as a task runner (not a test). |
+| In-module tests: src/shell, src/*.rs, xtask | ~440 | Dropped: app-state/router units and xtask tool tests; shell behaviour proven by real-app journeys. The xtask crate itself was removed afterwards: every command operated on the deleted visual-baseline estate (`tests/visual_baseline/`, `baselines/oracle/`), superseded by the Tuiscotti CLI. |
 | src/bin/showcase/app_tests* (incl. catalog/coverage gate) | 546 + macro suites | Superseded by Showcase functional journeys; the catalog/coverage source-scan gate is dropped with the estate (its files `catalog_scan.rs` deleted; production-compiled `coverage.rs`/`src/catalog.rs` registry retained as production source, not tests). |
 | src/bin/tablepro/app_tests*, motion_tests, perf_tests | 151 | Superseded by TablePro functional journeys; perf tests dropped as timing gates. |
 | src/bin/holla/app_tests* | 162 | Superseded by Holla functional journeys. |
@@ -415,10 +416,14 @@ exceptions and no legacy-API tests:
    Tuiscotti state sample and compared with `FrozenStore` from latest
    Tuiscotti (`tuiscotti-latest`, main `d8d5415`). The test asserts
    `outcome.is_pass()`; a missing or changed baseline fails. Baselines for
-   all 39 tests live in `tests/functional/baselines/` and were approved
+   all 93 tests live in `tests/functional/baselines/` and were approved
    once with the Tuiscotti CLI `accept` command — tests never approve.
    Checkpoints sit on deterministic screens (after `settle()`, not on
-   cycling status words or mid-flash frames).
+   cycling status words or mid-flash frames). `App::visual` additionally
+   requires two identical consecutive cell fingerprints (cells + cursor)
+   before freezing, and tests that end beside a status flash or a live
+   relative-time readout wait for that element to fade or freeze the
+   app clock (`--motion paused`) first.
 
 The legacy Tuiscotti 0.2 dependency is removed entirely; nothing in the
 repository uses it.

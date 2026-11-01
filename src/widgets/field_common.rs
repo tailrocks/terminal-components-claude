@@ -1,5 +1,3 @@
-
-
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
 
@@ -11,7 +9,6 @@ use crate::core::text::TextBuffer;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PointerSelect {
-
     pub drag: bool,
 
     pub word: bool,
@@ -61,7 +58,6 @@ impl Default for PointerSelect {
 }
 
 pub trait PointerField {
-
     fn pointer_id(&self) -> WidgetId;
 
     fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome;
@@ -110,9 +106,7 @@ pub fn route_click(
 pub enum EditAction {
     Commit,
     Cancel,
-    Tab {
-        backward: bool,
-    },
+    Tab { backward: bool },
     Apply(fn(&mut TextBuffer)),
     Insert(char),
 
@@ -160,11 +154,8 @@ pub fn edit_key_in(
     if key.code == KeyCode::Char('h') && key.ctrl() {
         return EditAction::Apply(|b| b.backspace());
     }
-    if keys == FieldKeys::Desktop && key.ctrl() && !key.alt() {
-
-        if key.code == KeyCode::Char('a') {
-            return EditAction::None;
-        }
+    if keys == FieldKeys::Desktop && key.ctrl() && !key.alt() && key.code == KeyCode::Char('a') {
+        return EditAction::None;
     }
     match key.code {
         KeyCode::Esc => EditAction::Cancel,
@@ -291,7 +282,6 @@ pub fn paste_clipboard(on_paste: impl FnOnce(&str) -> Outcome) -> Outcome {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Applied {
-
     Edited,
 
     Moved,
@@ -380,4 +370,3 @@ pub fn apply_edit(
         Some(Applied::Moved)
     }
 }
-

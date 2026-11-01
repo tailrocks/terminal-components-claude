@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Margin, Rect};
 use ratatui::style::Style;
@@ -73,7 +71,6 @@ pub fn close_button_with(
 }
 
 pub trait Modal {
-
     fn dismiss(&self) -> Dismiss;
 }
 
@@ -85,7 +82,6 @@ impl<O: crate::ui::layer::Overlay> Modal for O {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Dismissal {
-
     None,
 
     Close,
@@ -163,7 +159,6 @@ impl<M> ModalStack<M> {
 }
 
 impl<M: Modal> ModalStack<M> {
-
     pub fn outside_click(&self) -> Dismissal {
         match self.top() {
             None => Dismissal::None,
@@ -188,7 +183,6 @@ pub fn ensure_focus(focus: &mut Focus, ring: &FocusRing, fallback: FocusFallback
 #[deprecated(note = "use `popup::Placement` (`Placement::Center`) with `Frame::placement`")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FramePlacement {
-
     Upper,
 
     Middle,
@@ -397,4 +391,3 @@ impl<'a> Frame<'a> {
         (area, area.inner(self.margin))
     }
 }
-

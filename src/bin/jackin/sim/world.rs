@@ -471,4 +471,3 @@ pub fn mask_path(home: &str, path: &str) -> String {
         path.to_owned()
     }
 }
-

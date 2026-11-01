@@ -1,5 +1,3 @@
-
-
 use ratatui::crossterm::event::KeyModifiers;
 use ratatui::layout::Position;
 
@@ -10,7 +8,6 @@ use super::id::{PartRef, WidgetId};
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Intent<'a> {
-
     Key(Key),
 
     Binding(ActionKey),
@@ -18,7 +15,6 @@ pub enum Intent<'a> {
     Paste(&'a str),
 
     Pointer {
-
         phase: Phase,
 
         part: PartRef,
@@ -31,7 +27,6 @@ pub enum Intent<'a> {
     },
 
     Wheel {
-
         axis: Axis,
 
         delta: i16,
@@ -53,7 +48,6 @@ pub enum Intent<'a> {
 }
 
 impl Intent<'_> {
-
     pub const fn pointer(phase: Phase, part: PartRef, pos: Position) -> Self {
         Intent::Pointer {
             phase,
@@ -82,7 +76,6 @@ impl Intent<'_> {
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Phase {
-
     Move,
 
     Press,
@@ -107,7 +100,6 @@ pub enum Phase {
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FocusVia {
-
     Keyboard,
 
     Pointer,
@@ -121,7 +113,6 @@ pub enum FocusVia {
 pub struct ActionKey(u16);
 
 impl ActionKey {
-
     pub const CONFIRM: ActionKey = ActionKey(0);
 
     pub const CANCEL: ActionKey = ActionKey(1);
@@ -140,7 +131,6 @@ impl ActionKey {
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DismissReason {
-
     Esc,
 
     CloseButton,
@@ -155,11 +145,9 @@ pub enum DismissReason {
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LayerEvent {
-
     Opened,
 
     Dismissed(DismissReason),
 
     Closed(ActionKey),
 }
-

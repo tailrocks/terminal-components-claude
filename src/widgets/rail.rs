@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -10,7 +8,6 @@ use crate::ui::ctx::RenderCtx;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RailAction {
-
     Expand,
 
     Collapse,
@@ -18,7 +15,6 @@ pub enum RailAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SidebarRail {
-
     pub id: WidgetId,
 
     pub label: String,
@@ -27,7 +23,6 @@ pub struct SidebarRail {
 }
 
 impl SidebarRail {
-
     pub const WIDTH: u16 = 2;
 
     pub fn new(id: WidgetId, label: &str) -> Self {
@@ -149,4 +144,3 @@ impl crate::core::pointer::MouseTarget for SidebarRail {
         }
     }
 }
-

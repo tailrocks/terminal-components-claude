@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
@@ -20,27 +8,20 @@ use crate::theme::Theme;
 use crate::ui::ctx::RenderCtx;
 use crate::widgets::empty::{EmptyKind, EmptyState};
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum ContentState {
-
-
     #[default]
     Ready,
 
-
     Loading(Cow<'static, str>),
-
 
     Error(EmptyState),
 }
 
 impl ContentState {
-
     pub fn loading(label: impl Into<Cow<'static, str>>) -> Self {
         Self::Loading(label.into())
     }
-
 
     pub fn error(state: EmptyState) -> Self {
         Self::Error(EmptyState {
@@ -49,12 +30,9 @@ impl ContentState {
         })
     }
 
-
     pub fn is_ready(&self) -> bool {
         matches!(self, Self::Ready)
     }
-
-
 
     pub fn actions(&self) -> &[crate::widgets::empty::EmptyAction] {
         match self {
@@ -63,7 +41,6 @@ impl ContentState {
         }
     }
 }
-
 
 pub fn draw_line(area: Rect, buf: &mut Buffer, t: &Theme, text: &str, bg: Color) {
     let area = area.intersection(*buf.area());
@@ -79,7 +56,6 @@ pub fn draw_line(area: Rect, buf: &mut Buffer, t: &Theme, text: &str, bg: Color)
             / 2;
     buf.set_string(x, y, &msg, t.muted().bg(bg));
 }
-
 
 pub fn draw_loading(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, label: &str, bg: Color) {
     let area = area.intersection(*buf.area());
@@ -98,9 +74,6 @@ pub fn draw_loading(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, label: &s
     crate::widgets::progress::render_spinner(Rect::new(x, y, w, 1), buf, ctx, &label, bg);
 }
 
-
-
-
 pub fn draw_empty(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, e: &EmptyState, bg: Color) {
     if e.kind == EmptyKind::Empty && e.hint.is_none() && e.actions.is_empty() {
         draw_line(area, buf, ctx.theme, &e.title, bg);
@@ -108,11 +81,6 @@ pub fn draw_empty(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, e: &EmptySt
         crate::widgets::empty::render_ctx(area, buf, ctx, e, bg);
     }
 }
-
-
-
-
-
 
 pub fn specimen(state: crate::ui::specimen::SpecimenState) -> ContentState {
     use crate::ui::specimen::SpecimenState;

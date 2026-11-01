@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
@@ -258,4 +256,3 @@ impl crate::ui::specimen::Specimen for MeterList {
         l.render(area, buf, ctx, bg);
     }
 }
-

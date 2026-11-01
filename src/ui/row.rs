@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
@@ -12,7 +10,6 @@ use crate::ui::text::truncate;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowLook {
-
     #[default]
     Bar,
 
@@ -27,7 +24,6 @@ impl From<CursorStyle> for RowLook {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MarkKind {
-
     Current,
 
     Tick,
@@ -41,7 +37,6 @@ pub enum MarkKind {
 pub struct RowUi;
 
 impl RowUi {
-
     pub fn paint(
         ctx: &RenderCtx,
         buf: &mut Buffer,
@@ -78,7 +73,6 @@ impl RowUi {
 
 #[derive(Debug, Clone, Copy)]
 pub struct RowPaint {
-
     pub area: Rect,
 
     pub state: VisualState,
@@ -89,7 +83,6 @@ pub struct RowPaint {
 }
 
 impl RowPaint {
-
     pub fn draw(&self, buf: &mut Buffer) {
         fill(buf, self.area, self.look.style);
         for y in self.area.top()..self.area.bottom() {
@@ -155,4 +148,3 @@ impl RowPaint {
         reveal.cell(ctx, id, cell, text, self.state.focused)
     }
 }
-

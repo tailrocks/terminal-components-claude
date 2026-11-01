@@ -23,7 +23,6 @@ pub const VALUE_W: u16 = 7;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BarLayout {
-
     pub label_width: Option<u16>,
 
     pub reserve_value: bool,
@@ -110,7 +109,6 @@ pub fn render_bar_with(
     };
     let track_w = area.right().saturating_sub(x).saturating_sub(VALUE_W);
     if track_w < 6 {
-
         buf.set_string(x, area.y, pct.trim_start(), t.secondary().bg(bg));
         return;
     }
@@ -170,7 +168,6 @@ impl MeterLevel {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MeterVisual {
-
     #[default]
     Line,
 
@@ -179,11 +176,13 @@ pub enum MeterVisual {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MeterTone {
-
     #[default]
     Normal,
 
-    Level { warn: u8, crit: u8 },
+    Level {
+        warn: u8,
+        crit: u8,
+    },
 
     Fixed(MeterLevel),
 
@@ -201,7 +200,6 @@ pub enum MeterTone {
 }
 
 impl MeterTone {
-
     pub fn level(self, used_pct: Option<u8>) -> Option<MeterLevel> {
         match self {
             MeterTone::Normal | MeterTone::Stale => used_pct.map(MeterLevel::of),
@@ -218,7 +216,6 @@ impl MeterTone {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StaleStyle {
-
     #[default]
     Dashed,
 
@@ -341,7 +338,6 @@ impl Meter {
         if self.is_stale() {
             match self.stale_style {
                 StaleStyle::Dashed => {
-
                     paint.fill = t.glyphs.bar_stale;
                     paint.text = Style::new()
                         .fg(t.legible(t.text_muted, bg))
@@ -386,7 +382,6 @@ impl Meter {
             suffix_style = suffix_style.add_modifier(ratatui::style::Modifier::BOLD);
         }
         if !has_run {
-
             let text = crate::ui::text::truncate(&value, area.width.saturating_sub(2) as usize);
             buf.set_string(area.x, area.y, &text, text_style);
             let sx = area.x + width(&text) as u16;
@@ -397,7 +392,6 @@ impl Meter {
         }
         match self.visual {
             MeterVisual::Line => {
-
                 let track_w = area.width.saturating_sub(vw + 3);
                 if track_w < MIN_TRACK {
                     buf.set_string(
@@ -428,7 +422,6 @@ impl Meter {
                 buf.set_string(x + vw, area.y, suffix, suffix_style);
             }
             MeterVisual::Block => {
-
                 let bar_w = area.width.saturating_sub(2);
                 if bar_w < 4 {
                     buf.set_string(
@@ -447,7 +440,6 @@ impl Meter {
                     t.canvas
                 };
                 let on_rest = if paint.faint || paint.dashed || self.tone == MeterTone::Refreshing {
-
                     t.legible(t.text_muted, rest_bg)
                 } else {
                     t.text_primary
@@ -463,7 +455,6 @@ impl Meter {
                         st = st.add_modifier(ratatui::style::Modifier::BOLD);
                     }
                     if paint.dashed {
-
                         st = st.add_modifier(ratatui::style::Modifier::ITALIC);
                     }
 
@@ -601,7 +592,6 @@ pub struct ProgressBar {
 }
 
 impl ProgressBar {
-
     pub fn new(label: &str, ratio: f64) -> Self {
         Self {
             label: label.to_owned(),
@@ -646,7 +636,6 @@ pub struct Tally {
 }
 
 impl Tally {
-
     pub fn of(statuses: impl IntoIterator<Item = ProgressStatus>) -> Self {
         let mut t = Self::default();
         for s in statuses {
@@ -782,4 +771,3 @@ impl crate::ui::specimen::Specimen for Meter {
         m.render(area, buf, ctx, bg);
     }
 }
-

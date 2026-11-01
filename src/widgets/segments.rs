@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
@@ -116,7 +114,6 @@ pub fn render(
         (l + r + more).saturating_sub(sep) + 2 * edge
     };
     while total(&keep_l, &keep_r) > area.width {
-
         let mut best: Option<(u8, bool, usize)> = None;
         for (i, s) in left.iter().enumerate() {
             if keep_l[i] && best.is_none_or(|b| s.priority < b.0) {
@@ -135,7 +132,6 @@ pub fn render(
         }
     }
     let draw = |buf: &mut Buffer, ctx: &mut RenderCtx, x: u16, s: &Segment| {
-
         let mut st = match s.id {
             Some(id) => {
                 let mut vs = ctx.state(id);
@@ -251,4 +247,3 @@ impl crate::ui::specimen::Specimen for Segment {
         render(area, buf, ctx, std::slice::from_ref(self), &[], bg);
     }
 }
-

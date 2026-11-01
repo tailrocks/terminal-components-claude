@@ -1800,5 +1800,4 @@ impl Screen for DiskPage {
             right: vec![],
         }
     }
-
 }

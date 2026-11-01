@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -26,7 +24,6 @@ fn row_part(buf: &mut Buffer, row: Rect, offset: u16, text: &str, style: Style) 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CheckHit {
-
     #[default]
     Label,
 
@@ -125,7 +122,6 @@ impl Checkbox {
         let mark_style = if self.disabled {
             st
         } else if self.checked || self.mixed {
-
             st.fg(t.chosen_in(s))
         } else {
             st.fg(t.text_muted)
@@ -159,7 +155,6 @@ pub struct RadioGroup {
 }
 
 impl RadioGroup {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -557,4 +552,3 @@ impl crate::core::pointer::MouseTarget for Toggle {
         self.on_click().into()
     }
 }
-

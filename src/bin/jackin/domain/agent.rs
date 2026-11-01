@@ -243,4 +243,3 @@ pub enum AuthMode {
 
     Ignore,
 }
-

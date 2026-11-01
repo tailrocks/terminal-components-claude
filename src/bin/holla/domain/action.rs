@@ -481,4 +481,3 @@ impl Item {
         self.signal() >= Signal::LocalUse
     }
 }
-

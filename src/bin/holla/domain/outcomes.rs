@@ -1973,4 +1973,3 @@ fn apt(w: &World, c: &Command) -> Script {
         _ => ok(vec![echo_l], 1),
     }
 }
-

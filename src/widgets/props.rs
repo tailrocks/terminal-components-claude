@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -56,7 +54,6 @@ impl Prop {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Sheet {
-
     pub label_max_share: u16,
 
     pub value_min: u16,
@@ -127,7 +124,6 @@ fn rows(props: &[Prop], width: u16, sheet: Sheet) -> Vec<Row<'_>> {
     let mut out = vec![];
     for p in props {
         match column {
-
             Some(label_w) if crate::ui::text::width(&p.label) as u16 + 2 <= label_w => {
                 let vw = width.saturating_sub(label_w) as usize;
                 value_rows(p, Some(&p.label), label_w, vw, &mut out);
@@ -214,7 +210,6 @@ pub fn render_with(
         if !row.value.is_empty() {
             buf.set_string(area.x + row.value_x, y, &row.value, style);
             if !row.prop.wrap {
-
                 let cut = Rect::new(
                     area.x + row.value_x,
                     y,
@@ -297,7 +292,6 @@ impl std::ops::DerefMut for PropsList {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PropsCmd {
-
     Copy,
 }
 
@@ -314,7 +308,6 @@ impl Actions for PropsCmd {
 }
 
 impl PropsList {
-
     pub fn keymap(mut self, keymap: KeyMap<PropsCmd>) -> Self {
         self.keymap = keymap;
         self
@@ -577,7 +570,6 @@ impl PropsList {
             let vw = value_right.saturating_sub(vx + hint_w) as usize;
             let vs = st.fg(t.tone(p.tone));
             if let Some(lines) = block {
-
                 for (k, line) in lines.iter().take(h as usize).enumerate() {
                     let ls = if line.more { st.fg(t.text_muted) } else { vs };
                     let text = crate::ui::text::truncate(&line.text, vw);
@@ -697,4 +689,3 @@ impl crate::core::pointer::MouseTarget for PropsList {
         }
     }
 }
-
