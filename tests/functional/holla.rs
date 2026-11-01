@@ -320,7 +320,21 @@ fn holla_disk_tree_and_plan_review_flows() {
     app.visual("functional/holla_disk_tree");
     app.finish();
 
-    let plan = holla("holla-plan-review", "upgrade-plan");
+    let plan = App::new(
+        "holla-plan-review",
+        HOLLA,
+        &[
+            "--scenario",
+            "upgrade-plan",
+            "--motion",
+            "paused",
+            "--frame",
+            "48",
+        ],
+        120,
+        40,
+        "truecolor",
+    );
     plan.wait_text("8 steps · 8 included");
     for _ in 0..5 {
         plan.key("down");
@@ -331,20 +345,6 @@ fn holla_disk_tree_and_plan_review_flows() {
     plan.wait_text("8 included");
     plan.key("escape");
     plan.wait_text("Search actions and resources");
-    let window_start = std::time::Instant::now();
-    let mut saw_previous_age = false;
-    let mut first_poll = true;
-    while window_start.elapsed() < std::time::Duration::from_secs(3) {
-        let frame = text(&plan.screen());
-        if frame.contains("live · 2 s ago") {
-            saw_previous_age = true;
-        }
-        if frame.contains("live · 3 s ago") && (saw_previous_age || first_poll) {
-            break;
-        }
-        first_poll = false;
-        std::thread::sleep(std::time::Duration::from_millis(25));
-    }
     plan.visual("functional/holla_plan_review");
     plan.finish();
 }
